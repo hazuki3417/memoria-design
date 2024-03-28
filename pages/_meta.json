@@ -1,5 +1,14 @@
 {
+  "-- General Design": {
+    "type": "separator",
+    "title": "General Design"
+  },
   "index": "ホーム",
   "build-deploy": "ビルド・デプロイ",
-  "technology-stack": "技術スタック"
+  "technology-stack": "技術スタック",
+  "-- Service Designs": {
+    "type": "separator",
+    "title": "Service Designs"
+  },
+  "micro-services": "Micro Services"
 }
