@@ -1,4 +1,5 @@
 {
   "index": "ホーム",
-  "build-deploy": "ビルド・デプロイ"
+  "build-deploy": "ビルド・デプロイ",
+  "technology-stack": "技術スタック"
 }
