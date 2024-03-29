@@ -1,0 +1,189 @@
+# 概要
+
+マイクロサービス「Memoria Record」に関する情報を記載しています。
+
+## サービスの責務
+
+TODO: 記載する。合わせて記載方法も検討する。
+
+## ユースケース
+
+```mermaid
+flowchart LR
+
+user{ユーザー}
+
+memoria-register[コンテンツを登録する]
+memoria-edit[コンテンツを編集する]
+memoria-remove[コンテンツを削除する]
+
+memoria-record-register[insert]
+memoria-record-edit[update]
+memoria-record-remove[delete]
+
+user --- memoria-register --- memoria-record-register
+user --- memoria-edit --- memoria-record-edit
+user --- memoria-remove --- memoria-record-remove
+
+subgraph Memoria
+  memoria-register
+  memoria-edit
+  memoria-remove
+end
+
+subgraph Memoria Record
+  memoria-record-register
+  memoria-record-edit
+  memoria-record-remove
+end
+```
+
+## データモデル
+
+### GraphQL
+
+```graphql
+type Content {
+  id: ID!
+  workspaceId: String!
+  tags: [String]
+}
+
+type Mutation {
+  addContent(workspaceId: String!, tags: [String]): Content!
+  removContent(id: ID!): Content!
+}
+
+type Query {
+
+}
+```
+
+NOTE: 
+コードブロックにgraphqlを指定してそのまま定義を設計する。今のところ*.graphqlsファイルからコードを生成し、ロジックだけを実装する想定。上記のスキーマ定義はgraphqlで扱うデータモデルやフィールドのrequire,optionalが含まれている。しかし入力バリデーションとロジックバリデーションは含まれていない。ユースケースに相当するものはミューテーションとクエリーになる想定。
+
+TODO:
+- 入力バリデーションの記載が必要（フィールドのrequire,optinal以外）
+- ロジックバリデーションの記載が必要（シーケンスに記載？）
+
+#### 入力バリデーション
+
+TODO: 記載する
+
+### MongoDB
+
+#### スキーマ定義
+
+入力バリデーションをスキーマ定義として扱います。
+
+#### 入力バリデーション
+
+```js
+{
+  $jsonSchema: {
+    bsonType: 'object',
+    title: 'Collection Document Object Validation',
+    required: [
+      'workspaceId',
+      'tags',
+      'createdAt',
+      'updatedAt'
+    ],
+    properties: {
+      workspaceId: {
+        bsonType: 'string'
+      },
+      tags: {
+        bsonType: 'array',
+        items: {
+          bsonType: 'string'
+        }
+      },
+      createdAt: {
+        bsonType: 'date',
+      },
+      updatedAt: {
+        bsonType: 'date',
+      }
+    }
+  }
+}
+```
+
+#### インデックス
+
+TODO: 記載する
+
+
+### PostgreSQL
+
+#### スキーマ定義
+
+使用しないため記載なし。
+
+#### 入力バリデーション
+
+使用しないため記載なし。
+
+#### インデックス
+
+使用しないため記載なし。
+
+
+## シーケンス
+
+```mermaid
+sequenceDiagram
+
+participant user as User
+
+box rgb(234 40 60) GraphQL
+participant mutation as Mutation
+participant query as Query
+end
+
+box rgb(105 158 202) MongoDB
+participant collection-contents as Contents
+end
+
+
+user->>+mutation: addContent
+mutation->>+collection-contents: insert
+collection-contents-->>-mutation: return
+mutation-->>-user: feedback
+
+user->>+mutation: removeContent
+mutation->>+collection-contents: delete
+collection-contents-->>-mutation: return
+mutation-->>-user: feedback
+
+
+
+```
+
+TODO: 削除対象が存在しないときの挙動を検討する
+
+## 依存関係
+
+TODO: 記載する。合わせて記載方法も検討する。
+
+## セキュリティ
+
+TODO: 記載する。合わせて記載方法も検討する。
+
+## 監視とログ
+
+TODO: 記載する。合わせて記載方法も検討する。
+
+## スケーラビリティ
+
+TODO: 記載する。合わせて記載方法も検討する。
+
+## テスト
+
+TODO: 記載する。合わせて記載方法も検討する。
+
+## デプロイメント
+
+TODO: 記載する。合わせて記載方法も検討する。
+
