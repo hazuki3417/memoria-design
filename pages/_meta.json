@@ -5,6 +5,7 @@
   },
   "index": "ホーム",
   "build-deploy": "ビルド・デプロイ",
+  "ubiquitous-language": "ユビキタス言語",
   "technology-stack": "技術スタック",
   "-- Service Designs": {
     "type": "separator",
