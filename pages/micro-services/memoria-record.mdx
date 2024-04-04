@@ -1,12 +1,55 @@
 # 概要
 
-マイクロサービス「Memoria Record」に関する情報を記載しています。
+画像や動画などの物理ファイルをコンテンツとして取り扱い、それらの管理を行うサービスです。
 
 ## サービスの責務
 
 TODO: 記載する。合わせて記載方法も検討する。
 
+## コンセプトマップ
+
+このサービスにおけるコンセプトマップを以下に示します。
+
+```mermaid
+flowchart LR
+content((コンテンツ))
+
+file((ファイル情報))
+filePath[ファイルパス]
+fileName[ファイル名]
+fileExtension[拡張子]
+fileSize[ファイルサイズ]
+
+attributes((属性))
+
+workSpace[ワークスペース]
+
+subgraph physicalFileGroup [物理ファイル]
+  image((画像))
+  move((動画))
+end
+
+content --- physicalFileGroup
+content --- file
+content --- attributes
+content --- workSpace
+
+file --- filePath
+file --- fileName
+file --- fileExtension
+file --- fileSize
+
+attributes --- height
+attributes --- width
+```
+
+- 物理ファイルすべてに共通する情報（ファイルサイズなど）をファイル情報として管理します。
+- ファイルタイプに応じた情報（画像の場合は幅、高さなど）を属性として管理します。
+- サービス独自の付加情報はコンテンツの情報として管理します。
+
 ## ユースケース
+
+このサービスにおけるユースケースを以下に示します。
 
 ```mermaid
 flowchart LR
@@ -47,45 +90,6 @@ subgraph Memoria Record
   memoria-record-removee
 end
 ```
-
-## シーケンス
-
-```mermaid
-sequenceDiagram
-
-participant user as User
-
-box rgb(234 40 60) GraphQL
-participant query as Query
-participant mutation as Mutation
-end
-
-box rgb(105 158 202) MongoDB
-participant collection-contents as Contents
-end
-
-user->>+query: fetchContent
-query->>+collection-contents: find
-collection-contents-->>-query: return
-query-->>-user: feedback
-
-user->>+query: downloadContent
-query->>+collection-contents: find
-collection-contents-->>-query: return
-query-->>-user: feedback
-
-user->>+mutation: addContent
-mutation->>+collection-contents: insert
-collection-contents-->>-mutation: return
-mutation-->>-user: feedback
-
-user->>+mutation: removeeContent
-mutation->>+collection-contents: delete
-collection-contents-->>-mutation: return
-mutation-->>-user: feedback
-```
-
-TODO: 削除対象が存在しないときの挙動を検討する
 
 ## データモデル
 
@@ -204,6 +208,47 @@ TODO: 記載する
 #### インデックス
 
 使用しないため記載なし。
+
+## シーケンス
+
+GraphQLが提供するAPIを利用してコンテンツの管理を行うシーケンスを以下に示します。
+
+```mermaid
+sequenceDiagram
+
+participant user as User
+
+box rgb(234 40 60) GraphQL
+participant query as Query
+participant mutation as Mutation
+end
+
+box rgb(105 158 202) MongoDB
+participant collection-contents as Contents
+end
+
+user->>+query: fetchContent
+query->>+collection-contents: find
+collection-contents-->>-query: return
+query-->>-user: feedback
+
+user->>+query: downloadContent
+query->>+collection-contents: find
+collection-contents-->>-query: return
+query-->>-user: feedback
+
+user->>+mutation: addContent
+mutation->>+collection-contents: insert
+collection-contents-->>-mutation: return
+mutation-->>-user: feedback
+
+user->>+mutation: removeeContent
+mutation->>+collection-contents: delete
+collection-contents-->>-mutation: return
+mutation-->>-user: feedback
+```
+
+TODO: 削除対象が存在しないときの挙動を検討する
 
 ## 依存関係
 
