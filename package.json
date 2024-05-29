@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "@types/react-syntax-highlighter": "^15.5.11",
+    "next": "^14.1.4",
+    "nextra": "^2.13.4",
+    "nextra-theme-docs": "^2.13.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-syntax-highlighter": "^15.5.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  }
+}
