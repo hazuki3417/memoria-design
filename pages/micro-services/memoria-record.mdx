@@ -60,26 +60,26 @@ memoria-fetch[コンテンツを見る]
 memoria-download[コンテンツをダウンロードする]
 memoria-register[コンテンツを登録する]
 memoria-edit[コンテンツを編集する]
-memoria-removee[コンテンツを削除する]
+memoria-remove[コンテンツを削除する]
 
 memoria-record-fetch[fetch]
 memoria-record-download[download]
 memoria-record-register[register]
 memoria-record-edit[edit]
-memoria-record-removee[removee]
+memoria-record-remove[remove]
 
 user --- memoria-fetch --- memoria-record-fetch
 user --- memoria-download --- memoria-record-download
 user --- memoria-register --- memoria-record-register
 user --- memoria-edit --- memoria-record-edit
-user --- memoria-removee --- memoria-record-removee
+user --- memoria-remove --- memoria-record-remove
 
 subgraph Memoria
   memoria-fetch
   memoria-download
   memoria-register
   memoria-edit
-  memoria-removee
+  memoria-remove
 end
 
 subgraph Memoria Record
@@ -87,7 +87,7 @@ subgraph Memoria Record
   memoria-record-download
   memoria-record-register
   memoria-record-edit
-  memoria-record-removee
+  memoria-record-remove
 end
 ```
 
@@ -102,25 +102,17 @@ type Content {
   id: ID!
   workspaceId: String!
   tags: [String!]!
-  name: String!
-  extension: String!
-  type: String
-  size: Int!
-  paths: FilePathInfo!
-  image: ImageInfo
+  file: File!
   createdAt: String!
   updatedAt: String!
 }
 
-type FilePathInfo {
-  original: String!
-  thumbnail: String!
-}
-
-type ImageInfo {
-  width: Int
-  height: Int
-  dateTime: String
+type File {
+  path: String!
+  name: String!
+  extension: String!
+  type: String
+  size: Int!
 }
 
 type Mutation {
@@ -157,7 +149,7 @@ TODO: 記載する
 入力バリデーションをスキーマ定義として扱います。
 
 #### 入力バリデーション
-
+https://github.com/go-playground/validator
 ```js
 {
   $jsonSchema: {
@@ -242,7 +234,7 @@ mutation->>+collection-contents: insert
 collection-contents-->>-mutation: return
 mutation-->>-user: feedback
 
-user->>+mutation: removeeContent
+user->>+mutation: removeContent
 mutation->>+collection-contents: delete
 collection-contents-->>-mutation: return
 mutation-->>-user: feedback
