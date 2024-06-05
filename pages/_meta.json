@@ -6,9 +6,10 @@
   "index": "ホーム",
   "build-deploy": "ビルド・デプロイ",
   "iac": "IaC",
-  "log-design": "ログ設計",
-  "ubiquitous-language": "ユビキタス言語",
-  "technology-stack": "技術スタック",
+  "log-design": "ログ",
+  "dam-api-design": "DAM・APM",
+  "ubiquitous-language": "ユビキタス",
+  "technology-stack": "スタック",
   "-- Service Designs": {
     "type": "separator",
     "title": "Service Designs"
