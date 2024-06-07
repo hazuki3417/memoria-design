@@ -1,18 +1,21 @@
 {
+  "index": "Home",
   "-- General Design": {
     "type": "separator",
     "title": "General Design"
   },
-  "index": "ホーム",
-  "build-deploy": "ビルド・デプロイ",
+  "technology-stack": "Stack",
+  "ubiquitous": "Ubiquitous",
+  "component": "Component",
+  "schema-driven": "Schema",
+  "validation": "Validation",
+  "log-design": "Log",
+  "dam-apm-design": "DAM APM",
+  "build-deploy": "Build Deploy",
   "iac": "IaC",
-  "log-design": "ログ",
-  "dam-api-design": "DAM・APM",
-  "ubiquitous-language": "ユビキタス",
-  "technology-stack": "スタック",
   "-- Service Designs": {
     "type": "separator",
     "title": "Service Designs"
   },
-  "micro-services": "Micro Services"
+  "micro-service": "Micro Service"
 }
