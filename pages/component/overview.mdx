@@ -6,8 +6,111 @@
 
 Reactでのコンポーネント開発において、Presentation Component（プレゼンテーションコンポーネント）とContainer Component（コンテナコンポーネント）の分離は、コードの可読性、再利用性、テストのしやすさを向上させるための有効なパターンです。このドキュメントでは、それぞれの役割と使用方法について説明します。
 
+
+
+## コンポーネントの概念と関連性
+
+コンポーネントは大きく分けて以下の概念があります。
+- Layout Component
+- Page Component
+- Section Component
+- Widget Component
+- Container Component
+- Presentation Component
+
+上記のコンポーネントはそれぞれ包含関係にあります。例えば、Container ComponentはPresentation Componentを内包するように実装します。
+
 ![関連図](./_drawio/overview.drawio.svg)
 
+**Section Component A**
+- Container Componentに分類される。
+- Container Componentを内包するケースもある。
+- Presentation Componentを必ず内包する。
+- 再利用できないロジック、UIを持つコンポーネント
+
+**Widget Component A**
+- Container Componentに分類される。
+- Container Componentを内包するケースもある。
+- Presentation Componentを必ず内包する。
+- 再利用できるロジック、UIを持つコンポーネント
+
+**Section Component B**
+- Presentation Componentに分類される。
+- Presentation Componentを内包するケースもある。
+- 再利用できないUIを持つコンポーネント
+
+**Widget Component B**
+- Presentation Componentに分類される。
+- Presentation Componentを内包するケースもある。
+- 再利用できるUIを持つコンポーネント
+
+
+### Section Component
+
+```
+.
+└── pages
+   └── users
+        └── @section
+             ├── SearchForm
+             │   ├── view.tsx           // Presentation Component
+             │   ├── view.test.tsx      
+             │   ├── view.stories.tsx   
+             │   ├── container.tsx      // Container Component
+             │   ├── container.test.tsx 
+             │   └── index.ts
+             ├── Table
+             │   ├── view.tsx           // Presentation Component
+             │   ├── view.test.tsx      
+             │   ├── view.stories.tsx   
+             │   ├── container.tsx      // Container Component
+             │   ├── container.test.tsx 
+             │   └── index.ts
+             └── index.ts
+```
+
+
+### Widget Component
+
+Widget Componentのディレクトリ構成を以下に示します。
+
+```
+.
+└── widget
+   ├── presentation
+   │   ├── ComponentA
+   │   │   ├── index.test.tsx
+   │   │   ├── index.stories.tsx
+   │   │   └── index.ts
+   │   ├── ComponentB
+   │   │   ├── index.test.tsx
+   │   │   ├── index.stories.tsx
+   │   │   └── index.ts
+   │   ├── etc,
+   │   └── index.ts
+   ├── container
+   │   ├── ComponentA
+   │   │   ├── index.test.tsx
+   │   │   ├── index.stories.tsx
+   │   │   └── index.ts
+   │   ├── ComponentB
+   │   │   ├── index.test.tsx
+   │   │   ├── index.stories.tsx
+   │   │   └── index.ts
+   │   ├── etc,
+   │   └── index.ts
+   └── index.ts
+```
+
+**パスマッピング**
+  
+```json
+{
+  "paths": {
+    "@widget/*": ["./widget/*"],
+  }
+}
+```
 
 ### Presentation Component
 
@@ -31,7 +134,6 @@ const Button = ({ onClick, label }) => (
 
 export default Button;
 ```
-
 
 ### Container Component
 Container Componentは、状態管理やビジネスロジックを担当するコンポーネントです。データの取得や操作、状態の変更などを行い、それをPresentation Componentに渡して表示させます。
