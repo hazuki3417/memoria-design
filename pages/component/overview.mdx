@@ -163,3 +163,73 @@ const ButtonContainer = () => {
 
 export default ButtonContainer;
 ```
+
+
+
+## 実装方針
+
+### 標準のHTMlタグからコンポーネントを作成
+
+```tsx
+import { ComponentPropsWithoutRef, forwardRef, ComponentProps } from "react";
+
+type Props = ComponentPropsWithoutRef<"div"> & {
+	// NOTE: 必要に応じて追加のプロパティをここに定義します。
+};
+
+const Component = forwardRef<HTMLDivElement, Props>((props, ref) => {
+	const { children, ...rest } = props;
+	return (
+		<div {...rest} ref={ref}>
+			{children}
+		</div>
+	);
+});
+
+export default Component;
+export type ComponentProps = ComponentProps<typeof Component>;
+```
+
+
+**`ComponentPropsWithoutRef<{tagName}>` の使用**
+
+標準的なプロパティ（className、style、id、onClick など）をすべて含む Props 型を定義します。これにより、汎用的な HTML タグのプロパティをすべてサポートします。
+
+**`forwardRef` の使用**
+
+`React.forwardRef` を使用して、`ref` をサポートするコンポーネントを作成します。これにより、親コンポーネントからこのコンポーネントへの参照を取得できます。
+
+**`children` の分離**
+
+`props` から `children` を分離し、残りのプロパティを `...rest` として展開します。これにより、コンポーネントの `props` の伝搬を確実に行います。
+
+**型のエクスポート**
+
+`ComponentProps<typeof {ComponentName}>` を使用して、実装する Component のプロパティ型をエクスポートします。これにより、他の場所でこのコンポーネントの型を再利用できます。
+
+### サードパーティのコンポーネントからコンポーネントを作成
+
+```tsx
+import { FC, ComponentProps } from "react";
+import { Input as OriginInput, InputProps as OriginProps } from "antd";
+
+type Props = OriginProps & {
+	// NOTE: 必要に応じて追加のプロパティをここに定義します。
+};
+
+const Input: FC<Props> = (props) => {
+	const { ...rest } = props;
+	return <OriginInput {...rest} />;
+};
+
+export default Input;
+export type InputProps = ComponentProps<typeof Input>;
+```
+
+**`const { ...rest } = props` の使用**
+
+`props` に追加のプロパティが将来的に増える可能性を考慮し、明示的に展開することで柔軟性を保ちます。
+
+**型情報のエクスポート**
+
+`React.ComponentProps<typeof {ComponentName}>` を使用することで、ラップされたコンポーネントの型情報を正確にエクスポートします。これにより、型の一貫性が保たれます。
