@@ -1,0 +1,175 @@
+# 概要
+
+スキーマ駆動開発に関する情報を記載しています。
+
+
+## 設計プロセス
+
+
+GraphQLのスキーマ定義イメージ
+
+
+```mermaid
+block-beta
+  columns 5
+  dataModel["Json Data Model"]
+  space
+  graphql["GraphQL Schema"]
+  space
+  gostruct["Go Struct"]
+
+  dataModel --> graphql
+  graphql --> gostruct
+```
+
+**GraphQL Schema Example**
+```graphql
+scalar Upload
+
+input AddContentInput {
+  file: Upload!
+  workspaceId: String!
+  tags: [String!]!
+}
+
+input DeleteContentInput {
+  id: ID! @tag(validate: "mongodb")
+}
+
+input AddContentTagsInput {
+  id: ID! @tag(validate: "mongodb")
+  tags: [String!]! @tag(validate: "min=1,dive,required")
+}
+
+input RemoveContentTagsInput {
+  id: ID! @tag(validate: "mongodb")
+  tags: [String!]! @tag(validate: "min=1,dive,required")
+}
+
+input ReplaceContentTagsInput {
+  id: ID! @tag(validate: "mongodb")
+  tags: [String!]! @tag(validate: "dive,required")
+}
+
+input ModifyTag {
+  old: String! @tag(validate: "required")
+  new: String! @tag(validate: "required")
+}
+
+input ModifyContentTagsInput {
+  id: ID! @tag(validate: "mongodb")
+  tags: [ModifyTag!]! @tag(validate: "min=1,dive")
+}
+
+input ContentFilter {
+  workspaceId: String @tag(validate: "required")
+  ids: [String] @tag(validate: "omitempty,dive,required")
+  tags: [String] @tag(validate: "omitempty,dive,required")
+  extensions: [String] @tag(validate: "omitempty,dive,required")
+  types: [String] @tag(validate: "omitempty,dive,required")
+  sizeGte: Int @tag(validate: "omitempty,gte=0")
+  sizeLte: Int @tag(validate: "omitempty,gte=0")
+}
+
+type ContentPayload {
+  id: ID!
+  workspaceId: String!
+  presignedUrl: String!
+  tags: [String!]!
+  file: FilePayload!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type FilePayload {
+  name: String!
+  extension: String!
+  type: String!
+  size: Int!
+}
+
+type Mutation {
+  addContent(input: AddContentInput!): ContentPayload!
+  deleteContent(input: DeleteContentInput!): ContentPayload!
+  addContentTags(input: AddContentTagsInput!): ContentPayload!
+  removeContentTags(input: RemoveContentTagsInput!): ContentPayload!
+  replaceContentTags(input: ReplaceContentTagsInput!): ContentPayload!
+  modifyContentTags(input: ModifyContentTagsInput!): ContentPayload!
+}
+
+type Query {
+  content(id: ID!): ContentPayload
+  contents(filter: ContentFilter): [ContentPayload]
+}
+```
+
+### 命名方針
+
+- Query
+  - 概念などのモデル名をそのまま命名します。
+- Mutation
+  - 動詞 + モデル名となるように命名します。
+    - 例）`追加` + `コンテンツ` : `addContent`
+  - 入力のモデルを定義し、inputフィールドにモデルを指定する
+    - モデル名には接尾時として `Input` をつける
+  - 出力のモデルを定義し、ミューテーションの返り値の型として指定する。
+    - 型名には接尾辞として `Payload` をつける（ネストする型も対象）
+- その他
+  - Query, Mutationの型定義は共有せず、それぞれで定義する。
+
+
+### transaction
+
+トランザクションのスコープについて
+
+```graphql
+mutation CreateUserAndPost($name: String!, $email: String!, $title: String!, $content: String!) {
+  createUser(input: { name: $name, email: $email }) {
+    id
+  }
+
+  createPost(input: { userId: $userId, title: $title, content: $content }) {
+    id
+    title
+    content
+    author {
+      id
+      name
+      email
+    }
+  }
+}
+```
+
+ミューテーションを同じ階層で呼び出す場合、`createUser` と `createPost` はそれぞれ独立したトランザクションとなるように実装する。
+
+```graphql
+mutation {
+  createUser(input: { name: "Alice", email: "alice@example.com" }) {
+    id
+    createPost(input: { userId: $userId, title: "Hello World", content: "This is my first post" }) {
+      id
+      title
+      content
+      author {
+        id
+        name
+        email
+      }
+    }
+  }
+}
+```
+
+ミューテーションをネストして呼び出す場合、`createPost` と `createPost` は1つのトランザクションとなるように実装する。
+
+
+
+### 制限事項
+
+- おぺれーしょんの定義方法
+  - queryのネストはOK
+  - queryの同階層呼び出しはOK
+  - mutationのネストはNG
+  - mutationの同階層呼び出しはOK
+  - transactionはmutation単位で実装（operation単位ではない）

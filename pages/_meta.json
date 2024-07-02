@@ -7,7 +7,7 @@
   "technology-stack": "Stack",
   "ubiquitous": "Ubiquitous",
   "component": "Component",
-  "schema-driven": "Schema",
+  "schema": "Schema",
   "validation": "Validation",
   "log-design": "Log",
   "dam-apm-design": "DAM APM",
