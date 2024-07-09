@@ -12,6 +12,7 @@
   "log-design": "Log",
   "dam-apm-design": "DAM APM",
   "test-design": "Test",
+  "env-var": "Env Var",
   "build-deploy": "Build Deploy",
   "iac": "IaC",
   "-- Service Designs": {
