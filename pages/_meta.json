@@ -15,6 +15,7 @@
   "env-var": "Env Var",
   "build-deploy": "Build Deploy",
   "iac": "IaC",
+  "tips": "Tips",
   "-- Service Designs": {
     "type": "separator",
     "title": "Service Designs"

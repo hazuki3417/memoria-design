@@ -1,0 +1,70 @@
+# Tips
+
+ちょっとしたノウハウをまとめています。
+
+## go
+
+### go.mongodb.org/mongo-driver
+
+**bson.A**
+
+BSON配列を定義する構造体です。
+
+e.g.,
+```go
+bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
+```
+
+```json
+[
+    "bar",
+    "world",
+    3.14159,
+    {
+        "qux": 12345
+    }
+]
+```
+
+
+**bson.D**
+
+BSONオブジェクトを定義する構造体です。（順序表現あり）
+
+e.g.,
+```go
+bson.D{bson.E{"foo", "bar"}, bson.E{"hello", "world"}, bson.E{"pi", 3.14159}}
+```
+
+```json
+{
+    "foo": "bar",
+    "hello": "world",
+    "pi": 3.14159
+}
+```
+
+公式は下記のようなサンプルを提供していますが、シンタックスハイライト（警告）が出ます。
+警告を回避する場合は上記のように `bson.E` を使用して記述してください。
+
+e.g.,
+```go
+bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+```
+
+**bson.M**
+
+BSONオブジェクトを定義する構造体です。（順序表現なし）
+
+e.g.,
+```go
+bson.M{"foo": "bar", "hello": "world", "pi", 3.14159}
+```
+
+```json
+{
+    "foo": "bar",
+    "hello": "world",
+    "pi": 3.14159
+}
+```
