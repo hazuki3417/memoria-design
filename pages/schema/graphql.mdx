@@ -2,6 +2,12 @@
 
 スキーマ駆動開発に関する情報を記載しています。
 
+## TODO
+
+GraphQLの特徴と思想を記述する（シンプル・拡張性・柔軟性の部分
+その思想をもとに設計はこのように考えるのが適切という理由を記載する
+（拡張性されることを前提としているなら、拡張しやすい設計をするのがいいよねっていう話）
+
 
 ## 設計プロセス
 
@@ -30,6 +36,10 @@ input AddContentInput {
   file: Upload!
   workspaceId: String!
   tags: [String!]!
+}
+
+input AddContentsInput {
+  item: [AddContentInput!]! @tag(validate: "min=1,dive,required")
 }
 
 input DeleteContentInput {
@@ -105,17 +115,41 @@ type Query {
 
 ### 命名方針
 
-- Query
-  - 概念などのモデル名をそのまま命名します。
-- Mutation
-  - 動詞 + モデル名となるように命名します。
-    - 例）`追加` + `コンテンツ` : `addContent`
-  - 入力のモデルを定義し、inputフィールドにモデルを指定する
-    - モデル名には接尾時として `Input` をつける
-  - 出力のモデルを定義し、ミューテーションの返り値の型として指定する。
-    - 型名には接尾辞として `Payload` をつける（ネストする型も対象）
-- その他
-  - Query, Mutationの型定義は共有せず、それぞれで定義する。
+#### 基本方針
+
+**1. 明確さと直感性**
+
+ミューテーション名がその操作を明確に表現しているかどうか。
+
+**2. 一貫性**
+
+既存のAPI命名規則や他のミューテーションとの一貫性。
+
+**3. 読みやすさと短さ**
+
+名前が短くて読みやすいかどうか。
+
+#### 補足
+- 操作の意図が明確に伝わる名称よりも全体を通して一貫性のある名称を選択する
+
+**Query**
+- 概念などのモデル名をそのまま命名します。
+
+**Mutation**
+- 動詞 + モデル名となるように命名します。
+  - 例）`追加` + `コンテンツ` : `addContent`
+- 一括処理の場合は、`bulk` + 動詞 + モデル名 となるように命名します。
+  - 例）`削除` + `コンテンツ` : `addContents`
+- 入力のモデルを定義し、inputフィールドにモデルを指定する
+  - モデル名には接尾時として `Input` をつける
+  - 更新や削除のkeyとする情報は `Input` に含める。
+    - IDを指定する場合は、`id` というフィールドを定義する。
+    - 条件を指定する場合は、`filter` というフィールドを定義する。
+- 出力のモデルを定義し、ミューテーションの返り値の型として指定する。
+  - 型名には接尾辞として `Payload` をつける（ネストする型も対象）
+
+**その他**
+- Query, Mutationの型定義は共有せず、それぞれで定義する。
 
 
 ### transaction
@@ -173,3 +207,18 @@ mutation {
   - mutationのネストはNG
   - mutationの同階層呼び出しはOK
   - transactionはmutation単位で実装（operation単位ではない）
+
+
+## Pagination
+
+ページネーションはRelay Cursor Connections Specificationの仕様に沿って実装します。
+
+参考
+- [GraphQL Cursor Connections Specification](https://relay.dev/graphql/connections.htm)
+- [GraphQL Pagination](https://graphql.org/learn/pagination/)
+
+beforeまたはafterのみを指定したときの挙動
+![relay.cursor.connection.before-after-only](./_drawio/relay.cursor.connection.before-after-only.drawio.svg)
+
+beforeまたはafterに加えてfirstまたはlastを指定したときの挙動
+![relay.cursor.connection](./_drawio/relay.cursor.connection.drawio.svg)
