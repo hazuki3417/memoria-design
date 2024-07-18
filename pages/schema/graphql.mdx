@@ -217,8 +217,31 @@ mutation {
 - [GraphQL Cursor Connections Specification](https://relay.dev/graphql/connections.htm)
 - [GraphQL Pagination](https://graphql.org/learn/pagination/)
 
-beforeまたはafterのみを指定したときの挙動
+e.g.,
+
+- beforeのみ指定
+- afterのみ指定
+
 ![relay.cursor.connection.before-after-only](./_drawio/relay.cursor.connection.before-after-only.drawio.svg)
 
-beforeまたはafterに加えてfirstまたはlastを指定したときの挙動
+e.g.,
+
+- firstのみ指定
+- lastのみ指定
+- beforeとlastを指定
+- afterとfirstを指定
+
 ![relay.cursor.connection](./_drawio/relay.cursor.connection.drawio.svg)
+
+下記の組み合わせによるしてはエラーとして扱います。
+
+- beforeとfirstを指定
+- afterとlastを指定
+
+**注意点**
+
+下記のパターンで指定したとき、データの取得順は降順となります。そのためデータベースから取得したデータの順番を逆転する処理が必要です。
+
+- beforeのみ指定
+- lastのみ指定
+- beforeとlastを指定
