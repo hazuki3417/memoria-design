@@ -1,0 +1,59 @@
+
+
+### useState
+
+1. props の値をそのまま useState の引数に渡す
+   
+```tsx
+function Form({ value }) {
+  const [state, setState] = useState(value);
+}
+```
+
+初回レンダリング時にしか反映されないため、「props の変化に追随する」と誤解されやすい。
+
+→ 初期値コピー用途なら有効（フォーム入力の初期値など）。
+
+追随させたいなら useMemo や useEffect を使うべき。
+
+アンチパターンになりやすいのは「props に追随するはず」と誤解して使うケース。
+
+2. useState から返却される state を他の useState の引数に渡す
+const [a, setA] = useState(0);
+const [b, setB] = useState(a);
+
+
+b は 初回だけ a をコピーした別 state になる。
+
+a が変わっても b は追随しないので「依存して動く」と誤解されやすい。
+
+依存関係があるなら「派生値として計算 (useMemo)」か「同期 (useEffect)」で明示すべき。
+
+アンチパターンになりやすいのは「依存関係を正しく表現できていない」場合。
+
+3. useState から返却される state を自身の setState に渡す
+const [user, setUser] = useState({ name: "Alice" });
+setUser(user); // 参照が同じなのでレンダリングされない
+
+
+意味のない呼び出し。
+
+もし中身をミューテーションしていた場合でも、参照が同じなので React が検知できず UI が更新されない。
+
+→ 確実にアンチパターン。
+
+✅ まとめ
+
+props → useState は「初期化だけならOK」。追随を期待するとアンチパターン。
+
+state A → state B は「独立させたいならOK」。依存を期待するとアンチパターン。
+
+state → setState(state) は「常にアンチパターン」。意味がないかバグを生む。
+
+👉 より良いパターンはこう整理できます：
+
+「追随」したい → props/state を直接使う or useMemo/useEffect
+
+「独立」させたい → 初期化時だけコピーすることを明示する
+
+「無意味」な更新はしない
