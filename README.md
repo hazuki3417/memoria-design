@@ -42,12 +42,14 @@ npm run build
 
 ## 最初に読む資料
 
-1. [ドキュメント管理方針](./pages/documentation-policy.mdx)
-2. [リポジトリ構成](./pages/architecture/index.mdx)
-3. [Mediaドメイン](./pages/media/index.mdx)
-4. [Context map](./pages/context/index.mdx)
-5. [ローカル開発環境](./pages/local-development.mdx)
-6. [人間中心のAI支援開発](./pages/ai-development.mdx)
-7. [ブランチ運用](./pages/branch-strategy.mdx)
+1. [Mediaドメイン](./pages/media/index.mdx)
+2. [Media関連ユースケース](./pages/media/use-cases.mdx)
+3. [ユビキタス言語](./pages/ubiquitous.mdx)
+4. [リポジトリ構成](./pages/architecture/index.mdx)
+5. [ドキュメント管理方針](./pages/documentation-policy.mdx)
+6. [Context map](./pages/context/index.mdx)
+7. [ローカル開発環境](./pages/local-development.mdx)
+8. [人間中心のAI支援開発](./pages/ai-development.mdx)
+9. [ブランチ運用](./pages/branch-strategy.mdx)
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。
