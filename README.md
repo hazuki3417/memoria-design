@@ -38,7 +38,7 @@ Windowsのブラウザから`http://localhost:3000`へアクセスします。�
 npm run build
 ```
 
-環境構成、Web・APIの結合確認、Linux向けoptional dependencyの診断と復旧は[ローカル開発環境](./pages/local-development.mdx)を参照してください。
+環境構成、依存関係の管理、Web・APIの結合確認は[ローカル開発環境](./pages/local-development.mdx)を参照してください。
 
 ## 最初に読む資料
 
