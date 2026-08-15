@@ -1,0 +1,9 @@
+# Mediaストレージ
+
+> 状態: 現行実装と将来要件を分離して記載
+
+DBはMediaの属性・管理主体・公開関係、object storageはbinaryと派生物を保持します。Webは恒久keyへ依存せず、APIは認可後にdownloadまたは期限付きURLを提供します。key・metadataはAPI、bucket・IAM・lifecycleはIaCを実行可能な正本とします。
+
+初期資料の`images/{id}/original`、preview、thumbnail、watermarkedは案であり、すべてを現行仕様とは扱いません。特にwatermarkは未確定です。動画対応では原本と派生物、変換状態、thumbnail、再処理、削除順序を設計します。
+
+bucketを直接公開せず、upload時にsizeとmedia typeを検証し、最小権限と環境分離を適用します。実bucket名やsecretは記載しません。
