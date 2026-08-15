@@ -4,12 +4,12 @@
 
 Context mapは、開発者とChatGPTがタスクに必要な正本へ到達するための索引です。設計書の内容をAI向けに複製するものではありません。
 
-人間がサイト全体を読む場合は、Homeとドキュメント管理方針が示す「プロダクト概要 → 用語・ユースケース → 全体構成 → 詳細設計 → 開発・運用 → 判断・履歴」の順序を使用します。Context mapのタスク別順序は、特定作業の調査を効率化するためのものであり、人間向けのナビゲーション構成を置き換えません。
+人間がサイト全体を読む場合は、Homeとドキュメント管理方針が示す「プロダクト概要 → 用語・ユースケース → 全体構成 → 詳細設計 → 開発・運用」の順序を使用します。Context mapのタスク別順序は、特定作業の調査を効率化するためのものであり、人間向けのナビゲーション構成を置き換えません。
 
 ## 情報の優先順位
 
 1. 現在のIssueまたは会話で人間が合意した要件
-2. 承認済みの設計書とADR
+2. 承認済みの最新設計書
 3. 所有リポジトリにある実行可能なschema・設定・実装・テスト
 4. 対象リポジトリの`AGENTS.md`とREADME
 5. 過去のIssue・PR
@@ -52,14 +52,20 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 6. `memoria-api/schemas/graphql/`と生成設定
 7. `memoria-web`のoperation・fragment・生成型への影響
 
-### データベース
+### データベース・Media永続化
 
 1. Issueの受け入れ条件とmigration条件
-2. [Media概念データモデル](/media/data-model)などのドメインルール
-3. API設計
-4. `memoria-api/schemas/postgres/`のschema・query
-5. service・repository・生成コード
-6. backup、migration、rollback方法
+2. [Media設計](/media)と[ユースケース](/media/use-cases)
+3. [論理データモデル](/media/data-model)
+4. [物理データモデル](/media/physical-data-model)
+5. [レコードパターン](/media/record-patterns)
+6. [整合性とTransaction](/media/consistency-transactions)
+7. [Mediaストレージ](/system/data/storage)
+8. `memoria-api/schemas/postgres/`の実行可能schema・query
+9. service・repository・GraphQL・生成code
+10. migration、rollbackまたはroll-forward、結合test
+
+実装前に、tableとfieldだけでなく、PK・FK・CHECK・index、操作前後のレコード変化、対象外dataへの非影響、DBとObject Storage間の失敗処理を確認します。
 
 ### インフラストラクチャ
 
@@ -77,6 +83,16 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 4. 後方互換性、PRのマージ順序、deploy・migration順序を決める
 5. リポジトリごとに作業ブランチとPRを分ける
 6. 関連PRを相互リンクする
+
+### 詳細設計を追加・更新するタスク
+
+1. 対象ユースケースと不変条件を確認する
+2. 既存のMDX、Mermaid、実装可能schema、Git履歴上の削除前資料を調査する
+3. 概要だけでなく、属性、constraint、データパターン、操作順序、失敗時処理を抽出する
+4. 最新設計と競合する情報は自動採用せず、人間の判断対象にする
+5. 採用する情報を現在のドキュメント構成へ統合する
+6. サイドメニュー、相互link、用語、実装差分の引用ブロックを更新する
+7. 元資料を削除する場合は、必要情報の移行完了を確認する
 
 ## タスクcontextに含める情報
 
