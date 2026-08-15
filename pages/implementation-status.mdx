@@ -2,109 +2,24 @@
 
 > 状態: 現行調査  
 > 最終確認日: 2026-08-15  
-> 調査基準: 各リポジトリの `develop` ブランチ
+> 調査基準: 各リポジトリの `develop`
 
-## 目的
+WebはNext.js App Router、APIはGraphQL→Service→Repository interface→Infrastructure、主永続化はPostgreSQLです。Image、ImageGroup、Tag、Userはアプリケーション処理を確認済みです。Community関連は一部がDB定義まで、MongoDB Contentは現行の主要処理として未確認です。IaCの`MemoriaRecord`は旧名称で、マイクロサービス採用を意味しません。
 
-初期設計と現行実装を混同せず、実装済みの事実、設計済みだが未実装の要素、差異、判断が必要な要素を管理します。
+## 将来設計
 
-現在の挙動・構造を説明するときは現行実装を基準とします。ただし、実装に存在しない設計要素を自動的に廃止とは判断しません。
+Contentを静止画像・動画に限定したMediaへ再定義します。管理主体、Community公開、委譲、Group、User削除、物理削除は[Media設計判断](./media/design-decisions)を正本とします。
 
-## 判定区分
+## 精査により廃止・統合した資料
 
-| 区分 | 意味 | 更新方法 |
-| --- | --- | --- |
-| 実装済み | 実行可能な定義とコードで確認できる | 現行仕様として記載 |
-| 一部実装 | 契約または処理の一部だけ存在する | 実装範囲と不足を併記 |
-| 計画 | 設計済みだが実装で確認できない | 将来仕様として保持 |
-| 実装差異 | 設計と実装が異なる | 両方を残して判断を待つ |
-| 要確認 | 目的や採否を資料だけでは判断できない | Issueまたは人間の判断へつなぐ |
+| 資料 | 判断 |
+| --- | --- |
+| Micro Service／Memoria Record | 現行構成と不一致。ユースケースはMediaへ包含 |
+| Content・Workspace中心GraphQL | 実行可能schemaと不一致 |
+| Presentation／Container | 現行App Router・feature構成と不一致 |
+| MongoDB前提validation | 現行API全体の規約として不適切 |
+| 一マイクロサービス一stack | 採用しない |
+| DAM・APM、log | 可観測性へ統合 |
+| 一般的なGo・React Tips | プロダクト固有情報がなく削除 |
 
-## 情報源の優先順位
-
-現行状態の確認には次の順序を使用します。
-
-1. 実行コードとresolver
-2. SQL・GraphQL・JSON Schemaなどの実行可能な定義
-3. コード生成・起動・環境設定
-4. 設計書とdraw.io
-
-設計意図や将来像については、設計書とdraw.ioを参照します。優先順位は設計を削除する順序ではありません。
-
-## 調査結果
-
-### PostgreSQL
-
-`memoria-api/schemas/postgres/schema.sql`はPostgreSQL 17.5から生成されたダンプであり、ローカルDB初期化時にも読み込まれます。現在確認できる16テーブルは[データモデル](./schema/data-model)に整理しています。
-
-画像、画像グループ、タグ、ユーザーに関するrepository・service・GraphQL resolverは実装されています。
-
-コミュニティ、メンバーシップ、オーナー履歴、コミュニティ単位の画像アクセスはSQL定義に存在します。一方、対応するGraphQL型、resolver、domain/serviceは確認できないため、現時点では「DB定義済み・アプリケーション機能未確認」とします。未使用・廃止とは判断しません。
-
-### GraphQL
-
-実行可能なschemaは`memoria-api/schemas/graphql/*.graphql`です。
-
-| 領域 | 契約 | resolver | 判定 |
-| --- | --- | --- | --- |
-| Image | Query・upload/update/delete/download | 実装あり | 実装済み |
-| ImageGroup | Query・create/update/delete | 実装あり | 実装済み |
-| User profile | `me`・`updateProfile` | 実装あり | 実装済み |
-| User preference | 取得・更新 | 固定値返却、更新処理TODO | 一部実装 |
-| User usage | 使用量・ファイル統計 | 固定値返却 | 一部実装 |
-| Community | GraphQL契約なし | resolverなし | 計画または要確認 |
-
-既存の[GraphQL設計](./schema/graphql)にあるMongoDB Content中心のschema例は、現在の実行可能schemaとは一致しません。設計意図を保持するため削除せず、初期設計・検討資料として扱います。
-
-### MongoDB
-
-`memoria-api/schemas/mongodb/content.json.schema`にContentのJSON Schemaがあり、ローカル環境にもMongoDBがあります。現行GraphQL契約はPostgreSQL上のImage・ImageGroup中心へ変化しています。
-
-MongoDB Contentモデルの今後の採否、移行途中か、別用途として維持するかは資料から確定できないため「要確認」とします。
-
-### draw.io
-
-`pages/_drawio/modeling.drawio.svg`には次の初期設計が含まれます。
-
-- User、Content、Communityの概念と関係
-- Content管理者と委譲履歴
-- User・Community単位のContentアクセス
-- Communityのメンバー・オーナー・履歴
-- 複数管理者や委譲パターンに関する未検討事項
-
-Community関連の一部は現在のSQLへ反映されています。Content委譲、管理者履歴、複数管理パターンは現行実装との対応を確定できません。図は計画・検討事項を含むため、現行モデルだけを表す図として上書きしません。
-
-## レビューで確定した将来設計
-
-2026-08-15のモデリングレビューで次を確定しました。
-
-- 初期設計のContentをMediaへ再定義する
-- Mediaは静止画像と動画に限定する
-- Custodianは常に1 Userまたは1 Communityとする
-- 管理主体とCommunity公開を分離する
-- User管理Mediaは複数Communityへ公開できる
-- Community管理Mediaは別Communityへ公開しない
-- Community内部は参加者全員が閲覧できる
-- 委譲時は既存公開をすべて解除する
-- Groupは分類専用とし、複数所属とDAGを許可する
-- User削除時はMediaを委譲または削除する
-- 削除Mediaの復元機能は提供しない
-- 著作権者をシステムで管理しない
-
-詳細な意図、制約、非対応理由は[Media設計判断](./media/design-decisions)を正本とします。これらは合意済みの将来設計であり、現行実装済みとは扱いません。
-
-## 引き続き判断が必要な項目
-
-1. MongoDB Contentモデルと現行データの扱い
-2. 現行ImageからMediaへ移行するDB・GraphQL・コード手順
-3. User preferenceとusageを永続化・集計する方式
-4. Community membership、招待、管理者、削除の詳細
-5. 動画の対応形式、変換、サムネイル、配信方式
-6. Media Eventの保存期間
-
-## 次回の更新
-
-- 判断済み項目はADRまたは対象設計書へ反映する
-- 実装された計画項目は「実装済み」へ変更する
-- schemaまたはresolver変更時に本ページを再確認する
-- draw.io更新時は現行要素と計画要素を凡例で区別する
+今後の要確認はMongoDB・既存Contentの扱い、Image→Media移行、Community実装範囲、動画処理、Media Event保存期間、IaC旧名称変更です。

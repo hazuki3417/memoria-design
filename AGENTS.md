@@ -41,12 +41,12 @@
 
 - プロダクト共通の語彙は`pages/ubiquitous.mdx`へ記載します。
 - 技術一覧は`pages/technology-stack.mdx`へ記載します。
-- サービスの責務と契約は`pages/micro-service/`へ記載します。
-- スキーマ規約は`pages/schema/`へ記載します。
+- システム設計は`pages/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
+- GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`pages/system/`には設計上の意味と責務境界を記載します。
 - 人間中心のAI支援開発規約は`pages/ai-development.mdx`へ記載します。
 - 文書の配置・正本・更新責任は`pages/documentation-policy.mdx`へ記載します。
 - AI contextの参照順序は`pages/context/`へ記載します。
-- リポジトリ構成とアーキテクチャは`pages/architecture/`へ記載します。
+- リポジトリ構成とアーキテクチャは`pages/system/`へ記載します。
 - ローカル開発の共通構成は`pages/local-development.mdx`へ記載します。
 - コミットメッセージ規約は`pages/commit-message.mdx`へ記載します。
 - Semantic VersioningとReleaseの規約は`pages/versioning.mdx`へ記載します。

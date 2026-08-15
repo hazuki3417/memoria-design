@@ -45,7 +45,7 @@ npm run build
 1. [Mediaドメイン](./pages/media/index.mdx)
 2. [Media関連ユースケース](./pages/media/use-cases.mdx)
 3. [ユビキタス言語](./pages/ubiquitous.mdx)
-4. [リポジトリ構成](./pages/architecture/index.mdx)
+4. [リポジトリ構成](./pages/system/index.mdx)
 5. [ドキュメント管理方針](./pages/documentation-policy.mdx)
 6. [Context map](./pages/context/index.mdx)
 7. [ローカル開発環境](./pages/local-development.mdx)
