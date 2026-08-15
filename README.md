@@ -39,9 +39,10 @@ npm run build
 ## 最初に読む資料
 
 1. [ドキュメント管理方針](./pages/documentation-policy.mdx)
-2. [リポジトリ構成](./pages/architecture/overview.mdx)
-3. [Context map](./pages/context/index.mdx)
-4. [人間中心のAI支援開発](./pages/ai-development.mdx)
-5. [ブランチ運用](./pages/branch-strategy.mdx)
+2. [リポジトリ構成](./pages/architecture/index.mdx)
+3. [Mediaドメイン](./pages/media/index.mdx)
+4. [Context map](./pages/context/index.mdx)
+5. [人間中心のAI支援開発](./pages/ai-development.mdx)
+6. [ブランチ運用](./pages/branch-strategy.mdx)
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。
