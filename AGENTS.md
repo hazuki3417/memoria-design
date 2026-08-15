@@ -56,7 +56,7 @@
 - リポジトリはUbuntu側で開き、プロジェクトコマンドはUbuntu上のDevbox内で実行します。
 - Windowsホストから直接npm、Node.js、Goなどのプロジェクトコマンドを実行しません。
 - `node_modules`をWindows、macOS、他のLinux環境からコピーまたは共有しません。
-- npmのoptional dependencyを省略しません。
+- npmパッケージは`package.json`と`package-lock.json`、Devboxの開発ツールは`devbox.json`と`devbox.lock`で管理します。
 - `memoria-web`と`memoria-api`の結合確認では、別々のターミナルとDevboxで両方を起動し、Windowsのブラウザから`localhost`へアクセスします。
 
 ```sh
@@ -67,7 +67,7 @@ npm run build
 
 このリポジトリには`bun.lockb`と`package-lock.json`が併存しています。パッケージマネージャーが正式に統一されるまでは、文書化された基準として`npm ci`を使用します。別作業に紛れてlockfileを再生成・削除しません。
 
-Linux向けoptional dependencyが不足した場合は、OS・CPU・npm設定・インストール状態を確認し、`pages/local-development.mdx`の復旧手順に従います。特定バージョンの手動追加はローカル復旧に限定し、恒久的な依存関係やlockfileの変更は別PRで検証します。
+依存関係が不足する場合は手動導入を標準手順にせず、責務に応じて`package.json`・`package-lock.json`または`devbox.json`・`devbox.lock`へ記録します。
 
 ## 作業規約
 
@@ -88,6 +88,6 @@ Linux向けoptional dependencyが不足した場合は、OS・CPU・npm設定・
 - シークレット、過剰な権限、安全策のない不可逆操作を含むデプロイ・セキュリティ手順を指摘します。
 - 対象リポジトリ、互換性、移行上の影響が不足したアーキテクチャ判断を指摘します。
 - 人間の責任範囲をAIへ移す記述や、ローカル開発を副次的に扱う記述を指摘します。
-- Windowsホストからの直接実行、OS間の`node_modules`共有、optional dependencyの省略など、標準ローカル環境の再現性を損なう手順を指摘します。
+- Windowsホストからの直接実行、OS間の`node_modules`共有、依存関係の未記録など、標準ローカル環境の再現性を損なう手順を指摘します。
 - 日本語で統一されていないプロダクト資料を指摘します。
 - フォーマットとbuild可否は機械的な検証へ任せます。
