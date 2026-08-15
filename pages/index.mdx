@@ -1,3 +1,23 @@
-# Welcome to Memoria
+# Memoria
 
-Hello, world!
+Memoriaは、画像とその付加情報を安全に管理するためのプロダクトです。このサイトは、4つの実装リポジトリに共通するプロダクト設計とアーキテクチャの正本です。
+
+## はじめに
+
+| 読みたい情報 | ページ |
+| --- | --- |
+| リポジトリの責務 | [リポジトリ構成](/architecture) |
+| 文書の配置と正本 | [ドキュメント管理方針](/documentation-policy) |
+| タスク別の参照順序 | [Context map](/context) |
+| 人間とAIの開発方法 | [AI支援開発](/ai-development) |
+| ブランチとリリース | [ブランチ運用](/branch-strategy) |
+| プロダクト用語 | [ユビキタス言語](/ubiquitous) |
+
+## リポジトリ
+
+- `memoria-web`: Web UIとGraphQLクライアント
+- `memoria-api`: GraphQL API、ドメインロジック、永続化
+- `memoria-design`: プロダクト設計と横断的な意思決定
+- `memoria-IaC`: AWS CDKによる実行環境
+
+設計書はこのリポジトリへ集約します。実行可能なschema、設定、セットアップ、検証コマンドは、それを所有する実装リポジトリを正本とします。
