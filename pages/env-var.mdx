@@ -1,0 +1,68 @@
+# 環境変数管理方針
+
+> 状態: 初期設計（現行実装との整合確認が必要）
+
+## 環境変数の定義
+
+#### 方針
+
+**リポジトリ全体で利用する環境変数は、リポジトリの設定で定義する。**
+- Repository secrets: 機密情報を扱う環境変数
+- Repository variables: 通常の環境変数
+
+ここではアプリケーション、ビルド・デプロイどちらの環境変数も扱います。
+
+**ジョブやステップ内で利用する環境変数は、ワークフローの設定で定義する。**
+
+## 環境変数の参照
+
+### GitHub Actions
+
+#### 方針
+
+**下記の環境変数は、ワークフロー全体で利用可能な環境変数として定義する。**
+- Repository secrets
+- Repository variables
+
+上記の環境変数はリポジトリ全体で扱うことが可能な環境変数です。そのため、ワークフロー全体で利用可能な環境変数として定義しても問題ありません。これらの変数をジョブやステップ内で利用可能な環境変数として定義しないようにしてください。
+
+- ok: `env.<name>`を利用して定義する。
+- ng: `jobs.<job_id>.env`, `jobs.<job_id>.steps[*].env`を利用して定義する。
+
+**環境変数の参照は常に `${{ env.<name> }}` で行う。**
+
+`jobs` や `steps` で参照する場合は `${{ env.<name> }}` で参照する。直接 `${{ secrets.<name> }}` や`${{ vars.<name> }}` で参照はしないこと。
+
+**環境変数のスコープを意識して定義する。**
+
+環境変数を利用する範囲が `step` である場合は、`jobs.<job_id>.steps[*].env` で定義する。環境変数を利用する範囲が `jobs` である場合は、`jobs.<job_id>.env` で定義する。
+
+e.g., 
+
+```yaml
+name: example
+
+on:
+  workflow_dispatch
+
+env:
+  // 基本的に変数名は同じにする。必要があれば変更する。
+  PASSWORD: ${{ secrets.PASSWORD }}` 
+  URI: ${{ secrets.URI }}`
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ok 
+        run: echo "${{ env.PASSWORD }}
+        run: echo "${{ env.URI }}
+
+      - name: ng
+        run: echo "${{ secrets.PASSWORD }}
+        run: echo "${{ vars.URI }}
+```
+
+
+TODO: production,staginegとdevelopmentの環境変数の定義と扱い方は異なるので分けて記載する

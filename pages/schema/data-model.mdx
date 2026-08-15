@@ -1,0 +1,84 @@
+# データモデル
+
+> 状態: 現行調査  
+> 最終確認日: 2026-08-15  
+> 実行可能な正本: `memoria-api/schemas/postgres/schema.sql`
+
+## 位置付け
+
+> 将来のMedia論理モデルは[Media概念データモデル](../media/data-model)を参照してください。このページは現行PostgreSQL schemaの調査結果であり、将来設計とは区別します。
+
+このページは現行PostgreSQL schemaの読み取り用索引です。カラム、制約、外部キーの正本はSQLダンプです。初期設計を含む`pages/_drawio/modeling.drawio.svg`を置き換えるものではありません。
+
+## 現行テーブル
+
+| 領域 | テーブル | 役割 |
+| --- | --- | --- |
+| User | `users` | Cognito等のsubjectとアプリケーションユーザーを対応 |
+| Image | `images` | ファイル名、サイズ、MIME type、縦横サイズを保持 |
+| Tag | `tags` | 一意なタグ名を保持 |
+| Tag | `image_tags` | ImageとTagの多対多関係 |
+| ImageGroup | `image_groups` | 画像グループ |
+| ImageGroup | `image_group_images` | ImageGroupとImageの多対多関係 |
+| ImageGroup | `image_group_relations` | 親子グループ関係 |
+| Ownership | `user_image_groups` | Userに属するImageGroup |
+| Ownership | `community_image_groups` | Communityに属するImageGroup |
+| Access | `image_user_accesses` | User単位のImageアクセス |
+| Access | `image_community_accesses` | Community単位のImageアクセス |
+| Community | `communities` | コミュニティ |
+| Community | `community_memberships` | Communityへの現在の参加状態 |
+| Community | `community_membership_histories` | 参加・脱退履歴 |
+| Community | `community_owners` | 現在のCommunity管理者 |
+| Community | `community_owners_histories` | 管理者の追加・除去履歴 |
+
+## 実装状況
+
+### アプリケーション層まで確認できる領域
+
+- User
+- Image
+- Tag
+- ImageGroup
+- UserとImageGroupの関連
+
+これらはGraphQL resolver、service、repositoryまたはSQL queryから処理を確認できます。
+
+### DB定義まで確認できる領域
+
+- Community
+- Community membershipとowner
+- CommunityとImageGroupの関連
+- User・Community単位のImageアクセス
+
+SQL上に存在することは実装事実です。ただし、対応するGraphQL契約やserviceがないため、利用可能なアプリケーション機能とは扱いません。
+
+## 制約から読み取れる事項
+
+- IDは主に`varchar(255)`で、GraphQLとresolverではULIDとして検証されます
+- `tags.tag_name`と`users.sub`は一意です
+- 中間テーブルは複合主キーを基本とします
+- membershipのownerはmembershipに所属している必要があります
+- 主要な関連の一部には`ON DELETE CASCADE`があります
+- `image_group_relations`は自己参照をCHECK制約で禁止しています
+
+## 要確認事項
+
+### ImageGroupの所有主体
+
+`user_image_groups`と`community_image_groups`は、どちらも`image_group_id`だけを主キーにしています。この制約は各ImageGroupが同種の所有主体を一つだけ持つ設計として読めます。
+
+一方で、User所有とCommunity所有を相互排他的にするDB制約は確認できません。所有権移行や両方への所属を許可するかは設計判断が必要です。
+
+### ImageGroupの循環
+
+テーブルコメントは有向非巡回グラフ（DAG）を示していますが、DB制約が直接保証するのは自己参照禁止です。複数段の循環をserviceで防止するか、DB側で保証するかを確認する必要があります。
+
+### Community機能
+
+Community関連schemaは具体的ですが、GraphQL・domain・serviceで利用を確認できません。将来機能、実装途中、保留または廃止候補のどれかを判断するまで、計画要素として保持します。
+
+## 関連資料
+
+- [実装・設計整合状況](../implementation-status)
+- [GraphQL設計](./graphql)
+- [APIアーキテクチャ](../architecture/api)
