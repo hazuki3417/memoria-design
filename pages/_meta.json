@@ -5,6 +5,7 @@
     "title": "General Design"
   },
   "documentation-policy": "ドキュメント管理",
+  "implementation-status": "実装・設計整合状況",
   "context": "Context",
   "architecture": "Architecture",
   "technology-stack": "Stack",
