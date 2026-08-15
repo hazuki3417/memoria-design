@@ -128,11 +128,10 @@ npm ls @napi-rs/simple-git @napi-rs/simple-git-linux-x64-gnu
 
 ### 復旧
 
-まずUbuntu上で依存関係を作り直します。
+まずUbuntu上でoptional dependencyを含めて依存関係を作り直します。`npm ci`は既存の`node_modules`を削除し、lockfileに従って再インストールします。
 
 ```sh
-rm -rf node_modules
-npm install --include=optional
+npm ci --include=optional
 ```
 
 それでも今回のパッケージだけが不足する場合は、現在の親パッケージと同じバージョンを一時的に補います。
