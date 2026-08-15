@@ -1,28 +1,28 @@
 # AGENTS.md
 
-## Repository role
+## リポジトリの責務
 
-This repository is the product-design and architecture source of truth for Memoria. Memoria is implemented across:
+このリポジトリはMemoriaのプロダクト設計とアーキテクチャに関する正本です。Memoriaは以下のリポジトリで構成されます。
 
-- `memoria-web`: Next.js web application
+- `memoria-web`: Next.js Webアプリケーション
 - `memoria-api`: Go GraphQL API
-- `memoria-design`: this Nextra documentation site
-- `memoria-IaC`: AWS CDK infrastructure
+- `memoria-design`: このNextraドキュメントサイト
+- `memoria-IaC`: AWS CDKによるインフラストラクチャ
 
-Documentation must distinguish intended design from currently implemented behavior. Do not present a proposal, TODO, or historical design as deployed fact.
+設計資料では、意図する設計と現在の実装を区別します。提案、TODO、過去の設計を、現在稼働している仕様として記載しません。
 
-## Documentation structure
+## ドキュメント構成
 
-- Keep product-wide vocabulary in `pages/ubiquitous.mdx`.
-- Keep technology inventory in `pages/technology-stack.mdx`.
-- Keep service responsibilities and contracts under `pages/micro-service/`.
-- Keep schema conventions under `pages/schema/`.
-- Keep AI-assisted development practices in `pages/ai-development.mdx`.
-- Add meaningful pages to `pages/_meta.json`.
+- プロダクト共通の語彙は`pages/ubiquitous.mdx`へ記載します。
+- 技術一覧は`pages/technology-stack.mdx`へ記載します。
+- サービスの責務と契約は`pages/micro-service/`へ記載します。
+- スキーマ規約は`pages/schema/`へ記載します。
+- AI支援開発の規約は`pages/ai-development.mdx`へ記載します。
+- 主要なページは`pages/_meta.json`へ追加します。
 
-Prefer concise prose, explicit ownership, links to the owning repository, and Mermaid for relationships where it improves understanding. Preserve valid MDX syntax.
+簡潔な文章、明確な所有者、実装を所有するリポジトリへの参照を優先します。関係性の理解に有効な場合はMermaidを使用し、正しいMDX構文を維持します。
 
-## Local environment and validation
+## ローカル開発環境と検証
 
 ```sh
 devbox shell
@@ -30,21 +30,23 @@ npm ci
 npm run build
 ```
 
-The repository contains both `bun.lockb` and `package-lock.json`. Use `npm ci` as the documented baseline until the project explicitly standardizes one package manager. Do not regenerate or remove lockfiles incidentally.
+このリポジトリには`bun.lockb`と`package-lock.json`が併存しています。パッケージマネージャーが正式に統一されるまでは、文書化された基準として`npm ci`を使用します。別作業に紛れてlockfileを再生成・削除しません。
 
-## Working agreement
+## 作業規約
 
-1. Verify implementation claims against the relevant Memoria repository before changing normative documentation.
-2. Label future designs and unresolved decisions clearly.
-3. When an architecture decision changes, record its context, decision, consequences, affected repositories, and migration path.
-4. Do not copy secrets, production identifiers, account numbers, or private operational data into documentation.
-5. Keep cross-repository changes in separate PRs and link them from the product-level change.
+1. 仕様として記載する前に、関連するMemoriaリポジトリで実装状況を確認します。
+2. 将来設計と未決定事項を明確に表示します。
+3. アーキテクチャ判断では、背景、決定、影響、対象リポジトリ、移行方法を記録します。
+4. シークレット、本番識別子、AWSアカウント番号、非公開の運用データを資料へ記載しません。
+5. 横断変更ではリポジトリごとにPRを分け、プロダクトレベルの変更から相互リンクします。
+6. プロダクトに関するドキュメントは日本語で記載します。リポジトリ名、コマンド、ファイルパス、コード識別子、固有の技術名は原表記を維持できます。
 
-## Code Review Rules
+## コードレビュー規則
 
-- Flag documentation that conflicts with the current GraphQL schema, persistence model, or infrastructure without labeling the difference.
-- Flag changes that blur ownership between web, API, design, and infrastructure repositories.
-- Flag new product terms that bypass the ubiquitous-language glossary.
-- Flag deployment or security guidance that includes secrets, broad permissions, or irreversible steps without safeguards.
-- Flag architecture decisions that omit affected repositories or compatibility/migration consequences.
-- Leave formatting and build validity to deterministic tooling.
+- 差異を明記せず、現在のGraphQLスキーマ、永続化モデル、インフラストラクチャと矛盾する資料を指摘します。
+- Web、API、設計、インフラストラクチャ間の所有範囲が不明確になる変更を指摘します。
+- ユビキタス言語へ反映されていない新しいプロダクト用語を指摘します。
+- シークレット、過剰な権限、安全策のない不可逆操作を含むデプロイ・セキュリティ手順を指摘します。
+- 対象リポジトリ、互換性、移行上の影響が不足したアーキテクチャ判断を指摘します。
+- 日本語で統一されていないプロダクト資料を指摘します。
+- フォーマットとbuild可否は機械的な検証へ任せます。
