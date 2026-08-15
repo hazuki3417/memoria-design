@@ -1,34 +1,42 @@
 {
   "index": "Home",
-  "-- General Design": {
+  "-- Product": {
     "type": "separator",
-    "title": "General Design"
+    "title": "プロダクト"
   },
-  "documentation-policy": "ドキュメント管理",
-  "implementation-status": "実装・設計整合状況（現行調査）",
-  "local-development": "ローカル開発",
   "media": "Media（将来設計）",
-  "adr": "ADR",
-  "drawio-migration": "draw.io移行（履歴）",
-  "context": "Context",
-  "architecture": "Architecture",
-  "technology-stack": "技術スタック（現行調査）",
   "ubiquitous": "ユビキタス言語",
-  "ai-development": "AI開発",
-  "branch-strategy": "ブランチ運用",
-  "component": "Component",
+  "technology-stack": "技術スタック（現行調査）",
+  "-- System Design": {
+    "type": "separator",
+    "title": "システム設計"
+  },
+  "architecture": "Architecture",
+  "micro-service": "Micro Service",
   "schema": "Schema",
+  "component": "Component",
   "validation": "入力バリデーション",
   "log-design": "ログ設計",
   "dam-apm-design": "DAM・APM設計",
-  "test-design": "テスト設計",
   "env-var": "環境変数管理",
-  "build-deploy": "ビルド・デプロイ",
   "iac": "IaC設計",
-  "tips": "Tips",
-  "-- Service Designs": {
+  "-- Development": {
     "type": "separator",
-    "title": "Service Designs"
+    "title": "開発・運用"
   },
-  "micro-service": "Micro Service"
+  "local-development": "ローカル開発",
+  "test-design": "テスト設計",
+  "branch-strategy": "ブランチ運用",
+  "build-deploy": "ビルド・デプロイ",
+  "ai-development": "AI支援開発",
+  "-- Documentation": {
+    "type": "separator",
+    "title": "ドキュメント・記録"
+  },
+  "documentation-policy": "ドキュメント管理",
+  "context": "Context",
+  "implementation-status": "実装・設計整合状況（現行調査）",
+  "adr": "ADR",
+  "drawio-migration": "draw.io移行（履歴）",
+  "tips": "Tips"
 }

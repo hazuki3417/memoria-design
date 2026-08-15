@@ -1,7 +1,5 @@
 {
   "index": "Mediaドメイン概要（将来設計）",
-  "design-decisions": "設計判断",
-  "initial-modeling-notes": "初期モデリング記録（履歴）",
   "use-cases": "ユースケース",
   "data-model": "データモデル",
   "data-patterns": "データパターン",
@@ -9,5 +7,7 @@
   "community-access": "Communityと公開",
   "group": "Media Group",
   "lifecycle": "ライフサイクル",
-  "user-deletion": "User削除"
+  "user-deletion": "User削除",
+  "design-decisions": "設計判断",
+  "initial-modeling-notes": "初期モデリング記録（履歴）"
 }
