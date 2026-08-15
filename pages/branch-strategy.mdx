@@ -32,6 +32,47 @@ Memoriaでは、個人開発・小規模プロダクトに適した簡易Git Flo
 
 ブランチ名は作業内容が分かる短いkebab-caseとします。人間による手動開発とChatGPTによる支援のどちらでも同じ規則を適用し、作業者や利用ツールをブランチ名へ含めることは必須にしません。
 
+例:
+
+- `feature/image-search`
+- `fix/upload-timeout`
+- `docs/branch-strategy`
+- `refactor/graphql-resolver`
+- `chore/update-dependencies`
+- `hotfix/authentication-failure`
+
+Issue番号を使用する場合は`feature/123-image-search`のように接頭辞の直後へ含めます。意味のない連番、個人名だけの名前、`work`や`temp`など目的が判断できない名前は使用しません。
+
+## マージ方針
+
+PRは原則として通常のmerge commitでマージします。これにより、作業ブランチのcommit履歴と、PR単位の統合点を維持します。
+
+- `feature/*`などから`develop`へのPRは通常マージする
+- `develop`から`main`へのリリースPRも通常マージする
+- `hotfix/*`から`main`へのPRも通常マージする
+- squash mergeとrebase mergeは、履歴を変更する明確な理由と人間の合意がある場合だけ使用する
+- マージ済み作業ブランチはGitHubの自動削除設定、または人間の確認後に削除する
+- `main`と`develop`は削除対象にしない
+
+## 派生元ブランチの取り込み
+
+作業中に派生元ブランチが更新された場合は、原則としてrebaseで取り込みます。
+
+```sh
+git fetch origin
+git rebase origin/develop
+git push --force-with-lease
+```
+
+`hotfix/*`の派生元は`main`であるため、`origin/main`へrebaseします。
+
+- `develop`を作業ブランチへmergeすることは原則として避ける
+- rebaseは本人だけが利用している作業ブランチで行う
+- 他の開発者が利用している共有作業ブランチでは、履歴を書き換える前に合意する
+- rebase後のpushには`--force`ではなく`--force-with-lease`を使用する
+- `main`と`develop`はrebaseまたはforce pushしない
+- conflictは内容を理解して解消し、解消後に必要な検証を再実行する
+
 ## 通常開発
 
 1. 最新の`develop`から作業ブランチを作成する。
