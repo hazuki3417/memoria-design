@@ -51,5 +51,7 @@ npm run build
 7. [ローカル開発環境](./pages/local-development.mdx)
 8. [人間中心のAI支援開発](./pages/ai-development.mdx)
 9. [ブランチ運用](./pages/branch-strategy.mdx)
+10. [コミットメッセージ規約](./pages/commit-message.mdx)
+11. [バージョニング規約](./pages/versioning.mdx)
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。
