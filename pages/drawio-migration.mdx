@@ -1,0 +1,52 @@
+# draw.ioからMDX＋Mermaidへの移行
+
+> 状態: 移行中  
+> 移行元: `pages/_drawio/modeling.drawio.svg`
+
+## 方針
+
+既存draw.ioは初期設計と検討経緯を保持する参考資料です。MDX＋Mermaidへ移行済みの情報も含みますが、移行が完了するまで削除・上書きしません。
+
+MDX＋Mermaidを今後の正本とし、draw.ioと矛盾する場合は、承認済みADRとMDXを優先します。
+
+## 対応表
+
+| draw.ioの領域 | 移行先 | 状態 |
+| --- | --- | --- |
+| 初期モデリング全体 | [初期モデリング記録](./media/initial-modeling-notes) | 検討経緯を保存済み |
+| Contentの概念 | [Mediaドメイン](./media) | 移行済み |
+| 設計判断・制約・非対応理由 | [Media設計判断](./media/design-decisions) | 移行済み |
+| Mediaユースケース | [ユースケース](./media/use-cases) | Media範囲は移行済み |
+| 論理データモデル | [Media概念データモデル](./media/data-model) | Media範囲は移行済み |
+| データパターン | [Mediaデータパターン](./media/data-patterns) | Media・Group範囲は移行済み |
+| Image・Videoの関係 | [Mediaドメイン](./media) | 移行済み |
+| Custodian・Uploader | [管理主体と委譲](./media/management) | 移行済み |
+| User・Communityへの委譲 | [管理主体と委譲](./media/management) | 移行済み |
+| Content access | [Communityと公開](./media/community-access) | 移行済み |
+| Group・DAG | [Media Group](./media/group) | 移行済み |
+| 物理削除・archive検討 | [Mediaライフサイクル](./media/lifecycle) | 方針変更して移行済み |
+| User削除時のMedia | [User削除](./media/user-deletion) | 移行済み |
+| User・Authの詳細 | 未作成 | 未移行 |
+| Community membership・管理者 | 未作成 | 未移行 |
+| Community招待・検索 | 未作成 | 未移行 |
+| Communityライフサイクル | 未作成 | 未移行 |
+| Mediaの物理データモデル・移行 | 未作成 | 未移行 |
+| 動画処理・派生ファイル | 未作成 | 未移行 |
+
+## 読み替え
+
+| 初期設計 | 現在の用語 |
+| --- | --- |
+| Content | Media |
+| Content custodian | Media Custodian |
+| Content delegation | Media Custodianの委譲 |
+| Content access | MediaのCommunity公開 |
+| Content group／Image Group | Media Group |
+| Owner（Media） | 使用しない。Custodianとする |
+
+## 完了条件
+
+- draw.io内の確定事項がMDXへ移行されている
+- 未検討事項が要確認としてMDXへ記録されている
+- draw.ioだけを参照しないと理解できない設計がない
+- 移行後のdraw.ioをアーカイブまたは削除する判断が記録されている

@@ -22,6 +22,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | プロダクト構成 | [リポジトリ構成](/architecture) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
 | 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
 | 人間とAIの役割 | [AI支援開発](/ai-development) |
 
@@ -39,18 +40,20 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 1. Issueの受け入れ条件
 2. `memoria-api/AGENTS.md`とREADME
-3. [APIアーキテクチャ](/architecture/api)
-4. [GraphQL設計](/schema/graphql)
-5. `memoria-api/schemas/graphql/`と生成設定
-6. `memoria-web`のoperation・fragment・生成型への影響
+3. [Media設計](/media)と対象領域のユースケース
+4. [APIアーキテクチャ](/architecture/api)
+5. [GraphQL設計](/schema/graphql)
+6. `memoria-api/schemas/graphql/`と生成設定
+7. `memoria-web`のoperation・fragment・生成型への影響
 
 ### データベース
 
 1. Issueの受け入れ条件とmigration条件
-2. API設計とドメインルール
-3. `memoria-api/schemas/postgres/`のschema・query
-4. service・repository・生成コード
-5. backup、migration、rollback方法
+2. [Media概念データモデル](/media/data-model)などのドメインルール
+3. API設計
+4. `memoria-api/schemas/postgres/`のschema・query
+5. service・repository・生成コード
+6. backup、migration、rollback方法
 
 ### インフラストラクチャ
 

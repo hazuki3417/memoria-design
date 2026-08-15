@@ -1,0 +1,120 @@
+# Media関連ユースケース
+
+> 状態: レビュー済みと初期設計を区別して記載
+
+## Actor
+
+| Actor | 役割 |
+| --- | --- |
+| User | Mediaをアップロード、管理、公開、分類する |
+| Community Member | Community内で公開されたMediaを閲覧する |
+| Community Administrator | Communityの参加・管理情報を操作する |
+| System | ファイル、メタデータ、関連、Media Eventの整合性を維持する |
+
+## レビュー済みユースケース
+
+### Mediaをアップロードする
+
+- Userが静止画像または動画をアップロードする
+- Uploaderとアップロード日時を記録する
+- 初期CustodianをUserとする
+- 対応形式以外を拒否する
+- UPLOADEDイベントを記録する
+
+### User管理MediaをCommunityへ公開する
+
+- CustodianであるUserが公開先Communityを選ぶ
+- 1つのMediaを複数Communityへ公開できる
+- 公開先参加者全員が閲覧できる
+- CustodianはUserのまま
+- 別の公開先には影響しない
+
+### User管理Mediaの公開を解除する
+
+- 対象Communityとの閲覧関係だけを削除する
+- 他Communityへの公開は維持する
+- Media本体とCustodianは変更しない
+
+### Mediaを委譲する
+
+対応する遷移はUser→User、User→Community、Community→Userです。
+
+事前条件:
+
+- 操作者が現在のCustodianを変更できる
+- 委譲先が存在し、有効である
+
+結果:
+
+- 既存公開をすべて解除する
+- Custodianを変更する
+- Uploaderは変更しない
+- CUSTODIAN_CHANGEDイベントを記録する
+
+### Mediaを削除する
+
+- 復元できないことを表示する
+- 物理ファイル、派生ファイル、DBレコードを削除する
+- Group関連と公開設定を削除する
+- 問い合わせによる個別復元を提供しない
+
+### User削除前に管理Mediaを解決する
+
+- 管理Mediaを表示する
+- Mediaごと、複数選択、全件で委譲または削除する
+- Media Groupを選択条件として利用できる
+- 未処理Mediaがある間はUser削除を完了しない
+
+### MediaをGroupへ追加・除外する
+
+- 1つのMediaを複数Groupへ追加できる
+- 追加・除外でCustodianと公開範囲を変更しない
+- Groupから除外してもMedia本体を削除しない
+
+### Media Groupを関連付ける
+
+- Groupに親子関係を追加・解除する
+- 1つのGroupに複数の親を許可する
+- 自己参照と直接・間接の循環を拒否する
+
+## 初期SVGから読み取れる未レビューのユースケース
+
+以下は`modeling.drawio.svg`に記載されていますが、今回の対話では詳細をレビューしていません。実装要件として扱う前に個別レビューが必要です。
+
+### User
+
+- Userを登録する
+- ログイン時にUser情報を同期・更新する
+- Userプロフィールを更新する
+- Userを削除する
+
+### Community
+
+- Communityを作成・更新・削除する
+- Communityを検索する
+- Communityへ参加・脱退する
+- UserをCommunity管理者へ任命する
+- UserをCommunity管理者から除外する
+- メールで招待する
+- 永続または期限付き招待リンクを発行する
+
+### Media
+
+- Media一覧・詳細を取得する
+- Mediaの付加情報を更新する
+- TagでMediaを検索する
+- Custodianと委譲履歴を確認する
+- Communityから閲覧可能なMediaを取得する
+
+## 明示的に対応しないユースケース
+
+| ユースケース | 理由 |
+| --- | --- |
+| 著作権者を登録・証明する | 正確な判定と権利管理が困難 |
+| Mediaを複数主体で共同管理する | 責任・課金主体が曖昧になる |
+| Community内で参加者別に公開する | Community内全員共有の目的に反する |
+| Community管理Mediaを別Communityへ公開する | Communityの独立性を崩す |
+| Community間で直接委譲する | 具体的な利用場面がない |
+| Groupでアクセス制御する | 分類と権限が混在する |
+| 削除Mediaを復元する | ライフサイクルと問い合わせ対応が複雑になる |
+| Word・PDFなどを管理する | Media限定というプロダクト境界外 |
