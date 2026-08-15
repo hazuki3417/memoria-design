@@ -4,6 +4,9 @@
     "type": "separator",
     "title": "General Design"
   },
+  "documentation-policy": "ドキュメント管理",
+  "context": "Context",
+  "architecture": "Architecture",
   "technology-stack": "Stack",
   "ubiquitous": "Ubiquitous",
   "ai-development": "AI開発",
