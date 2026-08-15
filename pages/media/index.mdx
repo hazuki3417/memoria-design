@@ -1,89 +1,46 @@
-# Mediaドメイン
+# Media
 
-> 状態: 将来（合意済み・未実装）  
-> 最終確認日: 2026-08-15
+## 概要
 
-## 目的
+> 実装状況: 現在の実装は静止画像を表すImageが中心です。Mediaへの名称・データモデル統一と動画対応は未実装です。
 
-Memoriaは静止画像と動画を管理・共有・継承するシステムです。汎用ストレージサービスではなく、Word、PDF、記事、音声単体などは対象に含めません。
-
-初期設計で使用していた`Content`は、今後の設計では`Media`へ読み替えます。現行実装の`Image`、DB、GraphQLはまだ変更せず、実装時に段階的な移行を設計します。
+Memoriaは静止画像と動画を管理・共有・継承するシステムです。Word、PDF、記事、音声単体などを扱う汎用ストレージにはしません。
 
 ## 概念
 
 ```mermaid
 classDiagram
-    class Media {
-        id
-        mediaType
-        fileName
-        fileSize
-        mimeType
-        uploadedAt
-        createdAt
-        updatedAt
-    }
-    class Image {
-        width
-        height
-    }
-    class Video {
-        width
-        height
-        duration
-        codec
-        frameRate
-    }
-    Media <|-- Image
-    Media <|-- Video
+  class Media {
+    id
+    mediaType
+    fileName
+    fileSize
+    mimeType
+    uploadedAt
+    createdAt
+    updatedAt
+  }
+  class Image { width; height }
+  class Video { width; height; duration; codec; frameRate }
+  Media <|-- Image
+  Media <|-- Video
 ```
 
-| 概念 | 意味 | 状態 |
-| --- | --- | --- |
-| Media | Memoriaが管理する静止画像または動画 | 設計確定・未実装 |
-| Image | 静止画像固有の情報と処理 | 現行実装あり |
-| Video | 動画固有の情報と処理 | 将来 |
-| Media Group | Mediaを分類するDAG | Image Groupとして一部実装 |
-| Media Event | Mediaに対する重要操作のトレース | 将来 |
+- Uploaderは最初にアップロードしたUserです。著作権者や法的所有者を意味しません。
+- CustodianはMediaを現在管理する1 Userまたは1 Communityです。
+- Viewerは公開先Communityへの参加を通してMediaを閲覧します。
+- Media Eventはアップロード、委譲、公開変更、削除など重要操作のトレースです。
 
-## 用語と境界
+## 制約
 
-- **Uploader**: Mediaを最初にアップロードしたUser
-- **Custodian**: Mediaを現在管理する1 Userまたは1 Community
-- **Viewer**: 公開先Communityへの参加を通してMediaを閲覧するUser
-- **Media Event**: アップロード、委譲、公開変更、削除などの重要操作
+1. Mediaには常に1つのCustodianが存在します。
+2. Custodianは1 Userまたは1 Communityのどちらか一方です。
+3. 管理責任と閲覧可能範囲を分離します。
+4. User管理Mediaは複数Communityへ公開できます。
+5. Community管理Mediaは別Communityへ公開しません。
+6. Community内部では参加者全員が公開Mediaを閲覧できます。
+7. Media Groupは分類専用で、管理・閲覧権限に影響しません。
+8. 削除したMediaは復元できません。
+9. 著作権者、利用許諾、権利移転は管理しません。
 
-UploaderとCustodianは異なる概念です。アップロードした人を著作権者または法的所有者とは扱いません。著作権者、利用許諾、権利移転はシステムで管理しません。
-
-## 基本制約
-
-1. Mediaには常に1つのCustodianが存在する
-2. Custodianは1 Userまたは1 Communityのどちらか一方
-3. 管理責任と閲覧可能範囲を分離する
-4. User管理Mediaは複数Communityへ公開できる
-5. Community管理Mediaは別Communityへ公開しない
-6. Community内部では参加者全員が公開Mediaを閲覧できる
-7. Media Groupは分類専用で、管理・閲覧権限に影響しない
-8. 削除したMediaは復元できない
-
-## 設計と現行実装
-
-このページは将来のドメイン設計の正本です。現在利用可能な契約とデータ構造は、引き続き以下を正本とします。
-
-- `memoria-api/schemas/graphql/*.graphql`
-- `memoria-api/schemas/postgres/schema.sql`
-- `memoria-api`のresolver、service、repository
-
-## 関連資料
-
-- [設計判断・制約・非対応理由](./design-decisions)
-- [初期モデリング記録](./initial-modeling-notes)
-- [ユースケース](./use-cases)
-- [概念データモデル](./data-model)
-- [データパターン](./data-patterns)
-- [管理主体と委譲](./management)
-- [Communityと公開範囲](./community-access)
-- [Media Group](./group)
-- [ライフサイクル](./lifecycle)
-- [User削除](./user-deletion)
-- [実装・設計整合状況](../implementation-status)
+詳細は[ユースケース](./use-cases)、[データモデル](./data-model)、[管理と委譲](./management)、[設計判断](./design-decisions)を参照してください。

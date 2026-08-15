@@ -1,5 +1,5 @@
 {
-  "index": "Mediaドメイン概要（将来設計）",
+  "index": "Media",
   "use-cases": "ユースケース",
   "data-model": "データモデル",
   "data-patterns": "データパターン",
@@ -8,6 +8,5 @@
   "group": "Media Group",
   "lifecycle": "ライフサイクル",
   "user-deletion": "User削除",
-  "design-decisions": "設計判断",
-  "initial-modeling-notes": "初期モデリング記録（履歴）"
+  "design-decisions": "設計判断"
 }

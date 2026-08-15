@@ -1,1 +1,8 @@
-{"index":"全体構成","web":"Web","api":"API","data":"データ・ストレージ","infrastructure":"インフラストラクチャ","cross-cutting":"横断設計","review-backlog":"旧設計資料の精査状況"}
+{
+  "index": "全体構成",
+  "web": "Web",
+  "api": "API",
+  "data": "データ・ストレージ",
+  "infrastructure": "インフラストラクチャ",
+  "cross-cutting": "横断設計"
+}
