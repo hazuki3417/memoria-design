@@ -11,5 +11,5 @@
 - 必須値は起動時に検証します。
 - secretをGit、Issue、PR、log、CDK output、設計書へ記載しません。
 - GitHub ActionsからAWSへはOIDCと短期credentialを優先します。
-- SSMやSecrets Managerの採否・pathはIaCで確認し、旧案を現行仕様と断定しません。
+- 非秘密設定とsecretを分離し、AWS上の具体的な保存serviceとpath規約はIaCが所有します。
 - Webへ露出する環境変数は公開情報として扱います。

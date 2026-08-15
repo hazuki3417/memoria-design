@@ -6,14 +6,14 @@
 > 実装状況: Next.js App Router、feature、component、GraphQL clientの基本構成は実装されています。
 > 実装の正本: `memoria-web`
 
-Webは画面遷移、入力、認証状態、GraphQL API呼び出しを担当します。最終的な認可と整合性はAPIで保証します。現行はNext.js App Routerを基盤とし、`src/app`がroute、`src/feature`が機能、`src/components`が再利用UI、`src/graphql`がoperation・fragment、`src/providers`がProviderを担当します。
+Webは画面遷移、入力、認証状態、GraphQL API呼び出しを担当します。最終的な認可と整合性はAPIで保証します。Next.js App Routerを基盤とし、`src/app`がroute、`src/feature`が機能、`src/components`が再利用UI、`src/graphql`がoperation・fragment、`src/providers`がProviderを担当します。
 
 ## 原則
 
 - Server／Client Componentの境界は必要性で決めます。
 - APIの業務ルールや認可条件をWebだけで保証しません。
 - schema変更時はoperation、fragment、生成型への影響を確認します。
-- UI分類は現行ディレクトリと利用範囲を基準とし、旧Presentation／Container分類を採用しません。
+- UI分類はディレクトリの責務と利用範囲を基準とし、Presentation／Containerという固定分類を採用しません。
 - loading、empty、error、accessibilityを正常表示と同じ設計対象にします。
 
 route、component、Storybook、testの詳細は`memoria-web`を正本とします。
