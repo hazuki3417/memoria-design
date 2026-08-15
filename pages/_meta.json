@@ -26,7 +26,9 @@
   },
   "local-development": "ローカル開発",
   "test-design": "テスト設計",
+  "commit-message": "コミットメッセージ",
   "branch-strategy": "ブランチ運用",
+  "versioning": "バージョニング",
   "build-deploy": "ビルド・デプロイ",
   "ai-development": "AI支援開発",
   "-- Documentation": {
