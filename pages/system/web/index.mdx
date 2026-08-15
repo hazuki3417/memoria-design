@@ -1,6 +1,9 @@
 # Webアーキテクチャ
 
-> 状態: 現行実装を基準とした設計  
+
+## 概要
+
+> 実装状況: Next.js App Router、feature、component、GraphQL clientの基本構成は実装されています。
 > 実装の正本: `memoria-web`
 
 Webは画面遷移、入力、認証状態、GraphQL API呼び出しを担当します。最終的な認可と整合性はAPIで保証します。現行はNext.js App Routerを基盤とし、`src/app`がroute、`src/feature`が機能、`src/components`が再利用UI、`src/graphql`がoperation・fragment、`src/providers`がProviderを担当します。

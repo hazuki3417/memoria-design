@@ -1,16 +1,21 @@
-# データモデル
+# データ設計
 
-> 状態: 現行実装調査  
-> 実行可能な正本: `memoria-api/schemas/postgres/`
+## 概要
 
-| 領域 | 主なテーブル | 状況 |
-| --- | --- | --- |
-| User | `users` | アプリケーション処理あり |
-| Image | `images`、tag関連 | アプリケーション処理あり |
-| Group | `image_groups`、image・親子関連 | アプリケーション処理あり |
-| Ownership・Access | User・Community関連 | 一部はDB定義中心 |
-| Community | community、membership、owner、history | DB定義中心 |
+> 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
 
-DBに定義があることと利用可能な機能であることを区別します。Community関連は対応するGraphQL・serviceが未確認です。GroupのDAGは自己参照禁止だけでは多段循環を保証できません。ImageからMediaへの移行は将来設計であり、現行テーブルを資料だけで読み替えません。MongoDB Contentは現行の主要データモデルとして確認できません。
+データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。
 
-将来モデルは[Mediaデータモデル](/media/data-model)、差異は[実装・設計整合状況](/implementation-status)を参照します。
+## PostgreSQL
+
+- Mediaの属性、Uploader、Custodian、Community公開、Group、Media Eventを保持します。
+- CustodianはUserまたはCommunityのどちらか一つであることを保証します。
+- foreign key、unique、check constraintで表現できる整合性はDBでも保証します。
+- Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
+- transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
+
+論理モデルは[Mediaデータモデル](/media/data-model)、file配置は[Mediaストレージ](./storage)を参照してください。
+
+## MongoDBを主要永続化先にしない理由
+
+同じドメイン情報をPostgreSQLとMongoDBへ重複保持すると、正本、transaction、整合性、migrationが複雑になります。Mediaの主要metadataはPostgreSQLへ集約します。MongoDBを利用する場合は、PostgreSQLでは満たせない具体的なユースケースとdata ownershipを先に定義します。
