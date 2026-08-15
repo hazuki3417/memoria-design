@@ -24,17 +24,21 @@ Memoriaを構成する複数リポジトリに共通する、プロダクト設�
 
 ## ローカル開発
 
+標準環境はWindows、WSL2 Ubuntu、VS Code、Devboxの組み合わせです。リポジトリはUbuntu側で開き、npmなどのプロジェクトコマンドはDevbox内で実行します。
+
 ```sh
 devbox shell
 npm ci
 npm run dev
 ```
 
-ビルド確認:
+Windowsのブラウザから`http://localhost:3000`へアクセスします。ビルド確認:
 
 ```sh
 npm run build
 ```
+
+環境構成、Web・APIの結合確認、Linux向けoptional dependencyの診断と復旧は[ローカル開発環境](./pages/local-development.mdx)を参照してください。
 
 ## 最初に読む資料
 
@@ -42,7 +46,8 @@ npm run build
 2. [リポジトリ構成](./pages/architecture/index.mdx)
 3. [Mediaドメイン](./pages/media/index.mdx)
 4. [Context map](./pages/context/index.mdx)
-5. [人間中心のAI支援開発](./pages/ai-development.mdx)
-6. [ブランチ運用](./pages/branch-strategy.mdx)
+5. [ローカル開発環境](./pages/local-development.mdx)
+6. [人間中心のAI支援開発](./pages/ai-development.mdx)
+7. [ブランチ運用](./pages/branch-strategy.mdx)
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。
