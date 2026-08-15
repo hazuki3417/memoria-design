@@ -1,13 +1,94 @@
 # Context map
 
-Context mapは人間とAIが正本へ到達する索引で、設計本文を複製しません。
+## 目的
 
-| 目的 | 参照順 |
+Context mapは、開発者とChatGPTがタスクに必要な正本へ到達するための索引です。設計書の内容をAI向けに複製するものではありません。
+
+人間がサイト全体を読む場合は、Homeとドキュメント管理方針が示す「プロダクト概要 → 用語・ユースケース → 全体構成 → 詳細設計 → 開発・運用 → 判断・履歴」の順序を使用します。Context mapのタスク別順序は、特定作業の調査を効率化するためのものであり、人間向けのナビゲーション構成を置き換えません。
+
+## 情報の優先順位
+
+1. 現在のIssueまたは会話で人間が合意した要件
+2. 承認済みの設計書とADR
+3. 所有リポジトリにある実行可能なschema・設定・実装・テスト
+4. 対象リポジトリの`AGENTS.md`とREADME
+5. 過去のIssue・PR
+6. AIが生成した要約
+
+上位と下位が矛盾する場合は差異を報告し、人間の判断を求めます。
+
+## 共通して読む情報
+
+| 目的 | 参照先 |
 | --- | --- |
-| Web | Issue → `memoria-web`のAGENTS/README → [Web設計](/system/web) → 対象実装 |
-| GraphQL・API | Issue → [Media](/media) → [API](/system/api) → [GraphQL](/system/api/graphql) → 実行可能schema |
-| DB・storage | Issue → [Mediaモデル](/media/data-model) → [データ](/system/data) → API schema・query |
-| IaC | Issue → `memoria-IaC`のAGENTS/README → [IaC](/system/infrastructure) → synth・diff |
-| 横断変更 | 契約所有者 → 影響repository → 互換性 → PR・deploy・migration順 |
+| プロダクト構成 | [リポジトリ構成](/system) |
+| 用語 | [ユビキタス言語](/ubiquitous) |
+| 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
+| Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
+| ブランチ・PR | [ブランチ運用](/branch-strategy) |
+| コミット | [コミットメッセージ規約](/commit-message) |
+| バージョン・Release | [バージョニング規約](/versioning) |
+| 人間とAIの役割 | [AI支援開発](/ai-development) |
 
-情報は、現在の合意、承認済み設計・ADR、実行可能なschema・実装、各repositoryの規則、過去記録、AI要約の順で優先します。矛盾は推測で解消せず人間へ報告します。
+## タスク別の読み取り順序
+
+### Web画面・UI
+
+1. Issueの受け入れ条件
+2. `memoria-web/AGENTS.md`とREADME
+3. [ローカル開発環境](/local-development)
+4. 対象route・feature・component・Storybook
+5. [コンポーネント設計](/system/web)
+6. API利用がある場合はGraphQL設計とAPI側schema
+
+### GraphQL・API
+
+1. Issueの受け入れ条件
+2. `memoria-api/AGENTS.md`とREADME
+3. [Media設計](/media)と対象領域のユースケース
+4. [APIアーキテクチャ](/system/api)
+5. [GraphQL設計](/system/api/graphql)
+6. `memoria-api/schemas/graphql/`と生成設定
+7. `memoria-web`のoperation・fragment・生成型への影響
+
+### データベース
+
+1. Issueの受け入れ条件とmigration条件
+2. [Media概念データモデル](/media/data-model)などのドメインルール
+3. API設計
+4. `memoria-api/schemas/postgres/`のschema・query
+5. service・repository・生成コード
+6. backup、migration、rollback方法
+
+### インフラストラクチャ
+
+1. Issueの対象環境と許可された操作
+2. `memoria-IaC/AGENTS.md`とREADME
+3. [IaC設計](/system/infrastructure)と[ビルド・デプロイ](/build-deploy)
+4. `memoria-IaC/src/`のCDK設定・construct・テスト
+5. synth・diffとresource置換、IAM、データ保持への影響
+
+### リポジトリ横断変更
+
+1. 契約を所有するリポジトリを決める
+2. 影響する全リポジトリの`AGENTS.md`を読む
+3. [ローカル開発環境](/local-development)に従って必要なサービスを起動する
+4. 後方互換性、PRのマージ順序、deploy・migration順序を決める
+5. リポジトリごとに作業ブランチとPRを分ける
+6. 関連PRを相互リンクする
+
+## タスクcontextに含める情報
+
+Issueまたは依頼には、次を記載します。
+
+- 達成したい結果
+- 対象リポジトリ
+- 受け入れ条件
+- 変更してよい範囲
+- 参照する設計書
+- 実行する検証
+- 互換性、セキュリティ、データ移行の制約
+- 関連するIssue・PR
+
+設計内容を貼り付ける代わりに、正本のパスと、今回のタスクで追加された制約を記載します。
