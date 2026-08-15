@@ -6,6 +6,7 @@
   },
   "documentation-policy": "ドキュメント管理",
   "implementation-status": "実装・設計整合状況",
+  "local-development": "ローカル開発",
   "media": "Media",
   "adr": "ADR",
   "drawio-migration": "draw.io移行",
