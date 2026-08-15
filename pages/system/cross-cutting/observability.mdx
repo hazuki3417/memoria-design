@@ -1,6 +1,9 @@
 # ログ・可観測性
 
-> 状態: 現行実装を基準とした方針
+
+## 概要
+
+> 実装状況: APIのZap、OpenTelemetryとローカルJaegerは実装されています。Metric、alert、保存期間の運用設定には差分があります。
 
 APIは構造化logにZap、traceにOpenTelemetryを使用し、ローカルではJaegerで確認できます。Logはevent、Traceはrequest経路、Metricは傾向、Auditは法的・セキュリティ証跡に用います。Media Eventは操作のtraceを目的とするドメイン情報で、汎用監査基盤ではありません。
 

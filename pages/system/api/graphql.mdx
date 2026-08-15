@@ -1,14 +1,30 @@
 # GraphQL契約
 
-> 状態: 現行方針  
-> 実行可能な正本: `memoria-api/schemas/graphql/*.graphql`
+## 概要
 
-このページは設計原則を記録し、型・field・引数の一覧は複製しません。APIはschema、Webはoperation・fragment・生成型を所有します。
+> 実装状況: 実行可能な契約は`memoria-api/schemas/graphql/*.graphql`です。ImageからMediaへの名称・型変更と、すべての一覧へのRelay Connection適用には差分があります。
 
-- 後方互換な追加を優先します。
-- 削除、型変更、nullableからnon-nullへの変更は破壊的変更として移行期間を設けます。
-- inputはユースケース単位とし、永続化モデルをそのまま公開しません。
+APIはschema、Webはoperation・fragment・生成型を所有します。
+
+## 原則
+
+- Queryは名詞、Mutationは動詞と対象を組み合わせます。
+- inputはユースケース単位とし、`Input`接尾辞を付けます。
+- Mutationの返却型は`Payload`接尾辞を付けます。
+- 一括操作も単一Mutationとして定義し、一つのtransaction境界で処理します。
+- Mutationのnestは許可せず、同階層のMutationはそれぞれ独立したtransactionです。
 - 内部errorの詳細をresponseへ公開しません。
-- paginationは実行可能なschemaと利用画面を根拠に決め、初期資料のRelay例を既定仕様にしません。
+- 破壊的変更には移行期間を設けます。
 
-現行契約はImage・ImageGroup中心です。Media化は合意済みの将来設計ですが未実装であり、DB、Web、storageを含む移行計画が必要です。旧Content・Workspace・MongoDB中心のschema例は削除します。
+## Pagination
+
+一覧はRelay Cursor Connections Specificationに沿います。
+
+- forward paginationは`first`と任意の`after`を使用します。
+- backward paginationは`last`と任意の`before`を使用します。
+- `before + first`、`after + last`、`first + last`はerrorにします。
+- edgeは`cursor`と`node`、connectionは`edges`と`pageInfo`を返します。
+- backward取得でDBの取得順が逆になる場合、API responseは論理順へ戻します。
+- cursorは利用者が内部key構造へ依存しないopaqueな値にします。
+
+具体的な型・field・引数は実行可能なschemaを正本とします。

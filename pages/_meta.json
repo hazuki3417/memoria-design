@@ -1,1 +1,20 @@
-{"index":"Home","-- Product":{"type":"separator","title":"プロダクト"},"media":"Media（将来設計）","ubiquitous":"ユビキタス言語","technology-stack":"技術スタック（現行調査）","-- System Design":{"type":"separator","title":"システム設計"},"system":"システム設計","-- Development":{"type":"separator","title":"開発・運用"},"local-development":"ローカル開発","test-design":"テスト設計","commit-message":"コミットメッセージ","branch-strategy":"ブランチ運用","versioning":"バージョニング","build-deploy":"ビルド・デプロイ","ai-development":"AI支援開発","-- Documentation":{"type":"separator","title":"ドキュメント・記録"},"documentation-policy":"ドキュメント管理","context":"Context","implementation-status":"実装・設計整合状況（現行調査）","adr":"ADR","drawio-migration":"draw.io移行（履歴）"}
+{
+  "index": "Home",
+  "-- Product": {"type":"separator","title":"プロダクト"},
+  "media": "Media",
+  "ubiquitous": "ユビキタス言語",
+  "technology-stack": "技術スタック",
+  "-- System Design": {"type":"separator","title":"システム設計"},
+  "system": "システム設計",
+  "-- Development": {"type":"separator","title":"開発・運用"},
+  "local-development": "ローカル開発",
+  "test-design": "テスト設計",
+  "commit-message": "コミットメッセージ",
+  "branch-strategy": "ブランチ運用",
+  "versioning": "バージョニング",
+  "build-deploy": "ビルド・デプロイ",
+  "ai-development": "AI支援開発",
+  "-- Documentation": {"type":"separator","title":"ドキュメント"},
+  "documentation-policy": "ドキュメント管理",
+  "context": "Context"
+}

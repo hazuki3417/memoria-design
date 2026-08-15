@@ -1,6 +1,9 @@
 # APIアーキテクチャ
 
-> 状態: 現行実装を基準とした設計  
+
+## 概要
+
+> 実装状況: GraphQL、Service、Repository、PostgreSQL、Object Storageの基本構成は実装されています。Media設計に対応するdomain処理には差分があります。
 > 実装の正本: `memoria-api`
 
 APIはGraphQLを入口として、ドメインルール、認証・認可、PostgreSQL、S3互換storageへの入出力を提供します。

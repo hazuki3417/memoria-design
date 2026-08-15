@@ -1,16 +1,18 @@
 # テスト設計
 
-> 状態: 現行方針
+## 概要
+
+> 実装状況: 各repositoryにテスト基盤はありますが、すべての層・主要結合scenarioを網羅しているわけではありません。
 
 | 対象 | 主な検証 |
 | --- | --- |
 | Web | 表示、操作、loading、empty、error、accessibility |
 | API domain・service | ユースケース、認可、境界値、状態遷移 |
-| Repository | SQL、制約、transaction、対象外データへの非影響 |
+| Repository | SQL、制約、transaction、対象外dataへの非影響 |
 | GraphQL | schema、resolver、error、生成互換性 |
 | IaC | unit test、synth、diff、IAM、resource置換 |
-| 結合 | Web・API・認証・DB・storageの主要シナリオ |
+| 結合 | Web・API・認証・DB・storageの主要scenario |
 
-正常系に加え、認可拒否、不正入力、競合、部分失敗を確認します。DB更新では対象外データの非変更も確認します。schema変更ではAPIとWebの生成・テストを行います。Mediaの委譲、公開解除、User削除、物理削除は整合性を重点確認します。
+RepositoryのInsert・Update・Deleteでは、操作対象に加えて対象外dataを用意し、操作後の全体を比較します。件数だけでなく、対象外dataが変化していないこと、constraint違反時に部分更新が残らないことを確認します。
 
-PRにはcommand、結果、未実施理由、手動確認、riskを記録します。標準環境ではWebとAPIを別々のDevboxで起動し、Windowsのブラウザから結合確認します。
+Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整合性を重点確認します。PRにはcommand、結果、未実施理由、手動確認、riskを記録します。

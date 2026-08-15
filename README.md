@@ -42,7 +42,7 @@ npm run build
 
 ## 最初に読む資料
 
-1. [Mediaドメイン](./pages/media/index.mdx)
+1. [Media](./pages/media/index.mdx)
 2. [Media関連ユースケース](./pages/media/use-cases.mdx)
 3. [ユビキタス言語](./pages/ubiquitous.mdx)
 4. [リポジトリ構成](./pages/system/index.mdx)
