@@ -1,0 +1,93 @@
+# 実装・設計整合状況
+
+> 状態: 現行調査  
+> 最終確認日: 2026-08-15  
+> 調査基準: 各リポジトリの `develop` ブランチ
+
+## 目的
+
+初期設計と現行実装を混同せず、実装済みの事実、設計済みだが未実装の要素、差異、判断が必要な要素を管理します。
+
+現在の挙動・構造を説明するときは現行実装を基準とします。ただし、実装に存在しない設計要素を自動的に廃止とは判断しません。
+
+## 判定区分
+
+| 区分 | 意味 | 更新方法 |
+| --- | --- | --- |
+| 実装済み | 実行可能な定義とコードで確認できる | 現行仕様として記載 |
+| 一部実装 | 契約または処理の一部だけ存在する | 実装範囲と不足を併記 |
+| 計画 | 設計済みだが実装で確認できない | 将来仕様として保持 |
+| 実装差異 | 設計と実装が異なる | 両方を残して判断を待つ |
+| 要確認 | 目的や採否を資料だけでは判断できない | Issueまたは人間の判断へつなぐ |
+
+## 情報源の優先順位
+
+現行状態の確認には次の順序を使用します。
+
+1. 実行コードとresolver
+2. SQL・GraphQL・JSON Schemaなどの実行可能な定義
+3. コード生成・起動・環境設定
+4. 設計書とdraw.io
+
+設計意図や将来像については、設計書とdraw.ioを参照します。優先順位は設計を削除する順序ではありません。
+
+## 調査結果
+
+### PostgreSQL
+
+`memoria-api/schemas/postgres/schema.sql`はPostgreSQL 17.5から生成されたダンプであり、ローカルDB初期化時にも読み込まれます。現在確認できる16テーブルは[データモデル](./schema/data-model)に整理しています。
+
+画像、画像グループ、タグ、ユーザーに関するrepository・service・GraphQL resolverは実装されています。
+
+コミュニティ、メンバーシップ、オーナー履歴、コミュニティ単位の画像アクセスはSQL定義に存在します。一方、対応するGraphQL型、resolver、domain/serviceは確認できないため、現時点では「DB定義済み・アプリケーション機能未確認」とします。未使用・廃止とは判断しません。
+
+### GraphQL
+
+実行可能なschemaは`memoria-api/schemas/graphql/*.graphql`です。
+
+| 領域 | 契約 | resolver | 判定 |
+| --- | --- | --- | --- |
+| Image | Query・upload/update/delete/download | 実装あり | 実装済み |
+| ImageGroup | Query・create/update/delete | 実装あり | 実装済み |
+| User profile | `me`・`updateProfile` | 実装あり | 実装済み |
+| User preference | 取得・更新 | 固定値返却、更新処理TODO | 一部実装 |
+| User usage | 使用量・ファイル統計 | 固定値返却 | 一部実装 |
+| Community | GraphQL契約なし | resolverなし | 計画または要確認 |
+
+既存の[GraphQL設計](./schema/graphql)にあるMongoDB Content中心のschema例は、現在の実行可能schemaとは一致しません。設計意図を保持するため削除せず、初期設計・検討資料として扱います。
+
+### MongoDB
+
+`memoria-api/schemas/mongodb/content.json.schema`にContentのJSON Schemaがあり、ローカル環境にもMongoDBがあります。現行GraphQL契約はPostgreSQL上のImage・ImageGroup中心へ変化しています。
+
+MongoDB Contentモデルの今後の採否、移行途中か、別用途として維持するかは資料から確定できないため「要確認」とします。
+
+### draw.io
+
+`pages/_drawio/modeling.drawio.svg`には次の初期設計が含まれます。
+
+- User、Content、Communityの概念と関係
+- Content管理者と委譲履歴
+- User・Community単位のContentアクセス
+- Communityのメンバー・オーナー・履歴
+- 複数管理者や委譲パターンに関する未検討事項
+
+Community関連の一部は現在のSQLへ反映されています。Content委譲、管理者履歴、複数管理パターンは現行実装との対応を確定できません。図は計画・検討事項を含むため、現行モデルだけを表す図として上書きしません。
+
+## 判断が必要な項目
+
+1. MongoDB Contentモデルを今後も採用するか
+2. PostgreSQLのCommunity関連テーブルを実装予定として維持するか
+3. Content/Imageの管理委譲を将来機能として維持するか
+4. User preferenceとusageを永続化・集計する方式
+5. ImageGroupの所有主体をUserまたはCommunityのどちらか一つに限定するか
+6. ImageGroupのDAGについて、自己参照禁止以外の循環防止をアプリケーションで保証するか
+
+これらは設計書の自動修正対象にせず、人間の判断後に現行・将来・廃止の状態を確定します。
+
+## 次回の更新
+
+- 判断済み項目はADRまたは対象設計書へ反映する
+- 実装された計画項目は「実装済み」へ変更する
+- schemaまたはresolver変更時に本ページを再確認する
+- draw.io更新時は現行要素と計画要素を凡例で区別する
