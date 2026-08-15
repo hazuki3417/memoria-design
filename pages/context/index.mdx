@@ -22,6 +22,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | プロダクト構成 | [リポジトリ構成](/architecture) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
 | 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
 | 人間とAIの役割 | [AI支援開発](/ai-development) |
@@ -32,9 +33,10 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 1. Issueの受け入れ条件
 2. `memoria-web/AGENTS.md`とREADME
-3. 対象route・feature・component・Storybook
-4. [コンポーネント設計](/component)
-5. API利用がある場合はGraphQL設計とAPI側schema
+3. [ローカル開発環境](/local-development)
+4. 対象route・feature・component・Storybook
+5. [コンポーネント設計](/component)
+6. API利用がある場合はGraphQL設計とAPI側schema
 
 ### GraphQL・API
 
@@ -67,9 +69,10 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 1. 契約を所有するリポジトリを決める
 2. 影響する全リポジトリの`AGENTS.md`を読む
-3. 後方互換性、PRのマージ順序、deploy・migration順序を決める
-4. リポジトリごとに作業ブランチとPRを分ける
-5. 関連PRを相互リンクする
+3. [ローカル開発環境](/local-development)に従って必要なサービスを起動する
+4. 後方互換性、PRのマージ順序、deploy・migration順序を決める
+5. リポジトリごとに作業ブランチとPRを分ける
+6. 関連PRを相互リンクする
 
 ## タスクcontextに含める情報
 
