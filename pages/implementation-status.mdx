@@ -74,16 +74,33 @@ MongoDB Contentモデルの今後の採否、移行途中か、別用途とし�
 
 Community関連の一部は現在のSQLへ反映されています。Content委譲、管理者履歴、複数管理パターンは現行実装との対応を確定できません。図は計画・検討事項を含むため、現行モデルだけを表す図として上書きしません。
 
-## 判断が必要な項目
+## レビューで確定した将来設計
 
-1. MongoDB Contentモデルを今後も採用するか
-2. PostgreSQLのCommunity関連テーブルを実装予定として維持するか
-3. Content/Imageの管理委譲を将来機能として維持するか
-4. User preferenceとusageを永続化・集計する方式
-5. ImageGroupの所有主体をUserまたはCommunityのどちらか一つに限定するか
-6. ImageGroupのDAGについて、自己参照禁止以外の循環防止をアプリケーションで保証するか
+2026-08-15のモデリングレビューで次を確定しました。
 
-これらは設計書の自動修正対象にせず、人間の判断後に現行・将来・廃止の状態を確定します。
+- 初期設計のContentをMediaへ再定義する
+- Mediaは静止画像と動画に限定する
+- Custodianは常に1 Userまたは1 Communityとする
+- 管理主体とCommunity公開を分離する
+- User管理Mediaは複数Communityへ公開できる
+- Community管理Mediaは別Communityへ公開しない
+- Community内部は参加者全員が閲覧できる
+- 委譲時は既存公開をすべて解除する
+- Groupは分類専用とし、複数所属とDAGを許可する
+- User削除時はMediaを委譲または削除する
+- 削除Mediaの復元機能は提供しない
+- 著作権者をシステムで管理しない
+
+詳細な意図、制約、非対応理由は[Media設計判断](./media/design-decisions)を正本とします。これらは合意済みの将来設計であり、現行実装済みとは扱いません。
+
+## 引き続き判断が必要な項目
+
+1. MongoDB Contentモデルと現行データの扱い
+2. 現行ImageからMediaへ移行するDB・GraphQL・コード手順
+3. User preferenceとusageを永続化・集計する方式
+4. Community membership、招待、管理者、削除の詳細
+5. 動画の対応形式、変換、サムネイル、配信方式
+6. Media Eventの保存期間
 
 ## 次回の更新
 
