@@ -94,66 +94,19 @@ Windowsのブラウザから`http://localhost:3000`へアクセスします。�
 npm run build
 ```
 
-## Linux向けoptional dependencyが不足する場合
+## 依存関係の管理
 
-### 症状
+npmパッケージは`package.json`と`package-lock.json`へ記録します。Devboxが提供するNode.jsなどの開発ツールは`devbox.json`と`devbox.lock`で管理します。開発者ごとの手動インストールを標準手順にせず、`npm ci`と`devbox shell`で再現できる状態を維持します。
 
-Nextra起動時に次のようなエラーが出る場合があります。
-
-```text
-Cannot find module '@napi-rs/simple-git-linux-x64-gnu'
-```
-
-`@napi-rs/simple-git`は実行環境に応じたネイティブパッケージをoptional dependencyとして読み込みます。今回確認された事象では、Ubuntu x64 glibc向けの`@napi-rs/simple-git-linux-x64-gnu@0.1.16`がインストールされていないことが原因でした。
-
-### 診断
-
-Devbox内で、実行環境、npm設定、インストール状態を確認します。
-
-```sh
-uname -m
-node --version
-npm --version
-npm config get omit
-npm ls @napi-rs/simple-git @napi-rs/simple-git-linux-x64-gnu
-```
-
-確認する点:
-
-- コマンドがWSL2のUbuntu上のDevbox内で実行されているか
-- CPUアーキテクチャが想定どおりか
-- `optional`がnpmのomit対象になっていないか
-- 他のOSで生成した`node_modules`を再利用していないか
-- 親パッケージとプラットフォーム固有パッケージのバージョンが一致しているか
-
-### 復旧
-
-まずUbuntu上でoptional dependencyを含めて依存関係を作り直します。`npm ci`は既存の`node_modules`を削除し、lockfileに従って再インストールします。
-
-```sh
-npm ci --include=optional
-```
-
-それでも今回のパッケージだけが不足する場合は、現在の親パッケージと同じバージョンを一時的に補います。
-
-```sh
-npm install --no-save @napi-rs/simple-git-linux-x64-gnu@0.1.16
-```
-
-`0.1.16`は今回確認した依存関係に対応する値であり、恒久的な固定値ではありません。更新後は`npm ls @napi-rs/simple-git`などで親パッケージのバージョンを確認し、それに合わせます。`--no-save`はローカル復旧用で、`package.json`やlockfileへ意図しない変更を加えないために使用します。
-
-復旧後は`npm run dev`と`npm run build`を再実行します。
+`@napi-rs/simple-git-linux-x64-gnu@0.1.16`は、標準環境でNextraを実行するために必要なLinux x64 glibc向けnpmパッケージとして、`package.json`のoptional dependencyと`package-lock.json`へ記録します。これはnpmパッケージのため`devbox.lock`では管理しません。
 
 ## 再現性を維持する規則
 
 - プロジェクトコマンドはWSL2 Ubuntu上のDevbox内で実行します。
 - リポジトリと`node_modules`はUbuntu側に置き、OS間で共有しません。
 - lockfileは意図した依存関係更新以外で再生成・削除しません。
-- optional dependencyを省略しません。
+- `package.json`とlockfileに記録された依存関係を`npm ci`で導入します。
 - WebとAPIを結合確認するときは、両方をそれぞれのDevboxで起動します。
 - Windowsブラウザからの`localhost`到達と、WebからAPIへの通信を分けて確認します。
 - バージョン、ポート、環境変数、起動コマンドは、各実装リポジトリのREADMEと実行可能な設定を正本とします。
 
-## 既知の課題
-
-プラットフォーム固有のoptional dependencyがlockfileへ十分に記録されていない場合、`npm ci`だけでは別OSの環境を再現できないことがあります。恒久対応としてlockfileや依存関係を変更する場合は、ドキュメント変更とは分離し、Windows/WSL/Linuxなど対象プラットフォームで検証したPRとして扱います。
