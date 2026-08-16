@@ -36,7 +36,7 @@ flowchart TD
 
 リポジトリは、原則としてUbuntuのファイルシステム（例: `/home/<user>/workspace/`）へ配置します。`/mnt/c/`配下での開発は、ファイル監視やI/O性能、権限の差異が問題になる場合があるため標準構成にしません。
 
-`node_modules`はUbuntu上で生成し、Windows、macOS、他のLinux環境からコピーまたは共有しません。ネイティブバイナリを含むoptional dependencyはOS・CPU・libcに依存するためです。
+`node_modules`はUbuntu上で生成し、Windows、macOS、他のLinux環境からコピーまたは共有しません。
 
 ## 基本手順
 
@@ -67,8 +67,6 @@ lockfileを変更しない通常のセットアップでは、各リポジトリ
 npm ci
 ```
 
-optional dependencyを除外する`--omit=optional`や`npm_config_optional=false`は使用しません。プラットフォーム固有パッケージが欠落する原因になります。
-
 ### 4. WebとAPIを起動する
 
 `memoria-api`と`memoria-web`を別々のWSLターミナルで開き、それぞれのDevbox内で起動します。起動コマンド、環境変数、ポートは各リポジトリのREADMEと設定を参照します。
@@ -81,7 +79,9 @@ optional dependencyを除外する`--omit=optional`や`npm_config_optional=false
 
 ## Nextraの確認
 
-`memoria-design`ではDevbox内で次を実行します。
+`memoria-design`はNextra 4とNext.js App Routerを使用します。MDX本文は`content/`、routeとlayoutは`app/`、サイドメニューの順序は各階層の`_meta.js`で管理します。
+
+Devbox内で次を実行します。
 
 ```sh
 npm ci
@@ -97,8 +97,6 @@ npm run build
 ## 依存関係の管理
 
 npmパッケージは`package.json`と`package-lock.json`へ記録します。Devboxが提供するNode.jsなどの開発ツールは`devbox.json`と`devbox.lock`で管理します。開発者ごとの手動インストールを標準手順にせず、`npm ci`と`devbox shell`で再現できる状態を維持します。
-
-OS別のネイティブ依存関係はnpmのoptional dependencyとしてlockfileへ解決されます。個別のプラットフォーム向けパッケージを直接固定せず、`npm ci`によって実行環境に合う依存関係を再現します。
 
 ## 再現性を維持する規則
 

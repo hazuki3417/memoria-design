@@ -128,8 +128,9 @@ Memoriaは[アジャイル開発とイテレーション運用](/development-pro
 6. 最新の`develop`からリポジトリごとの作業ブランチを作成し、受け入れ条件と必要な検証を満たしてから`develop`をbaseとする通常のPRを作る。関連PRと適用順序を相互リンクする。
 7. GitHub Actionsで、開発経路に依存しない共通の検証を実行する。
 8. 人間がdiff、検証結果、設計との整合性をレビューする。
-9. 人間の明示的な承認後に`develop`へマージする。リリース時は`develop`から`main`へのPRを別途作成する。
-10. 長期的に有効な設計判断をこのリポジトリへ反映する。
+9. 関連Issueの受け入れ条件とチェックリストを実績に基づいて更新し、未完了項目には理由と後続Issueを記載する。
+10. 人間の明示的な承認後に`develop`へマージし、関連IssueのOpen／Closedが実態と一致することを確認する。リリース時は`develop`から`main`へのPRを別途作成する。
+11. 親Issueがある場合は子Issueの完了を反映し、長期的に有効な設計判断をこのリポジトリへ反映する。
 
 ChatGPTへ実装支援を依頼する場合も、作業内容、変更対象、検証結果をPRへ明示します。ChatGPT経由でPR操作やマージを行う場合は、対象と操作内容について人間の明示的な指示を必要とします。
 
@@ -208,14 +209,15 @@ AIは許可の範囲を推測で拡張しません。人間による手動操作
 - 横断変更では関連PRと適用順序が記載されている
 - 必要な設計資料が更新されている
 - 人間がdiffと検証結果を確認し、承認している
+- Issueの完了済み項目がチェック済みで、未完了項目に理由と後続Issueが記載されている
+- マージ後のIssueのOpen／Closedが実態と一致している
 
 ## 導入後の改善候補
 
 初期監査では、次を独立したIssueとして扱う価値があります。
 
-- `memoria-api`のDevbox（Go 1.24）とGitHub Actions（Go 1.22）の統一
 - `memoria-web`へのCI追加（Biome、TypeScript、Vitest、Next build）
-- `memoria-design`のパッケージマネージャーとlockfileの統一
+- `memoria-api`のGraphQL・sqlc生成物同期検査
 - `memoria-IaC`のルートと`src/`に分散したNodeパッケージ構成の整理
 - 各リポジトリのbranch protectionと必須チェックの設定
 

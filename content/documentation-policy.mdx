@@ -69,7 +69,20 @@ draw.io、SVG、旧MDXなどから正本を移行するときは、概要だけ�
 
 ## 構成
 
-人間が「プロダクト → 用語・ユースケース → システム全体 → 詳細設計 → 開発・運用」の順に理解できるようにします。Nextraの順序は各階層の`_meta.json`を正本とし、タイトルに「将来」「過去」「履歴」「初期」「現行調査」などの時間を表す分類を付けません。
+人間が「プロダクト → 用語・ユースケース → システム全体 → 詳細設計 → 開発・運用」の順に理解できるようにします。Nextraの順序は各階層の`_meta.js`を正本とし、タイトルに「将来」「過去」「履歴」「初期」「現行調査」などの時間を表す分類を付けません。
+
+## Nextraのファイル構成
+
+Nextra 4とNext.js App Routerを使用し、責務を次のように分けます。
+
+| パス | 責務 |
+| --- | --- |
+| `content/` | MDX本文と階層ごとの`_meta.js` |
+| `app/` | root layoutとMDX catch-all route |
+| `mdx-components.js` | Nextra themeのMDX component |
+| `next.config.mjs` | Nextraを組み込むNext.js設定 |
+
+本文とサイドメニューは`content/`を正本とし、Pages Router用の`pages/`、`theme.config.jsx`、JSON形式の`_meta.json`は使用しません。
 
 ## 正本の境界
 
@@ -77,6 +90,6 @@ draw.io、SVG、旧MDXなどから正本を移行するときは、概要だけ�
 
 設計本文と図はMDX＋Mermaidを使用します。draw.ioで検討しても、採用する情報はMDX＋Mermaidへ反映します。理由・制約・非対応理由は関連する設計本文に置き、別の履歴資料やADRへ分離しません。
 
-ページ移動時は`_meta.json`、README、AGENTS、Context、内部linkを同じPRで更新します。secret、本番識別子、個人情報は記載しません。
+ページ移動時は`_meta.js`、README、AGENTS、Context、内部linkを同じPRで更新します。secret、本番識別子、個人情報は記載しません。
 
 
