@@ -1,6 +1,6 @@
 # Memoria Design
 
-Memoriaを構成する複数リポジトリに共通する、プロダクト設計とアーキテクチャの正本です。ドキュメントサイトはNextraで構築しています。
+Memoriaを構成する複数リポジトリに共通する、プロダクト設計とアーキテクチャの正本です。ドキュメントサイトはNextra 4、Next.js App Router、MDXで構築しています。
 
 ## このリポジトリに置く情報
 
@@ -8,7 +8,7 @@ Memoriaを構成する複数リポジトリに共通する、プロダクト設�
 - システム構成とリポジトリ間の責務
 - Web、API、データベース、インフラストラクチャの設計
 - 横断的な開発・テスト・リリース方針
-- ADRと長期的な意思決定
+- 設計の意図、制約、採用しない方式と理由
 - AI contextの索引と読み取り順序
 
 実行可能なGraphQL・SQL schema、コード生成設定、環境設定は、それを所有する実装リポジトリを正本とします。
@@ -21,6 +21,15 @@ Memoriaを構成する複数リポジトリに共通する、プロダクト設�
 | [memoria-api](https://github.com/hazuki3417/memoria-api) | GraphQL API、ドメインロジック、永続化 |
 | [memoria-design](https://github.com/hazuki3417/memoria-design) | プロダクト設計と横断的な意思決定 |
 | [memoria-IaC](https://github.com/hazuki3417/memoria-IaC) | AWS CDKによる実行環境 |
+
+## Nextraの構成
+
+- `app/`: App RouterのlayoutとMDX catch-all route
+- `content/`: ドキュメント本文と階層ごとの`_meta.js`
+- `mdx-components.js`: Nextra themeのMDX component
+- `next.config.mjs`: Nextraを組み込むNext.js設定
+
+ドキュメント本文は`content/`を正本とし、`pages/`は使用しません。ページを追加・移動するときは同じ階層の`_meta.js`、相互リンク、README、Contextを同じ変更で更新します。
 
 ## ローカル開発
 

@@ -81,7 +81,7 @@
 - ローカル開発の共通構成は`content/local-development.mdx`へ記載します。
 - コミットメッセージ規約は`content/commit-message.mdx`へ記載します。
 - Semantic VersioningとReleaseの規約は`content/versioning.mdx`へ記載します。
-- 主要なページは`content/_meta.json`へ追加します。
+- 主要なページは`content/_meta.js`へ追加します。
 - ルートのサイドメニューは「プロダクト → システム設計 → 開発・運用 → ドキュメント・記録」の順にします。
 - 各カテゴリ内は「概要 → ユースケース・主要概念 → 詳細設計 → 設計判断」の順を基本とします。
 - ページ追加時は対象階層の`_meta.js`へ明示的に追加し、ファイル名の辞書順や作成順に依存しません。
@@ -101,7 +101,8 @@
 - リポジトリはUbuntu側で開き、プロジェクトコマンドはUbuntu上のDevbox内で実行します。
 - Windowsホストから直接npm、Node.js、Goなどのプロジェクトコマンドを実行しません。
 - `node_modules`をWindows、macOS、他のLinux環境からコピーまたは共有しません。
-- npmパッケージは`package.json`と`package-lock.json`、Devboxの開発ツールは`devbox.json`と`devbox.lock`で管理します。
+- npmパッケージは`package.json`と`package-lock.json`、DevboxのNode.jsは`devbox.json`と`devbox.lock`で管理します。
+- Nextra 4はApp Routerを使用し、本文を`content/`、routeとlayoutを`app/`、サイドメニュー順を各階層の`_meta.js`で管理します。
 - `memoria-web`と`memoria-api`の結合確認では、別々のターミナルとDevboxで両方を起動し、Windowsのブラウザから`localhost`へアクセスします。
 
 ```sh
@@ -109,7 +110,6 @@ devbox shell
 npm ci
 npm run build
 ```
-
 
 依存関係が不足する場合は手動導入を標準手順にせず、責務に応じて`package.json`・`package-lock.json`または`devbox.json`・`devbox.lock`へ記録します。
 
