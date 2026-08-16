@@ -16,7 +16,7 @@ Memoriaはウォーターフォール型の工程完了を前提とせず、短�
 - 設計書は各時点で合意された最新設計を表し、設計変更を実装と同じSprintまたは先行する設計Taskで反映する
 - 振り返りで見つかったProcess改善は、次のSprintで実行可能なActionへ変換する
 
-Sprintの期間は運用開始時に人間が決定し、比較可能なCadenceを得るため同じ期間を継続します。期間を変更する場合は、速度を上げるためではなく、Feedback cycleと作業分割の適合性を理由に見直します。
+初期Cadenceは2週間とし、3 Sprintを実施した時点で見直します。期間を変更する場合は、速度を上げるためではなく、Feedback cycle、作業分割、生活・開発時間への適合性を理由に判断します。変更後も比較可能な学習を得るため、一定期間は同じCadenceを継続します。
 
 ## BacklogとSprint
 
@@ -31,6 +31,24 @@ GitHub ProjectsとMilestonesは使用せず、GitHub Pluginで扱えるIssueとP
 | 完了 | Closed Issue | 受け入れ条件とDefinition of Doneを満たした状態 |
 
 IssueをSprintへ入れる前に、少なくとも目的、対象範囲、受け入れ条件、主要な依存関係、検証方法が理解できる状態にします。詳細が不足した項目は要求整理または設計Taskとして扱い、実装者の推測で補いません。
+
+## Sprint Issue
+
+Sprintごとに一つの親Issueを作成し、GitHub ProjectsとMilestonesの代わりにGoalと進捗を管理します。Titleは`sprint: <達成する結果>`を基本とします。
+
+Sprint Issueには次を記載します。
+
+- 期間
+- Sprint Goal
+- 対象Issue
+- 明示的な対象外
+- 依存関係とrisk
+- Review結果
+- 未完了項目とBacklogへ戻す判断
+- 振り返りで得たこと
+- 次のSprintで実行する改善
+
+Sprint IssueのChecklistは進捗の見通しに使用しますが、項目数や消化率を成果そのものとみなしません。Sprint Goalを満たしたか、利用者価値または検証可能な学習を得たかでReviewします。
 
 ## Sprintの進め方
 
@@ -69,6 +87,18 @@ Phaseは順序を整理するための境界であり、要求工程、設計工
 - GraphQLなどの共有契約は、利用側が移行できる互換期間を設ける
 - 一時的な分岐を永続的な二重実装にしないため、削除条件と削除Taskを定義する
 - Phase途中のcodeもCI、test、認可、data整合性の基準を緩和しない
+
+## 要求から実装への接続
+
+すべての要求を一括して確定してから設計へ進みません。機能または利用者価値ごとに、次の順序で進めます。
+
+1. 要求Issueで目的、Actor、受け入れ条件、制限、対象外を合意する
+2. 合意した要求を関連する概要・詳細設計へ反映する
+3. 実装可能な契約、data、画面、migration、testを設計する
+4. Repositoryごとの実装IssueとPRへ分割する
+5. 結合確認とFeedbackを次の要求・設計へ反映する
+
+要求が未確定の機能は実装者の推測で進めず、その機能の要求Issueへ戻します。一方、無関係な要求Issueの完了を待って、着手可能な機能を停止しません。
 
 ## Definition of Ready
 
