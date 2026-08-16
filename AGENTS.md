@@ -37,6 +37,8 @@
 ## 開発プロセス
 
 - Memoriaはウォーターフォールではなく、Sprintを単位とするアジャイル開発を採用します。
+- 初期Cadenceは2週間とし、Sprintごとの親IssueへGoal、対象、対象外、Review、振り返りを記載します。3 Sprint後にCadenceを見直します。
+- 機能単位で要求を合意して設計・実装へ進み、すべての要求完了を待つ一括工程にはしません。
 - IssueをProduct Backlogとして扱い、Sprint Goal、対象、対象外、受け入れ条件を明示します。
 - 大規模機能は利用者価値または独立して検証できる境界でPhaseへ分割し、各Phase内で要求確認、設計、実装、検証を行います。
 - 工程別のPhase、長期Feature branch、巨大PRを前提にしません。
