@@ -23,7 +23,7 @@
 - 事実、推測、未確認事項を区別し、懸念がない場合も妥当と判断した前提を簡潔に示します。
 - 複数の論点は番号を付け、依存関係の強い順に一つずつ扱います。
 - 回答後は合意、理由、前提、影響範囲、制限事項、未決定事項を整理します。
-- 対話と意思決定の詳細は`pages/ai-development.mdx`、Task別の進め方は`pages/context/index.mdx`を参照します。
+- 対話と意思決定の詳細は`content/ai-development.mdx`、Task別の進め方は`content/context/index.mdx`を参照します。
 
 ## GitHub連携機能の採用基準
 
@@ -32,7 +32,7 @@
 - GitHub ProjectsとMilestonesは使用しません。Pluginの対応範囲が拡張された場合に再検討します。
 - 設計・開発の進捗は親Issue、子Issue、チェックリスト、Open／Closedで管理します。
 - Issueには目的、対象リポジトリ、成果物、受け入れ条件、関連資料を記載します。
-- 詳細な理由と運用方法は`pages/ai-development.mdx`、タスク時の読み取り順序は`pages/context/index.mdx`を参照します。
+- 詳細な理由と運用方法は`content/ai-development.mdx`、タスク時の読み取り順序は`content/context/index.mdx`を参照します。
 
 ## 開発プロセス
 
@@ -43,7 +43,9 @@
 - 大規模機能は利用者価値または独立して検証できる境界でPhaseへ分割し、各Phase内で要求確認、設計、実装、検証を行います。
 - 工程別のPhase、長期Feature branch、巨大PRを前提にしません。
 - 各Phaseは既存機能を壊さず`develop`へ統合可能にし、未公開部分は到達不能な構成、Feature flag、後方互換な契約などで無効化します。
-- ReadyとDoneの基準、詳細な進め方は`pages/development-process.mdx`を参照します。
+- Issueのチェックリストは実績と照合し、完了した項目だけを`[x]`へ更新します。未完了項目は理由と後続Issueを記録します。
+- PRのマージ前に受け入れ条件とチェックリストを更新し、マージ後にIssueのOpen／Closedが実態と一致することを確認します。
+- ReadyとDoneの基準、詳細な進め方は`content/development-process.mdx`を参照します。
 
 ## ブランチ運用
 
@@ -54,10 +56,10 @@
 - 緊急修正の`hotfix/*`だけは`main`から作成し、`main`への反映後に同じ修正を`develop`へ同期します。
 - `master`は使用しません。存在する場合は`main`との差分を確認して`main`へ統合した後、参照や未完了PRがないことを確認して廃止します。
 - ステージング・テスト専用ブランチは設けません。必要になった環境はブランチではなくデプロイ設定で分離します。
-- 詳細な共通規約は`memoria-design/pages/branch-strategy.mdx`を参照します。
-- 手動で作成するコミットは`pages/commit-message.mdx`に従い、typeを付けた日本語タイトルを使用します。
+- 詳細な共通規約は`memoria-design/content/branch-strategy.mdx`を参照します。
+- 手動で作成するコミットは`content/commit-message.mdx`に従い、typeを付けた日本語タイトルを使用します。
 - GitHubなどが自動生成するmerge commitは、日本語でなくても構いません。
-- 正式なバージョンとReleaseは`pages/versioning.mdx`に従い、各リポジトリで独立して管理します。
+- 正式なバージョンとReleaseは`content/versioning.mdx`に従い、各リポジトリで独立して管理します。
 - PRは原則として通常の状態で作成し、Draftは人間が明示的に指示した場合だけ使用します。
 - 通常PRは受け入れ条件と必要な検証を満たし、レビュー可能な状態で作成します。
 - PRのマージには、原則として通常のmerge commitを使用します。squash mergeまたはrebase mergeは、明示的な理由と合意がある場合だけ使用します。
@@ -67,22 +69,22 @@
 
 ## ドキュメント構成
 
-- プロダクト共通の語彙は`pages/ubiquitous.mdx`へ記載します。
-- 技術一覧は`pages/technology-stack.mdx`へ記載します。
-- システム設計は`pages/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
-- GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`pages/system/`には設計上の意味と責務境界を記載します。
-- アジャイル開発とイテレーション運用は`pages/development-process.mdx`へ記載します。
-- 人間中心のAI支援開発規約は`pages/ai-development.mdx`へ記載します。
-- 文書の配置・正本・更新責任は`pages/documentation-policy.mdx`へ記載します。
-- AI contextの参照順序は`pages/context/`へ記載します。
-- リポジトリ構成とアーキテクチャは`pages/system/`へ記載します。
-- ローカル開発の共通構成は`pages/local-development.mdx`へ記載します。
-- コミットメッセージ規約は`pages/commit-message.mdx`へ記載します。
-- Semantic VersioningとReleaseの規約は`pages/versioning.mdx`へ記載します。
-- 主要なページは`pages/_meta.json`へ追加します。
+- プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。
+- 技術一覧は`content/technology-stack.mdx`へ記載します。
+- システム設計は`content/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
+- GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`content/system/`には設計上の意味と責務境界を記載します。
+- アジャイル開発とイテレーション運用は`content/development-process.mdx`へ記載します。
+- 人間中心のAI支援開発規約は`content/ai-development.mdx`へ記載します。
+- 文書の配置・正本・更新責任は`content/documentation-policy.mdx`へ記載します。
+- AI contextの参照順序は`content/context/`へ記載します。
+- リポジトリ構成とアーキテクチャは`content/system/`へ記載します。
+- ローカル開発の共通構成は`content/local-development.mdx`へ記載します。
+- コミットメッセージ規約は`content/commit-message.mdx`へ記載します。
+- Semantic VersioningとReleaseの規約は`content/versioning.mdx`へ記載します。
+- 主要なページは`content/_meta.json`へ追加します。
 - ルートのサイドメニューは「プロダクト → システム設計 → 開発・運用 → ドキュメント・記録」の順にします。
 - 各カテゴリ内は「概要 → ユースケース・主要概念 → 詳細設計 → 設計判断」の順を基本とします。
-- ページ追加時は対象階層の`_meta.json`へ明示的に追加し、ファイル名の辞書順や作成順に依存しません。
+- ページ追加時は対象階層の`_meta.js`へ明示的に追加し、ファイル名の辞書順や作成順に依存しません。
 - 人間向けの構成は、プロダクト概要、用語・ユースケース、全体構成、詳細設計、開発・運用の順を基本とします。
 - Context mapはタスク別の索引として扱い、人間向けナビゲーションの代わりにしません。
 - ページ名と先頭見出しは単独で内容を識別できる名称にし、単独の「概要」を避けます。
@@ -94,7 +96,7 @@
 
 ## ローカル開発環境と検証
 
-標準環境はWindowsホスト、WSL2 Ubuntu、VS Code、Devboxです。詳細は`pages/local-development.mdx`を参照します。
+標準環境はWindowsホスト、WSL2 Ubuntu、VS Code、Devboxです。詳細は`content/local-development.mdx`を参照します。
 
 - リポジトリはUbuntu側で開き、プロジェクトコマンドはUbuntu上のDevbox内で実行します。
 - Windowsホストから直接npm、Node.js、Goなどのプロジェクトコマンドを実行しません。
@@ -108,7 +110,6 @@ npm ci
 npm run build
 ```
 
-このリポジトリには`bun.lockb`と`package-lock.json`が併存しています。パッケージマネージャーが正式に統一されるまでは、文書化された基準として`npm ci`を使用します。別作業に紛れてlockfileを再生成・削除しません。
 
 依存関係が不足する場合は手動導入を標準手順にせず、責務に応じて`package.json`・`package-lock.json`または`devbox.json`・`devbox.lock`へ記録します。
 
@@ -122,7 +123,7 @@ npm run build
 6. プロダクトに関するドキュメントは日本語で記載します。リポジトリ名、コマンド、ファイルパス、コード識別子、固有の技術名は原表記を維持できます。
 7. 実装リポジトリへ設計内容を複製せず、このリポジトリの正本へリンクします。実行可能なschema・設定・コマンドは所有リポジトリを正本とします。
 8. AI contextには設計内容を複製せず、正本のパス、読み取り順序、タスク固有の制約を記載します。
-9. 新しいプロダクト用語は、対象設計と同じ変更で`pages/ubiquitous.mdx`へ追加します。
+9. 新しいプロダクト用語は、対象設計と同じ変更で`content/ubiquitous.mdx`へ追加します。
 10. draw.io、SVG、旧MDXを移行・削除する前に、属性、関連、多重度、constraint、データパターン、操作順序、例外、意図、非対応理由が最新設計へ統合されていることを確認します。
 11. 実装を開始する設計では、開発者が重要な仕様判断を推測する状態を残しません。
 
@@ -141,8 +142,9 @@ npm run build
 - Windowsホストからの直接実行、OS間の`node_modules`共有、依存関係の未記録など、標準ローカル環境の再現性を損なう手順を指摘します。
 - 日本語で統一されていないプロダクト資料を指摘します。
 - 内容を識別できないページ名、状態が不明な設計、プロダクト概要より先に技術詳細を要求するナビゲーションを指摘します。
-- `_meta.json`のカテゴリ、セパレーター、表示順がドキュメント管理方針と一致しない変更を指摘します。
+- `_meta.js`のカテゴリ、セパレーター、表示順がドキュメント管理方針と一致しない変更を指摘します。
 - 手動コミットのtype・日本語タイトル・破壊的変更表現がコミットメッセージ規約と一致しない場合は指摘します。
 - リポジトリ間のバージョン統一や、`develop`への正式タグなど、バージョニング規約と一致しないリリース操作を指摘します。
+- 完了済みの受け入れ条件が未チェックのまま、または未完了項目が理由・後続Issueなしでチェック済みになっている場合は指摘します。
 - フォーマットとbuild可否は機械的な検証へ任せます。
 
