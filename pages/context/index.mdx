@@ -24,7 +24,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | プロダクト構成 | [リポジトリ構成](/system) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
 | 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
-| 開発プロセス・Sprint | [アジャイル開発とスプリント運用](/development-process) |
+| 開発プロセス・Iteration | [アジャイル開発とイテレーション運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
@@ -87,15 +87,18 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 5. リポジトリごとに作業ブランチとPRを分ける
 6. 関連PRを相互リンクする
 
-### Sprintまたは大規模機能を計画する
+### イテレーションまたは大規模機能を計画する
 
-1. [アジャイル開発とスプリント運用](/development-process)を確認する
-2. Sprint Goal、対象Issue、対象外、目標期間を明示する
+1. [アジャイル開発とイテレーション運用](/development-process)を確認する
+2. 固定期間を設けず、Goal、対象Issue、対象外、開始時の前提をイテレーションIssueへ記載する
 3. Issueの目的、受け入れ条件、依存関係、検証方法が着手可能な状態か確認する
-4. Sprint内で完了できない機能は、利用者価値または検証可能な境界でPhaseへ分割する
+4. 一つのGoalとして完了・検証できない機能は、利用者価値または検証可能な境界でPhaseへ分割する
 5. 各Phaseの開始条件、完了条件、契約、互換性、migration、無効化方法を定義する
 6. Layer別・工程別のPhase、長期branch、巨大PRだけで進めない
-7. 未完了項目は完了扱いにせず、影響を再評価してBacklogへ戻す
+7. 中断時は完了・未完了、branch、検証、risk、次の一手をCheckpointとして記録する
+8. 再開時は最新の`develop`、Issue・PR、設計、依存関係を再確認する
+9. 未完了項目は完了扱いにせず、影響を再評価してBacklogへ戻す
+10. Reviewと振り返りをイテレーションIssueへ記録し、3イテレーション完了後に運用を見直す
 
 ### 対話によって要求・設計を決定する
 

@@ -36,8 +36,10 @@
 
 ## 開発プロセス
 
-- Memoriaはウォーターフォールではなく、Sprintを単位とするアジャイル開発を採用します。
-- IssueをProduct Backlogとして扱い、Sprint Goal、対象、対象外、受け入れ条件を明示します。
+- Memoriaはウォーターフォールではなく、Goalを単位とするイテレーション型のアジャイル開発を採用します。
+- 開発頻度が不定期であるため固定期間を設けず、イテレーションIssueへGoal、対象、対象外、Checkpoint、Review、振り返りを記載します。3イテレーション完了後に運用を見直します。
+- 機能単位で要求を合意して設計・実装へ進み、すべての要求完了を待つ一括工程にはしません。
+- IssueをProduct Backlogとして扱い、イテレーションGoal、対象、対象外、受け入れ条件を明示します。
 - 大規模機能は利用者価値または独立して検証できる境界でPhaseへ分割し、各Phase内で要求確認、設計、実装、検証を行います。
 - 工程別のPhase、長期Feature branch、巨大PRを前提にしません。
 - 各Phaseは既存機能を壊さず`develop`へ統合可能にし、未公開部分は到達不能な構成、Feature flag、後方互換な契約などで無効化します。
@@ -69,7 +71,7 @@
 - 技術一覧は`pages/technology-stack.mdx`へ記載します。
 - システム設計は`pages/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
 - GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`pages/system/`には設計上の意味と責務境界を記載します。
-- アジャイル開発とSprint運用は`pages/development-process.mdx`へ記載します。
+- アジャイル開発とイテレーション運用は`pages/development-process.mdx`へ記載します。
 - 人間中心のAI支援開発規約は`pages/ai-development.mdx`へ記載します。
 - 文書の配置・正本・更新責任は`pages/documentation-policy.mdx`へ記載します。
 - AI contextの参照順序は`pages/context/`へ記載します。
@@ -132,7 +134,7 @@ npm run build
 - シークレット、過剰な権限、安全策のない不可逆操作を含むデプロイ・セキュリティ手順を指摘します。
 - 対象リポジトリ、互換性、移行上の影響が不足したアーキテクチャ判断を指摘します。
 - 実装に必要なtable constraint、データパターン、transaction、競合・失敗時処理が未定義の設計を指摘します。
-- Sprint内に収まらない巨大Issue、工程別Phase、長期Feature branchを前提とする計画を指摘します。
+- Goalとして完了・検証できない巨大Issue、工程別Phase、長期Feature branchを前提とする計画を指摘します。
 - APIのDomain・Use CaseからGraphQL、DB、Object Storageなど外側の詳細へ依存する設計を指摘します。
 - 元資料を削除する変更では、詳細情報が最新設計へ完全に移行されているか確認します。
 - 人間の責任範囲をAIへ移す記述や、ローカル開発を副次的に扱う記述を指摘します。
