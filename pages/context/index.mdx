@@ -30,6 +30,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | コミット | [コミットメッセージ規約](/commit-message) |
 | バージョン・Release | [バージョニング規約](/versioning) |
 | 人間とAIの役割 | [AI支援開発](/ai-development) |
+| GitHub機能の採用基準 | [AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準) |
 
 ## タスク別の読み取り順序
 
@@ -83,6 +84,16 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 4. 後方互換性、PRのマージ順序、deploy・migration順序を決める
 5. リポジトリごとに作業ブランチとPRを分ける
 6. 関連PRを相互リンクする
+
+### GitHubでタスクと進捗を管理する
+
+1. [AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準)を確認する
+2. GitHub Pluginで作成から完了まで扱える機能だけを選ぶ
+3. 全体目標を親Issue、独立した作業単位を子Issueとして作成する
+4. 各Issueへ目的、対象、成果物、受け入れ条件、関連資料を記載する
+5. 親Issueのチェックリストと各IssueのOpen／Closedで進捗を管理する
+6. GitHub ProjectsとMilestonesは使用せず、日程が必要な場合はIssue本文へ記載する
+7. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
 
 ### 詳細設計を追加・更新するタスク
 
