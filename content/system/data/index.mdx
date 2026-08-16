@@ -1,0 +1,23 @@
+# データ設計
+
+## 概要
+
+> 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
+
+データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。
+
+## PostgreSQL
+
+- Mediaの属性、Uploader、Custodian、Community公開、Group、Media Eventを保持します。
+- CustodianはUserまたはCommunityのどちらか一つであることを保証します。
+- foreign key、unique、check constraintで表現できる整合性はDBでも保証します。
+- Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
+- transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
+
+論理モデルは[Mediaデータモデル](/media/data-model)、file配置は[Mediaストレージ](./storage)を参照してください。
+
+## MongoDBを主要永続化先にしない理由
+
+同じドメイン情報をPostgreSQLとMongoDBへ重複保持すると、正本、transaction、整合性、migrationが複雑になります。Mediaの主要metadataはPostgreSQLへ集約します。MongoDBを利用する場合は、PostgreSQLでは満たせない具体的なユースケースとdata ownershipを先に定義します。
+
+

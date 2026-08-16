@@ -1,0 +1,104 @@
+# APIクリーンアーキテクチャ
+
+## 概要
+
+> 実装状況: `memoria-api`は`graph`、`internal/service`、`internal/domain`、`internal/repository`、`internal/infrastructure`を中心に構成されています。既存機能には境界の精査が必要な箇所が残る可能性があります。
+> 実装の正本: `memoria-api`
+
+`memoria-api`はクリーンアーキテクチャを採用します。目的はFolder構成を形式的に揃えることではなく、ProductのルールとUse caseをGraphQL、PostgreSQL、Object Storage、認証Providerなどの詳細から分離し、変更とtestを安全にすることです。
+
+## 依存規則
+
+Source codeの依存は外側から内側へ向けます。内側のLayerは外側の具体的な技術、型、生成codeを知りません。
+
+~~~mermaid
+flowchart TD
+  G["Interface Adapter: GraphQL・Mapper"] --> U["Use Case: Service"]
+  U --> D["Domain"]
+  U --> P["Port: Repository Interface"]
+  I["Infrastructure: PostgreSQL・Storage・Auth"] --> P
+  G --> D
+~~~
+
+実行時にはServiceがRepository interfaceを呼び、DIされたInfrastructure実装が処理します。実行時の呼び出し順序とSource codeの依存方向を混同しません。
+
+## Layerと責務
+
+| Layer | 主な配置 | 責務 | 依存してよい対象 |
+| --- | --- | --- | --- |
+| Domain | `internal/domain` | Entity、Value Object、不変条件、技術非依存のDomain rule | 標準LibraryとDomain内の型 |
+| Use Case | `internal/service` | Application固有の操作、認可、処理順序、transaction境界、Portの協調 | Domain、Repository interface |
+| Port | `internal/repository` | DB、Object Storage、認証、transactionなど外部I/Oの抽象境界 | Domainまたは境界専用の型 |
+| Interface Adapter | `graph`、`graph/mapper` | GraphQL入出力、認証Contextの受け渡し、型変換、Error変換 | Use Case、Domain、GraphQL生成型 |
+| Infrastructure | `internal/infrastructure`、`internal/db` | PostgreSQL、S3互換Storage、Auth Provider、sqlc生成codeの具体実装 | Port、Domain、外部Library、生成code |
+
+配置は責務を判断する手掛かりであり、Folder名だけで境界を保証しません。
+
+## 境界の規則
+
+### Domain
+
+- GraphQL model、sqlc生成型、HTTP、AWS SDK、認証SDKへ依存させない
+- ID、状態、不変条件など、Productの意味をDomainの言葉で表現する
+- 外部I/OやApplicationの処理順序をDomain objectへ持ち込まない
+- 単なるdata containerだけを機械的に増やさず、不変条件がある場合は生成・更新方法で保護する
+
+### Use Case
+
+- 一つの利用者目的またはSystem操作を単位として処理を構成する
+- 認証済みContextからActorを解決し、Client指定の所有者IDを無条件に信頼しない
+- 複数Repositoryの協調、transaction、冪等性、競合、外部I/O失敗時の判断を所有する
+- GraphQL resolverやInfrastructure実装を直接参照しない
+- DB row、GraphQL payload、SDK固有Errorを公開しない
+
+### PortとInfrastructure
+
+- Repository interfaceはUse Caseが必要とする操作として定義し、DB tableのCRUDをそのまま抽象化しない
+- Interfaceの所有側は、それを利用する内側のLayerとする
+- InfrastructureはDomainと永続化表現をMapperで変換する
+- sqlc生成code、SQL、AWS SDK、認証SDKはInfrastructure境界の外へ漏らさない
+- ORMなど新しい永続化方式は、明示的な設計判断なしに導入しない
+
+### Interface Adapter
+
+- Resolverは入力検証の呼び出し、型変換、Use Case実行、GraphQL Errorへの変換に限定する
+- Business rule、認可rule、transactionをResolverへ実装しない
+- GraphQLとDomainの型を同一視せず、Mapperを境界として使用する
+- GraphQL schemaと生成codeを正本の手順に従って同期する
+
+## Transactionと外部I/O
+
+DB transactionの開始・commit・rollbackはUse Caseが必要な整合性境界に従って制御し、具体的なtransaction実装はPortの背後へ置きます。
+
+PostgreSQLとObject Storageなど、単一transactionに含められない外部I/Oでは、処理順序、冪等性、中間状態、retry、補償処理、孤立dataの回収を設計します。外部serviceをまたぐ処理を、見かけ上の原子的処理として扱いません。
+
+## Error
+
+- DomainまたはUse CaseのErrorをGraphQLやDBのError型へ依存させない
+- Infrastructure Errorを分類し、Use Caseが判断できるErrorへ変換する
+- Interface Adapterで公開可能なGraphQL Errorへ変換する
+- 内部構造、SQL、Object Storage path、認証情報をClientへ露出しない
+- retry可能、競合、入力不正、認証、認可、Not Foundを必要に応じて区別する
+
+## Test方針
+
+- Domainは外部I/Oなしで不変条件をtestする
+- Use CaseはRepository interfaceのTest doubleを使い、処理順序、認可、失敗、transactionをtestする
+- InfrastructureはPostgreSQL、Object Storage、認証ProviderとのIntegration testを行う
+- ResolverはMapping、認証Context、GraphQL contractをtestする
+- 主要Use caseはLayerをまたぐ結合testで確認する
+
+Testのためだけに実装の責務を歪めず、境界がTestしにくい場合は依存方向または責務配置を見直します。
+
+## 変更時の制限事項
+
+- 外側の都合をDomain modelへ直接持ち込まない
+- Layerを迂回してResolverからDBやObject Storageを直接操作しない
+- ServiceからInfrastructureの具象型を直接生成しない
+- 共通化だけを目的とした巨大Service、万能Repository、循環依存を作らない
+- interfaceを機械的に増やさず、置換可能性、外部I/O境界、test上の必要性がある場所へ置く
+- 将来のMicroservice化を前提に不要なNetwork境界を作らない
+- Clean Architectureを理由に、単純な処理へ不要なLayerやMappingを強制しない
+- 依存規則の例外が必要な場合は、背景、影響、代替案を設計として合意してから実装する
+
+

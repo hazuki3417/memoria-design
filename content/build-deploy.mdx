@@ -1,0 +1,17 @@
+# ビルド・デプロイ
+
+
+## 概要
+
+
+| 対象 | 基準 |
+| --- | --- |
+| 本番リリース | `main`の正式Release |
+| 日常開発 | `develop` |
+| 検証環境 | 専用branchを作らずdeploy設定・GitHub Environments・AWS側で分離 |
+
+branchはcodeの統合段階、environmentは実行先です。作業branchを通常のmerge commitで`develop`へ統合し、結合確認後に`develop`から`main`へRelease PRを作成します。`main`の対象commitへSemantic VersioningのtagとGitHub Releaseを作成します。各リポジトリは独立versionで、pre-releaseは使用しません。
+
+AWSはOIDCと短期credentialを優先し、IaCはsynth・diffでIAM拡大、resource置換、data削除を確認します。DB・storage変更はbackup、migration、rollbackまたはroll-forwardを事前に決めます。
+
+

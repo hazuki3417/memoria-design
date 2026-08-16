@@ -1,0 +1,32 @@
+# GraphQL契約
+
+## 概要
+
+> 実装状況: 実行可能な契約は`memoria-api/schemas/graphql/*.graphql`です。ImageからMediaへの名称・型変更と、すべての一覧へのRelay Connection適用には差分があります。
+
+APIはschema、Webはoperation・fragment・生成型を所有します。
+
+## 原則
+
+- Queryは名詞、Mutationは動詞と対象を組み合わせます。
+- inputはユースケース単位とし、`Input`接尾辞を付けます。
+- Mutationの返却型は`Payload`接尾辞を付けます。
+- 一括操作も単一Mutationとして定義し、一つのtransaction境界で処理します。
+- Mutationのnestは許可せず、同階層のMutationはそれぞれ独立したtransactionです。
+- 内部errorの詳細をresponseへ公開しません。
+- 破壊的変更には移行期間を設けます。
+
+## Pagination
+
+一覧はRelay Cursor Connections Specificationに沿います。
+
+- forward paginationは`first`と任意の`after`を使用します。
+- backward paginationは`last`と任意の`before`を使用します。
+- `before + first`、`after + last`、`first + last`はerrorにします。
+- edgeは`cursor`と`node`、connectionは`edges`と`pageInfo`を返します。
+- backward取得でDBの取得順が逆になる場合、API responseは論理順へ戻します。
+- cursorは利用者が内部key構造へ依存しないopaqueな値にします。
+
+具体的な型・field・引数は実行可能なschemaを正本とします。
+
+
