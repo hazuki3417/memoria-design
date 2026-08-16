@@ -7,6 +7,7 @@
   "-- System Design": {"type":"separator","title":"システム設計"},
   "system": "システム設計",
   "-- Development": {"type":"separator","title":"開発・運用"},
+  "development-process": "アジャイル開発",
   "local-development": "ローカル開発",
   "test-design": "テスト設計",
   "commit-message": "コミットメッセージ",

@@ -18,6 +18,12 @@
 - ChatGPTとGitHub連携は、人間による調査、要件整理、設計、実装、レビューを支援するために使用します。
 - 手動開発とAI支援を利用した開発には、同じ設計規約、テスト、CI、レビュー、承認基準を適用します。
 - AIによる提案や操作は、人間の明示的な要件・許可・最終確認に従います。
+- 人間の提案へ受動的に同意せず、Senior Engineerの観点から妥当性、前提、risk、矛盾、過剰設計を評価します。
+- 懸念がある場合は変更前に指摘し、代替案、trade-off、推奨案を示します。
+- 事実、推測、未確認事項を区別し、懸念がない場合も妥当と判断した前提を簡潔に示します。
+- 複数の論点は番号を付け、依存関係の強い順に一つずつ扱います。
+- 回答後は合意、理由、前提、影響範囲、制限事項、未決定事項を整理します。
+- 対話と意思決定の詳細は`pages/ai-development.mdx`、Task別の進め方は`pages/context/index.mdx`を参照します。
 
 ## GitHub連携機能の採用基準
 
@@ -27,6 +33,15 @@
 - 設計・開発の進捗は親Issue、子Issue、チェックリスト、Open／Closedで管理します。
 - Issueには目的、対象リポジトリ、成果物、受け入れ条件、関連資料を記載します。
 - 詳細な理由と運用方法は`pages/ai-development.mdx`、タスク時の読み取り順序は`pages/context/index.mdx`を参照します。
+
+## 開発プロセス
+
+- Memoriaはウォーターフォールではなく、Sprintを単位とするアジャイル開発を採用します。
+- IssueをProduct Backlogとして扱い、Sprint Goal、対象、対象外、受け入れ条件を明示します。
+- 大規模機能は利用者価値または独立して検証できる境界でPhaseへ分割し、各Phase内で要求確認、設計、実装、検証を行います。
+- 工程別のPhase、長期Feature branch、巨大PRを前提にしません。
+- 各Phaseは既存機能を壊さず`develop`へ統合可能にし、未公開部分は到達不能な構成、Feature flag、後方互換な契約などで無効化します。
+- ReadyとDoneの基準、詳細な進め方は`pages/development-process.mdx`を参照します。
 
 ## ブランチ運用
 
@@ -41,6 +56,8 @@
 - 手動で作成するコミットは`pages/commit-message.mdx`に従い、typeを付けた日本語タイトルを使用します。
 - GitHubなどが自動生成するmerge commitは、日本語でなくても構いません。
 - 正式なバージョンとReleaseは`pages/versioning.mdx`に従い、各リポジトリで独立して管理します。
+- PRは原則として通常の状態で作成し、Draftは人間が明示的に指示した場合だけ使用します。
+- 通常PRは受け入れ条件と必要な検証を満たし、レビュー可能な状態で作成します。
 - PRのマージには、原則として通常のmerge commitを使用します。squash mergeまたはrebase mergeは、明示的な理由と合意がある場合だけ使用します。
 - 作業ブランチへ派生元の更新を取り込む場合は、原則としてrebaseを使用します。`develop`を作業ブランチへmergeしません。
 - rebase後にリモートの作業ブランチを更新する必要がある場合は、本人だけが使用するブランチであることを確認し、`--force-with-lease`を使用します。
@@ -52,6 +69,7 @@
 - 技術一覧は`pages/technology-stack.mdx`へ記載します。
 - システム設計は`pages/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
 - GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`pages/system/`には設計上の意味と責務境界を記載します。
+- アジャイル開発とSprint運用は`pages/development-process.mdx`へ記載します。
 - 人間中心のAI支援開発規約は`pages/ai-development.mdx`へ記載します。
 - 文書の配置・正本・更新責任は`pages/documentation-policy.mdx`へ記載します。
 - AI contextの参照順序は`pages/context/`へ記載します。
@@ -114,6 +132,8 @@ npm run build
 - シークレット、過剰な権限、安全策のない不可逆操作を含むデプロイ・セキュリティ手順を指摘します。
 - 対象リポジトリ、互換性、移行上の影響が不足したアーキテクチャ判断を指摘します。
 - 実装に必要なtable constraint、データパターン、transaction、競合・失敗時処理が未定義の設計を指摘します。
+- Sprint内に収まらない巨大Issue、工程別Phase、長期Feature branchを前提とする計画を指摘します。
+- APIのDomain・Use CaseからGraphQL、DB、Object Storageなど外側の詳細へ依存する設計を指摘します。
 - 元資料を削除する変更では、詳細情報が最新設計へ完全に移行されているか確認します。
 - 人間の責任範囲をAIへ移す記述や、ローカル開発を副次的に扱う記述を指摘します。
 - Windowsホストからの直接実行、OS間の`node_modules`共有、依存関係の未記録など、標準ローカル環境の再現性を損なう手順を指摘します。

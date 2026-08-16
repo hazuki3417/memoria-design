@@ -24,6 +24,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | プロダクト構成 | [リポジトリ構成](/system) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
 | 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| 開発プロセス・Sprint | [アジャイル開発とスプリント運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
@@ -49,9 +50,10 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 2. `memoria-api/AGENTS.md`とREADME
 3. [Media設計](/media)と対象領域のユースケース
 4. [APIアーキテクチャ](/system/api)
-5. [GraphQL設計](/system/api/graphql)
-6. `memoria-api/schemas/graphql/`と生成設定
-7. `memoria-web`のoperation・fragment・生成型への影響
+5. [APIクリーンアーキテクチャ](/system/api/clean-architecture)
+6. [GraphQL設計](/system/api/graphql)
+7. `memoria-api/schemas/graphql/`と生成設定
+8. `memoria-web`のoperation・fragment・生成型への影響
 
 ### データベース・Media永続化
 
@@ -85,6 +87,36 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 5. リポジトリごとに作業ブランチとPRを分ける
 6. 関連PRを相互リンクする
 
+### Sprintまたは大規模機能を計画する
+
+1. [アジャイル開発とスプリント運用](/development-process)を確認する
+2. Sprint Goal、対象Issue、対象外、目標期間を明示する
+3. Issueの目的、受け入れ条件、依存関係、検証方法が着手可能な状態か確認する
+4. Sprint内で完了できない機能は、利用者価値または検証可能な境界でPhaseへ分割する
+5. 各Phaseの開始条件、完了条件、契約、互換性、migration、無効化方法を定義する
+6. Layer別・工程別のPhase、長期branch、巨大PRだけで進めない
+7. 未完了項目は完了扱いにせず、影響を再評価してBacklogへ戻す
+
+### 対話によって要求・設計を決定する
+
+1. [AI支援開発の対話と意思決定](/ai-development#対話と意思決定)を確認する
+2. 目的、背景、既存の合意、今回決める範囲を確認する
+3. 論点へ番号を付け、依存関係の強い順に一つずつ扱う
+4. 各論点で推奨案、理由、risk、trade-off、代替案を示す
+5. 回答後に合意、前提、影響範囲、制限、未決定事項を要約する
+6. 新しい回答が既存設計と矛盾する場合は、自動で上書きせず人間へ確認する
+7. 合意した最新状態を設計書、Taskの進捗をIssueへ反映する
+
+### 要求・設計方針を検討する
+
+1. 人間が達成したい結果と、その背景を確認する
+2. [AI支援開発の専門的なFeedback](/ai-development#専門的なfeedback)に従う
+3. 提案の妥当性、成立条件、risk、既存方針との矛盾を評価する
+4. 過剰設計、不可逆な判断、security・data・運用上の問題を先に指摘する
+5. 代替案とtrade-offを示し、推奨案を明確にする
+6. 事実、推測、未確認事項を区別し、人間の判断が必要な点を質問する
+7. 合意した判断、意図、制限事項、非対応理由を正本へ反映する
+
 ### GitHubでタスクと進捗を管理する
 
 1. [AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準)を確認する
@@ -93,7 +125,8 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 4. 各Issueへ目的、対象、成果物、受け入れ条件、関連資料を記載する
 5. 親Issueのチェックリストと各IssueのOpen／Closedで進捗を管理する
 6. GitHub ProjectsとMilestonesは使用せず、日程が必要な場合はIssue本文へ記載する
-7. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
+7. PRは通常の状態で作成し、人間が明示した場合だけDraftとする
+8. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
 
 ### 詳細設計を追加・更新するタスク
 
