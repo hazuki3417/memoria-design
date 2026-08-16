@@ -24,6 +24,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | プロダクト構成 | [リポジトリ構成](/system) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
 | 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| 開発プロセス・Sprint | [アジャイル開発とスプリント運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
@@ -49,9 +50,10 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 2. `memoria-api/AGENTS.md`とREADME
 3. [Media設計](/media)と対象領域のユースケース
 4. [APIアーキテクチャ](/system/api)
-5. [GraphQL設計](/system/api/graphql)
-6. `memoria-api/schemas/graphql/`と生成設定
-7. `memoria-web`のoperation・fragment・生成型への影響
+5. [APIクリーンアーキテクチャ](/system/api/clean-architecture)
+6. [GraphQL設計](/system/api/graphql)
+7. `memoria-api/schemas/graphql/`と生成設定
+8. `memoria-web`のoperation・fragment・生成型への影響
 
 ### データベース・Media永続化
 
@@ -84,6 +86,16 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 4. 後方互換性、PRのマージ順序、deploy・migration順序を決める
 5. リポジトリごとに作業ブランチとPRを分ける
 6. 関連PRを相互リンクする
+
+### Sprintまたは大規模機能を計画する
+
+1. [アジャイル開発とスプリント運用](/development-process)を確認する
+2. Sprint Goal、対象Issue、対象外、目標期間を明示する
+3. Issueの目的、受け入れ条件、依存関係、検証方法が着手可能な状態か確認する
+4. Sprint内で完了できない機能は、利用者価値または検証可能な境界でPhaseへ分割する
+5. 各Phaseの開始条件、完了条件、契約、互換性、migration、無効化方法を定義する
+6. Layer別・工程別のPhase、長期branch、巨大PRだけで進めない
+7. 未完了項目は完了扱いにせず、影響を再評価してBacklogへ戻す
 
 ### GitHubでタスクと進捗を管理する
 
