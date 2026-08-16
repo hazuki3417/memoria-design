@@ -1,0 +1,18 @@
+# IaCアーキテクチャ
+
+
+## 概要
+
+> 実装状況: AWS CDK stackは存在します。設計上不要なMemoriaRecordという名称がcodeに残っています。
+> 実装の正本: `memoria-IaC`
+
+IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
+
+- stackは変更・deploy・rollbackの責務境界で分割し、「一マイクロサービス一stack」を規約にしません。
+- 最小権限を基本とし、stateful resourceはretention、backup、migrationを明示します。
+- 環境差分はbranchではなくCDK設定、GitHub Environments、AWS側で表現します。
+- secretをrepository、output、設計書へ保存しません。
+
+stack名はresourceの責務を表す名称にします。`MemoriaRecord`は採用しないマイクロサービス構成を連想させるため使用せず、変更時はresource置換とdeploy影響を確認します。
+
+

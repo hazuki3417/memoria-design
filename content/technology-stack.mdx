@@ -1,0 +1,27 @@
+# 技術スタック
+
+## 概要
+
+> 実装状況: APIにはMongoDB clientとローカル用MongoDB設定が残っていますが、設計上のデータ責務は割り当てていません。
+
+Memoriaで採用する主要技術と責務を示します。versionと具体的な依存関係は各repositoryのmodule・package・lock fileを正本とします。
+
+| 分類 | 技術 | 責務 |
+| --- | --- | --- |
+| 言語 | Go | `memoria-api` |
+| 言語 | TypeScript | Web、IaC、Design |
+| Web | Next.js、React、Mantine | UIとGraphQL client |
+| API | GraphQL、gqlgen | WebとAPI間の契約 |
+| データ | PostgreSQL、pgx、sqlc | domain metadataと整合性 |
+| File | Amazon S3互換storage | Mediaの原本と派生file |
+| 認証 | Auth0 | 認証とUser連携 |
+| 可観測性 | Zap、OpenTelemetry、Jaeger | logとtrace |
+| 開発環境 | WSL2 Ubuntu、Devbox、Docker | ローカル開発と依存tool |
+| Infrastructure | AWS、AWS CDK | 実行環境の定義 |
+| Document | Nextra、MDX、Mermaid | 設計書と図 |
+
+## MongoDBを採用技術に含めない理由
+
+Media metadataの正本をPostgreSQLへ集約し、複数database間の整合性、transaction、migration、運用を複雑にしないためです。MongoDBを利用する場合は、PostgreSQLでは満たせない具体的なユースケースとdata ownershipを設計してから採用します。
+
+

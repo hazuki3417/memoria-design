@@ -38,20 +38,20 @@ Windowsのブラウザから`http://localhost:3000`へアクセスします。�
 npm run build
 ```
 
-環境構成、依存関係の管理、Web・APIの結合確認は[ローカル開発環境](./pages/local-development.mdx)を参照してください。
+環境構成、依存関係の管理、Web・APIの結合確認は[ローカル開発環境](./content/local-development.mdx)を参照してください。
 
 ## 最初に読む資料
 
-1. [Media](./pages/media/index.mdx)
-2. [Media関連ユースケース](./pages/media/use-cases.mdx)
-3. [ユビキタス言語](./pages/ubiquitous.mdx)
-4. [リポジトリ構成](./pages/system/index.mdx)
-5. [ドキュメント管理方針](./pages/documentation-policy.mdx)
-6. [Context map](./pages/context/index.mdx)
-7. [ローカル開発環境](./pages/local-development.mdx)
-8. [人間中心のAI支援開発](./pages/ai-development.mdx)
-9. [ブランチ運用](./pages/branch-strategy.mdx)
-10. [コミットメッセージ規約](./pages/commit-message.mdx)
-11. [バージョニング規約](./pages/versioning.mdx)
+1. [Media](./content/media/index.mdx)
+2. [Media関連ユースケース](./content/media/use-cases.mdx)
+3. [ユビキタス言語](./content/ubiquitous.mdx)
+4. [リポジトリ構成](./content/system/index.mdx)
+5. [ドキュメント管理方針](./content/documentation-policy.mdx)
+6. [Context map](./content/context/index.mdx)
+7. [ローカル開発環境](./content/local-development.mdx)
+8. [人間中心のAI支援開発](./content/ai-development.mdx)
+9. [ブランチ運用](./content/branch-strategy.mdx)
+10. [コミットメッセージ規約](./content/commit-message.mdx)
+11. [バージョニング規約](./content/versioning.mdx)
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。

@@ -1,0 +1,28 @@
+# Mediaストレージ
+
+## 概要
+
+> 実装状況: S3互換storageによるImage保存は存在しますが、Media共通path、動画派生物、複数download用fileのlifecycleには差分があります。
+
+DBはMediaの属性・管理主体・公開関係、Object Storageは原本と派生fileを保持します。
+
+## Path
+
+```text
+media/{mediaId}/original.{extension}
+media/{mediaId}/preview.webp
+media/{mediaId}/thumbnail.webp
+downloads/{downloadRequestId}.zip
+```
+
+- `original`はアップロードされた原本です。
+- `preview.webp`は画面表示用です。
+- `thumbnail.webp`は一覧表示用の正方形画像です。
+- watermark付きfileは要求がないため生成しません。
+- 動画の再生用派生物は形式・変換方式を決めてからMedia配下へ追加します。
+
+単一downloadは認可後に原本の期限付きURLを返します。複数downloadは原本をzip化して`downloads`へ配置し、期限付きURLを返します。zipはObject Storageのlifecycleで自動削除します。
+
+Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。bucketは公開せず、upload時にsize、MIME type、実dataを検査します。
+
+

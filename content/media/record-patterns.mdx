@@ -1,0 +1,183 @@
+# Mediaレコードパターン
+
+## 概要
+
+> 実装状況: このページのMedia、Custody、Access、Event tableは未実装です。Image Groupの一部だけが対応します。
+
+具体的なIDとレコードを使用し、操作前後に存在すべきデータを定義します。例ではUserを`U1`・`U2`、Communityを`C1`・`C2`、Mediaを`M1`、Groupを`G1`・`G2`と表記します。
+
+## Imageをuploadする
+
+入力:
+
+- Uploader: U1
+- Media: M1
+- file: `family.jpg`、image/jpeg、4 MiB、1920×1080
+
+作成するレコード:
+
+| table | key | 主な値 |
+| --- | --- | --- |
+| media | M1 | IMAGE、family.jpg、ACTIVE、uploaded_by=U1 |
+| media_images | M1 | width=1920、height=1080 |
+| media_custodies | M1 | user_id=U1、community_id=NULL |
+| media_events | E1 | UPLOADED、actor=U1、to_user=U1 |
+
+作成しないレコード:
+
+- media_videos
+- media_community_accesses
+- media_group_media
+
+U1は著作権者ではなくUploaderと初期Custodianです。
+
+## User管理Mediaを複数Communityへ公開する
+
+操作前:
+
+| table | key | 値 |
+| --- | --- | --- |
+| media_custodies | M1 | user_id=U1 |
+| community_memberships | C1-U1、C2-U1 | U1が両Communityへ参加 |
+
+C1、C2へ公開した後:
+
+| table | key | 値 |
+| --- | --- | --- |
+| media_community_accesses | M1-C1 | created_by=U1 |
+| media_community_accesses | M1-C2 | created_by=U1 |
+| media_events | E2 | ACCESS_ADDED、target=C1 |
+| media_events | E3 | ACCESS_ADDED、target=C2 |
+
+`media_custodies(M1)`は変更しません。C1とC2の間に関係を作らず、Media本体も複製しません。
+
+## 公開を一つだけ解除する
+
+M1-C1を解除します。
+
+- `media_community_accesses(M1,C1)`だけを削除
+- M1-C2は維持
+- CustodyとObject Storageは変更しない
+- ACCESS_REMOVED eventを追加
+
+## UserからUserへ委譲する
+
+操作前:
+
+- Custody: M1→U1
+- Access: M1→C1、M1→C2
+
+同一DB transactionで次を行います。
+
+1. M1のCustody行を`FOR UPDATE`でlock
+2. M1のAccessを全削除
+3. CustodyをU2へ更新
+4. CUSTODIAN_CHANGED eventを追加
+
+操作後:
+
+| table | 状態 |
+| --- | --- |
+| media_custodies | M1→U2 |
+| media_community_accesses | M1の行は0件 |
+| media_events | from_user=U1、to_user=U2 |
+| media.uploaded_by_user_id | U1のまま |
+
+## UserからCommunityへ委譲する
+
+M1をU1からC1へ委譲します。
+
+- 既存Accessを全削除
+- Custodyを`user_id=NULL、community_id=C1`へ更新
+- CUSTODIAN_CHANGED eventへfrom_user=U1、to_community=C1を記録
+
+C1参加者はCustodyとMembershipにより閲覧します。M1-C1というAccess行は作りません。
+
+## CommunityからUserへ委譲する
+
+M1をC1からU2へ委譲します。
+
+- CustodyをU2へ更新
+- Accessは0件のまま
+- Eventへfrom_community=C1、to_user=U2を記録
+
+U2が必要なCommunityへ改めて公開します。
+
+## 禁止するCustodyパターン
+
+| user_id | community_id | 判定 |
+| --- | --- | --- |
+| U1 | NULL | 許可 |
+| NULL | C1 | 許可 |
+| NULL | NULL | CHECK違反 |
+| U1 | C1 | CHECK違反 |
+
+同じMediaへCustodyを2行登録することはmedia_id PKで禁止します。
+
+## Media Group
+
+### 単純構造
+
+- G1: U1 scope、「旅行」
+- M1、M2をG1へ追加
+
+`media_group_media`:
+
+| media_group_id | media_id |
+| --- | --- |
+| G1 | M1 |
+| G1 | M2 |
+
+### 木構造
+
+Groupは「旅行」→「日本」→「東京・京都」と「旅行」→「海外」です。
+
+`media_group_relations`:
+
+| parent | child |
+| --- | --- |
+| 旅行 | 日本 |
+| 日本 | 東京 |
+| 日本 | 京都 |
+| 旅行 | 海外 |
+
+### DAG
+
+「沖縄」は「旅行」と「夏」の両方を親に持ちます。
+
+| parent | child |
+| --- | --- |
+| 旅行 | 沖縄 |
+| 夏 | 沖縄 |
+
+`沖縄→旅行`または`沖縄→夏`の追加は循環になるため拒否します。異なるUser・Community scope間の親子関係も拒否します。
+
+## User削除
+
+U1がM1・M2・M3を管理している場合:
+
+| Media | 選択 | 結果 |
+| --- | --- | --- |
+| M1 | U2へ委譲 | CustodyをU2へ変更、Access解除 |
+| M2 | C1へ委譲 | CustodyをC1へ変更、Access解除 |
+| M3 | 削除 | DELETINGへ変更しstorage削除を開始 |
+
+U1 CustodyのMediaが0件になり、U1が管理するCommunityの委譲または削除も解決した後だけUserを削除します。UploaderとEvent actorのU1参照はON DELETE SET NULLになります。
+
+## Media削除
+
+削除要求時:
+
+- media.statusをDELETINGへ更新
+- 原本・preview・thumbnail・動画派生物ごとにstorage operationを作成
+- 新しい閲覧・更新・公開・委譲を拒否
+
+storage削除完了後のDB transaction:
+
+- Group関連、Access、Custody、subtype、Mediaを削除
+- DELETED eventを追加
+- Eventと完了済みstorage operationは保持期間に従って削除
+
+Media本体を復元するレコードやarchive pathは作りません。
+
+

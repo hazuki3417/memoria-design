@@ -1,0 +1,159 @@
+# Context map
+
+## 目的
+
+Context mapは、開発者とChatGPTがタスクに必要な正本へ到達するための索引です。設計書の内容をAI向けに複製するものではありません。
+
+人間がサイト全体を読む場合は、Homeとドキュメント管理方針が示す「プロダクト概要 → 用語・ユースケース → 全体構成 → 詳細設計 → 開発・運用」の順序を使用します。Context mapのタスク別順序は、特定作業の調査を効率化するためのものであり、人間向けのナビゲーション構成を置き換えません。
+
+## 情報の優先順位
+
+1. 現在のIssueまたは会話で人間が合意した要件
+2. 承認済みの最新設計書
+3. 所有リポジトリにある実行可能なschema・設定・実装・テスト
+4. 対象リポジトリの`AGENTS.md`とREADME
+5. 過去のIssue・PR
+6. AIが生成した要約
+
+上位と下位が矛盾する場合は差異を報告し、人間の判断を求めます。
+
+## 共通して読む情報
+
+| 目的 | 参照先 |
+| --- | --- |
+| プロダクト構成 | [リポジトリ構成](/system) |
+| 用語 | [ユビキタス言語](/ubiquitous) |
+| 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| 開発プロセス・Iteration | [アジャイル開発とイテレーション運用](/development-process) |
+| ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
+| Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
+| ブランチ・PR | [ブランチ運用](/branch-strategy) |
+| コミット | [コミットメッセージ規約](/commit-message) |
+| バージョン・Release | [バージョニング規約](/versioning) |
+| 人間とAIの役割 | [AI支援開発](/ai-development) |
+| GitHub機能の採用基準 | [AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準) |
+
+## タスク別の読み取り順序
+
+### Web画面・UI
+
+1. Issueの受け入れ条件
+2. `memoria-web/AGENTS.md`とREADME
+3. [ローカル開発環境](/local-development)
+4. 対象route・feature・component・Storybook
+5. [コンポーネント設計](/system/web)
+6. API利用がある場合はGraphQL設計とAPI側schema
+
+### GraphQL・API
+
+1. Issueの受け入れ条件
+2. `memoria-api/AGENTS.md`とREADME
+3. [Media設計](/media)と対象領域のユースケース
+4. [APIアーキテクチャ](/system/api)
+5. [APIクリーンアーキテクチャ](/system/api/clean-architecture)
+6. [GraphQL設計](/system/api/graphql)
+7. `memoria-api/schemas/graphql/`と生成設定
+8. `memoria-web`のoperation・fragment・生成型への影響
+
+### データベース・Media永続化
+
+1. Issueの受け入れ条件とmigration条件
+2. [Media設計](/media)と[ユースケース](/media/use-cases)
+3. [論理データモデル](/media/data-model)
+4. [物理データモデル](/media/physical-data-model)
+5. [レコードパターン](/media/record-patterns)
+6. [整合性とTransaction](/media/consistency-transactions)
+7. [Mediaストレージ](/system/data/storage)
+8. `memoria-api/schemas/postgres/`の実行可能schema・query
+9. service・repository・GraphQL・生成code
+10. migration、rollbackまたはroll-forward、結合test
+
+実装前に、tableとfieldだけでなく、PK・FK・CHECK・index、操作前後のレコード変化、対象外dataへの非影響、DBとObject Storage間の失敗処理を確認します。
+
+### インフラストラクチャ
+
+1. Issueの対象環境と許可された操作
+2. `memoria-IaC/AGENTS.md`とREADME
+3. [IaC設計](/system/infrastructure)と[ビルド・デプロイ](/build-deploy)
+4. `memoria-IaC/src/`のCDK設定・construct・テスト
+5. synth・diffとresource置換、IAM、データ保持への影響
+
+### リポジトリ横断変更
+
+1. 契約を所有するリポジトリを決める
+2. 影響する全リポジトリの`AGENTS.md`を読む
+3. [ローカル開発環境](/local-development)に従って必要なサービスを起動する
+4. 後方互換性、PRのマージ順序、deploy・migration順序を決める
+5. リポジトリごとに作業ブランチとPRを分ける
+6. 関連PRを相互リンクする
+
+### イテレーションまたは大規模機能を計画する
+
+1. [アジャイル開発とイテレーション運用](/development-process)を確認する
+2. 固定期間を設けず、Goal、対象Issue、対象外、開始時の前提をイテレーションIssueへ記載する
+3. Issueの目的、受け入れ条件、依存関係、検証方法が着手可能な状態か確認する
+4. 一つのGoalとして完了・検証できない機能は、利用者価値または検証可能な境界でPhaseへ分割する
+5. 各Phaseの開始条件、完了条件、契約、互換性、migration、無効化方法を定義する
+6. Layer別・工程別のPhase、長期branch、巨大PRだけで進めない
+7. 中断時は完了・未完了、branch、検証、risk、次の一手をCheckpointとして記録する
+8. 再開時は最新の`develop`、Issue・PR、設計、依存関係を再確認する
+9. 未完了項目は完了扱いにせず、影響を再評価してBacklogへ戻す
+10. Reviewと振り返りをイテレーションIssueへ記録し、3イテレーション完了後に運用を見直す
+
+### 対話によって要求・設計を決定する
+
+1. [AI支援開発の対話と意思決定](/ai-development#対話と意思決定)を確認する
+2. 目的、背景、既存の合意、今回決める範囲を確認する
+3. 論点へ番号を付け、依存関係の強い順に一つずつ扱う
+4. 各論点で推奨案、理由、risk、trade-off、代替案を示す
+5. 回答後に合意、前提、影響範囲、制限、未決定事項を要約する
+6. 新しい回答が既存設計と矛盾する場合は、自動で上書きせず人間へ確認する
+7. 合意した最新状態を設計書、Taskの進捗をIssueへ反映する
+
+### 要求・設計方針を検討する
+
+1. 人間が達成したい結果と、その背景を確認する
+2. [AI支援開発の専門的なFeedback](/ai-development#専門的なfeedback)に従う
+3. 提案の妥当性、成立条件、risk、既存方針との矛盾を評価する
+4. 過剰設計、不可逆な判断、security・data・運用上の問題を先に指摘する
+5. 代替案とtrade-offを示し、推奨案を明確にする
+6. 事実、推測、未確認事項を区別し、人間の判断が必要な点を質問する
+7. 合意した判断、意図、制限事項、非対応理由を正本へ反映する
+
+### GitHubでタスクと進捗を管理する
+
+1. [AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準)を確認する
+2. GitHub Pluginで作成から完了まで扱える機能だけを選ぶ
+3. 全体目標を親Issue、独立した作業単位を子Issueとして作成する
+4. 各Issueへ目的、対象、成果物、受け入れ条件、関連資料を記載する
+5. 親Issueのチェックリストと各IssueのOpen／Closedで進捗を管理する
+6. GitHub ProjectsとMilestonesは使用せず、日程が必要な場合はIssue本文へ記載する
+7. PRは通常の状態で作成し、人間が明示した場合だけDraftとする
+8. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
+
+### 詳細設計を追加・更新するタスク
+
+1. 対象ユースケースと不変条件を確認する
+2. 既存のMDX、Mermaid、実装可能schema、Git履歴上の削除前資料を調査する
+3. 概要だけでなく、属性、constraint、データパターン、操作順序、失敗時処理を抽出する
+4. 最新設計と競合する情報は自動採用せず、人間の判断対象にする
+5. 採用する情報を現在のドキュメント構成へ統合する
+6. サイドメニュー、相互link、用語、実装差分の引用ブロックを更新する
+7. 元資料を削除する場合は、必要情報の移行完了を確認する
+
+## タスクcontextに含める情報
+
+Issueまたは依頼には、次を記載します。
+
+- 達成したい結果
+- 対象リポジトリ
+- 受け入れ条件
+- 変更してよい範囲
+- 参照する設計書
+- 実行する検証
+- 互換性、セキュリティ、データ移行の制約
+- 関連するIssue・PR
+
+設計内容を貼り付ける代わりに、正本のパスと、今回のタスクで追加された制約を記載します。
+
+

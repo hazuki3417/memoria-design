@@ -1,0 +1,17 @@
+# 設定・シークレット
+
+
+## 概要
+
+> 実装状況: 各repositoryで環境変数を利用しています。secret管理と環境間の統一的な注入方式には差分があります。
+
+設定は実行環境から注入し、変数名・必須条件・defaultは各実装リポジトリを正本とします。
+
+- environmentとbranchを同一視しません。
+- 必須値は起動時に検証します。
+- secretをGit、Issue、PR、log、CDK output、設計書へ記載しません。
+- GitHub ActionsからAWSへはOIDCと短期credentialを優先します。
+- 非秘密設定とsecretを分離し、AWS上の具体的な保存serviceとpath規約はIaCが所有します。
+- Webへ露出する環境変数は公開情報として扱います。
+
+

@@ -1,0 +1,2 @@
+export default {"index":"APIアーキテクチャ","clean-architecture":"クリーンアーキテクチャ","graphql":"GraphQL契約","validation":"入力検証"}
+
