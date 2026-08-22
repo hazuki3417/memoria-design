@@ -3,7 +3,7 @@
 
 ## 概要
 
-> 実装状況: AWS CDK stackは存在します。EC2上のAPI・Media Worker・Outbox Publisher構成は未実装で、設計上不要なMemoriaRecordという名称がcodeに残っています。
+> 実装状況: AWS CDKにはEC2、非公開S3、最小権限IAMなど初期基盤の定義があります。API・Media Worker・Outbox Publisherの実運用構成、監視、backup、復旧手順は未実装です。
 > 実装の正本: `memoria-IaC`
 
 IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
@@ -27,3 +27,7 @@ EC2を採用する場合、OS更新、containerの再起動、logの保存、bac
 API、Publisher、Workerは実行基盤に依存しないcontainerとして分離します。ECS/Fargateへ移行する場合も、domain処理、Redis Streams、Transactional Outbox、Mediaの権限設計を変更せず、配置と運用方法を移行します。
 
 stack名はresourceの責務を表す名称にします。`MemoriaRecord`は採用しないマイクロサービス構成を連想させるため使用せず、変更時はresource置換とdeploy影響を確認します。
+
+## 初期運用の非機能要件
+
+単一EC2を前提とする可用性、RPO・RTO、backup retention、監視項目、運用費用、構成の見直し条件は[非機能要件](/system/cross-cutting/non-functional-requirements)を参照します。Multi-AZ、ECS/Fargate、managed databaseを初期の必須構成として追加せず、実測された運用上の課題と予算に基づいて判断します。

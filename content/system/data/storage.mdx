@@ -32,3 +32,7 @@ downloads/{downloadRequestId}.zip
 S3 bucketはprivateとし、CloudFrontからOrigin Access Controlを通じて配信します。表示用VariantはSigned URLまたは適切なscopeのSigned Cookieで保護し、Original downloadは別途認可します。署名情報をlogへ出力しません。
 
 Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。upload時にsize、MIME type、実dataを検査します。詳細は[Media処理と派生物](/media/processing)と[CommunityとMediaの公開](/media/community-access)を参照してください。
+
+## 容量、署名期限、保持
+
+画像Originalの上限、総容量の設計目安、Original downloadと表示用配信の署名期限、一時archiveの保持、backupと物理削除の関係は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。動画固有の上限は動画処理の詳細設計で決定し、画像用の数値を流用しません。

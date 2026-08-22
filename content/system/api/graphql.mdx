@@ -21,6 +21,7 @@ APIはschema、Webはoperation・fragment・生成型を所有します。
 一覧はRelay Cursor Connections Specificationに沿います。
 
 - forward paginationは`first`と任意の`after`を使用します。
+- 一覧の既定取得件数は30件、最大取得件数は100件です。0以下または上限を超える値はvalidation errorにします。
 - backward paginationは`last`と任意の`before`を使用します。
 - `before + first`、`after + last`、`first + last`はerrorにします。
 - edgeは`cursor`と`node`、connectionは`edges`と`pageInfo`を返します。
@@ -28,7 +29,7 @@ APIはschema、Webはoperation・fragment・生成型を所有します。
 - backward取得でDBの取得順が逆になる場合、API responseは論理順へ戻します。
 - cursorは利用者が内部key構造へ依存しないopaqueな値にします。
 
-具体的な型・field・引数は実行可能なschemaを正本とします。
+具体的な型・field・引数は実行可能なschemaを正本とします。取得件数の目標と境界値の検証は[非機能要件](/system/cross-cutting/non-functional-requirements)を参照してください。
 
 upload完了やJob開始など再送で重複作成される操作にはidempotency keyを適用します。すべてのMutationへ一律に要求せず、[冪等性の設計](./idempotency)に従って対象を限定します。
 

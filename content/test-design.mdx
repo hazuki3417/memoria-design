@@ -64,3 +64,9 @@ k6は大規模な負荷試験だけではなく、変更による性能劣化を
 | 夜間実行・Release前 | 必要に応じてstress、soak、spike testを実行する |
 
 対象scenario、実行時間、virtual user数、thresholdはIssueと対象repositoryの実行可能なCI設定で具体化します。k6は性能劣化の発生を検知し、[OpenTelemetry](/system/cross-cutting/observability)は同期・非同期処理のどこで遅延が生じたかを追跡します。
+
+## 非機能要件の検証
+
+応答時間、一覧件数、file size、非同期処理、認可、削除、backup、復旧、監視の初期目標と受け入れ条件は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
+
+通常のPRでは変更に対応する境界値test、認可test、冪等性test、構成検査を優先します。k6による性能測定、復旧演習、障害注入は初回Release前または対象基盤の変更時に実施し、すべてのPRで長時間の運用試験を必須にしません。
