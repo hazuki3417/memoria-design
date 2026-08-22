@@ -22,6 +22,8 @@
 | media_images | M1 | width=1920、height=1080 |
 | media_custodies | M1 | user_id=U1、community_id=NULL |
 | media_events | E1 | UPLOADED、actor=U1、to_user=U1 |
+| media_processing_jobs | J1 | media_id=M1、status=PENDING |
+| outbox_events | O1 | aggregate_id=M1、job_id=J1、未送信 |
 
 作成しないレコード:
 
@@ -30,6 +32,14 @@
 - media_group_media
 
 U1は著作権者ではなくUploaderと初期Custodianです。
+
+Worker完了後は`media_variants`へ320、640、960、1280、1920pxのWebPを記録し、`media_processing_jobs(J1)`をCOMPLETEDへ更新します。重複配送時は同じ幅のVariantを追加作成しません。
+
+## CommunityへImageを直接uploadする
+
+UploaderがU1、投稿先がC1の場合、`media.uploaded_by_user_id=U1`、`media_custodies.community_id=C1`、`media_custodies.user_id=NULL`とします。U1の投稿履歴とC1の管理責任は別々に保持します。
+
+C1参加者はVariantを閲覧でき、Original downloadはC1のCommunity Administratorだけに許可します。U1を例外扱いするかは[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)が確定するまで未決定です。
 
 ## User管理Mediaを複数Communityへ公開する
 
@@ -179,5 +189,4 @@ storage削除完了後のDB transaction:
 - Eventと完了済みstorage operationは保持期間に従って削除
 
 Media本体を復元するレコードやarchive pathは作りません。
-
 

@@ -96,6 +96,34 @@ MediaのCustodianと混同しないため、プロダクト設計ではCommunity
 
 MediaがImageまたはVideoのどちらであるかを表します。ファイル拡張子だけでなく、検証済みのMIME typeやMedia情報と整合する必要があります。
 
+### Original（原本）
+
+利用者がuploadした画像・動画そのものです。表示用の変換処理によって変更せず、Originalのdownload可否は表示用派生物の閲覧権限とは別に判定します。
+
+### Media Variant（Media派生物）
+
+Originalから生成した表示・再生用fileです。Image Variantはアスペクト比を維持した幅別WebPを表します。thumbnailとpreviewは画面上の表示目的を示す表現であり、独立した保存resourceの名称として使用しません。
+
+### Media Processing Job（Media処理Job）
+
+1 Mediaの派生物生成などの非同期処理について、状態、試行回数、失敗理由を管理する単位です。
+
+### Media Worker・Outbox Publisher
+
+Media WorkerはRedis StreamsからJobを受け取り派生物を生成する実行processです。Outbox PublisherはDB transactionで確定したOutbox EventをRedis Streamsへ転送する実行processです。どちらも`memoria-api`リポジトリが所有します。
+
+### Transactional Outbox・Outbox Event
+
+Transactional Outboxはdomain変更と送信用eventを同じDB transactionで確定する方式です。Outbox Eventは非同期処理への配送を目的とし、操作traceを目的とするMedia Eventとは区別します。
+
+### Idempotency Key（冪等性key）
+
+upload完了など同じ操作の再送を識別するkeyです。同一keyに異なるrequest内容を関連付けることは許可しません。
+
+### 限定的CQRS
+
+更新操作と参照操作の責務を分離しつつ、同じPostgreSQLを利用する構成です。参照専用DB、DB複製、Event Sourcingの導入を意味しません。
+
 ## 管理・操作主体
 
 ### Uploader（アップロード実行者）
@@ -232,5 +260,4 @@ Mediaについて「削除」と記載した場合は、現在の合意では物
 | 著作権者 | システムで管理・証明しない |
 | 共有 | 一般説明には使用できるが、具体的なアクセス操作には公開・公開解除を使用する |
 | ACL（Community内部） | 参加者別のMedia閲覧制御は提供しない |
-
 

@@ -18,7 +18,7 @@ Memoriaを構成する複数リポジトリに共通する、プロダクト設�
 | リポジトリ | 責務 |
 | --- | --- |
 | [memoria-web](https://github.com/hazuki3417/memoria-web) | Web UIとGraphQLクライアント |
-| [memoria-api](https://github.com/hazuki3417/memoria-api) | GraphQL API、ドメインロジック、永続化 |
+| [memoria-api](https://github.com/hazuki3417/memoria-api) | GraphQL API、Media Worker、Outbox Publisher、ドメインロジック、永続化 |
 | [memoria-design](https://github.com/hazuki3417/memoria-design) | プロダクト設計と横断的な意思決定 |
 | [memoria-IaC](https://github.com/hazuki3417/memoria-IaC) | AWS CDKによる実行環境 |
 
@@ -62,5 +62,7 @@ npm run build
 9. [ブランチ運用](./content/branch-strategy.mdx)
 10. [コミットメッセージ規約](./content/commit-message.mdx)
 11. [バージョニング規約](./content/versioning.mdx)
+
+Mediaの派生画像・非同期処理を実装する場合は、[Media処理と派生物](./content/media/processing.mdx)、[非同期Media処理](./content/system/api/asynchronous-processing.mdx)、[Transactional Outbox](./content/system/api/transactional-outbox.mdx)、[Media表示と配信](./content/system/web/media-delivery.mdx)も確認してください。
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。

@@ -2,27 +2,28 @@
 
 ## 概要
 
-> 実装状況: S3互換storageによるImage保存は存在しますが、Media共通path、動画派生物、複数download用fileのlifecycleには差分があります。
+> 実装状況: S3互換storageによるImage保存は存在しますが、Media共通path、幅別Variant、CloudFrontによる非公開配信には差分があります。
 
 DBはMediaの属性・管理主体・公開関係、Object Storageは原本と派生fileを保持します。
 
 ## Path
 
 ```text
-media/{mediaId}/original.{extension}
-media/{mediaId}/preview.webp
-media/{mediaId}/thumbnail.webp
+media/{mediaId}/original/source.{extension}
+media/{mediaId}/variants/{width}.webp
 downloads/{downloadRequestId}.zip
 ```
 
-- `original`はアップロードされた原本です。
-- `preview.webp`は画面表示用です。
-- `thumbnail.webp`は一覧表示用の正方形画像です。
+- `original/source.{extension}`は変更していない原本です。
+- `variants/{width}.webp`はアスペクト比を維持した幅別の表示用画像です。
+- 一覧と詳細表示は同じVariant集合を使用し、thumbnail用とpreview用のfileは分けません。
+- User IDやCommunity IDをpathへ含めず、管理委譲でObjectを移動しません。
 - watermark付きfileは要求がないため生成しません。
-- 動画の再生用派生物は形式・変換方式を決めてからMedia配下へ追加します。
+- 動画の再生用派生物は形式・変換方式の合意後にMedia配下へ追加します。
 
-単一downloadは認可後に原本の期限付きURLを返します。複数downloadは原本をzip化して`downloads`へ配置し、期限付きURLを返します。zipはObject Storageのlifecycleで自動削除します。
+単一downloadは認可後にOriginalの期限付きURLを返します。User管理MediaではUser Custodianだけがdownloadでき、Community管理MediaではCommunity Administratorがdownloadできます。Community Memberへの公開は閲覧だけを許可します。複数downloadを提供する場合は認可済みOriginalだけをzip化して`downloads`へ配置し、期限付きURLを返します。zipはObject Storageのlifecycleで自動削除します。
 
-Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。bucketは公開せず、upload時にsize、MIME type、実dataを検査します。
+S3 bucketはprivateとし、CloudFrontからOrigin Access Controlを通じて配信します。表示用VariantはSigned URLまたは適切なscopeのSigned Cookieで保護し、Original downloadは別途認可します。署名情報をlogへ出力しません。
 
+Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。upload時にsize、MIME type、実dataを検査します。詳細は[Media処理と派生物](/media/processing)と[CommunityとMediaの公開](/media/community-access)を参照してください。
 

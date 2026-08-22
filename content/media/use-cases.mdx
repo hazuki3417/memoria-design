@@ -20,9 +20,18 @@
 
 - Userが静止画像または動画をアップロードする
 - Uploaderとアップロード日時を記録する
-- 初期CustodianをUserとする
+- 個人領域ではUser、Communityへの直接uploadではCommunityを初期Custodianとする
 - 対応形式以外を拒否する
 - UPLOADEDイベントを記録する
+- 1 requestで1 Mediaを登録し、幅別Variantを非同期生成する
+
+### Mediaを閲覧・downloadする
+
+- User管理MediaのOriginalはUser Custodianだけがdownloadできる
+- Community管理MediaのOriginalはCommunity Administratorがdownloadできる
+- Communityの一般参加者は表示用Variantを閲覧できるがOriginalはdownloadできない
+- 公開先Communityの管理者であっても、User管理MediaのOriginalはdownloadできない
+- Communityへ直接uploadしたUserの例外的な権限は[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)で別途検討する
 
 ### User管理MediaをCommunityへ公開する
 
@@ -92,5 +101,4 @@
 | Groupでアクセス制御する | 分類と権限が混在する |
 | 削除Mediaを復元する | ライフサイクルと問い合わせ対応が複雑になる |
 | Word・PDFなどを管理する | Media限定というプロダクト境界外 |
-
 

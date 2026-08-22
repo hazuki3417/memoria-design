@@ -14,6 +14,8 @@ erDiagram
   MEDIA ||--o| USER_MEDIA_CUSTODY : user_custodian
   MEDIA ||--o| COMMUNITY_MEDIA_CUSTODY : community_custodian
   MEDIA ||--o{ MEDIA_EVENT : traced_by
+  MEDIA ||--o{ MEDIA_VARIANT : derived_as
+  MEDIA ||--o{ MEDIA_PROCESSING_JOB : processed_by
   MEDIA ||--o{ MEDIA_COMMUNITY_ACCESS : published_to
   COMMUNITY ||--o{ MEDIA_COMMUNITY_ACCESS : can_view
 ```
@@ -31,11 +33,19 @@ erDiagram
 
 Imageはwidth・height、Videoはwidth・height・duration・codec・frameRateを持ちます。
 
+Media自体には管理主体を埋め込みません。Uploaderは操作の実行者、Custodyは現在の管理関係、Variantは表示用派生物、Processing Jobは非同期処理状態を表し、それぞれ独立して扱います。
+
+## Media VariantとProcessing Job
+
+Media Variantは対象Media、派生形式、幅・高さ、storage key、byte数を保持します。Imageではアスペクト比を維持した複数幅のWebPを生成し、一覧と詳細表示で共用します。Processing JobはMedia、処理種別、状態、試行回数、失敗内容を保持し、1 Jobは1 Mediaだけを対象にします。
+
 ## Custodianと公開
 
 各MediaはUser Media CustodyまたはCommunity Media Custodyを必ず一つだけ持ちます。両方がない状態と両方がある状態をDB制約または同等の仕組みで禁止します。
 
 User管理MediaはMedia Community Accessを複数持てます。Community管理Mediaは別CommunityへのAccessを持たず、CustodianであるCommunityの参加者が閲覧します。
+
+個人領域へのuploadではUser、Communityへの直接uploadではCommunityが初期Custodianです。いずれもUploaderは実際にuploadしたUserとして記録します。
 
 ## Media Group
 
@@ -58,5 +68,4 @@ Community、Membership、Community Administratorを管理します。Community�
 - [物理データモデル](./physical-data-model)
 - [レコードパターン](./record-patterns)
 - [整合性とTransaction](./consistency-transactions)
-
 

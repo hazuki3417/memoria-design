@@ -30,6 +30,8 @@ classDiagram
 - CustodianはMediaを現在管理する1 Userまたは1 Communityです。
 - Viewerは公開先Communityへの参加を通してMediaを閲覧します。
 - Media Eventはアップロード、委譲、公開変更、削除など重要操作のトレースです。
+- Media VariantはOriginalから生成する表示用の派生物です。画像一覧と詳細表示は同じ派生物を使用します。
+- Media Processing Jobは派生物の非同期生成を管理します。Uploader、Custodian、閲覧権限はそれぞれ独立した概念です。
 
 ## 制約
 
@@ -43,6 +45,5 @@ classDiagram
 8. 削除したMediaは復元できません。
 9. 著作権者、利用許諾、権利移転は管理しません。
 
-詳細は[ユースケース](./use-cases)、[論理データモデル](./data-model)、[物理データモデル](./physical-data-model)、[レコードパターン](./record-patterns)、[整合性とTransaction](./consistency-transactions)を参照してください。
-
+詳細は[ユースケース](./use-cases)、[論理データモデル](./data-model)、[物理データモデル](./physical-data-model)、[レコードパターン](./record-patterns)、[整合性とTransaction](./consistency-transactions)、[Media処理と派生物](./processing)を参照してください。
 

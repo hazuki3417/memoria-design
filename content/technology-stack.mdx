@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: APIにはMongoDB clientとローカル用MongoDB設定が残っていますが、設計上のデータ責務は割り当てていません。
+> 実装状況: APIにはMongoDB clientとローカル用MongoDB設定が残っていますが、設計上のデータ責務は割り当てていません。Redis Streams、Outbox Publisher、Media Worker、CloudFront配信は未実装です。
 
 Memoriaで採用する主要技術と責務を示します。versionと具体的な依存関係は各repositoryのmodule・package・lock fileを正本とします。
 
@@ -11,18 +11,24 @@ Memoriaで採用する主要技術と責務を示します。versionと具体的
 | 言語 | Go | `memoria-api` |
 | 言語 | TypeScript | Web、IaC |
 | 言語・文書 | JavaScript、MDX | Design |
-| Web | Next.js、React、Mantine | UIとGraphQL client |
-| API | GraphQL、gqlgen | WebとAPI間の契約 |
+| Web | Next.js、React、Mantine、Apollo Client | UI、GraphQL client、Media表示 |
+| API | GraphQL、gqlgen、DataLoader | WebとAPI間の契約、関連dataのbatch取得 |
 | データ | PostgreSQL、pgx、sqlc | domain metadataと整合性 |
-| File | Amazon S3互換storage | Mediaの原本と派生file |
+| 非同期処理 | Redis Streams、Transactional Outbox | Media処理jobの配送、再試行、Consumer Group |
+| File・配信 | Amazon S3互換storage、CloudFront | Mediaの原本、派生file、認可済み配信 |
 | 認証 | Auth0 | 認証とUser連携 |
 | 可観測性 | Zap、OpenTelemetry、Jaeger | logとtrace |
-| 開発環境 | WSL2 Ubuntu、Devbox、Docker | ローカル開発と依存tool |
+| テスト | Vitest、Storybook、Playwright、k6 | unit、component、E2E、性能regression |
+| 開発環境 | WSL2 Ubuntu、Devbox、Docker、Docker Compose | ローカル開発、依存tool、service構成 |
 | Infrastructure | AWS、AWS CDK | 実行環境の定義 |
 | Document | Nextra 4、Next.js App Router、MDX、Mermaid | 設計書、ナビゲーション、図 |
+
+## アーキテクチャの適用範囲
+
+APIはClean Architectureを採用し、DomainとUse CaseをGraphQL、PostgreSQL、Redis、Object Storageの詳細から分離します。CQRSはCommandとQueryの責務を分ける設計として適用し、読み取り専用database、database複製、Event Sourcingは導入しません。GraphQL一覧はRelay Connectionの標準に合わせます。
+
+API、Media Worker、Outbox Publisherは`memoria-api`に含めます。実行単位は分離しますが、別のGit repositoryや業務単位のMicroserviceには分割しません。
 
 ## MongoDBを採用技術に含めない理由
 
 Media metadataの正本をPostgreSQLへ集約し、複数database間の整合性、transaction、migration、運用を複雑にしないためです。MongoDBを利用する場合は、PostgreSQLでは満たせない具体的なユースケースとdata ownershipを設計してから採用します。
-
-

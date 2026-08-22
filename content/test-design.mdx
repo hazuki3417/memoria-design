@@ -10,6 +10,8 @@
 | API domain・service | ユースケース、認可、境界値、状態遷移 |
 | Repository | SQL、制約、transaction、対象外dataへの非影響 |
 | GraphQL | schema、resolver、error、生成互換性 |
+| 非同期処理 | Outbox commit、Redis配送、重複配送、Worker retry、pending recovery |
+| Media配信 | Variant生成、Original認可、Community権限、署名期限 |
 | IaC | unit test、synth、diff、IAM、resource置換 |
 | 結合 | Web・API・認証・DB・storageの主要scenario |
 
@@ -17,4 +19,5 @@ RepositoryのInsert・Update・Deleteでは、操作対象に加えて対象外d
 
 Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整合性を重点確認します。PRにはcommand、結果、未実施理由、手動確認、riskを記録します。
 
+Webのquality gateはTypeScript、Biome、Vitest、Storybook、accessibility、GraphQL codegen、Next.js build、必要に応じたPlaywrightを使用します。既存のBiomeと重複するESLint導入を前提にしません。負荷と回帰の確認が必要なscenarioではk6を使用し、実行条件と閾値をIssueで定義します。
 

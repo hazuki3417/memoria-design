@@ -1,0 +1,48 @@
+# Media処理と派生物
+
+## 概要
+
+> 実装状況: 現在は画像用のthumbnail・previewを扱っています。共通の幅別Variant、Processing Job、Outboxによる非同期処理への統一は未実装です。
+
+Originalは利用者がアップロードした画像・動画そのものです。表示用の派生物を生成してもOriginalを変更せず、管理主体や公開範囲を保存パスへ含めません。PDF、Office文書、音声単体は対象外です。
+
+## 保存する情報
+
+| 情報 | 責務 | 保持 |
+| --- | --- | --- |
+| Original | 利用者がアップロードした元データ | Object Storageへ永続化 |
+| Media Variant | 表示に適した派生ファイル | Object StorageとDBへ永続化 |
+| Processing Job | 生成処理の状態と再実行の管理 | DBへ永続化 |
+| 処理中間データ | decode・resize・encodeの一時データ | Worker内のみ。永続化しない |
+
+Mediaは画像と動画を共通に表す概念です。Image・Videoが種別固有の属性を持ち、Media Variantは種別に応じた派生物を表します。
+
+## 画像のVariant
+
+- Originalのアスペクト比を維持したWebPを生成します。
+- 幅の候補は320、640、960、1280、1920pxです。画質・候補幅は設定値として調整できます。
+- Originalを超える幅への拡大は行いません。候補幅の間に収まるOriginalには、Originalと同じ幅のVariantを追加できます。
+- 一覧用thumbnailと詳細用previewを別々の保存資源として定義しません。画面の表示目的に応じて同じVariant集合から選択します。
+- 一覧では`object-fit: cover`、詳細表示では`object-fit: contain`など、切り抜きの違いは表示側で表現します。
+- Browserは`srcset`と`sizes`を使用して画面サイズ・device pixel ratioに適したVariantを選択します。
+- 透かしは要件に含めません。必要性が合意されるまでは生成処理へ追加しません。
+
+| Originalの幅 | 生成幅の例 |
+| --- | --- |
+| 200px | 200px |
+| 800px | 320px、640px、800px |
+| 2400px | 320px、640px、960px、1280px、1920px |
+
+Originalの向き、透過情報、decode可能性などは実装時に検証します。変換できない形式を正常完了として扱わず、Jobの失敗として記録します。
+
+## 処理単位
+
+1 request・1 Processing Jobは1 Mediaを扱います。画面で複数選択できてもAPI requestとJobはMedia単位に分離し、失敗とretryの影響を限定します。Upload Batchが必要になった場合も画面の集約概念として扱い、個別Jobの独立性を維持します。
+
+## 動画と容量情報
+
+Video Variantの形式・生成条件は動画ユースケースの具体化後に決定します。画像専用の前提をMedia全体へ固定しません。
+
+容量把握にはOriginalの`media.file_size`とVariantの`size_bytes`を使用できます。ただし課金、料金表、Billing Usageは要求として確定していないため構築しません。
+
+詳細は[非同期Media処理](/system/api/asynchronous-processing)、[Transactional Outbox](/system/api/transactional-outbox)、[Mediaストレージ](/system/data/storage)、[Media表示と配信](/system/web/media-delivery)を参照してください。
