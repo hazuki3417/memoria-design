@@ -21,9 +21,14 @@ downloads/{downloadRequestId}.zip
 - watermark付きfileは要求がないため生成しません。
 - 動画の再生用派生物は形式・変換方式の合意後にMedia配下へ追加します。
 
+## Uploadとdownload
+
+初期のupload経路は`Frontend → API → Object Storage`です。APIがfile size、MIME type、実dataを検証し、Originalを最終keyへ保存します。署名付きURLをFrontendへ渡す直接uploadは、通信量やAPIの負荷が問題になった場合の将来的な最適化候補とし、現在の標準経路には含めません。
+
 単一downloadは認可後にOriginalの期限付きURLを返します。User管理MediaではUser Custodianだけがdownloadでき、Community管理MediaではCommunity Administratorがdownloadできます。Community Memberへの公開は閲覧だけを許可します。複数downloadを提供する場合は認可済みOriginalだけをzip化して`downloads`へ配置し、期限付きURLを返します。zipはObject Storageのlifecycleで自動削除します。
+
+## Private配信
 
 S3 bucketはprivateとし、CloudFrontからOrigin Access Controlを通じて配信します。表示用VariantはSigned URLまたは適切なscopeのSigned Cookieで保護し、Original downloadは別途認可します。署名情報をlogへ出力しません。
 
 Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。upload時にsize、MIME type、実dataを検査します。詳細は[Media処理と派生物](/media/processing)と[CommunityとMediaの公開](/media/community-access)を参照してください。
-

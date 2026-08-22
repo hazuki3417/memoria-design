@@ -29,6 +29,8 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | 非同期処理・信頼性 | [非同期Media処理](/system/api/asynchronous-processing)・[Transactional Outbox](/system/api/transactional-outbox)・[冪等性](/system/api/idempotency) |
 | 派生画像・配信 | [Media処理と派生物](/media/processing)・[Media表示と配信](/system/web/media-delivery) |
+| CI・性能検証 | [テスト設計](/test-design)・[ログ・可観測性](/system/cross-cutting/observability) |
+| 実行基盤・container | [IaC設計](/system/infrastructure)・[ビルド・デプロイ](/build-deploy) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
 | コミット | [コミットメッセージ規約](/commit-message) |
 | バージョン・Release | [バージョニング規約](/versioning) |
@@ -77,8 +79,9 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 1. Issueの対象環境と許可された操作
 2. `memoria-IaC/AGENTS.md`とREADME
 3. [IaC設計](/system/infrastructure)と[ビルド・デプロイ](/build-deploy)
-4. `memoria-IaC/src/`のCDK設定・construct・テスト
-5. synth・diffとresource置換、IAM、データ保持への影響
+4. 初期構成がEC2とDockerであり、ECS/Fargateは将来的な移行先であることを確認する
+5. `memoria-IaC/src/`のCDK設定・construct・テスト
+6. synth・diffとresource置換、IAM、データ保持への影響
 
 ### Mediaの非同期処理・派生物
 
@@ -86,7 +89,17 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 2. [非同期Media処理](/system/api/asynchronous-processing)と[Transactional Outbox](/system/api/transactional-outbox)でAPI・Publisher・Workerの境界を確認する
 3. [冪等性](/system/api/idempotency)でrequestの再送とJobの重複実行対策を確認する
 4. [Mediaストレージ](/system/data/storage)と[Media表示と配信](/system/web/media-delivery)で保存path、配信、表示用Variantを確認する
-5. Communityへ直接投稿したUploaderの特別権限は未決定のため、[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)の合意前に実装しない
+5. Originalのupload経路はFrontendからAPIを経由してObject Storageへ保存し、S3への直接uploadは将来的な最適化候補として扱う
+6. Communityへ直接投稿したUploaderの特別権限は未決定のため、[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)の合意前に実装しない
+
+### CI・性能検証
+
+1. [テスト設計](/test-design)で対象repositoryのquality gateと実行段階を確認する
+2. [ビルド・デプロイ](/build-deploy)でDocker Compose、BuildKit cache、CI環境の責務を確認する
+3. `memoria-api`ではGoの静的解析、Domain・Repository・GraphQL・migration・race・traceの検証を変更内容に応じて選択する
+4. `memoria-web`ではTypeScript、Biome、Vitest、Storybook、GraphQL codegen、Next.js build、必要なPlaywrightを確認する
+5. k6のscenarioとthresholdをIssueおよび対象repositoryのCI設定で確認し、PR・統合後・夜間実行の負荷を区別する
+6. 性能劣化の調査では[ログ・可観測性](/system/cross-cutting/observability)のtrace伝播を確認する
 
 ### リポジトリ横断変更
 

@@ -3,7 +3,7 @@
 
 ## 概要
 
-> 実装状況: AWS CDK stackは存在します。設計上不要なMemoriaRecordという名称がcodeに残っています。
+> 実装状況: AWS CDK stackは存在します。EC2上のAPI・Media Worker・Outbox Publisher構成は未実装で、設計上不要なMemoriaRecordという名称がcodeに残っています。
 > 実装の正本: `memoria-IaC`
 
 IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
@@ -12,11 +12,18 @@ IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
 - 最小権限を基本とし、stateful resourceはretention、backup、migrationを明示します。
 - 環境差分はbranchではなくCDK設定、GitHub Environments、AWS側で表現します。
 - secretをrepository、output、設計書へ保存しません。
-- API、Media Worker、Outbox Publisherは独立した実行processとして配置し、必要なCPU・memory・台数を個別に調整します。
-- 常駐するWorkerとPublisherにはECS/Fargateなどのcontainer実行環境を優先し、Lambdaへの置き換えを前提にしません。
+- 初期の実行基盤にはEC2とDockerを使用し、予算に応じた構成で運用します。
+- API、Media Worker、Outbox PublisherはEC2上で独立したcontainer・processとして実行します。構成管理には必要に応じてDocker Composeを使用します。
+- ECS/Fargateは運用負荷や個別scalingの必要性が高まった場合の移行先とし、初期導入を前提にしません。
+- 常駐するWorkerとPublisherをLambdaへ置き換えることは前提にしません。短時間で独立した処理が生じた場合に限り、用途ごとに評価します。
 - 非同期配送にはRedis Streams、状態とOutboxにはPostgreSQLを使用します。
 - S3 bucketはprivateとし、CloudFront Origin Access Controlと期限付き署名でMediaを配信します。
 - APIとWorkerは責務に応じて別container imageとし、PublisherはAPI imageを再利用できます。
 
-stack名はresourceの責務を表す名称にします。`MemoriaRecord`は採用しないマイクロサービス構成を連想させるため使用せず、変更時はresource置換とdeploy影響を確認します。
+## EC2運用と将来的な移行
 
+EC2を採用する場合、OS更新、containerの再起動、logの保存、backup、障害復旧は運用責務として管理します。機密情報はimageやrepositoryへ含めず、AWS上の権限と設定から取得します。
+
+API、Publisher、Workerは実行基盤に依存しないcontainerとして分離します。ECS/Fargateへ移行する場合も、domain処理、Redis Streams、Transactional Outbox、Mediaの権限設計を変更せず、配置と運用方法を移行します。
+
+stack名はresourceの責務を表す名称にします。`MemoriaRecord`は採用しないマイクロサービス構成を連想させるため使用せず、変更時はresource置換とdeploy影響を確認します。

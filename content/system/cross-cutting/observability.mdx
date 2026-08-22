@@ -15,3 +15,8 @@ APIは構造化logにZap、traceにOpenTelemetryを使用し、ローカルで�
 - 保存期間、費用、検索性は環境ごとに決め、無期限保存を既定にしません。
 - DAM・APMという製品分類ではなく、観測目的とsignalで整理します。
 
+## 性能検証との役割分担
+
+k6は主要操作の応答時間やerror率がthresholdを超えたことを検知します。OpenTelemetryは同じ操作に対応するWeb、GraphQL、DB、Outbox、Redis、Worker、Object Storageのspanを関連付け、遅延や失敗が発生した処理境界を確認します。
+
+local開発では必要に応じてJaegerなどでtraceを可視化します。通常のPRではCollectorとtrace伝播の検証を中心とし、可視化基盤全体を必須にしません。実行段階ごとの性能検証は[テスト設計](/test-design)を参照してください。

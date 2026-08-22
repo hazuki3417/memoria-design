@@ -38,9 +38,8 @@ WebはAPIのドメインルールを複製せず、APIはユースケース・�
 | Outbox Publisher | 未送信eventのpolling、Redis配送、retry | API imageとの共用を許容 |
 | Media Worker | Redis consumer、画像・動画処理、派生fileの永続化 | APIとは独立したimage |
 
-実行processとDeploymentは分けますが、Domain、Repository、event契約を同じrepository内で共有します。実行単位を分けることは、repository分割やMicroservice化を意味しません。
+実行processとDeploymentは分けますが、Domain、Repository、event契約を同じrepository内で共有します。初期はEC2上でAPI、Publisher、Workerを独立したDocker containerとして実行し、ECS/Fargateは将来的な移行先とします。実行単位を分けることは、repository分割やMicroservice化を意味しません。
 
 ## マイクロサービスを採用しない理由
 
 現在の規模では、独立deploy、分散transaction、サービス間通信、監視などの運用複雑性に見合う必要性がありません。WebとAPIの明確な責務境界を維持しつつ、一つのプロダクトとして設計します。
-
