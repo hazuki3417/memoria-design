@@ -4,6 +4,8 @@
 
 > 実装状況: 各repositoryにテスト基盤はありますが、すべての層・主要結合scenarioを網羅しているわけではありません。
 
+成果物のbuild、test、静的解析、性能検証はGitHub Actionsを正本とします。人間は必要に応じてローカル開発環境で再現できますが、ChatGPTの実行環境では成果物を検証せず、PR作成後のquality gateへ委譲します。
+
 | 対象 | 主な検証 |
 | --- | --- |
 | Web | 表示、操作、loading、empty、error、accessibility |
@@ -17,7 +19,7 @@
 
 RepositoryのInsert・Update・Deleteでは、操作対象に加えて対象外dataを用意し、操作後の全体を比較します。件数だけでなく、対象外dataが変化していないこと、constraint違反時に部分更新が残らないことを確認します。
 
-Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整合性を重点確認します。PRにはcommand、結果、未実施理由、手動確認、riskを記録します。
+Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整合性を重点確認します。PRには検証対象、GitHub Actionsの結果、必要な手動確認、riskを記録します。ChatGPT上でbuild・testを実行していないことは未実施理由や失敗として記載しません。
 
 ## Backend CI
 
