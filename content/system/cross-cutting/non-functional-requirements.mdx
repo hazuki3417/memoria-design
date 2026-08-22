@@ -1,0 +1,263 @@
+# 非機能要件
+
+## 概要
+
+> 実装状況: Web、API、PostgreSQL、Object Storage、基本的なGitHub Actionsは存在します。Media Worker、Outbox Publisher、Redis Streams、運用監視、定期backup、復旧手順、性能測定は段階的に実装します。
+
+非機能要件は、Memoriaを安全かつ継続的に運用するための性能、容量、信頼性、security、運用上の基準です。初期構成は個人開発による小規模運用とEC2上のDockerを前提とし、高可用性構成や常時監視体制を先に要求しません。
+
+この文書の数値は初期の設計目標です。実測結果、利用人数、扱うMediaの形式、予算に応じて見直します。初回Releaseの対象機能は[Issue #26](https://github.com/hazuki3417/memoria-design/issues/26)、Security・Privacyの詳細は[Issue #27](https://github.com/hazuki3417/memoria-design/issues/27)、動画固有の処理条件は[Issue #20](https://github.com/hazuki3417/memoria-design/issues/20)で確定します。
+
+## 前提と適用範囲
+
+- 一つのProductをUserまたはCommunityが利用し、画像と動画以外の一般fileは扱いません。
+- 初期の実行基盤は単一のEC2上でDocker containerを稼働させ、必要に応じてAPI、Media Worker、Outbox Publisherを別processとして管理します。
+- PostgreSQLは業務dataとTransactional Outbox、Redis Streamsは非同期配送、Object StorageはOriginalとMedia Variantを担当します。
+- 原本のupload経路はFrontend → API → Object Storageです。FrontendからS3への直接uploadは将来的な最適化候補です。
+- 認証はAuth0、認可はMemoriaのUser、Community、Custodian、Membershipに基づいて判定します。
+- 利用者向けの論理削除、ごみ箱、archive、個別Mediaの復元、課金機能、専任の監査基盤は提供しません。
+- 初期の想定規模は登録User 100人、同時利用10人、保存Media 100,000件、Original総容量500 GiBを設計上の目安とします。これらは利用制限や将来の契約上限ではありません。
+
+## 初期目標の一覧
+
+| 領域 | 初期目標 | 測定・確認方法 | 見直し条件 |
+| --- | --- | --- | --- |
+| 通常のGraphQL Query | p95 500 ms以下、p99 1,000 ms以下 | request metric、trace、k6 | 目標超過が継続、同時利用者増加 |
+| 通常のMutation | p95 1,000 ms以下、p99 2,000 ms以下 | request metric、trace、k6 | DB競合や外部I/O待ちが増加 |
+| Media一覧 | 1 page 30件、最大100件 | schema、境界値test、一覧計測 | 一覧の転送量・DB負荷・操作性が悪化 |
+| 初回画面表示 | p75 2.5秒以下 | 実browser、Performance API、主要画面の計測 | 画像一覧や初回navigationが継続して遅い |
+| 画像Original | 1 file最大50 MiB | APIのfile size検証、境界値test | 実際の撮影機器や利用者要求に合わない |
+| 画像Variant生成 | 20 MiB以下の画像はp95 30秒以内 | Job作成から完了までのmetric | backlog増加、画像形式や画素数の変化 |
+| 同時upload | Userあたり3 requestまで | Webの並列制御、API metric | 回線やEC2の帯域・CPUが不足 |
+| API rate limit | Userあたり60 request/分、burst 20 | gatewayまたはAPIのmetric | 正常操作の誤検知、不正利用、負荷増加 |
+| Outbox配送 | commit後p95 10秒以内 | oldest unpublished event age | Redis停止、Publisher滞留 |
+| 非同期処理のretry | 最大5回、指数backoff、最大5分間隔 | Job・Outboxのattemptと状態 | 一時障害が長い、恒久失敗が埋もれる |
+| Application log | 30日保持 | retention設定と削除確認 | 調査に不足、保存費用が増加 |
+| Trace | 7日保持 | Collector・backendのretention | 障害解析に不足、保存費用が増加 |
+| Media Event | 90日保持 | 削除処理、保持期限test | 利用目的の変更、Privacy要求の見直し |
+| DB backup | 1日1回、保持14日 | backup履歴、復旧演習 | data増加、損失許容が変化 |
+| RPO | 24時間以内 | 最終backup時刻と復旧演習 | 新規dataの損失許容が小さくなる |
+| RTO | 24時間以内 | 復旧手順による実測 | 停止許容時間が短くなる |
+| 可用性 | 月間99.0%を運用目標とする | health checkと停止時間の記録 | 利用者増加、継続停止が許容されない |
+
+p95、p99は、それぞれ測定対象の95%、99%が目標以内であることを表します。response時間は認証済みrequestをAPIが受信してからresponseを返すまでを測定し、利用者の回線やfile本体のupload時間は通常Query・Mutationの目標から分離します。月間99.0%は30日換算で約7時間12分までの停止を目安とし、外部へ保証するSLAではありません。
+
+## 性能と応答時間
+
+### API
+
+通常QueryとMutationの目標は、同時利用10人、正常なDB接続、初期の一覧上限を条件に評価します。大量download、動画変換、backup、migrationなど、特性が異なる処理に同じthresholdを適用しません。
+
+- 一覧、詳細、Community参照などの通常Queryはp95 500 ms、p99 1,000 ms以内を目標とします。
+- 公開設定、Group操作、委譲などの通常Mutationはp95 1,000 ms、p99 2,000 ms以内を目標とします。
+- Originalのuploadはfile sizeと回線に依存するため、転送時間とAPI内部処理時間を分けて計測します。
+- 画像・動画のVariant生成は非同期処理とし、API requestの成功条件に含めません。
+- 外部serviceやObject Storageの遅延はtraceで分離し、API全体の平均値だけで正常と判定しません。
+
+### Web
+
+- 主要画面の初回表示はp75 2.5秒以内を目標とし、実browserで主要navigationを確認します。
+- 一覧表示と詳細表示は同じImage Variant群を使用し、`srcset`と`sizes`で表示領域に適した幅を選択します。
+- 表示されないOriginalを一覧画面で取得せず、対象外のVariantをまとめて先読みしません。
+- hoverによる先読みは必要に応じて100〜200 ms待ち、詳細表示中の先読みは前後1〜2件に制限します。
+- 操作中はloading、処理中、失敗、retry可能性を表示し、長い処理を無応答に見せません。
+
+### Pagination
+
+- Relay Connectionを使用する一覧の既定値は`first: 30`、最大値は100とします。
+- `first`または`last`に0以下や101以上を指定した場合はvalidation errorとします。
+- 上限を超える一覧を一度に返さず、cursorを使用して次のpageを取得します。
+- cursorの内部形式へClientを依存させず、並び順が安定する条件をschemaとqueryに定義します。
+
+## Media容量と形式
+
+### 画像
+
+- Originalの上限は1 file 50 MiBとします。
+- Originalの最大画素数は40 megapixelとし、decode前に可能な範囲でdimensionを確認します。
+- fileの拡張子、宣言されたMIME type、実dataの判定を照合し、矛盾するfileを拒否します。
+- Image VariantはOriginalのアスペクト比を維持し、320、640、960、1280、1920 pxを候補とするWebPを生成します。
+- Originalより大きいVariantは生成しません。最小候補より小さいOriginalはOriginalと同じ幅のWebPを生成します。
+- 対応する具体的な画像形式はAPIの実装可能なvalidationを正本とし、安全にdecodeできない形式は受け付けません。
+
+### 動画
+
+動画はMediaの対象に含めますが、初回Releaseへの採否、最大size、再生時間、対応container、codec、配信形式、変換時間は[動画処理の詳細設計](https://github.com/hazuki3417/memoria-design/issues/20)で決定します。
+
+動画条件が未確定の段階で画像用の50 MiB上限や30秒の変換目標を動画へ流用しません。動画機能を公開する前に、対象形式、size上限、処理timeout、retry、再生に必要な受け入れ条件を明示します。
+
+### 総容量と使用量
+
+- 初期の設計目安はOriginal総容量500 GiBです。Variant、backup、temporary fileは別に集計します。
+- Originalは`media.file_size`、Variantは`size_bytes`を正本として合計します。
+- UserまたはCommunity別の利用量を算出できる構造を維持しますが、課金、料金表、専用Billing tableは導入しません。
+- Userごと・Communityごとのhard quotaは初回Release要求で必要性が確定するまで導入しません。
+- Object Storageの使用量、Variant生成による増加率、backup容量を月次で確認します。
+- 使用量が設計目安の70%へ達した場合、上限、費用、保持方針、必要なquotaを再評価します。
+
+## Upload、timeout、retry
+
+- 基本単位は1 Media = 1 request = 1 Processing Jobです。
+- 複数fileの選択は許可し、Webの同時upload数はUserあたり3 requestまでとします。
+- API側のupload timeoutは120秒を初期値とし、回線事情に応じて接続timeoutと全体timeoutを区別します。
+- 中断したuploadのbyte単位再開、multipart再開、直接uploadは初期機能に含めません。失敗したMedia単位で再送します。
+- 操作の再送には同じIdempotency Keyを使用し、MediaやProcessing Jobを重複作成しません。
+- APIはOriginalの保存後、Media、Custody、Processing Job、Outbox Eventを同じDB transactionで確定します。
+- transactionに失敗した場合は保存済みObjectの補償削除を行い、補償削除にも失敗した場合は再処理対象として記録します。
+- 20 MiB以下の画像は、Job作成からVariant生成完了までp95 30秒以内を目標とします。高解像度画像、混雑時、動画は個別に測定します。
+
+## 可用性と障害時の縮退
+
+初期構成は単一EC2であり、instance、Docker host、PostgreSQL、Redisの配置によっては単一障害点が存在します。Multi-AZ、常時冗長化、自動failover、24時間監視を前提にせず、停止を検知して手順に従い復旧できることを重視します。
+
+| 障害箇所 | 期待する挙動 | 復旧後 |
+| --- | --- | --- |
+| Media Worker停止 | 既存Mediaの閲覧を維持し、新規Variantの生成だけを遅延させる | 未処理Jobを再開する |
+| Redis停止 | DBとOutboxが利用可能ならupload受付を維持する | Publisherが未送信eventを再配送する |
+| Outbox Publisher停止 | DB transactionの整合性を維持し、eventを保持する | 未送信eventを順次配送する |
+| Object Storage停止 | 新規upload・downloadを失敗として返し、不完全なMediaを公開しない | 対象Media単位でretryする |
+| PostgreSQL停止 | 認可や整合性を推測せずrequestを失敗させる | 接続回復後に通常処理を再開する |
+| Auth0停止 | 新規認証は失敗として扱う。認証済みsessionは有効期限と既存設定に従う | 認証service回復後に再開する |
+| EC2停止 | 全processの停止を許容し、手順に従ってhostとcontainerを再構築する | DB・Object Storage・backupとの整合性を確認する |
+
+- 月間99.0%は初期の運用目標であり、対外的なSLAではありません。
+- 予定された保守停止も記録し、計画停止を無かったことにはしません。
+- RedisやWorkerの停止時も、認可や既存Mediaの閲覧可否を緩めません。
+- Worker、Publisher、APIは再起動後に安全に再開できるよう、冪等性と永続化済み状態を使用します。
+- 停止時間、復旧に必要だった操作、再発防止策を記録し、冗長化は実測と予算に基づいて判断します。
+
+## 整合性と非同期処理
+
+- 業務dataとOutbox Eventは同じPostgreSQL transactionでcommitします。
+- OutboxのcommitからRedis配送までp95 10秒以内を初期目標とします。
+- Publisherは未送信eventを保持し、Redis停止を理由に業務dataを破棄しません。
+- JobとOutboxの一時的な失敗は最大5回retryし、指数backoffの最大間隔を5分とします。
+- 最大回数を超えた処理は`FAILED`として識別し、運用上確認できる状態にします。
+- eventの配送はat-least-onceを前提とし、`event_id`、Job ID、Idempotency Keyで重複実行の影響を抑えます。
+- Outboxの未送信件数、最古未送信eventの経過時間、Jobの待機件数、失敗件数、最終成功時刻を観測します。
+- 未送信eventまたはJob backlogが15分を超えて増加する場合は警告対象とします。
+- Outbox Eventは技術的な配送情報であり、Media Eventや監査証跡の代替として使用しません。
+
+## SecurityとPrivacy
+
+この節は運用に必要な共通基準です。個人情報の分類、EXIF、通報対応、Cookie、CSRF、残存riskなどの詳細は[Security・Privacy要求](https://github.com/hazuki3417/memoria-design/issues/27)で確定します。
+
+- 通信経路にはTLSを使用し、Object Storageへの非暗号化通信を許可しません。
+- S3 bucketは非公開とし、保存dataとEC2のEBSを暗号化します。
+- CloudFrontを利用する場合はOrigin Access Controlと短時間の署名付きURLまたはCookieで配信します。
+- Original download用の期限付きURLは5分、表示用の署名付きURLまたはCookieは15分を初期値とし、権限変更後も恒久的なaccessが継続しないようにします。
+- APIは閲覧、Original download、管理操作を分離し、Custodian、Community Membership、Administratorを操作ごとに確認します。
+- Community参加者には閲覧権限だけを与え、Original downloadはUser CustodianまたはCommunity Administratorに限定します。Uploaderの特例権限は[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)が確定するまで付与しません。
+- EC2はIMDSv2、Session Manager、最小権限のIAM roleを使用し、恒久的なaccess keyと公開SSHを前提にしません。
+- Secret、token、署名付きURL、file本体、不要な個人情報をrepository、Client bundle、log、traceへ出力しません。
+- SQL injection、GraphQLの過大query、file偽装、不正なContent-Type、権限外resource参照はvalidationとtestで検出します。
+- GraphQL operationはUserあたり60 request/分、瞬間的なburst 20を初期値とします。
+- uploadはUserあたり10件/分を初期値とし、並列upload 3件の制約と併用します。
+- rate limit超過時は429または対応するGraphQL errorを返し、利用者へretry可能性を示します。
+- 不正・違法なMedia利用への対応では、User ID、Media ID、操作種別、時刻、必要なrequest識別子など最小限の技術情報を使用します。法的判断、著作権者の認定、専任の通報審査体制はSystemが自動で担いません。
+
+## Log、Trace、Media Event
+
+| 情報 | 目的 | 初期保持期間 | 記録しないもの |
+| --- | --- | --- | --- |
+| Application log | 障害調査、運用確認 | 30日 | Secret、token、署名付きURL、Media本体 |
+| Distributed trace | requestと非同期処理の関連付け | 7日 | Secret、過大なpayload、不要な個人情報 |
+| Media Event | 操作主体、対象、操作種別、時刻の最小限の操作trace | 90日 | Media本体、恒久的な監査証跡、不要な個人情報 |
+| Outbox Event | 非同期処理への配送 | 配送成功後7日 | domain監査目的の追加情報 |
+| 一時download archive | 認可済みOriginalの一時配布 | 24時間以内 | 認可されていないOriginal |
+
+Application logとtraceは障害解析の技術情報です。Media Eventは利用者操作を追跡するdomain情報であり、法令対応、改ざん防止、完全性保証、長期保管を目的とする汎用監査logではありません。専任の監査基盤を導入する場合は、目的、保持期間、閲覧権限、費用を別途合意します。
+
+- request ID、trace ID、Media ID、Job ID、event ID、attempt数など、調査に必要な識別子だけを関連付けます。
+- User IDなどの識別子は認可された運用者だけが参照できる保存先に置きます。
+- 保持期限を過ぎたlog、trace、Media Event、配送済みOutbox Eventは自動削除または定期削除の対象とします。
+- 削除済みMediaに関連するEventは必要最小限の識別情報だけを保持し、Originalや個人情報を再構成できる内容を残しません。
+- 保持期間の延長はPrivacy、問い合わせ対応、費用、法的要件を確認してから判断します。
+
+## Backup、削除、復旧
+
+### Backup方針
+
+- PostgreSQLのbackupを1日1回取得し、14日間保持します。
+- Object Storageはprivate bucket、暗号化、必要なversioningまたは別途定義するbackupで保護します。
+- DB backupとObject Storageの復旧対象、取得時刻、保存先、参照権限を記録します。
+- RPOは24時間以内、RTOは24時間以内を初期目標とします。
+- backupの成功時刻、失敗、保持期限を観測し、24時間以上backupが取得されていない場合は警告対象とします。
+- 初回Release前とbackup方式を変更したときは、別環境への復旧を実際に行い、手順と所要時間を記録します。
+- 本番dataを開発環境へ無断複製せず、復旧演習でもSecret、個人情報、access権限を保護します。
+
+### 物理削除との関係
+
+MediaはDB record、公開関係、Groupとの関連、Original、Variantを削除し、利用者向けの論理削除、ごみ箱、archive、復元機能を提供しません。
+
+backupやS3 versioningには、削除後のdataが保持期間の間だけ残る場合があります。これは障害復旧のための技術的な保持であり、個別Mediaの復元serviceとして使用しません。保持期間を過ぎたbackupと旧versionは破棄し、削除要求とbackup retentionが矛盾しないように運用します。
+
+- 削除処理が失敗した場合は、未削除のObjectだけを冪等にretryします。
+- `DELETING`は内部の整合性維持に必要な一時状態であり、利用者が復元できる状態ではありません。
+- DBとObject Storageの復旧時は、存在しないOriginalを指すMedia、不正なCustody、未処理Job、未送信Outbox Eventを検出します。
+- 個別Userからの「削除済みMediaを戻す」という要求は初期運用の対象外です。
+
+## 監視と通知
+
+初期運用では、高価なAPM製品や24時間の有人監視を必須にせず、必要なsignalを少数のmetricと通知に限定します。
+
+| 対象 | 観測指標 | 初期の警告条件 |
+| --- | --- | --- |
+| EC2・container | instance health、container停止、再起動回数 | health check失敗が5分継続 |
+| API | 5xx率、p95、p99、request数 | 5xx率が5分間5%超、またはp95目標超過が15分継続 |
+| PostgreSQL | 接続失敗、接続数、backup成功時刻、storage使用率 | 接続失敗が5分継続、backup 24時間未成功 |
+| Redis | 接続失敗、Stream lag、pending件数 | 接続失敗またはlag増加が15分継続 |
+| Outbox Publisher | 未送信件数、最古event age、retry件数 | 最古未送信eventが15分超 |
+| Media Worker | 待機Job、失敗Job、処理時間 | 失敗Job発生、または待機15分超 |
+| Object Storage | 使用容量、upload・download失敗、Variant容量 | 容量が設計目安の70%超、失敗率上昇 |
+| Security | 認可拒否の急増、rate limit超過、Secret露出検知 | 通常傾向からの急増または露出検知 |
+
+通知経路、通知先、通知時間帯は運用開始前に人間が決定します。通知を送る仕組み自体を、この設計だけで外部serviceへ作成しません。
+
+- Application logは構造化して標準出力・標準errorへ出します。
+- Web、API、DB、Outbox、Redis、Worker、Object Storageをtrace IDで関連付けます。
+- alertにはservice、環境、時刻、対象、失敗内容を含め、SecretやMedia本体を含めません。
+- 重大な停止、backup失敗、data整合性の破損は、通常の性能warningより優先します。
+- 通知が多すぎる場合は閾値を調整し、問題を隠す目的で通知自体を無効化しません。
+
+## 変更、保守、互換性
+
+- Node.js、Go、OS、container image、AWS CDKなどはsupportされているversionを使用します。
+- 更新はrepositoryごとのPRとGitHub Actionsで確認し、重大なsecurity updateは優先的に適用します。
+- GraphQL、DB schema、Object Storage path、event契約の変更では所有repository、適用順、互換期間を明示します。
+- Mediaの管理主体をpathへ含めず、User・Community間の委譲でObjectの移動を要求しません。
+- instance type、画像size上限、timeout、rate limit、retention、retry回数は設定として変更できるようにします。
+- ECS/Fargate、direct upload、CloudFrontの拡張、Stream分割、managed database、Multi-AZは、利用状況、運用負荷、予算によって必要性が確認された場合に検討します。
+
+## 検証と受け入れ基準
+
+| 検証対象 | 方法 | 受け入れ基準 |
+| --- | --- | --- |
+| API応答時間 | 代表Query・Mutationのk6 scenarioとtrace | 同時利用10人で定義したp95・p99を満たす |
+| Pagination | schema・resolverの境界値test | 既定30件、最大100件、0以下と101以上を拒否 |
+| 画像size・画素数 | 49 MiB、50 MiB、51 MiBと画素上限のtest | 上限以内を受け付け、超過や偽装形式を拒否 |
+| Upload | 複数file、接続断、timeout、再送のintegration test | 同時3件以下、Media単位でretry、重複recordなし |
+| 非同期処理 | Redis停止、Publisher停止、Worker再起動、重複配送 | data欠落なし、event再配送、Job重複実行なし |
+| 認可 | User、Community Member、Administrator、未認証者のtest | 閲覧・Original download・管理権限を分離 |
+| Secret保護 | Client bundle、log、trace、IaC outputの検査 | Secret、署名付きURL、tokenを出力しない |
+| Backup・復旧 | 別環境へのrestoreと整合性確認 | RPO 24時間、RTO 24時間以内を実測で確認 |
+| 削除 | DB、Original、Variant、失敗retry、backup retentionのtest | 利用者向け復元なし、関連dataとObjectを削除 |
+| 監視 | health check失敗、Job停止、backup停止を模擬 | 定義したsignalとwarning条件を確認 |
+| IaC | CDK assertion、synth、設定差分のReview | S3非公開、暗号化、IMDSv2、過剰IAMなし |
+
+通常のPRでは対象変更に必要なunit test、integration test、構成検査を実行します。長時間の性能試験、復旧演習、実際の障害注入はRelease前または実行環境を変更した場合に実施します。ChatGPTの実行環境ではbuild・testを行わず、GitHub Actionsと人間が管理する実環境で検証します。
+
+## 見直し条件と採用しない構成
+
+次の場合は数値と構成を見直します。
+
+- 同時利用10人、Original 500 GiB、またはMedia 100,000件を継続的に超える。
+- API、一覧表示、画像変換のp95目標を継続して満たせない。
+- OutboxやJobのbacklogが通常運用で15分を超える。
+- backupの所要時間、復旧演習、RPO、RTOが初期目標を満たせない。
+- EC2のCPU、memory、network、diskが高負荷状態を継続する。
+- 動画、Community、Tag、公開範囲など初回Release要求が確定し、初期想定が変わる。
+- AWS費用、log保持費用、CloudFront転送費用が予算に合わなくなる。
+- Security・Privacy要求の見直しにより、署名期限、保持期間、metadata方針が変わる。
+
+初期の必須構成には、Multi-AZ、ECS/Fargate、常時稼働する複数EC2、専用APM、完全な監査log、動画用の独立Stream、自動quota課金、24時間有人監視を含めません。これらは実際の利用規模、運用上の課題、予算に照らして必要になった場合だけ導入します。

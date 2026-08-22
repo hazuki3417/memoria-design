@@ -78,6 +78,7 @@
 
 - プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。
 - 技術一覧は`content/technology-stack.mdx`へ記載します。
+- 性能、容量、可用性、backup、保持期間、監視の共通基準は`content/system/cross-cutting/non-functional-requirements.mdx`を正本とします。
 - システム設計は`content/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
 - GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`content/system/`には設計上の意味と責務境界を記載します。
 - アジャイル開発とイテレーション運用は`content/development-process.mdx`へ記載します。
@@ -144,6 +145,7 @@ npm run build
 - シークレット、過剰な権限、安全策のない不可逆操作を含むデプロイ・セキュリティ手順を指摘します。
 - 対象リポジトリ、互換性、移行上の影響が不足したアーキテクチャ判断を指摘します。
 - 実装に必要なtable constraint、データパターン、transaction、競合・失敗時処理が未定義の設計を指摘します。
+- 性能目標、容量上限、timeout、保持期間、backup、監視が非機能要件の正本と一致しない変更を指摘します。
 - Goalとして完了・検証できない巨大Issue、工程別Phase、長期Feature branchを前提とする計画を指摘します。
 - APIのDomain・Use CaseからGraphQL、DB、Object Storageなど外側の詳細へ依存する設計を指摘します。
 - 元資料を削除する変更では、詳細情報が最新設計へ完全に移行されているか確認します。

@@ -35,6 +35,7 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
 | 非同期処理・信頼性 | [非同期Media処理](/system/api/asynchronous-processing)・[Transactional Outbox](/system/api/transactional-outbox)・[冪等性](/system/api/idempotency) |
 | 派生画像・配信 | [Media処理と派生物](/media/processing)・[Media表示と配信](/system/web/media-delivery) |
+| 非機能要件・運用基準 | [非機能要件](/system/cross-cutting/non-functional-requirements) |
 | CI・性能検証 | [テスト設計](/test-design)・[ログ・可観測性](/system/cross-cutting/observability) |
 | 実行基盤・container | [IaC設計](/system/infrastructure)・[ビルド・デプロイ](/build-deploy) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
@@ -97,6 +98,15 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 4. [Mediaストレージ](/system/data/storage)と[Media表示と配信](/system/web/media-delivery)で保存path、配信、表示用Variantを確認する
 5. Originalのupload経路はFrontendからAPIを経由してObject Storageへ保存し、S3への直接uploadは将来的な最適化候補として扱う
 6. Communityへ直接投稿したUploaderの特別権限は未決定のため、[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)の合意前に実装しない
+
+### 非機能要件・運用設計
+
+1. [非機能要件](/system/cross-cutting/non-functional-requirements)で初期目標、測定方法、見直し条件を確認する
+2. [ログ・可観測性](/system/cross-cutting/observability)でlog、trace、Media Eventの目的と保持期間を確認する
+3. [Mediaストレージ](/system/data/storage)で容量、認可、署名期限、物理削除、backupとの関係を確認する
+4. [非同期Media処理](/system/api/asynchronous-processing)、[Transactional Outbox](/system/api/transactional-outbox)、[冪等性](/system/api/idempotency)で遅延、retry、障害時の扱いを確認する
+5. [IaC設計](/system/infrastructure)と[テスト設計](/test-design)で初期EC2構成、RPO・RTO、監視、検証方法を確認する
+6. Release範囲、動画固有条件、Security・Privacyの詳細が未確定の場合は、関連Issueの合意前に数値や機能を追加しない
 
 ### CI・性能検証
 

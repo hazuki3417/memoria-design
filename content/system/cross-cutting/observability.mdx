@@ -12,7 +12,7 @@ APIは構造化logにZap、traceにOpenTelemetryを使用し、ローカルで�
 - Web、API、PostgreSQL、Outbox Event、Redis Streams、Media Worker、Object Storageの間でtrace contextを引き継ぎ、非同期境界でも処理を追跡できるようにします。
 - Job ID、Media ID、attempt、配送状態で処理を関連付け、署名付きURLやcredentialは記録しません。
 - password、token、Media本体、不要な個人情報を記録しません。
-- 保存期間、費用、検索性は環境ごとに決め、無期限保存を既定にしません。
+- 保存期間の初期値はApplication log 30日、trace 7日、Media Event 90日とし、無期限保存を既定にしません。費用、検索性、Privacy要求に応じて見直します。
 - DAM・APMという製品分類ではなく、観測目的とsignalで整理します。
 
 ## 性能検証との役割分担
@@ -20,3 +20,9 @@ APIは構造化logにZap、traceにOpenTelemetryを使用し、ローカルで�
 k6は主要操作の応答時間やerror率がthresholdを超えたことを検知します。OpenTelemetryは同じ操作に対応するWeb、GraphQL、DB、Outbox、Redis、Worker、Object Storageのspanを関連付け、遅延や失敗が発生した処理境界を確認します。
 
 local開発では必要に応じてJaegerなどでtraceを可視化します。通常のPRではCollectorとtrace伝播の検証を中心とし、可視化基盤全体を必須にしません。実行段階ごとの性能検証は[テスト設計](/test-design)を参照してください。
+
+## 保持期間と運用目標
+
+Application log、trace、Media Event、Outbox Eventは目的と保持期間を分離します。Media Eventは利用者操作の最小限のtraceであり、改ざん防止や長期保存を前提とした汎用監査logにはしません。
+
+保持期間、request応答時間、Outbox滞留、Job失敗、backup失敗、alert閾値の正本は[非機能要件](./non-functional-requirements)を参照してください。
