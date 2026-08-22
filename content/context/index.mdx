@@ -17,6 +17,12 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 上位と下位が矛盾する場合は差異を報告し、人間の判断を求めます。
 
+## ChatGPT作業時の共通制約
+
+ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実行環境で行いません。変更内容と設計の整合性を確認してPRを作成し、実行による検証をGitHub Actionsへ委譲します。依存関係の導入や代替検証commandの探索を作業条件にしません。
+
+作業branchのcommit数と粒度は固定せず、複数commitを許容します。一つのcommitへまとめるためだけの操作は不要です。詳細は[AI支援開発](/ai-development)と[ブランチ運用](/branch-strategy)を参照してください。
+
 ## 共通して読む情報
 
 | 目的 | 参照先 |
@@ -100,6 +106,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 4. `memoria-web`ではTypeScript、Biome、Vitest、Storybook、GraphQL codegen、Next.js build、必要なPlaywrightを確認する
 5. k6のscenarioとthresholdをIssueおよび対象repositoryのCI設定で確認し、PR・統合後・夜間実行の負荷を区別する
 6. 性能劣化の調査では[ログ・可観測性](/system/cross-cutting/observability)のtrace伝播を確認する
+7. ChatGPT上では上記の検証を実行せず、PR作成後のGitHub Actionsで結果を確認する
 
 ### リポジトリ横断変更
 

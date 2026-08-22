@@ -19,6 +19,8 @@
 - Windows、WSL2、Devboxによるローカル開発を主要な開発環境として維持します。
 - ChatGPTとGitHub連携は、人間による調査、要件整理、設計、実装、レビューを支援するために使用します。
 - 手動開発とAI支援を利用した開発には、同じ設計規約、テスト、CI、レビュー、承認基準を適用します。
+- ChatGPTの実行環境では成果物のbuild、test、静的解析、構文検証を実行しません。実行による品質確認はPR作成後のGitHub Actionsへ委譲します。
+- ChatGPTは依存関係の不足やbuild未実行を作業の停止理由にせず、変更内容とGitHub Actionsの状態を報告します。
 - AIによる提案や操作は、人間の明示的な要件・許可・最終確認に従います。
 - 人間の提案へ受動的に同意せず、Senior Engineerの観点から妥当性、前提、risk、矛盾、過剰設計を評価します。
 - 懸念がある場合は変更前に指摘し、代替案、trade-off、推奨案を示します。
@@ -60,10 +62,11 @@
 - ステージング・テスト専用ブランチは設けません。必要になった環境はブランチではなくデプロイ設定で分離します。
 - 詳細な共通規約は`memoria-design/content/branch-strategy.mdx`を参照します。
 - 手動で作成するコミットは`content/commit-message.mdx`に従い、typeを付けた日本語タイトルを使用します。
+- 作業branch内のcommit数と粒度は固定しません。複数commitを許容し、一つへまとめるためだけの追加操作を行いません。
 - GitHubなどが自動生成するmerge commitは、日本語でなくても構いません。
 - 正式なバージョンとReleaseは`content/versioning.mdx`に従い、各リポジトリで独立して管理します。
 - PRは原則として通常の状態で作成し、Draftは人間が明示的に指示した場合だけ使用します。
-- 通常PRは受け入れ条件と必要な検証を満たし、レビュー可能な状態で作成します。
+- 通常PRは受け入れ条件と変更内容を確認し、レビュー可能な状態で作成します。ChatGPT経由のbuild・test結果はPR作成後にGitHub Actionsで確認します。
 - PRのマージには、原則として通常のmerge commitを使用します。squash mergeまたはrebase mergeは、明示的な理由と合意がある場合だけ使用します。
 - 作業ブランチへ派生元の更新を取り込む場合は、原則としてrebaseを使用します。`develop`を作業ブランチへmergeしません。
 - rebase後にリモートの作業ブランチを更新する必要がある場合は、本人だけが使用するブランチであることを確認し、`--force-with-lease`を使用します。
@@ -114,6 +117,8 @@ npm run build
 ```
 
 依存関係が不足する場合は手動導入を標準手順にせず、責務に応じて`package.json`・`package-lock.json`または`devbox.json`・`devbox.lock`へ記録します。
+
+上記のcommandは人間がローカル環境で作業する場合の手順です。ChatGPTは自身の実行環境で依存関係の導入、build、test、代替的な構文検証を行わず、対象repositoryのGitHub Actionsへ検証を委譲します。
 
 ## 作業規約
 
