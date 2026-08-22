@@ -76,6 +76,7 @@
 
 ## ドキュメント構成
 
+- 初回Releaseの範囲、成功条件、対象外、優先順位は`content/first-release.mdx`を正本とします。Product全体の将来対象と初回Releaseの必須機能を区別します。
 - プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。
 - 技術一覧は`content/technology-stack.mdx`へ記載します。
 - 性能、容量、可用性、backup、保持期間、監視の共通基準は`content/system/cross-cutting/non-functional-requirements.mdx`を正本とします。
