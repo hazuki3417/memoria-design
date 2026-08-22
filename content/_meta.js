@@ -1,6 +1,7 @@
 export default {
   "index": "Home",
   "-- Product": {"type":"separator","title":"プロダクト"},
+  "first-release": "初回Release",
   "media": "Media",
   "ubiquitous": "ユビキタス言語",
   "technology-stack": "技術スタック",

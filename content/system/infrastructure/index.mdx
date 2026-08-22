@@ -20,6 +20,8 @@ IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
 - S3 bucketはprivateとし、CloudFront Origin Access Controlと期限付き署名でMediaを配信します。
 - APIとWorkerは責務に応じて別container imageとし、PublisherはAPI imageを再利用できます。
 
+[初回Releaseの範囲と成功条件](/first-release)を運用判断の基準とします。container配置、PostgreSQLとRedisの構成、Deploy、Backup、復旧手順の具体化は[初回ReleaseのEC2運用・Deploy・Backupの詳細設計](https://github.com/hazuki3417/memoria-design/issues/45)で扱います。
+
 ## EC2運用と将来的な移行
 
 EC2を採用する場合、OS更新、containerの再起動、logの保存、backup、障害復旧は運用責務として管理します。機密情報はimageやrepositoryへ含めず、AWS上の権限と設定から取得します。

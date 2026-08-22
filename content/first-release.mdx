@@ -1,0 +1,109 @@
+# 初回Releaseの範囲と成功条件
+
+## 目的
+
+初回Releaseでは、静止画像を個人およびCommunityで安全に閲覧・共有し、GroupとTagを使って整理できる状態を実現します。将来のProduct全体が静止画像と動画を扱うことと、初回Releaseで提供する対象は区別します。
+
+本ページを初回Releaseの範囲、優先順位、成功条件の正本とします。要求や詳細設計で未確定の事項は対応するIssueで判断し、推測によって確定済み仕様へ含めません。
+
+## 対象利用者と利用場面
+
+対象は、自分の画像を保存・整理するUserと、家族や部活動などの閉じたCommunityで画像を共有する参加者・Administratorです。Userは個人管理画像をCommunityへ公開する方法と、Community管理画像として直接Uploadする方法を利用します。
+
+## 初回Releaseに含める機能
+
+| 領域 | 必須範囲 | 設計上の留意点 |
+| --- | --- | --- |
+| 認証・User | ログインとアプリケーション利用に必要なUser初期化 | Auth0と既存の認証・認可方針に従う |
+| 静止画像 | Upload、一覧表示、詳細表示、削除 | 動画や画像以外のファイルは含めない |
+| 表示用画像 | アスペクト比を維持した複数幅のWebP Variant | 一覧と詳細で同じVariantを利用し、原本より拡大しない |
+| 非同期処理 | 原本保存、Media/Custody登録、Processing Job、Transactional Outbox、Redis Streams、Worker | 冪等性、失敗、再試行、削除との競合を扱う |
+| Community | Community、参加者、Administratorと参加状況に応じた閲覧 | Community外のUserへ非公開にする |
+| 管理と公開 | User管理、Community管理、個人管理画像のCommunity公開、Communityへの直接Upload | UploaderとCustodianを分離し、追加権限は未確定事項として扱う |
+| Group | Groupの作成・編集・削除と画像の整理 | 閲覧権限を制御しない。階層構造の要否は詳細設計で決定する |
+| Tag | Tagの作成・編集・削除、画像への付与・解除、Tagによる絞り込み | 管理範囲、編集権限、条件の詳細は要求・詳細設計で決定する |
+| アクセス制御 | User、Community参加者、Administrator、Custodianに応じた認可 | 原本アクセスを提供する場合はUser CustodianまたはCommunity Administratorに制限する |
+| 実行基盤 | EC2 + Docker、Deploy、秘密情報管理、Backup、復旧、監視 | 予算に応じて構成し、PostgreSQL/Redisの配置は運用設計で確定する |
+| 品質管理 | 各RepositoryのGitHub Actions quality gateと人間によるReview | ChatGPTの実行環境ではbuild、test、静的解析、構文検証を行わない |
+
+Media削除は必須ですが、Userアカウント削除、管理主体の委譲、原本ダウンロード用画面を自動的に初回Releaseの必須機能とはしません。それらを提供する場合は既存の不変条件と認可設計に従います。
+
+## 初回Releaseに含めない機能
+
+- 動画、PDF、文書、音声単体など静止画像以外の登録
+- 課金、料金体系、請求処理、自動Tag付け
+- 利用価値を実現するために必須ではない一括操作や高度な検索
+- ごみ箱、削除済み画像の復元、アーカイブ
+- BrowserからS3への直接Upload
+- ECS/Fargateへの移行、Multi-AZ構成、24時間の常時対応体制
+- 既存本番dataや無停止運用を前提とする高度な段階的DB移行
+
+DB schemaの初期化と安全なmigration実行は初回Releaseで必要です。既存本番dataの保持、無停止切替、旧versionとの後方互換が実際に必要な場合は、その条件に応じて段階的移行を追加します。
+
+## End-to-Endの成功条件
+
+### 個人管理画像
+
+1. Userがログインし、自分の画像をUploadできる。
+2. 処理完了後、画像を一覧および詳細画面で閲覧できる。
+3. 画像をGroupで整理し、Tagを付与・解除し、Tagで絞り込める。
+4. 画像を削除すると、一覧・詳細画面や関連付けから安全に除去される。
+
+### Communityへの公開
+
+1. Userが自分の管理する画像を所属Communityへ公開できる。
+2. Community参加者は公開された画像を閲覧できる。
+3. Community外のUserは閲覧できず、一般参加者は原本を取得できない。
+4. 公開解除、参加資格の喪失、権限変更後は、新しい閲覧許可を発行しない。
+
+### Communityへの直接Upload
+
+1. 所属するUserがCommunityへ静止画像をUploadできる。
+2. 操作したUserはUploaderとして記録され、CommunityがCustodianになる。
+3. Community Administratorは管理権限に基づいて操作できる。
+4. Uploader本人への例外的な権限は、未確定のまま暗黙に実装せず、専用Issueの結論に従う。
+
+### 異常系と運用
+
+- 未認証、権限不足、対象消失、画像処理中、処理失敗を利用者が識別できる。
+- 非同期処理は重複実行、再試行、削除との競合で不整合な権限や派生物を残さない。
+- 原本と表示用画像は非公開Storageで管理し、認可された経路からだけ配信する。
+- EC2 + Dockerで安全にDeployでき、Backup、復旧、監視の担当と手順が明確である。
+- Web、API、IaC、設計Repositoryのquality gate結果と人間のReviewに基づいて公開可否を判断する。
+
+性能、容量、可用性、RPO/RTO、Backup保持期間、観測項目は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。Security・Privacyの詳細は専用の要求Issueで確定します。
+
+## 確定が必要な設計事項
+
+| 領域 | 判断する内容 | 管理Issue |
+| --- | --- | --- |
+| Community | 参加者、Administrator、認可、管理関係 | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
+| Uploader権限 | Communityへ直接UploadしたUserの例外的権限 | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
+| User・認証 | 認証、初期化、User lifecycle | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
+| Group | 所属、操作権限、階層、関連、削除 | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
+| Tag要求 | 分類目的、所属、操作主体、検索要求 | [#23](https://github.com/hazuki3417/memoria-design/issues/23) |
+| Tag詳細設計 | 物理モデル、認可、関連、絞り込み | [#43](https://github.com/hazuki3417/memoria-design/issues/43) |
+| 静止画像処理 | 対応形式、Upload、Variant、状態、再試行 | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
+| GraphQL | Query、Mutation、型、エラー、認可 | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
+| 画面 | 画面遷移、操作、対応Browser・Device・画面幅 | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
+| Security・Privacy | 公開前に満たす認証、認可、保護要件 | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
+| 初期運用 | EC2構成、DB配置、Deploy、Backup、復旧 | [#45](https://github.com/hazuki3417/memoria-design/issues/45) |
+
+動画の詳細設計は[#20](https://github.com/hazuki3417/memoria-design/issues/20)として初回Release後の候補に残します。高度な段階的DB移行は[#28](https://github.com/hazuki3417/memoria-design/issues/28)として、既存dataや互換性の必要性に応じて判断します。
+
+WebおよびIaCの既知のquality gate問題は、それぞれ[memoria-web#11](https://github.com/hazuki3417/memoria-web/issues/11)と[memoria-IaC#10](https://github.com/hazuki3417/memoria-IaC/issues/10)で追跡します。
+
+## 設計と実装の優先順位
+
+1. Security・Privacy要求、Community、Uploader権限、User・認証の前提を整理する。
+2. Groupの詳細設計と、Tagの要求・詳細設計を確定する。
+3. 静止画像のUpload、派生画像、非同期処理を具体化する。
+4. GraphQL契約を定義し、画面・操作フローへ反映する。
+5. EC2 + Dockerの運用、Deploy、Backup、復旧を確定する。
+6. Repositoryごとの実装Issueへ分割し、quality gateと結合確認を正常化する。
+
+すべての要求を一括で確定してから実装することは前提にしません。依存する判断が確定した領域から、[アジャイル開発とイテレーション運用](/development-process)に従って小さな単位で進めます。
+
+## Release後に検証する仮説
+
+利用者が個人または所属Communityの画像を見つけ、閲覧し、GroupとTagで整理し、認可された相手と共有できれば、初回Releaseの中心的な価値を提供できます。Upload・画像処理の成功と失敗、認可拒否、主要操作の完了状況を観測し、実際の利用状況から次の優先順位を判断します。
