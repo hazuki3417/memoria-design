@@ -19,5 +19,46 @@ RepositoryのInsert・Update・Deleteでは、操作対象に加えて対象外d
 
 Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整合性を重点確認します。PRにはcommand、結果、未実施理由、手動確認、riskを記録します。
 
-Webのquality gateはTypeScript、Biome、Vitest、Storybook、accessibility、GraphQL codegen、Next.js build、必要に応じたPlaywrightを使用します。既存のBiomeと重複するESLint導入を前提にしません。負荷と回帰の確認が必要なscenarioではk6を使用し、実行条件と閾値をIssueで定義します。
+## Backend CI
 
+`memoria-api`のquality gateでは、変更内容と対象repositoryの実装状況に応じて、次の検証を実行します。
+
+- `gofmt`、`go vet`、`staticcheck`によるformatと静的解析
+- unit test、Domain・Use Case test、Repository・integration test
+- GraphQL schema・operationの整合性とGraphQL integration test
+- PostgreSQL migrationとschemaの検証
+- 並行処理を扱う箇所のrace test
+- k6による主要GraphQL Query・Mutationの性能regression検知
+- OpenTelemetryのtrace伝播と非同期処理境界のintegration test
+
+service構成にはlocal開発と共通のDocker Composeを使用し、CI固有の設定だけを差分として重ねます。imageのbuild、依存serviceの起動、migration・seed、test、性能検証、log・artifactの収集を分けます。障害解析に必要なlogを回収した後、CI専用のcontainerとvolumeを片付けます。
+
+開発環境でJaegerなどの可視化UIを使用する場合でも、通常のPRではCollectorや必要な出力確認だけを使用し、CIの実行時間とresource消費を抑えます。
+
+## Frontend CI
+
+`memoria-web`のquality gateは、次の責務を分けて検証します。
+
+| 検証 | 目的 |
+| --- | --- |
+| TypeScript | 型の整合性 |
+| Biome | lintとformat |
+| Vitest | UI logicとunit test |
+| Storybook | componentの表示・操作・accessibility |
+| GraphQL codegen・operation検証 | API schemaとFrontend契約の整合性 |
+| Next.js build | production向けのbuild可否 |
+| Playwright | 実browserでの主要E2E scenario |
+
+ESLintは既存のBiomeと重複するため前提にしません。PlaywrightやVisual Regressionは対象scenarioと費用対効果に応じて導入し、すべての変更へ一律に要求しません。
+
+## k6による性能regression
+
+k6は大規模な負荷試験だけではなく、変更による性能劣化を検出するためにも使用します。実行時間と負荷はbranch運用と実行段階に合わせて分けます。
+
+| 実行段階 | 検証内容 |
+| --- | --- |
+| `develop`向けPR | 主要なGraphQL Query・Mutationを少数のvirtual userと短い固定scenarioで実行し、thresholdでregressionを検知する |
+| `develop`への統合後・`main`向けRelease PR | PRより長いscenarioで、統合後の主要な操作と負荷傾向を確認する |
+| 夜間実行・Release前 | 必要に応じてstress、soak、spike testを実行する |
+
+対象scenario、実行時間、virtual user数、thresholdはIssueと対象repositoryの実行可能なCI設定で具体化します。k6は性能劣化の発生を検知し、[OpenTelemetry](/system/cross-cutting/observability)は同期・非同期処理のどこで遅延が生じたかを追跡します。

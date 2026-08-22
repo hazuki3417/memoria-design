@@ -14,5 +14,16 @@ branchはcodeの統合段階、environmentは実行先です。作業branchを�
 
 AWSはOIDCと短期credentialを優先し、IaCはsynth・diffでIAM拡大、resource置換、data削除を確認します。DB・storage変更はbackup、migration、rollbackまたはroll-forwardを事前に決めます。
 
-APIとMedia Workerは用途別のcontainer imageとしてbuildし、Outbox Publisherは必要に応じてAPI imageを共有します。Docker Composeの構成はlocal開発とCIで共有し、BuildKitのlayer cacheでbuild時間を抑えます。CIはLinux runner上で必要なruntimeをsetupし、local環境保護を目的とするDevboxの導入を必須にしません。GHCR上の共通base imageは重いnative依存など具体的な問題が確認された場合に限って検討します。
+## Containerのbuildと実行基盤
 
+初期はEC2上でDocker containerを実行します。APIとMedia Workerは用途別のimageとしてbuildし、Outbox Publisherは必要に応じてAPI imageを共有します。API、Publisher、Workerは独立したprocessとして起動し、将来的にECS/Fargateへ移行できる境界を維持します。
+
+local開発、CI、EC2上の構成は、同じDockerfile、lock file、Docker Compose構成を正本とします。環境差分が必要な場合は共通の`compose.yaml`に開発用またはCI用の差分を重ね、各環境で異なるservice構成を手作業で複製しません。
+
+## BuildKitとimageの再利用
+
+build commandは環境ごとに実行し、BuildKitのlayer cacheで実際の再buildを抑えます。CIではimageをbuildする段階とcontainerを起動する段階を分け、build済みimageの起動時には`docker compose up --no-build`を使用できます。
+
+GHCR上の共通base imageは標準構成に含めません。Media Workerのnative依存が増え、build時間や転送量が実際の問題になった場合に限り、base imageの公開範囲、更新手順、cache効果を確認して検討します。
+
+CIはLinux runner上で必要なruntimeをsetupし、local環境保護を目的とするDevboxの導入を必須にしません。CIの検証項目と実行段階は[テスト設計](/test-design)を参照してください。

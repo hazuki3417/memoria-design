@@ -11,7 +11,7 @@
 
 設計資料は合意された最新の設計を本文に記載し、実装との差分は各ページの概要直下へ引用ブロックで記載します。
 
-`memoria-api`はGraphQL API、Media Worker、Outbox Publisherを同じリポジトリで所有し、実行processと責務を分離します。Media自体に管理主体を埋め込まず、`media_custodies`でUserまたはCommunityの管理関係を保持します。画像一覧と詳細表示は共通の幅別WebP Variantを使用します。非同期処理はPostgreSQLのTransactional OutboxとRedis Streamsで接続し、APIからRedisへ直接publishしません。Communityへ直接uploadしたUploaderの特別権限はIssue #36の合意まで未確定として扱います。
+`memoria-api`はGraphQL API、Media Worker、Outbox Publisherを同じリポジトリで所有し、実行processと責務を分離します。初期の実行基盤はEC2とDockerを使用し、ECS/Fargateは将来的な移行先として扱います。Media自体に管理主体を埋め込まず、`media_custodies`でUserまたはCommunityの管理関係を保持します。OriginalはAPI経由でObject Storageへ保存し、画像一覧と詳細表示は共通の幅別WebP Variantを使用します。非同期処理はPostgreSQLのTransactional OutboxとRedis Streamsで接続し、APIからRedisへ直接publishしません。Communityへ直接uploadしたUploaderの特別権限はIssue #36の合意まで未確定として扱います。
 
 ## 開発主体とAIの位置付け
 

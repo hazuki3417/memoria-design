@@ -20,7 +20,7 @@ Memoriaで採用する主要技術と責務を示します。versionと具体的
 | 可観測性 | Zap、OpenTelemetry、Jaeger | logとtrace |
 | テスト | Vitest、Storybook、Playwright、k6 | unit、component、E2E、性能regression |
 | 開発環境 | WSL2 Ubuntu、Devbox、Docker、Docker Compose | ローカル開発、依存tool、service構成 |
-| Infrastructure | AWS、AWS CDK | 実行環境の定義 |
+| Infrastructure | AWS、AWS CDK、EC2、Docker | 初期のcontainer実行環境とAWS resourceの定義 |
 | Document | Nextra 4、Next.js App Router、MDX、Mermaid | 設計書、ナビゲーション、図 |
 
 ## アーキテクチャの適用範囲
@@ -28,6 +28,8 @@ Memoriaで採用する主要技術と責務を示します。versionと具体的
 APIはClean Architectureを採用し、DomainとUse CaseをGraphQL、PostgreSQL、Redis、Object Storageの詳細から分離します。CQRSはCommandとQueryの責務を分ける設計として適用し、読み取り専用database、database複製、Event Sourcingは導入しません。GraphQL一覧はRelay Connectionの標準に合わせます。
 
 API、Media Worker、Outbox Publisherは`memoria-api`に含めます。実行単位は分離しますが、別のGit repositoryや業務単位のMicroserviceには分割しません。
+
+初期の実行基盤にはEC2とDockerを使用します。ECS/Fargateは運用負荷やscalingの必要性に応じて検討する将来的な移行先であり、初期構成の必須技術ではありません。
 
 ## MongoDBを採用技術に含めない理由
 
