@@ -86,7 +86,7 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 2. `memoria-IaC/AGENTS.md`とREADME
 3. [IaC設計](/system/infrastructure)と[ビルド・デプロイ](/build-deploy)
 4. 初期構成がEC2とDockerであり、ECS/Fargateは将来的な移行先であることを確認する
-5. `memoria-IaC/src/`のCDK設定・construct・テスト
+5. `memoria-IaC/bin/`のentry point、`src/`のconstruct・stack、`test/`のテスト、repository rootのCDK設定
 6. synth・diffとresource置換、IAM、データ保持への影響
 
 ### Mediaの非同期処理・派生物
@@ -162,6 +162,17 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 8. GitHub ProjectsとMilestonesは使用せず、日程が必要な場合はIssue本文へ記載する
 9. PRは通常の状態で作成し、人間が明示した場合だけDraftとする
 10. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
+
+### Issueを定期的に棚卸しする
+
+1. [アジャイル開発とイテレーション運用](/development-process#issueの定期棚卸し)で実施契機と完了判断を確認する
+2. `memoria-design`のOpen Issueと親Issue、および関連する`memoria-web`、`memoria-api`、`memoria-IaC`の子Issue・PRを確認する
+3. 各Issueの受け入れ条件を最新の`develop`、PRの差分、GitHub Actionsの実行結果と照合する
+4. 完了を確認できた項目だけチェックし、未確認・失敗・対象外は事実と後続Issueを明記する
+5. 親子Issueの参照、Open／Closed、優先順位、依存関係、設計書pathを同期する
+6. 受け入れ条件を満たしたIssueはCloseし、残件があるIssueはOpenを維持する
+7. 人間が一部未完了のまま先行完了を許可した場合は、その理由と残件の追跡先を記録する
+8. 次に着手するIssueを確認し、設計内容や進捗一覧をContextへ複製しない
 
 ### 詳細設計を追加・更新するタスク
 

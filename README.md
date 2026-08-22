@@ -61,9 +61,10 @@ npm run build
 6. [Context map](./content/context/index.mdx)
 7. [ローカル開発環境](./content/local-development.mdx)
 8. [人間中心のAI支援開発](./content/ai-development.mdx)
-9. [ブランチ運用](./content/branch-strategy.mdx)
-10. [コミットメッセージ規約](./content/commit-message.mdx)
-11. [バージョニング規約](./content/versioning.mdx)
+9. [アジャイル開発とIssue棚卸し](./content/development-process.mdx)
+10. [ブランチ運用](./content/branch-strategy.mdx)
+11. [コミットメッセージ規約](./content/commit-message.mdx)
+12. [バージョニング規約](./content/versioning.mdx)
 
 Mediaの派生画像・非同期処理を実装する場合は、[Media処理と派生物](./content/media/processing.mdx)、[非同期Media処理](./content/system/api/asynchronous-processing.mdx)、[Transactional Outbox](./content/system/api/transactional-outbox.mdx)、[Media表示と配信](./content/system/web/media-delivery.mdx)も確認してください。
 
