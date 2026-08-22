@@ -47,6 +47,8 @@ Windowsのブラウザから`http://localhost:3000`へアクセスします。�
 npm run build
 ```
 
+これらのcommandは人間がローカル開発環境で作業する場合の手順です。ChatGPT経由で作成した成果物のbuild・testはChatGPT上で実行せず、PR作成後のGitHub Actionsで検証します。作業branchのcommit数を一つに揃える必要はありません。
+
 環境構成、依存関係の管理、Web・APIの結合確認は[ローカル開発環境](./content/local-development.mdx)を参照してください。
 
 ## 最初に読む資料
