@@ -27,6 +27,8 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 | 開発プロセス・Iteration | [アジャイル開発とイテレーション運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
+| 非同期処理・信頼性 | [非同期Media処理](/system/api/asynchronous-processing)・[Transactional Outbox](/system/api/transactional-outbox)・[冪等性](/system/api/idempotency) |
+| 派生画像・配信 | [Media処理と派生物](/media/processing)・[Media表示と配信](/system/web/media-delivery) |
 | ブランチ・PR | [ブランチ運用](/branch-strategy) |
 | コミット | [コミットメッセージ規約](/commit-message) |
 | バージョン・Release | [バージョニング規約](/versioning) |
@@ -77,6 +79,14 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 3. [IaC設計](/system/infrastructure)と[ビルド・デプロイ](/build-deploy)
 4. `memoria-IaC/src/`のCDK設定・construct・テスト
 5. synth・diffとresource置換、IAM、データ保持への影響
+
+### Mediaの非同期処理・派生物
+
+1. [Media処理と派生物](/media/processing)でOriginal、Variant、Processing Jobの責務を確認する
+2. [非同期Media処理](/system/api/asynchronous-processing)と[Transactional Outbox](/system/api/transactional-outbox)でAPI・Publisher・Workerの境界を確認する
+3. [冪等性](/system/api/idempotency)でrequestの再送とJobの重複実行対策を確認する
+4. [Mediaストレージ](/system/data/storage)と[Media表示と配信](/system/web/media-delivery)で保存path、配信、表示用Variantを確認する
+5. Communityへ直接投稿したUploaderの特別権限は未決定のため、[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)の合意前に実装しない
 
 ### リポジトリ横断変更
 
@@ -157,5 +167,3 @@ Issueまたは依頼には、次を記載します。
 - 関連するIssue・PR
 
 設計内容を貼り付ける代わりに、正本のパスと、今回のタスクで追加された制約を記載します。
-
-

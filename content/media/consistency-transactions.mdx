@@ -10,7 +10,7 @@ DB内の整合性はPostgreSQL transactionで保証し、Object Storageとの整
 
 | ユースケース | DB transactionに含める処理 |
 | --- | --- |
-| upload | Media、subtype、Custody、UPLOADED eventの作成 |
+| upload | Media、subtype、Custody、UPLOADED event、Processing Job、Outbox Eventの作成 |
 | 公開・解除 | Custody確認、Access追加・削除、Event作成 |
 | 委譲 | Custody lock、全Access削除、Custody更新、Event作成 |
 | Group追加・解除 | scope・権限・循環確認、関連更新 |
@@ -39,12 +39,14 @@ relation追加前に、追加するchildからparentへ到達できるかをrecu
 
 1. APIでfile size、MIME type、実dataを検査
 2. ULIDのMedia IDを生成
-3. Object Storageの最終keyへ原本と必要な派生物をupload
-4. DB transactionでMedia、subtype、Custody、Eventを作成
+3. Object Storageの最終keyへOriginalだけをupload
+4. DB transactionでMedia、subtype、Custody、Media Event、Processing Job、Outbox Eventを作成
 5. DB transaction失敗時はupload済みobjectを冪等に削除
 6. 補償削除に失敗した場合は運用retry対象として記録
 
 DBへ先に登録しないのは、利用可能なMedia行がfileなしで残ることを避けるためです。Objectだけが残る失敗は一覧取得へ影響せず、補償削除できます。
+
+個人領域へのuploadではUser、Communityへの直接uploadではCommunityを初期Custodianとします。派生物はAPI request内で生成せず、commit後にOutbox PublisherがRedis Streamsへ通知し、Media Workerが非同期で生成します。APIからRedisへ直接送信しません。
 
 ## Delete
 
@@ -77,6 +79,7 @@ sequenceDiagram
 
 - `media_custodies`: 現在の管理主体
 - `media_events`: 誰がどの操作をしたか
+- `outbox_events`: 確定した変更をWorkerへ確実に伝達するための内部event
 - application log・trace: 障害調査
 
 Event作成は対象のdomain変更と同じDB transactionで行います。Eventが作成できない場合はdomain変更もrollbackします。
@@ -112,5 +115,4 @@ clientが指定したUser IDやCommunity IDだけを根拠にしません。
 - Groupの多段循環を拒否する
 - storage retryで二重削除errorにならない
 - Media削除後も必要期間のEventを検索できる
-
 

@@ -29,6 +29,8 @@ flowchart TD
 
 管理と公開は別の概念です。Custodianであることは、他のCommunityへの公開を意味しません。
 
+Media本体はメディア情報だけを表し、管理主体は独立した`media_custodies`で関連付けます。個人領域へのuploadではUser、Communityへの直接uploadではCommunityが初期Custodianです。Communityへ投稿した事実だけで投稿者に特別な管理権限は付与しません。例外の要否は[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)で検討します。
+
 ## Uploader
 
 Mediaにはアップロード日時と最初のUploaderを記録します。管理主体を委譲してもUploaderは変更しません。
@@ -84,5 +86,4 @@ sequenceDiagram
 > 委譲すると、現在の公開先はすべて解除されます。
 
 委譲先による承認や再公開依頼のワークフローは設けず、必要な連絡は利用者間のコミュニケーションで解決します。
-
 

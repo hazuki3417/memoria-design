@@ -2,32 +2,45 @@
 
 ## 概要
 
-> 実装状況: Web、API、PostgreSQL、Object Storage、AWS CDKの基本構成は実装されています。Media設計に対応するAPI・データ・動画処理には差分があります。
+> 実装状況: Web、API、PostgreSQL、Object Storage、AWS CDKの基本構成は実装されています。Media Worker、Outbox Publisher、Redis Streams、CloudFront配信、動画処理は未実装です。
 
 Memoriaは4つの独立したGitリポジトリで構成する一つのプロダクトです。
 
 | リポジトリ | 責務 |
 | --- | --- |
 | `memoria-web` | Web UI、認証済み画面、GraphQLクライアント |
-| `memoria-api` | GraphQL API、ドメインロジック、永続化、file入出力 |
+| `memoria-api` | GraphQL API、Media Worker、Outbox Publisher、ドメインロジック、永続化 |
 | `memoria-design` | プロダクト設計、用語、横断判断 |
 | `memoria-IaC` | AWS resourceと実行環境 |
 
 ```mermaid
-flowchart LR
-  U[利用者] --> W[memoria-web]
-  W --> A[memoria-api]
-  A --> P[(PostgreSQL)]
-  A --> S[(Object Storage)]
-  I[memoria-IaC] -. 構築 .-> A
-  I -. 構築 .-> P
-  I -. 構築 .-> S
+flowchart TD
+  User[利用者] --> Web[memoria-web]
+  Web --> API[GraphQL API]
+  API --> Database[(PostgreSQL)]
+  Publisher[Outbox Publisher] --> Database
+  Publisher --> Stream[Redis Streams]
+  Stream --> Worker[Media Worker]
+  Worker --> Database
+  Worker --> Storage[(Object Storage)]
+  API --> Storage
+  Web --> Delivery[CloudFront]
+  Delivery --> Storage
 ```
 
-WebはAPIのドメインルールを複製せず、APIはユースケース・認可・data・file入出力を所有します。DBとGraphQLの実行可能なschemaはAPI、AWS resourceはIaCを正本とします。
+WebはAPIのドメインルールを複製せず、APIはユースケース・認可・data・file入出力を所有します。Media Workerは派生fileを生成し、Outbox PublisherはPostgreSQLに記録したeventをRedis Streamsへ配送します。DBとGraphQLの実行可能なschemaはAPI、AWS resourceはIaCを正本とします。
+
+## バックエンドの実行単位
+
+| 実行単位 | 責務 | Container image |
+| --- | --- | --- |
+| GraphQL API | 認証、認可、Command、Query、Media登録 | API用の軽量image |
+| Outbox Publisher | 未送信eventのpolling、Redis配送、retry | API imageとの共用を許容 |
+| Media Worker | Redis consumer、画像・動画処理、派生fileの永続化 | APIとは独立したimage |
+
+実行processとDeploymentは分けますが、Domain、Repository、event契約を同じrepository内で共有します。実行単位を分けることは、repository分割やMicroservice化を意味しません。
 
 ## マイクロサービスを採用しない理由
 
 現在の規模では、独立deploy、分散transaction、サービス間通信、監視などの運用複雑性に見合う必要性がありません。WebとAPIの明確な責務境界を維持しつつ、一つのプロダクトとして設計します。
-
 

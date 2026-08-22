@@ -1,0 +1,56 @@
+# Transactional Outbox
+
+## 概要
+
+> 実装状況: Outbox table、Outbox Publisher、Redis Streamsへの配送、再試行は未実装です。
+
+PostgreSQLへの業務data更新とRedis Streamsへの配送は、異なるsystemのため同じtransactionで確定できません。Transactional Outboxにより、業務変更と「後でeventを配送する」という約束を同じPostgreSQL transactionで永続化します。
+
+## 処理の流れ
+
+```mermaid
+sequenceDiagram
+  participant API
+  participant DB as PostgreSQL
+  participant Publisher
+  participant Redis as Redis Streams
+  participant Worker
+  API->>DB: Media・Custody・Job・Outboxを保存
+  DB-->>API: transaction commit
+  API-->>API: 利用者へ受付結果を返す
+  Publisher->>DB: 未送信Outboxを取得
+  Publisher->>Redis: XADD
+  Publisher->>DB: published_atを記録
+  Worker->>Redis: XREADGROUP
+```
+
+APIの成功条件は、業務dataとOutbox eventが同じtransactionでcommitされたことです。Redisへ届いたことや派生物の生成完了をrequest成功条件にはしません。
+
+## Publisher
+
+Outboxは記録するだけでは再送されません。常駐するOutbox Publisherが未送信eventを定期的にpollingし、`XADD`成功後に配送済みとして更新します。
+
+| 状態 | 振る舞い |
+| --- | --- |
+| Redisへ配送成功 | `published_at`を記録する |
+| Redisへ配送失敗 | eventを未送信のまま保持し、次回retryする |
+| Publisherが停止 | 再起動後に未送信eventを回収する |
+| 最大retryを超過 | `FAILED`として運用から確認できるようにする |
+
+retryには`attempt_count`、`next_retry_at`、`last_error`を使用できます。複数Publisherが稼働する場合は`FOR UPDATE SKIP LOCKED`などで同じeventの競合取得を抑えます。
+
+## 配送保証の境界
+
+- PostgreSQLからRedisまでの送信保証はOutboxが担当します。
+- RedisからWorkerまでの配送管理はRedis StreamsとConsumer Groupが担当します。
+- `XADD`成功直後にPublisherが停止すると重複配送が発生し得るため、`event_id`で重複を判定します。
+- APIからRedisへ直接publishする経路は設けません。
+- CDC、Debezium、即時publishと回復publishの二重経路は採用しません。
+
+Outboxだけをqueueとして利用する方式も成立しますが、業務databaseにpolling、lock、queue管理が集中します。MemoriaではRedis Streamsを非同期配送基盤として分離します。
+
+## 適用条件
+
+業務dataの更新と後続の非同期処理を必ず連動させる操作に適用します。DB更新がなく、Redis送信失敗をrequest errorとして返せばよい処理にまで機械的にOutboxを導入しません。
+
+Outbox eventは配送のための技術情報です。[Media Event](/ubiquitous#media-event)は利用者操作のtraceであり、目的、保持期間、tableを分けます。

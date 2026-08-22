@@ -26,8 +26,9 @@ stateDiagram-v2
 - Uploaderとアップロード日時
 - 初期Custodian
 - UPLOADEDイベント
+- 派生物生成のProcessing JobとOutbox Event
 
-初期CustodianはアップロードしたUserです。Userがアップロードした事実を、著作権または法的所有権の根拠とは扱いません。
+個人領域へアップロードした場合の初期CustodianはUser、Communityへ直接アップロードした場合はCommunityです。Uploaderは実行したUserを記録しますが、著作権または法的所有権の根拠とは扱いません。Originalを保存した後にdomain情報・Job・Outbox Eventを同じtransactionで確定し、表示用VariantはWorkerで非同期に生成します。
 
 ## 削除
 
@@ -35,7 +36,7 @@ stateDiagram-v2
 - DBレコードを削除する
 - Groupとの関連を削除する
 - Communityへの公開設定を削除する
-- サムネイル、プレビューなどの派生ファイルを削除する
+- 幅別Variantなどの派生ファイルを削除する
 - 削除した事実をDELETEDイベントとして記録できる
 - 削除したMediaは復元できない
 
@@ -59,5 +60,4 @@ stateDiagram-v2
 - 問い合わせによる個別復元
 - 削除Media専用のarchive schema
 - 削除Media専用のarchive bucket
-
 

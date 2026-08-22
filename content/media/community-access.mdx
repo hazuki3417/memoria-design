@@ -53,6 +53,20 @@ Communityが管理するMediaは、そのCommunityの参加者が閲覧できま
 
 Community管理Mediaを別Communityへ公開しません。Communityの独立性を維持し、管理・共有・委譲の意味が曖昧になることを避けるためです。
 
+## 閲覧とOriginal download
+
+| Mediaの管理主体 | 操作者 | 表示用Variantの閲覧 | Original download |
+| --- | --- | --- | --- |
+| User | 管理しているUser | 可能 | 可能 |
+| User | 公開先Communityの参加者 | 可能 | 不可 |
+| User | 公開先Communityの管理者 | 可能 | 不可 |
+| Community | Communityの参加者 | 可能 | 不可 |
+| Community | Community Administrator | 可能 | 可能 |
+
+Community公開は閲覧を目的とし、Originalの取得権限までは付与しません。Community AdministratorがOriginalを取得できるのは、そのCommunity自身がCustodianである場合に限ります。他Userが管理する公開Mediaについて権限を拡張しません。
+
+Communityへ直接uploadしたUserを、Community Administratorではない場合に例外的に扱うかは未決定です。Original download、編集、削除、脱退後の扱いは[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)で検討し、合意前に特別権限を実装しません。
+
 ## 管理と公開
 
 | 操作 | Custodian | 閲覧範囲 |
@@ -62,5 +76,4 @@ Community管理Mediaを別Communityへ公開しません。Communityの独立性
 | UserからUserへ委譲 | 新しいUser | すべて解除 |
 | UserからCommunityへ委譲 | Community | 委譲先Communityのみ |
 | CommunityからUserへ委譲 | User | すべて解除 |
-
 

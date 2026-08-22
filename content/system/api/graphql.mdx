@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: 実行可能な契約は`memoria-api/schemas/graphql/*.graphql`です。ImageからMediaへの名称・型変更と、すべての一覧へのRelay Connection適用には差分があります。
+> 実装状況: 実行可能な契約は`memoria-api/schemas/graphql/*.graphql`です。ImageからMediaへの名称・型変更、すべての一覧へのRelay Connection適用、`hasPrevPage`から標準の`hasPreviousPage`への変更には差分があります。
 
 APIはschema、Webはoperation・fragment・生成型を所有します。
 
@@ -11,7 +11,7 @@ APIはschema、Webはoperation・fragment・生成型を所有します。
 - Queryは名詞、Mutationは動詞と対象を組み合わせます。
 - inputはユースケース単位とし、`Input`接尾辞を付けます。
 - Mutationの返却型は`Payload`接尾辞を付けます。
-- 一括操作も単一Mutationとして定義し、一つのtransaction境界で処理します。
+- 一括操作を提供する場合は単一Mutationとしてtransaction境界を定義します。ただしMedia uploadと派生物生成は1 request・1 Media・1 Jobに分離します。
 - Mutationのnestは許可せず、同階層のMutationはそれぞれ独立したtransactionです。
 - 内部errorの詳細をresponseへ公開しません。
 - 破壊的変更には移行期間を設けます。
@@ -24,9 +24,11 @@ APIはschema、Webはoperation・fragment・生成型を所有します。
 - backward paginationは`last`と任意の`before`を使用します。
 - `before + first`、`after + last`、`first + last`はerrorにします。
 - edgeは`cursor`と`node`、connectionは`edges`と`pageInfo`を返します。
+- `PageInfo`は標準名の`hasNextPage`、`hasPreviousPage`、`startCursor`、`endCursor`を使用します。独自の`hasPrevPage`を新規契約へ導入しません。
 - backward取得でDBの取得順が逆になる場合、API responseは論理順へ戻します。
 - cursorは利用者が内部key構造へ依存しないopaqueな値にします。
 
 具体的な型・field・引数は実行可能なschemaを正本とします。
 
+upload完了やJob開始など再送で重複作成される操作にはidempotency keyを適用します。すべてのMutationへ一律に要求せず、[冪等性の設計](./idempotency)に従って対象を限定します。
 

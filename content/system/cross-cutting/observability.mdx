@@ -9,8 +9,9 @@ APIは構造化logにZap、traceにOpenTelemetryを使用し、ローカルで�
 
 - logは構造化して標準出力・標準エラーへ出します。
 - request・traceの相関IDを伝播します。
+- Web、API、PostgreSQL、Outbox Event、Redis Streams、Media Worker、Object Storageの間でtrace contextを引き継ぎ、非同期境界でも処理を追跡できるようにします。
+- Job ID、Media ID、attempt、配送状態で処理を関連付け、署名付きURLやcredentialは記録しません。
 - password、token、Media本体、不要な個人情報を記録しません。
 - 保存期間、費用、検索性は環境ごとに決め、無期限保存を既定にしません。
 - DAM・APMという製品分類ではなく、観測目的とsignalで整理します。
-
 

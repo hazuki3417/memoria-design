@@ -1,0 +1,38 @@
+# Media表示と先読み
+
+## 概要
+
+> 実装状況: 画像一覧と詳細表示、`new Image()`による先読みは存在します。複数幅のImage Variant、`srcset`、`sizes`、CloudFront認可配信は未実装です。
+
+一覧画面の画像タイルと、選択後にdialogで開く詳細画面は、同じImage Variant群を共用します。thumbnailやpreviewは画面上の利用場面であり、独立した保存resourceにはしません。
+
+## Responsive image
+
+Originalのアスペクト比を維持して生成した複数幅のWebPを`srcset`へ渡し、表示領域を`sizes`で指定します。Browserはviewport、表示領域、device pixel ratioに基づいて適切なVariantを選択します。
+
+```html
+<img
+  src="/media/example/640.webp"
+  srcset="/media/example/320.webp 320w, /media/example/640.webp 640w, /media/example/1280.webp 1280w"
+  sizes="(max-width: 768px) 50vw, 25vw"
+  alt="表示対象の画像"
+/>
+```
+
+一覧の正方形tileはCSSの`object-fit: cover`で表示し、詳細画面は`object-fit: contain`などで元のアスペクト比を維持します。tile表示だけを理由に切り抜き済みfileを作りません。
+
+## 先読み
+
+画像tileへpointerが一定時間hoverしたとき、詳細画面で使用する`srcset`と`sizes`を使ってImage Variantを先読みします。先読みと実際の詳細表示で条件が異なると、別のVariantを二重取得するため同じ選択条件を使用します。
+
+- 短時間のhoverでは直ちにfetchせず、必要に応じて100〜200ms程度のdelayを設けます。
+- 詳細表示中は前後1〜2件をsliding windowで先読みします。
+- 必要に応じて`image.decode()`まで実行し、表示時のdecode待ちを抑えます。
+- Touch deviceではhoverを前提にせず、詳細表示後に前後のMediaを先読みします。
+- 非公開Mediaの先読みも、通常表示と同じ認可済みCloudFront配信経路を使用します。
+
+## Upload
+
+複数fileの選択は許可しますが、通信、進捗、失敗、retry、Idempotency KeyはMedia単位で扱います。並列upload数には上限を設け、失敗したfileだけを再試行します。
+
+多数のfileをUI上でまとめる必要がある場合はUpload Batchを検討します。batchを導入する場合も、個々のMediaとprocessing jobを独立させます。

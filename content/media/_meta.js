@@ -6,6 +6,7 @@ export default {
   "data-patterns": "概念データパターン",
   "record-patterns": "レコードパターン",
   "consistency-transactions": "整合性とTransaction",
+  "processing": "Media処理と派生物",
   "management": "管理と委譲",
   "community-access": "Communityと公開",
   "group": "Media Group",
@@ -13,4 +14,3 @@ export default {
   "user-deletion": "User削除",
   "design-decisions": "設計判断"
 }
-
