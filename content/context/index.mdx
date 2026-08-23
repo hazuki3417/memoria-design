@@ -30,7 +30,8 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 | 初回Releaseの範囲・成功条件 | [初回Releaseの範囲と成功条件](/first-release) |
 | プロダクト構成 | [リポジトリ構成](/system) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
-| 文書の正本 | [ドキュメント管理方針](/documentation-policy) |
+| 文書の正本と記載形式 | [ドキュメント管理方針](/documentation-policy)・[設計書テンプレート](/design-document-templates) |
+| 物理データモデル共通規約 | [物理データモデル共通規約](/system/data/physical-model-conventions) |
 | 開発プロセス・Iteration | [アジャイル開発とイテレーション運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
@@ -135,7 +136,7 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 3. [冪等性](/system/api/idempotency)でrequestの再送とJobの重複実行対策を確認する
 4. [Mediaストレージ](/system/data/storage)と[Media表示と配信](/system/web/media-delivery)で保存path、配信、表示用Variantを確認する
 5. Originalのupload経路はFrontendからAPIを経由してObject Storageへ保存し、S3への直接uploadは将来的な最適化候補として扱う
-6. Communityへ直接投稿したUploaderの特別権限は未決定のため、[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)の合意前に実装しない
+6. Communityへ直接投稿したUploaderの削除・Original download権限は[Community権限](/community/authorization)を正本とし、Community参加中に限る
 
 ### 非機能要件・運用設計
 
@@ -235,10 +236,12 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 ### Product domainの設計書を追加・再構成する
 
 1. [ドキュメント管理方針](/documentation-policy)でdomain構成と正本の所有境界を確認する
-2. 対象domainの概要、ユースケース、権限、論理モデル、物理モデル、レコードパターン、Transaction、設計判断を確認する
-3. 情報を所有domainへ配置し、他domainには責務境界とlinkだけを記載する
-4. `_meta.js`、Home、README、AGENTS、Context、関連Issueの参照先を同期する
-5. 人間向け本文とContextへ同じ設計内容を複製しない
+2. [設計書テンプレート](/design-document-templates)でページごとの章立て、粒度、表形式を確認する
+3. [物理データモデル共通規約](/system/data/physical-model-conventions)を確認し、共通ルールをdomain文書へ複製しない
+4. 対象domainの概要、ユースケース、権限、論理モデル、物理モデル、レコードパターン、Transaction、設計判断を確認する
+5. 情報を所有domainへ配置し、他domainには責務境界とlinkだけを記載する
+6. `_meta.js`、Home、README、AGENTS、Context、関連Issueの参照先を同期する
+7. 人間向け本文とContextへ同じ設計内容を複製しない
 
 ## タスクcontextに含める情報
 
