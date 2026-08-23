@@ -36,11 +36,11 @@ PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時�
 
 ## 削除と参照
 
-- User、Media、Communityは復元機能を持たない物理削除を基本とする。
-- DELETING等の状態は非同期cleanupのための一時状態であり、論理削除やごみ箱ではない。
+削除確認、物理削除、削除中状態、外部serviceとのcleanupは[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を正本とします。本ページではDB固有の参照規則を定義します。
+
 - FKのON DELETE CASCADE、RESTRICT、SET NULLは、所有関係と保持要件をdomainごとに選択する。
 - 削除済みUserの参照を保持する必要があるMediaではFKをNULLにし、個人情報や認証identifierを退避しない。
-- 外部StorageやAuth0との削除はDB Transactionに含めず、durable Jobと冪等な再試行で完了させる。
+- 外部I/OをPostgreSQL Transactionへ含めず、durable Jobまたはoperation tableで追跡する。
 
 ## Domain固有の例外
 
