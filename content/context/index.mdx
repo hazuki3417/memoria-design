@@ -34,6 +34,7 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 | 開発プロセス・Iteration | [アジャイル開発とイテレーション運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
+| User・認証・account削除 | [User設計](/user)・[Userユースケース](/user/use-cases)・[認証と認可](/user/authentication-authorization) |
 | Community・参加・共有・権限 | [Community設計](/community)・[Communityユースケース](/community/use-cases)・[Community権限](/community/authorization) |
 | 非同期処理・信頼性 | [非同期Media処理](/system/api/asynchronous-processing)・[Transactional Outbox](/system/api/transactional-outbox)・[冪等性](/system/api/idempotency) |
 | 派生画像・配信 | [Media処理と派生物](/media/processing)・[Media表示と配信](/system/web/media-delivery) |
@@ -81,6 +82,16 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 10. 対象IssueとUser・Security・GraphQL・画面設計を確認する
 
 通知と管理主体委譲は初回Release対象外です。共有は閲覧関係の追加であり、管理主体を変更する委譲とは区別します。
+
+### User、認証、account削除
+
+1. [User設計](/user)で責務境界と対象外を確認する
+2. [Userユースケース](/user/use-cases)で登録、Login、nickname、account削除を確認する
+3. [認証と認可](/user/authentication-authorization)でAuth0、token、再認証、return URLを確認する
+4. [User論理データモデル](/user/data-model)と[物理データモデル](/user/physical-data-model)で状態と識別子を確認する
+5. [レコードパターン](/user/record-patterns)と[整合性とTransaction](/user/consistency-transactions)で非同期削除と失敗時処理を確認する
+6. MediaとCommunityへの影響は各domainの正本を確認する
+7. profile画像、account統合、公開account IDは初回Release対象外としてIssue #51〜#53を参照する
 
 ### GraphQL・API
 
