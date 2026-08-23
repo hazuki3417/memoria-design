@@ -73,12 +73,13 @@
 - Community管理MediaはAdministratorと参加中のUploader本人が削除できる
 - 問い合わせによる個別復元を提供しない
 
-### User削除前に管理Mediaを解決する
+### account削除時に管理Mediaを削除する
 
-- 管理Mediaを表示する
-- Mediaごと、複数選択、全件で委譲または削除する
-- Media Groupを選択条件として利用できる
-- 未処理Mediaがある間はUser削除を完了しない
+- User管理Mediaの件数と復元不能な削除を明示する。
+- Userの確認後、対象Mediaを固定して非同期cleanupで削除する。
+- cleanup失敗時はDELETING状態を維持し、systemが再試行・運用再開する。
+- 管理主体の委譲は初回Release対象外とする。
+- 詳細なaccount削除flowは[Userユースケース](/user/use-cases)を正本とする。
 
 ### MediaをGroupへ追加・除外する
 
