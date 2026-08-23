@@ -1,0 +1,20 @@
+# Userの認証と認可
+
+## 責務分離
+
+| 情報・処理 | 正本 |
+| --- | --- |
+| password、外部identity、認証session | Auth0 |
+| issuer・subjectと内部Userの対応 | Memoria |
+| nickname、User状態 | Memoria |
+| Membership、Administrator、Media権限 | 各Memoria domain |
+
+Auth0からはissuer、subjectと登録画面のnickname初期値に使う表示名だけを利用します。emailとprofile画像は要求・保存せず、issuer・subjectを画面や通常logへ出力しません。
+
+issuerとsubjectの組は1件のUserにだけ対応します。同じemailや表示名を根拠に統合しません。一致するUserがない場合は登録画面へ遷移し、複数件に一致する不整合は認証失敗として運用対応します。
+
+APIはtokenの署名、issuer、audience、有効期限を検証します。権限はtokenへ固定せず、操作時のUser状態、Membership、Administrator、Custodyから評価します。
+
+account削除の最終確定前はAuth0再認証を必須とします。失敗・取消し・期限切れの場合は削除Jobを開始せず、MediaとCommunityの個別確認も省略しません。
+
+Login・登録後の復帰先はallowlistに一致する内部相対URLだけを受け付けます。
