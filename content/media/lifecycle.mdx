@@ -5,9 +5,11 @@
 
 > 実装状況: Image削除は存在しますが、Media全体、派生ファイル、再試行を含む一貫した削除処理には差分があります。
 
+物理削除、削除確認、削除中状態、backup、再試行の共通規則は[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を正本とします。
+
 ## 状態
 
-利用者向けのMedia状態は、利用中または削除済みの2つです。ごみ箱、論理削除、アーカイブ、復元可能期間は設けません。
+利用者向けのMedia状態は、利用中または削除済みの2つです。DELETINGはStorage cleanup用の内部状態であり、復元可能な状態ではありません。
 
 ```mermaid
 stateDiagram-v2
@@ -44,13 +46,9 @@ stateDiagram-v2
 
 > 削除したMediaは復元できません。
 
-## 整合性
+## 整合性とbackup
 
-オブジェクトストレージとDBを単一トランザクションにできないため、削除処理の失敗を検知し、完了するまで再試行できるようにします。これは利用者向けの復元機能ではありません。
-
-## バックアップ
-
-障害復旧用バックアップに削除済みデータが一時的に含まれる可能性はありますが、個別Mediaの復元には使用しません。バックアップの保持と破棄は、システム全体の災害復旧方針として別に管理します。
+Media固有のStorage operationと削除対象は[Mediaの整合性とTransaction](./consistency-transactions)を正本とします。外部I/O、retry、backupからの個別復元を提供しない方針は[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)に従います。
 
 ## 対応しない機能
 
