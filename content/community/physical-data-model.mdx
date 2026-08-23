@@ -4,7 +4,11 @@
 
 > 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
 
-Community domainが所有するPostgreSQL table、column、PK、FK、index、削除規則を定義します。IDは`varchar(26)`のULID、時刻は`timestamptz`とします。
+Community domainが所有するPostgreSQL table、column、PK、FK、index、削除規則を定義します。
+
+## 共通規約
+
+ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。本ページではCommunity domain固有の定義と例外を記載します。
 
 ## 全体ER
 
@@ -18,7 +22,7 @@ erDiagram
   USERS ||--o{ COMMUNITY_JOIN_REQUESTS : requests
 ```
 
-## Community関連table
+## 所有table
 
 ### communities
 
@@ -79,10 +83,10 @@ PKは`(community_id, user_id)`です。複合FKによって参加していない
 | reviewed_at | timestamptz | NULL可 | 承認・拒否時刻 |
 | resolved_at | timestamptz | NULL可 | 確定・取消し・無効化時刻 |
 
-`status = 'PENDING'`を条件に`(community_id, applicant_user_id)`へpartial unique indexを設定し、重複申請を防ぎます。申請User削除時は先に`INVALIDATED`へ更新し、Userの削除・匿名化方式とFK動作は #16・#27 で整合させます。`(community_id, status, requested_at)`のindexで承認待ち一覧を取得します。
+`status = 'PENDING'`を条件に`(community_id, applicant_user_id)`へpartial unique indexを設定し、重複申請を防ぎます。申請User削除時は先に`INVALIDATED`へ更新し、Userの削除・匿名化方式とFK動作は[User物理データモデル](/user/physical-data-model)に従います。`(community_id, status, requested_at)`のindexで承認待ち一覧を取得します。
 
 Media domainが所有する`media_custodies`と`media_community_accesses`は[Media物理データモデル](/media/physical-data-model)を参照します。
 
-## 所有境界
+## 他domainとの境界
 
 `communities`、`community_memberships`、`community_administrators`、`community_invitations`、`community_join_requests`は本ページを設計上の正本とします。GraphQL・実行可能SQL schemaの正本は実装を所有する`memoria-api`です。
