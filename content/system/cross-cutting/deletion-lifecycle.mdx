@@ -1,0 +1,43 @@
+# 削除・Lifecycle共通方針
+
+## 概要
+
+User、Community、Mediaに共通する物理削除、削除確認、削除中状態、外部serviceとのcleanup、backupとの関係を定義します。各domainでは削除権限、対象record、保持対象、特別な確認条件だけを定義します。
+
+## 物理削除
+
+- User、Community、Mediaは復元機能を持たない物理削除を基本とする。
+- ごみ箱、論理削除、個別復元、削除専用archiveは初回Releaseに導入しない。
+- 関連recordは所有関係に応じて削除、解除、保持、参照のNULL化を選ぶ。
+- 削除済みUserの情報を識別可能な形で退避しない。
+
+## 削除前の確認
+
+- 復元できないことと、対象に含まれるdataを利用者へ明示する。
+- 他UserやCommunityに影響する場合は、影響範囲と必要な件数を表示する。
+- account削除ではAuth0再認証を行う。
+- Community削除ではCommunity名の入力を要求する。
+- account削除時のCommunity一括削除などの例外条件は所有domainで定義する。
+
+## 削除中状態
+
+- 外部I/Oを伴う削除では、必要に応じてDELETINGなどの一時状態を使用する。
+- DELETINGは非同期cleanupを完了するための内部状態であり、論理削除や復元待ちではない。
+- 受付後は対象を非表示・操作不可とし、削除対象snapshotを固定する。
+- 同じ削除要求を重複受け付けず、既存Jobまたは現在状態を返す。
+
+## 外部serviceと再試行
+
+PostgreSQL、Object Storage、Auth0は一つのTransactionにできません。対象に応じてdurable JobやStorage operationを作成し、stepごとに冪等な処理と再試行を行います。失敗中に削除を取り消したりUserへ再申請を求めたりせず、運用者が再開できる状態を保持します。
+
+配送が必要な処理は[Transactional Outbox](/system/api/transactional-outbox)、重複防止とretryは[冪等性と再試行](/system/api/idempotency)を正本とします。
+
+## Backupとの関係
+
+障害復旧用backupに削除済みdataが保持期限まで残る場合がありますが、個別User・Community・Mediaの復元には使用しません。backupの保持期間と復旧目標は[非機能要件](./non-functional-requirements)を正本とします。
+
+## Domain固有の削除条件
+
+- [Userユースケース](/user/use-cases): account削除、本人確認、Community選択。
+- [Communityユースケース](/community/use-cases): Administrator、Community名入力、Media件数。
+- [Mediaライフサイクル](/media/lifecycle): Original、Variant、Custody、共有、Group関連。
