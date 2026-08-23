@@ -1,0 +1,47 @@
+# 物理データモデル共通規約
+
+## 概要
+
+PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時、削除方針を定義します。本ページを共通規約の正本とし、Media・Community・Userの物理データモデルではdomain固有のtable構造と例外を定義します。実行可能なSQL schemaの正本はmemoria-apiです。
+
+## 識別子
+
+- entityの識別子はapplicationが生成するULIDとする。
+- ULIDはPostgreSQLのvarchar(26)で保存する。
+- 同じentityを参照するFKは、参照先PKと同じ型を使用する。
+- 複合PKや外部serviceのsubjectなど、ULIDでない識別子は所有domainで明示する。
+- 内部IDと外部認証identifierを公開用account identifierとして扱わない。
+
+## 日時
+
+- 時刻はPostgreSQLのtimestamptzを使用する。
+- 登録・更新時刻は原則としてcreated_at、updated_atとする。
+- joined_at、uploaded_at、expires_at等の業務上の時刻は意味に応じて命名する。
+- タイムゾーン変換や画面表示は保存形式と分離し、日時比較は同じ基準で行う。
+
+## 命名
+
+- table名とcolumn名は英小文字のsnake_caseを使用する。
+- table名はdomainで意味を識別できる名称とし、複数domainで同じ名前を再定義しない。
+- FK columnは原則として参照対象のentity名に_idを付ける。
+- 状態columnはstatus、登録・更新時刻はcreated_at、updated_atを基本とする。
+
+## 制約とindex
+
+- PK、FK、UNIQUE、CHECKで表現できる不変条件はDBでも保証する。
+- columnは原則NOT NULLとし、NULLが有効な場合は業務上の意味をtable定義で説明する。
+- 複合一意制約やpartial unique indexは、対象条件と防止する重複を併記する。
+- indexは実際の検索、並び順、Job取得、復旧条件に対応する場合だけ追加する。
+- 複数tableにまたがる不変条件はServiceのTransaction、lock、条件付き更新で保証する。
+
+## 削除と参照
+
+- User、Media、Communityは復元機能を持たない物理削除を基本とする。
+- DELETING等の状態は非同期cleanupのための一時状態であり、論理削除やごみ箱ではない。
+- FKのON DELETE CASCADE、RESTRICT、SET NULLは、所有関係と保持要件をdomainごとに選択する。
+- 削除済みUserの参照を保持する必要があるMediaではFKをNULLにし、個人情報や認証identifierを退避しない。
+- 外部StorageやAuth0との削除はDB Transactionに含めず、durable Jobと冪等な再試行で完了させる。
+
+## Domain固有の例外
+
+共通規約から外れる型、命名、NULL条件、削除動作は、対象domainの物理データモデルで理由と適用範囲を明示します。domain間で共通になった例外は本ページへ昇格させます。
