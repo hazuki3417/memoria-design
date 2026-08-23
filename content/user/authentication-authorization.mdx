@@ -4,7 +4,7 @@
 
 > 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
 
-Auth0とMemoriaの責務、認証主体の解決、token検証、権限評価、再認証、復帰先を定義します。
+Auth0とMemoriaの責務、User固有の認証主体解決、再認証、復帰先を定義します。全domain共通の認証、認可、個人情報、秘密情報の扱いは[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を参照します。
 
 ## 主体と責務
 
@@ -25,7 +25,7 @@ issuerとsubjectの組は1件のUserにだけ対応します。同じemailや表
 
 ## token検証と権限評価
 
-APIはtokenの署名、issuer、audience、有効期限を検証します。権限はtokenへ固定せず、操作時のUser状態、Membership、Administrator、Custodyから評価します。
+token検証と権限の再評価は共通方針に従います。User domainではissuer・subjectに対応するUserがACTIVEであることを確認します。
 
 ## 再認証
 
