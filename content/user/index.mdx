@@ -6,7 +6,20 @@
 
 User domainは、Auth0で認証された主体とMemoria内部Userの対応、nickname、利用状態、登録・再認証・account削除を管理します。認証情報の正本はAuth0、Product内のUser・権限・Media・Community関係の正本はMemoriaです。
 
-## 原則
+## 目的と対象範囲
+
+Auth0で認証された利用者の登録、nickname、session、account削除を扱います。passwordや外部provider account自体の管理はAuth0の責務です。
+
+## 主要概念
+
+| 概念 | 意味 |
+| --- | --- |
+| User | Memoria内の利用者と権限の主体 |
+| Auth Identity | Auth0のissuer・subjectで識別する認証主体 |
+| Nickname | Userが登録・変更する表示名 |
+| Deletion Job | account削除を非同期に完了させる処理 |
+
+## 制約と責務境界
 
 - 個人情報は必要最小限だけ保持し、email、氏名、電話番号、住所、生年月日、profile画像を保存しない。
 - Auth0のissuerとsubjectの組で認証主体を識別し、内部User IDと分離する。
@@ -14,7 +27,7 @@ User domainは、Auth0で認証された主体とMemoria内部Userの対応、ni
 - User状態はACTIVEとDELETINGだけを持つ。
 - account削除は初回Releaseに含め、復元できない物理削除として扱う。
 
-## 読み取り順序
+## 設計書の読み取り順序
 
 1. [Userユースケース](./use-cases)
 2. [認証と認可](./authentication-authorization)

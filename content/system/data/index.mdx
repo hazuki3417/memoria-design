@@ -14,7 +14,7 @@
 - Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
 - transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
 
-論理モデルは[Mediaデータモデル](/media/data-model)、file配置は[Mediaストレージ](./storage)を参照してください。
+ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)を参照してください。
 
 ## MongoDBを主要永続化先にしない理由
 

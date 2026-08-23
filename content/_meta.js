@@ -20,6 +20,7 @@ export default {
   "ai-development": "AI支援開発",
   "-- Documentation": {"type":"separator","title":"ドキュメント"},
   "documentation-policy": "ドキュメント管理",
+  "design-document-templates": "設計書テンプレート",
   "context": "Context"
 }
 

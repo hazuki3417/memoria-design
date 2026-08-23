@@ -4,7 +4,7 @@
 
 > 実装状況: ImageのDB・Object Storage操作は存在しますが、Custody・Access・Eventとstorage operationを含むtransaction設計は未実装です。
 
-DB内の整合性はPostgreSQL transactionで保証し、Object Storageとの整合性は冪等操作と再試行で保証します。外部I/OをDB transactionへ含められるものとして扱いません。
+Transaction境界、lock順序、認可の再評価、外部I/Oの扱いは[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)に従います。本ページではMedia固有の更新対象と競合条件を定義します。
 
 ## Transaction境界
 
@@ -16,15 +16,8 @@ DB内の整合性はPostgreSQL transactionで保証し、Object Storageとの整
 | Group追加・解除 | scope・権限・循環確認、関連更新 |
 | 削除要求 | ACTIVE確認、DELETING更新、storage operation作成 |
 | 削除完了 | domain関連削除、Media削除、DELETED event作成 |
-| User削除 | 管理対象が0件であることの確認とUser削除 |
-| Community作成 | Community、Membership、Administratorの登録 |
-| 招待URL再発行 | 既存URLの無効化、新規URLの発行 |
-| 参加申請 | token・期限・Community確認、重複防止、PENDING登録 |
-| 参加承認 | PENDING確認、User存在確認、Membership登録、承認記録 |
-| 退会・除外 | 最終Administrator確認、Membership削除、共有解除、Community内Group・Tag関連削除 |
-| Community削除 | Community lock、管理Media不存在確認、Membership・共有・分類・招待・申請の削除 |
 
-GraphQLの同一requestに複数Mutationがあっても、Mutationごとに独立したtransactionとします。Mutationをnestして複数操作を一つのtransactionにするAPIは提供しません。
+UserとCommunityが所有するTransactionは、それぞれ[Userの整合性とTransaction](/user/consistency-transactions)、[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 
 ## 競合制御
 

@@ -1,17 +1,29 @@
 # Userの整合性とTransaction
 
+## 概要
+
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
+
+User登録、状態遷移、削除対象固定、外部serviceとのcleanupにおけるdomain固有のTransaction境界を定義します。共通のlock順序と外部I/O処理は[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)、削除中状態とretryは[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を参照します。
+
 ## 登録と通常操作
 
 登録確定はissuer・subjectのUNIQUE制約を利用し、同時登録では1件だけ成功させます。各requestでACTIVEを確認し、DELETING変更後に新しい操作がcommitされないようUser行lockまたは条件付き更新を使用します。
 
-## account削除受付
+## account削除のTransaction境界
 
 受付TransactionではUser行をlockしてACTIVEを再確認し、最後のAdministrator、Media、Communityの選択と再認証結果を検証します。削除対象snapshotを固定してUserをDELETINGへ変更し、JobをPENDINGで作成します。重複requestは既存Jobを返し、対象の有無によってflowを変えません。
 
-## 非同期cleanup
+## 外部I/Oと非同期cleanup
 
-PostgreSQLとAuth0は同一Transactionにできません。各stepはdurable Jobへ記録して冪等にし、一時errorはbackoff付きで再試行します。永続的な失敗はFAILEDとして運用者が確認・再開できるようにし、失敗中もUserはDELETINGのままです。
+Auth0削除とMedia cleanupはUser削除Jobで管理します。FAILED時もUserはDELETINGを維持し、重複防止と再試行は[冪等性と再試行](/system/api/idempotency)に従います。
 
 削除対象は受付後に変更できません。Community、Membership、Media/Custodyのlock順序を各domainと揃え、同時Upload・権限変更・削除との競合を拒否します。
+
+## 他domainとの境界
+
+Media削除・Uploader匿名化は[Mediaの整合性とTransaction](/media/consistency-transactions)、Membership・Administrator・Community削除は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
+
+## Auth0不整合
 
 Auth0側だけが削除・無効化されてもMemoria dataを自動削除せず、Login不能として保持し運用対応します。

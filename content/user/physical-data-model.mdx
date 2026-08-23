@@ -1,6 +1,26 @@
 # User物理データモデル
 
-## users
+## 概要
+
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義するUser状態、削除Job、匿名化の整合性は未実装です。
+
+User domainが所有するPostgreSQL table、column、constraint、index、削除規則を定義します。
+
+## 共通規約
+
+ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。Auth0のissuer・subjectは外部認証identifierのためULIDではありません。
+
+## 全体ER
+
+```mermaid
+erDiagram
+  USERS ||--o| USER_DELETION_JOBS : deletion
+  USERS ||--o{ MEDIA : uploads
+```
+
+## 所有table
+
+### users
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -14,7 +34,7 @@
 
 (auth_issuer, auth_subject)へUNIQUE indexを設定します。email、氏名、profile画像URL、公開account ID、nickname履歴は保存しません。
 
-## user_deletion_jobs
+### user_deletion_jobs
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -27,4 +47,10 @@
 | created_at | timestamptz | NOT NULL | 受付時刻 |
 | updated_at | timestamptz | NOT NULL | 更新時刻 |
 
+## 削除規則
+
 完了後はUser物理削除に伴ってJobも削除します。Community管理Mediaを保持する場合はMedia側のuploaded_by_user_idをNULLにし、「削除済みUser」と表示します。削除前nicknameやAuth0 identifierは退避しません。
+
+## 他domainとの境界
+
+Mediaのuploaded_by_user_idとCustodyは[Media物理データモデル](/media/physical-data-model)、MembershipとAdministratorは[Community物理データモデル](/community/physical-data-model)を正本とします。

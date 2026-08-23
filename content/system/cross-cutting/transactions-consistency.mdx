@@ -1,0 +1,40 @@
+# Transaction・競合制御の共通方針
+
+## 概要
+
+User、Community、Mediaに共通するTransaction境界、lock順序、状態の再確認、外部I/O、失敗時処理を定義します。各domainでは操作ごとに同じTransactionへ含めるrecordと、そのdomain固有の不変条件だけを定義します。
+
+## Transaction境界
+
+- 一つの業務操作で同時に成立すべきPostgreSQL更新を同じTransactionへ含める。
+- GraphQL Mutationは操作単位で独立したTransactionを使用する。
+- 同一request内の複数Mutationを自動的に一つのTransactionへまとめない。
+- 認可、対象状態、必要な存在確認、業務record、Job、Outboxは同じ確定単位で扱う。
+- 外部Storage、Auth0、Redis配送をPostgreSQLと同じTransactionで確定できるものとして扱わない。
+
+## lock順序と競合制御
+
+- 複数domainをまたぐ場合はCommunity、Membership、Media/Custodyの順序を基準にlockする。
+- User削除ではUser行を先に確保し、以後の共有lock順序と矛盾しない順で対象を処理する。
+- lock取得後にUser状態、Membership、Administrator、Custody、対象recordの存在を再確認する。
+- 同時更新はrow lock、条件付き更新、UNIQUE・CHECK等のDB制約を組み合わせて保護する。
+- 先にcommitした操作を正とし、後続は最新状態を再評価して拒否または再試行する。
+- DELETING状態の対象には、新規Upload、共有、分類、権限変更などの追加操作を認めない。
+
+## Domainをまたぐ不変条件
+
+各domainは自分が所有するrecordと不変条件を管理します。他domainのtableを更新する操作でも、所有側の業務規則を迂回しません。代表的な境界は、最後のAdministratorの保護、Community退会時の共有解除、User削除時のUploader匿名化です。
+
+## 外部I/Oと非同期処理
+
+- DB更新と後続eventの配送は[Transactional Outbox](/system/api/transactional-outbox)を利用する。
+- 副作用の重複防止と再試行は[冪等性と再試行](/system/api/idempotency)を正本とする。
+- 外部Storage・Auth0操作はdurable Jobまたはoperation recordで追跡する。
+- 再試行中もUserやMediaを利用可能な状態へ自動復帰させない。
+- 回復不能な失敗は運用者が確認・再開できる状態として扱う。
+
+## Domain固有のTransaction
+
+- [Userの整合性とTransaction](/user/consistency-transactions)
+- [Communityの整合性とTransaction](/community/consistency-transactions)
+- [Mediaの整合性とTransaction](/media/consistency-transactions)

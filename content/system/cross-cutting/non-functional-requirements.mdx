@@ -128,6 +128,8 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 ## 整合性と非同期処理
 
+共通のTransaction境界、lock順序、外部I/Oの扱いは[Transaction・競合制御の共通方針](./transactions-consistency)を正本とします。
+
 - 業務dataとOutbox Eventは同じPostgreSQL transactionでcommitします。
 - OutboxのcommitからRedis配送までp95 10秒以内を初期目標とします。
 - Publisherは未送信eventを保持し、Redis停止を理由に業務dataを破棄しません。
@@ -139,6 +141,8 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 - Outbox Eventは技術的な配送情報であり、Media Eventや監査証跡の代替として使用しません。
 
 ## SecurityとPrivacy
+
+認証主体、認可の再評価、個人情報最小化、秘密情報の扱いは[認証・認可・Privacy共通方針](./authentication-authorization-privacy)を正本とします。本節は運用上の受け入れ基準だけを扱います。
 
 この節は運用に必要な共通基準です。個人情報の分類、EXIF、通報対応、Cookie、CSRF、残存riskなどの詳細は[Security・Privacy要求](https://github.com/hazuki3417/memoria-design/issues/27)で確定します。
 
@@ -175,6 +179,8 @@ Application logとtraceは障害解析の技術情報です。Media Eventは利�
 - 保持期間の延長はPrivacy、問い合わせ対応、費用、法的要件を確認してから判断します。
 
 ## Backup、削除、復旧
+
+物理削除、削除確認、削除中状態、backupからの個別復元を行わない方針は[削除・Lifecycle共通方針](./deletion-lifecycle)を正本とします。本節は保持期間と復旧目標を扱います。
 
 ### Backup方針
 

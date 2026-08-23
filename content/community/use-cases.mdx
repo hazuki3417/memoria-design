@@ -55,7 +55,7 @@ stateDiagram-v2
 - 同じCommunity・Userの未処理申請は同時に1件だけ許可する。
 - 参加済みUserの申請は拒否する。
 - 申請自体には有効期限を設けない。
-- すべてのAdministratorが申請者の表示名と利用可能なprofile画像を確認し、承認・拒否できる。
+- すべてのAdministratorが申請者のnicknameを確認し、承認・拒否できる。profile画像は初回Release対象外とする。
 - 承認時にMemberとしてMembershipを作成する。
 - 申請者は承認前に申請を取り消せる。
 - 拒否・取消し後は有効な招待URLから再申請できる。過度な申請・取消しはrate limit対象とする。
@@ -112,6 +112,6 @@ Administratorの1人が、他Administratorの同意なしでCommunityを削除�
 
 ## Userを削除する
 
-UserがCommunityの最後のAdministratorである場合は、別のMemberへAdministrator権限を付与するか、Communityを削除するまでUserを削除できません。その他のMembershipは退会処理と同じ規則で解消します。未処理の参加申請は無効化します。
+UserがCommunityの最後のAdministratorである場合は、別MemberのAdministrator昇格、またはCommunity削除を選択します。account削除時にCommunity削除を選ぶ場合だけ、対象Media件数、参加者数、他UserのUploadへの影響を確認し、Community名入力と再認証を条件にCommunity管理Mediaも削除できます。その他のMembershipは退会処理と同じ規則で解消し、未処理の参加申請は無効化します。
 
-Community管理MediaはUploaderがUser削除しても保持し、表示上は「削除済みUser」として扱います。氏名・メールアドレス等の個人情報を保持することは前提にせず、匿名化や識別子の具体的な方式はUser詳細設計とSecurity・Privacy要求で決定します。削除済みUploaderには権限を与えません。
+Community管理MediaはUploaderがUser削除しても保持し、表示上は「削除済みUser」として扱います。uploaded_by_user_idをNULLにし、氏名、email、削除前nickname、Auth0 identifierを保持しません。詳細は[User物理データモデル](/user/physical-data-model)を正本とします。削除済みUploaderには権限を与えません。

@@ -1,6 +1,12 @@
 # User論理データモデル
 
-## 集約
+## 概要
+
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
+
+User domainが所有するentity、認証主体、状態、不変条件、他domainとの境界を定義します。
+
+## Entityと関連
 
 User集約は内部User ID、認証主体、nickname、状態を所有します。Auth0 account、Media、Community、Membershipは別集約であり、User削除workflowがそれらを調整します。
 
@@ -11,6 +17,8 @@ User集約は内部User ID、認証主体、nickname、状態を所有します�
 | Nickname | 必須、重複可能、現在値だけを保持する |
 | Deletion Job | Userごとに有効なJobは1件で、削除対象snapshotを持つ |
 
+## 状態遷移と不変条件
+
 ```mermaid
 stateDiagram-v2
     [*] --> ACTIVE: 登録確定
@@ -19,5 +27,7 @@ stateDiagram-v2
 ```
 
 仮登録、DELETED、SUSPENDED状態は初回Releaseに設けません。登録未確定の認証主体はMemoria Userではありません。
+
+## 他domainとの境界
 
 User domainは認証主体とUser lifecycle、Media domainはCustody・Uploader・Media削除、Community domainはMembership・Administrator・Community削除を所有します。account削除Jobは各domainの不変条件を迂回しません。

@@ -13,6 +13,17 @@
 | Repository・DB | 一意性、参照整合性、競合 |
 | Storage | size、media type、key境界 |
 
-Web側の検証は利用者支援でありAPI側を省略する根拠にしません。業務ルールはservice・domainを正本とし、DB errorをそのまま利用者へ返しません。拡張子だけを信用せず、media typeと実データを検査します。MongoDB JSON SchemaをAPI全体の入力検証規約にはしません。
+## 全domain共通の入力検証
+
+- Web側の検証は利用者支援であり、API側の検証を省略する根拠にしない。
+- 必須の表示名は前後空白を除去し、空文字や空白だけの値を拒否する。
+- 文字数、rate limit、禁止文字などの具体値はSecurity・Privacy要求で確定する。
+- ULID、列挙値、状態、参照先の存在を、責務に応じた層で検証する。
+- 業務ルールと認可はService・domainを正本とする。
+- DB error、token、credential、内部identifierをそのまま利用者へ返さない。
+- 拡張子だけを信用せず、media typeと実dataを検査する。
+- MongoDB JSON SchemaをAPI全体の入力検証規約にはしない。
+
+nickname、Community名、Group名、Tag名などのdomain固有の制約は、それぞれのdomain設計を正本とします。[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)も参照してください。
 
 

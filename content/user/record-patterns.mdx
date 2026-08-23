@@ -1,6 +1,12 @@
 # Userレコードパターン
 
-## 登録
+## 概要
+
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
+
+User登録、account削除受付、cleanup完了時のrecord変化と保持対象を定義します。
+
+## Userを登録する
 
 Auth0認証済みでも登録未確定ならusers行はありません。登録確定時にU1をACTIVEで作成します。
 
@@ -8,7 +14,7 @@ Auth0認証済みでも登録未確定ならusers行はありません。登録�
 | --- | --- | --- |
 | users | U1 | issuer=I1、subject=S1、nickname=家族A、status=ACTIVE |
 
-## account削除受付
+## account削除を受け付ける
 
 再認証と確認完了後、同じTransactionでU1をDELETINGへ更新し、D1を作成します。
 
@@ -19,8 +25,19 @@ Auth0認証済みでも登録未確定ならusers行はありません。登録�
 
 以後のLoginと全操作を拒否し、対象Media・Communityを非表示・変更不可にします。
 
-## cleanup完了
+## cleanupを完了する
 
 User管理Media、Variant、共有、関連を削除し、保持するCommunity管理Mediaのuploaded_by_user_idをNULLにします。Membershipと未処理申請を解除・無効化し、選択されたCommunityとMediaを削除します。Auth0のMemoria account削除後、usersとJobを物理削除します。
 
 途中失敗時は完了済みstepを再実行しても結果が変わらないようにし、UserとJobを保持して運用上再開します。
+
+## 禁止・境界パターン
+
+- 登録未確定の認証主体にUser recordを作成しない。
+- issuer・subjectが同じUserを重複登録しない。
+- 同じUserに複数の有効な削除Jobを作成しない。
+- DELETING Userの権限や削除対象を追加しない。
+
+## 非影響範囲
+
+削除対象に含めないCommunity、他UserのMedia、外部provider accountは変更しません。保持するCommunity管理MediaはUploader参照だけをNULLにします。

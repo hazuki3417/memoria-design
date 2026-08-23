@@ -4,7 +4,7 @@
 
 > 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
 
-Community作成、招待、参加、Administrator、退会・除外、削除に関するTransaction境界と競合制御を定義します。
+Community作成、招待、参加、Administrator、退会・除外、削除に関するdomain固有のTransaction境界と競合制御を定義します。共通のlock順序、状態再確認、外部I/Oの扱いは[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)を参照します。
 
 ## Transaction境界と排他制御
 
@@ -20,7 +20,7 @@ Community作成、招待、参加、Administrator、退会・除外、削除に�
 | 共有追加・解除 | Membership・Custody確認、Access追加・削除、Community分類関連削除、Event記録 |
 | Community削除 | Community lock、管理Media不存在確認、関連情報削除・無効化 |
 
-操作間のdeadlockを避けるため、Community、Membership、Media/Custodyの順に一貫してlockします。認可と存在確認はlock取得後に再評価します。Community削除と直接Uploadが競合する場合も同じCommunity行をlockし、削除後のUploadや管理Mediaを残した削除を防ぎます。
+Community、Membership、Media/Custodyのlock順序とlock後の認可・存在確認は共通方針に従います。Community削除と直接Uploadが競合する場合も同じCommunity行をlockし、削除後のUploadや管理Mediaを残した削除を防ぎます。
 
 ## Administrator不在の防止
 

@@ -4,7 +4,11 @@
 
 > 実装状況: PostgreSQLは`images`、`image_groups`などImage中心です。このページのMediaテーブル、Custody、Media Event、動画属性、storage operationは未実装です。
 
-PostgreSQLへ実装するMedia関連テーブル、key、constraint、indexを定義します。型名はPostgreSQLを前提とし、IDはアプリケーションで生成するULIDを`varchar(26)`で保持します。時刻は`timestamptz`を使用します。
+PostgreSQLへ実装するMedia関連table、column、constraint、index、削除規則を定義します。
+
+## 共通規約
+
+ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。本ページではMedia domain固有の定義と例外を記載します.
 
 ## 全体ER
 
@@ -34,7 +38,9 @@ erDiagram
   MEDIA ||--o{ MEDIA_STORAGE_OPERATIONS : coordinates
 ```
 
-## media
+## 所有table
+
+### media
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -58,38 +64,38 @@ index:
 - `(media_type, created_at DESC, id DESC)`
 - `(status)`は削除処理の再開に使用
 
-## media_images・media_videos
+### media_images・media_videos
 
-### media_images
+#### media_images
 
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| media_id | varchar(26) | PK、FK media ON DELETE CASCADE |
-| width | integer | NOT NULL、CHECK 1以上 |
-| height | integer | NOT NULL、CHECK 1以上 |
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| media_id | varchar(26) | PK、FK media ON DELETE CASCADE | 対象Media ID |
+| width | integer | NOT NULL、CHECK 1以上 | 画像の幅 |
+| height | integer | NOT NULL、CHECK 1以上 | 画像の高さ |
 
-### media_videos
+#### media_videos
 
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| media_id | varchar(26) | PK、FK media ON DELETE CASCADE |
-| width・height | integer | NOT NULL、CHECK 1以上 |
-| duration_ms | bigint | NOT NULL、CHECK 1以上 |
-| codec | varchar(64) | NOT NULL |
-| frame_rate | numeric(8,3) | NULL可、CHECK 0より大きい |
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| media_id | varchar(26) | PK、FK media ON DELETE CASCADE | 対象Media ID |
+| width・height | integer | NOT NULL、CHECK 1以上 | 画像・動画の幅と高さ |
+| duration_ms | bigint | NOT NULL、CHECK 1以上 | 再生時間（ミリ秒） |
+| codec | varchar(64) | NOT NULL | 動画codec |
+| frame_rate | numeric(8,3) | NULL可、CHECK 0より大きい | frame rate |
 
 `media.media_type`に対応する詳細tableを必ず1件だけ作ります。このtable間制約はServiceと同一transaction内の書き込みで保証し、integration testで検証します。
 
-## media_custodies
+### media_custodies
 
 Mediaの現在の管理主体だけを保持します。
 
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| media_id | varchar(26) | PK、FK media ON DELETE CASCADE |
-| user_id | varchar(26) | FK users、ON DELETE RESTRICT、NULL可 |
-| community_id | varchar(26) | FK communities、ON DELETE RESTRICT、NULL可 |
-| updated_at | timestamptz | NOT NULL |
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| media_id | varchar(26) | PK、FK media ON DELETE CASCADE | 対象Media ID |
+| user_id | varchar(26) | FK users、ON DELETE RESTRICT、NULL可 | 対象User ID |
+| community_id | varchar(26) | FK communities、ON DELETE RESTRICT、NULL可 | 対象Community ID |
+| updated_at | timestamptz | NOT NULL | 最終更新時刻 |
 
 CHECK constraint:
 
@@ -108,7 +114,7 @@ index:
 - `(user_id, media_id)` WHERE `user_id IS NOT NULL`
 - `(community_id, media_id)` WHERE `community_id IS NOT NULL`
 
-## media_variants
+### media_variants
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -122,7 +128,7 @@ index:
 
 `(media_id, format, width)`にUNIQUE constraintを設定し、同じJobの再実行でVariantを重複作成しません。動画固有の列が必要になった場合は要件に応じて拡張します。
 
-## media_processing_jobs
+### media_processing_jobs
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -136,41 +142,41 @@ index:
 
 `(status, updated_at)`をindex対象にします。失敗情報に署名付きURL、credential、個人情報を保存しません。
 
-## outbox_events・idempotency_requests
+### outbox_events・idempotency_requests
 
 `outbox_events`はevent ID、event type、aggregate ID、payload、送信状態、作成・送信日時を保持します。送信状態と作成日時にindexを設定し、Publisherが未送信eventを取得します。利用者向け操作traceである`media_events`とは目的が異なるためtableを分離します。
 
 `idempotency_requests`は操作主体、操作種別、idempotency key、request hash、処理状態、有効期限、必要なresponse情報を保持します。主体・操作・keyの組み合わせをUNIQUEとし、同じkeyで異なるpayloadを受け付けません。保存期間は再送要件と個人情報の保持方針に応じて決定します。
 
-## media_community_accesses
+### media_community_accesses
 
 User管理MediaをCommunityへ共有する現在状態です。
 
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| media_id | varchar(26) | FK media ON DELETE CASCADE |
-| community_id | varchar(26) | FK communities ON DELETE CASCADE |
-| created_by_user_id | varchar(26) | FK users ON DELETE SET NULL |
-| created_at | timestamptz | NOT NULL |
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| media_id | varchar(26) | FK media ON DELETE CASCADE | 対象Media ID |
+| community_id | varchar(26) | FK communities ON DELETE CASCADE | 対象Community ID |
+| created_by_user_id | varchar(26) | FK users ON DELETE SET NULL | 操作したUser ID |
+| created_at | timestamptz | NOT NULL | 登録時刻 |
 
 PKは`(media_id, community_id)`です。`(community_id, media_id)`のindexを作成します。
 
 Community CustodyのMediaにはAccess行を作りません。このcross-table ruleはServiceでCustodyをlockして検証します。Community内部の閲覧はMembershipとCustodyから判定します。
 
-## media_events
+### media_events
 
 Mediaに対する重要操作を追跡します。汎用監査ログや著作権証明には使用しません。
 
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| id | varchar(26) | PK |
-| media_id | varchar(26) | NOT NULL、FKを設定しない |
-| event_type | varchar(32) | NOT NULL、CHECK |
-| actor_user_id | varchar(26) | FK users ON DELETE SET NULL |
-| from_user_id・to_user_id | varchar(26) | NULL可 |
-| from_community_id・to_community_id | varchar(26) | NULL可 |
-| target_community_id | varchar(26) | NULL可 |
-| occurred_at | timestamptz | NOT NULL |
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | record ID |
+| media_id | varchar(26) | NOT NULL、FKを設定しない | 対象Media ID |
+| event_type | varchar(32) | NOT NULL、CHECK | 操作の種別 |
+| actor_user_id | varchar(26) | FK users ON DELETE SET NULL | 操作したUser ID |
+| from_user_id・to_user_id | varchar(26) | NULL可 | 委譲元・委譲先のUser ID |
+| from_community_id・to_community_id | varchar(26) | NULL可 | 委譲元・委譲先のCommunity ID |
+| target_community_id | varchar(26) | NULL可 | 対象Community ID |
+| occurred_at | timestamptz | NOT NULL | 発生時刻 |
 
 event typeは`UPLOADED`、`CUSTODIAN_CHANGED`、`ACCESS_ADDED`、`ACCESS_REMOVED`、`DELETED`です。event typeごとの必須列はServiceで検証します。
 
@@ -181,48 +187,48 @@ index:
 - `(media_id, occurred_at DESC, id DESC)`
 - `(actor_user_id, occurred_at DESC)`
 
-## Media Group
+### Media Group
 
-### media_groups
+#### media_groups
 
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| id | varchar(26) | PK |
-| name | varchar(255) | NOT NULL |
-| scope_user_id | varchar(26) | FK users ON DELETE CASCADE、NULL可 |
-| scope_community_id | varchar(26) | FK communities ON DELETE CASCADE、NULL可 |
-| created_at・updated_at | timestamptz | NOT NULL |
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | record ID |
+| name | varchar(255) | NOT NULL | 表示名 |
+| scope_user_id | varchar(26) | FK users ON DELETE CASCADE、NULL可 | 個人scopeのUser ID |
+| scope_community_id | varchar(26) | FK communities ON DELETE CASCADE、NULL可 | Community scopeのID |
+| created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
 Custodyと同じXOR CHECKで、UserまたはCommunityのどちらか一方をGroupのscopeにします。同一scope内で`name`を一意にします。
 
-### media_group_media
+#### media_group_media
 
 PKは`(media_group_id, media_id)`です。GroupのscopeとMediaの操作権限が一致することをServiceで検証します。Group関連の削除はMediaを削除しません。
 
-### media_group_relations
+#### media_group_relations
 
 PKは`(parent_group_id, child_group_id)`です。自己参照をCHECKで禁止し、多段循環は追加前にrecursive CTEまたはServiceのgraph探索で検出します。親子は同一scopeに限定します。
 
-## Communityとの境界
+### Storage operation
+
+`media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | record ID |
+| media_id | varchar(26) | NOT NULL | 対象Media ID |
+| operation_type | varchar(16) | `DELETE` | Storage操作の種別 |
+| object_key | text | NOT NULL | Object Storageのkey |
+| status | varchar(16) | `PENDING`、`COMPLETED`、`FAILED` | 処理状態 |
+| attempt_count | integer | NOT NULL | 処理の試行回数 |
+| next_attempt_at | timestamptz | NULL可 | 次回の再試行時刻 |
+| last_error | text | NULL可、機密情報を含めない | 機密情報を除いた失敗理由 |
+| created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
+
+uniqueは`(media_id, operation_type, object_key)`です。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。
+
+## 他domainとの境界
 
 `communities`、`community_memberships`、`community_administrators`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。
 
 Media domainは`media_custodies`と`media_community_accesses`を所有し、Communityへの参照と共有・管理関係を定義します。
-
-## Storage operation
-
-`media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。
-
-| 列 | 型 | 制約 |
-| --- | --- | --- |
-| id | varchar(26) | PK |
-| media_id | varchar(26) | NOT NULL |
-| operation_type | varchar(16) | `DELETE` |
-| object_key | text | NOT NULL |
-| status | varchar(16) | `PENDING`、`COMPLETED`、`FAILED` |
-| attempt_count | integer | NOT NULL |
-| next_attempt_at | timestamptz | NULL可 |
-| last_error | text | NULL可、機密情報を含めない |
-| created_at・updated_at | timestamptz | NOT NULL |
-
-uniqueは`(media_id, operation_type, object_key)`です。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。

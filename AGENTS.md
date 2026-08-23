@@ -79,6 +79,10 @@
 - 初回Releaseの範囲、成功条件、対象外、優先順位は`content/first-release.mdx`を正本とします。Product全体の将来対象と初回Releaseの必須機能を区別します。
 - 独立したProduct domainは`content/<domain>/`へ配置し、Media、Community、Userを同じ階層で管理します。
 - 各domainは概要、ユースケース、必要な権限、論理モデル、物理モデル、レコードパターン、整合性とTransaction、設計判断の順に整理します。
+- 各ページの章立て、情報の粒度、表形式は`content/design-document-templates.mdx`を正本とし、作成・更新時に適用します。
+- ID、日時、命名、constraint、indexなどの共通DB規約は`content/system/data/physical-model-conventions.mdx`へ集約し、domain文書へ複製しません。
+- 認証・認可・Privacy、Transaction・競合制御、削除・Lifecycleの共通方針は`content/system/cross-cutting/`へ集約します。
+- 入力検証と冪等性は`content/system/api/validation.mdx`、`content/system/api/idempotency.mdx`を正本とします。
 - table定義、状態遷移、権限、Transactionは所有domainにだけ記載し、他domainは責務境界と正本へlinkします。
 - プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。
 - 技術一覧は`content/technology-stack.mdx`へ記載します。
