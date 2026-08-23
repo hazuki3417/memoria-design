@@ -37,17 +37,9 @@ GraphQLの同一requestに複数Mutationがあっても、Mutationごとに独�
 - 同じCommunityへの同時共有は複合PKで重複を防止
 - update件数が期待値と異なる場合は競合errorとしてrollback
 
-### Community、参加申請、Administrator
+### Communityとの境界
 
-Community削除、直接Upload、Administrator権限変更、退会・除外ではCommunity行を`SELECT ... FOR UPDATE`でlockします。lock順序はCommunity、Membership、Media/Custodyで統一します。
-
-- 最後のAdministratorの退会・降格・除外を、lock後の再確認で拒否する
-- 同時承認・拒否・取消しでは参加申請行をlockし、`PENDING`である場合だけ更新する
-- User削除と承認が競合する場合はUserの有効性を再確認し、削除済みUserを登録しない
-- Community削除とUploadが競合する場合、先行commit後にCommunity存在とCustody件数を再評価する
-- 有効な招待URLはCommunity単位のpartial unique indexで1件に制限する
-- 未処理の参加申請はCommunity・User単位のpartial unique indexで1件に制限する
-- 共有解除・退会時には、対象Community内のGroup・Tag関連だけを削除する
+Community作成、Administrator権限、招待URL、参加申請、退会・除外、Community削除のTransactionと競合制御は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。Media domainではCommunityとの共有、Media Custody、Upload、Media削除、Object Storageとの整合性を扱います。
 
 ### Group DAG
 

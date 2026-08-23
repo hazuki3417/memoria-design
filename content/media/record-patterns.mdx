@@ -70,32 +70,9 @@ M1-C1を解除します。
 - CustodyとObject Storageは変更しない
 - ACCESS_REMOVED eventを追加
 
-## Communityを作成して招待する
+## Communityとの境界
 
-| table | key | 主な値 |
-| --- | --- | --- |
-| communities | C1 | name=家族 |
-| community_memberships | C1-U1 | U1が参加 |
-| community_administrators | C1-U1 | U1がAdministrator |
-| community_invitations | I1 | community_id=C1、token_hash=HASH1、expires_at=発行から7日後 |
-
-U2がI1から申請すると`community_join_requests(R1)`を`status=PENDING`で登録します。U1または他のAdministratorが承認すると、同じTransactionで`community_memberships(C1,U2)`を作成し、R1を`APPROVED`へ更新します。拒否や本人取消しの後は、同じCommunity・Userで新しい申請行を作成できます。
-
-## User退会時に共有とCommunity分類を解除する
-
-U1がM1をC1とC2へ共有し、C1のGroup G1とTag T1へ関連付けている場合、C1からの退会時に次を同じTransactionで処理します。
-
-- `community_administrators(C1,U1)`が存在すれば、別Administratorが残ることを確認して削除
-- `community_memberships(C1,U1)`を削除
-- `media_community_accesses(M1,C1)`を削除
-- M1とC1のG1・T1の関連だけを削除
-- `media_community_accesses(M1,C2)`、M1本体、Custody、G1・T1本体を維持
-
-U1がUploaderでCustodianがC1である別Mediaは削除しません。
-
-## Community削除の登録パターン
-
-C1にCommunity CustodyのMediaが残っている場合、Community削除を拒否します。対象Mediaが0件であれば、C1のMembership、Administrator、招待、参加申請、Community Group・Tag、M1-C1共有を削除します。User管理M1、M1-C2共有、C2側の分類は変更しません。
+Community作成、招待URL、参加申請、退会、Community削除の具体的な登録パターンは[Communityレコードパターン](/community/record-patterns)を正本とします。Media domainでは、共有関係、Custody、Uploader権限、Media本体への影響を扱います。
 
 ## UserからUserへ委譲する
 

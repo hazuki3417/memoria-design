@@ -53,6 +53,6 @@ Media Groupは分類であり管理単位ではありません。「Groupを委�
 
 Community管理MediaはUploaderのUser削除後も残し、投稿者は「削除済みUser」として表示します。`media.uploaded_by_user_id`を`NULL`にするか、削除済み識別子を保持するかといった具体的な匿名化方式はUser・Security詳細設計で決定します。Media Eventのactorも必要な範囲で匿名化し、Userの個人情報をMedia保存のためだけに永久保持しません。
 
-Communityの最後のAdministratorは、別MemberへAdministrator権限を付与するかCommunityを削除するまでUser削除できません。その他のMembershipは退会時と同じく共有・Community分類を解除し、未処理の参加申請は無効化します。詳しくは[Community詳細設計](./community)を参照します。
+Communityの最後のAdministratorは、別MemberへAdministrator権限を付与するかCommunityを削除するまでUser削除できません。その他のMembershipは退会時と同じく共有・Community分類を解除し、未処理の参加申請は無効化します。詳しくは[Communityユースケース](/community/use-cases)を参照します。
 
 

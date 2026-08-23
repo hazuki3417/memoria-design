@@ -3,6 +3,7 @@ export default {
   "-- Product": {"type":"separator","title":"プロダクト"},
   "first-release": "初回Release",
   "media": "Media",
+  "community": "Community",
   "ubiquitous": "ユビキタス言語",
   "technology-stack": "技術スタック",
   "-- System Design": {"type":"separator","title":"システム設計"},

@@ -1,0 +1,63 @@
+# Communityの整合性とTransaction
+
+## 概要
+
+> 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
+
+Community作成、招待、参加、Administrator、退会・除外、削除に関するTransaction境界と競合制御を定義します。
+
+## Transaction境界と排他制御
+
+| 操作 | 同じTransactionで確定する内容 |
+| --- | --- |
+| Community作成 | Community、Membership、Administrator登録 |
+| 招待URL再発行 | 既存URL無効化、新規URL登録 |
+| 参加申請 | URL有効性、Community存在、Membership不存在、重複申請確認、申請登録 |
+| 申請承認 | Administrator権限、申請状態、User存在確認、Membership作成、申請確定 |
+| 申請拒否・取消し | 操作者権限、PENDING確認、状態更新 |
+| Administrator追加・解除 | Membership確認、Community lock、管理者数の再確認 |
+| 退会・除外 | 最終Administrator確認、Membership削除、User管理Mediaの共有解除、Community分類関連削除 |
+| 共有追加・解除 | Membership・Custody確認、Access追加・削除、Community分類関連削除、Event記録 |
+| Community削除 | Community lock、管理Media不存在確認、関連情報削除・無効化 |
+
+操作間のdeadlockを避けるため、Community、Membership、Media/Custodyの順に一貫してlockします。認可と存在確認はlock取得後に再評価します。Community削除と直接Uploadが競合する場合も同じCommunity行をlockし、削除後のUploadや管理Mediaを残した削除を防ぎます。
+
+## Administrator不在の防止
+
+Administrator付与、解除、退会、除外、User削除ではCommunity行を`SELECT ... FOR UPDATE`でlockし、変更後のAdministrator数を再確認します。最後のAdministratorを失う操作はrollbackします。
+
+## 招待URLの一意性
+
+Communityごとに`revoked_at IS NULL`を条件とするpartial unique indexで招待URLを1件に制限します。期限切れURLは再発行Transactionで無効化してから新規行を追加し、現在時刻に依存するpartial indexは作成しません。
+
+## 参加申請の競合
+
+申請、承認、拒否、取消し、User削除では申請行と必要なCommunity・User行をlockします。状態が`PENDING`であることを再確認し、先にcommitした操作だけを有効とします。
+
+## 共有解除と分類情報
+
+退会・除外・Community削除時は、共有関係と対象CommunityのGroup・Tag関連を同じTransactionで整理します。User管理Media本体、他Community共有、他Community分類を変更しません。
+
+## Community削除とUpload
+
+Community削除とCommunityへの直接Uploadは同じCommunity行をlockします。後続TransactionはCommunity存在とCommunity Custody件数を再評価し、管理Mediaを残した削除や削除済みCommunityへのUploadを防ぎます。
+
+## Media domainとの境界
+
+Object Storage、Media削除、Outbox、Processing JobのTransactionは[Mediaの整合性とTransaction](/media/consistency-transactions)を正本とします。
+
+## エラーと境界条件
+
+| 状況 | 扱い |
+| --- | --- |
+| 未認証UserによるCommunity操作 | 認証が必要 |
+| Community外Userによる詳細取得 | 情報を公開しない |
+| 招待tokenが無効・期限切れ | 参加申請を受け付けない |
+| 参加済みUserの申請 | 重複参加として拒否 |
+| 未処理申請の重複 | 既存申請を維持し重複登録しない |
+| 拒否・取消し後の再申請 | 有効URLから可能 |
+| 最後のAdministratorの退会・降格・除外 | 拒否 |
+| Community管理Mediaが残るCommunity削除 | 拒否 |
+| Membershipを失ったUploaderの操作 | 拒否 |
+| 同時承認・拒否・取消し | 先にcommitした状態を採用 |
+| User削除と申請承認の競合 | 削除済みUserの参加を禁止 |
