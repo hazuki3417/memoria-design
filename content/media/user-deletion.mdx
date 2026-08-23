@@ -1,56 +1,34 @@
 # User削除時のMedia処理
 
-
 ## 概要
 
-> 実装状況: User削除時にMediaを委譲または削除させる処理は未実装です。
+> 実装状況: User管理Mediaの非同期cleanup、削除済みUploaderの匿名化、account削除Jobは未実装です。
 
-## 原則
+account削除時にMedia domainが受け持つ削除、共有解除、Uploader匿名化、Communityとの境界を定義します。account削除全体の正本は[Userユースケース](/user/use-cases)です。
 
-初回Releaseでは管理主体の委譲を提供しません。account削除時はUser管理Mediaの件数と復元不能な削除を明示して確認し、確定対象を非同期cleanupで削除します。cleanupの一部が失敗してもUserへ再申請を求めず、DELETING状態を維持してsystemが再試行・運用再開します。詳細は[Userユースケース](/user/use-cases)を正本とします。
+## User管理Mediaの削除
 
-```mermaid
-flowchart TD
-    Start["User削除開始"] --> Check["管理Mediaを確認"]
-    Check --> Select{"処理を選択"}
-    Select --> Delegate["UserまたはCommunityへ委譲"]
-    Select --> Delete["Mediaを削除"]
-    Delegate --> Remaining{"未処理Media"}
-    Delete --> Remaining
-    Remaining -->|あり| Select
-    Remaining -->|なし| Remove["Userを削除"]
-```
+初回Releaseでは管理主体の委譲を提供しません。account削除前にUser管理Mediaの件数、Original・Variant・共有設定が復元不能となることを明示し、Userの確認を受けます。
 
-## 操作単位
+削除受付後は対象Mediaを固定し、Userと対象Mediaを利用不可にします。非同期cleanupは次を冪等に処理します。
 
-- Media単位で委譲または削除を選べる
-- 複数Mediaを一括選択できる
-- 全Mediaを一括委譲または一括削除できる
-- Media Groupを選択条件として利用できる
+- Originalと表示用VariantをObject Storageから物理削除する。
+- Media本体、Custody、Group関連、Community共有を削除する。
+- Community内Group・Tagとの関連だけを削除し、Group・Tag本体は保持する。
+- 必要なMedia Eventを記録し、不要な個人情報を保持しない。
 
-Media Groupは分類であり管理単位ではありません。「Groupを委譲」するのではなく、Group内のMediaを一括選択して処理します。
+Storage削除や関連解除が一時的に失敗した場合は、UserをDELETINGのまま保持してsystemが再試行します。Userに削除の再申請を要求しません。
 
-## 委譲
+## Community管理MediaとUploader
 
-管理主体の委譲は[初回Release対象外](https://github.com/hazuki3417/memoria-design/issues/48)です。将来機能を導入した後の選択肢として扱います。初回ReleaseでUser削除を提供する場合、委譲に依存せず、User管理Mediaを削除したうえで処理します。
+Community自体を削除しない場合、Uploaderがaccount削除してもCommunity管理Mediaを保持します。uploaded_by_user_idをNULLにし、画面上は「削除済みUser」と表示します。削除前nickname、email、Auth0 identifierを退避しません。
 
+Communityの最後のAdministratorがaccount削除時にCommunity削除を選ぶ場合は、参加者数、対象Media件数、他UserのUploadへの影響を表示します。Community名の入力とAuth0再認証が成功した場合だけ、Community管理Mediaを削除対象に含めます。
 
-- UserまたはCommunityを委譲先にできる
-- 委譲時に既存共有をすべて解除する
-- Uploader情報は変更しない
-- 委譲をMedia Eventへ記録する
+## Communityとの境界
 
-## 削除
+Membership、Administrator、参加申請、Community削除の規則は[Communityユースケース](/community/use-cases)を正本とします。Media domainはMedia本体、Custody、Object Storage、共有関係、Uploader参照の整合性を所有します。
 
-- Mediaを物理削除する
-- 復元できないことを明示する
-- Group関連と共有設定も削除する
-- 削除をMedia Eventへ記録できる
+## 将来の管理主体委譲
 
-## User削除との関係
-
-Community管理MediaはUploaderのUser削除後も残し、`media.uploaded_by_user_id`をNULLにして投稿者を「削除済みUser」と表示します。削除前nicknameやAuth0 identifierは保持しません。Media Eventのactorも必要な範囲で匿名化し、Userの個人情報をMedia保存のためだけに永久保持しません。
-
-Communityの最後のAdministratorは、別MemberへAdministrator権限を付与するかCommunityを削除するまでUser削除できません。その他のMembershipは退会時と同じく共有・Community分類を解除し、未処理の参加申請は無効化します。詳しくは[Communityユースケース](/community/use-cases)を参照します。
-
-
+管理主体の委譲は[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で将来機能として管理します。委譲の導入後はaccount削除前の選択肢として再検討しますが、初回Releaseの削除flowには含めません。
