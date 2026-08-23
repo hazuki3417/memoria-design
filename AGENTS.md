@@ -81,6 +81,7 @@
 - 各domainは概要、ユースケース、必要な権限、論理モデル、物理モデル、レコードパターン、整合性とTransaction、設計判断の順に整理します。
 - 各ページの章立て、情報の粒度、表形式は`content/design-document-templates.mdx`を正本とし、作成・更新時に適用します。
 - ID、日時、命名、constraint、indexなどの共通DB規約は`content/system/data/physical-model-conventions.mdx`へ集約し、domain文書へ複製しません。
+- Security・Privacyの保護対象、脅威、metadata、残存risk、対象外は`content/system/cross-cutting/security-privacy-requirements.mdx`を正本とします。
 - 認証・認可・Privacy、Transaction・競合制御、削除・Lifecycleの共通方針は`content/system/cross-cutting/`へ集約します。
 - 入力検証と冪等性は`content/system/api/validation.mdx`、`content/system/api/idempotency.mdx`を正本とします。
 - table定義、状態遷移、権限、Transactionは所有domainにだけ記載し、他domainは責務境界と正本へlinkします。

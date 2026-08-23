@@ -29,7 +29,8 @@ Originalのアスペクト比を維持して生成した複数幅のWebPを`srcs
 - 詳細表示中は前後1〜2件をsliding windowで先読みします。
 - 必要に応じて`image.decode()`まで実行し、表示時のdecode待ちを抑えます。
 - Touch deviceではhoverを前提にせず、詳細表示後に前後のMediaを先読みします。
-- 非公開Mediaの先読みも、通常表示と同じ認可済みCloudFront配信経路を使用します。
+- 非公開Mediaの先読みも、通常表示と同じ認可済み配信経路を使用します。
+- 共有cacheや先読みのために認可境界を緩めず、権限喪失後は新しい配信許可を発行しません。
 
 ## Upload
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-User、Community、Mediaに共通する認証、操作主体、認可の再評価、個人情報、秘密情報の取り扱いを定義します。各domainでは、そのdomain固有のrole、権限表、例外だけを定義します。Security・Privacyの未確定な詳細は[Issue #27](https://github.com/hazuki3417/memoria-design/issues/27)で決定します。
+User、Community、Mediaに共通する認証、操作主体、認可の再評価、個人情報、秘密情報の取り扱いを定義します。各domainでは、そのdomain固有のrole、権限表、例外だけを定義します。保護対象、脅威、metadata、Storage、log、残存riskは[Security・Privacy要求](./security-privacy-requirements)を正本とします。
 
 ## 認証と操作主体
 
@@ -26,13 +26,16 @@ User、Community、Mediaに共通する認証、操作主体、認可の再評�
 - Auth0表示名は、User登録時のnickname初期値としてだけ利用する。
 - 削除済みUserのnickname、email、認証identifierを、他dataを保持する目的で退避しない。
 - nicknameを表示する範囲は、参加者一覧、申請者確認など許可されたユースケースに限定する。
-- Media本体やmetadataに含まれる個人情報の追加要件はSecurity・Privacy設計で扱う。
+- Originalは変更せず保存し、表示用VariantからEXIF、GPS、撮影日時、端末情報を除去する。
+- 画像metadataを業務dataとして抽出・保存・表示しない。
 
 ## 秘密情報とURL
 
 - password、credential、認証token、招待token、署名付きURL、不要な個人情報をlogへ出力しない。
 - Login・登録後のreturn URLは許可された内部URLだけを受け付ける。
 - 招待URLと署名付き配信URLには、用途に応じた失効条件と有効期限を設定する。
+- 招待tokenは推測困難な乱数とし、平文ではなくhashだけを保存する。
+- Cookieは認証方式に応じてHttpOnly、Secure、適切なSameSiteを設定し、必要なCSRF対策を行う。
 - 入力検証は[入力検証](/system/api/validation)、logの保持と保護は[ログ・可観測性](./observability)を正本とする。
 
 ## Domain固有の規則

@@ -32,6 +32,7 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 | 用語 | [ユビキタス言語](/ubiquitous) |
 | 文書の正本と記載形式 | [ドキュメント管理方針](/documentation-policy)・[設計書テンプレート](/design-document-templates) |
 | 物理データモデル共通規約 | [物理データモデル共通規約](/system/data/physical-model-conventions) |
+| Security・Privacy・脅威・保護対象 | [Security・Privacy要求](/system/cross-cutting/security-privacy-requirements) |
 | 認証・認可・個人情報 | [認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy) |
 | Transaction・競合制御 | [Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency) |
 | 削除・Lifecycle | [削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle) |
@@ -63,6 +64,18 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 5. 対象RepositoryのIssue、実装、GitHub Actions
 
 将来のProduct全体の対象と初回Releaseの必須条件を混同せず、未確定事項をContextへ複製しません。
+
+### Security・Privacy、認可、metadata、secret
+
+1. [Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)
+2. [認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)
+3. [Community権限](/community/authorization)と[Userの認証と認可](/user/authentication-authorization)
+4. [Media処理と派生物](/media/processing)と[Mediaストレージ](/system/data/storage)
+5. [入力検証](/system/api/validation)、[ログ・可観測性](/system/cross-cutting/observability)、[設定・シークレット](/system/cross-cutting/configuration)
+6. [削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)と[非機能要件](/system/cross-cutting/non-functional-requirements)
+7. 対象domainの詳細設計Issueと所有Repositoryの実装
+
+保護対象、権限、metadata、secret、残存riskの決定内容をContextへ複製せず、上記の正本を順に参照します。
 
 ### Web画面・UI
 

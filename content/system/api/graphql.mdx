@@ -13,7 +13,9 @@ APIはschema、Webはoperation・fragment・生成型を所有します。
 - Mutationの返却型は`Payload`接尾辞を付けます。
 - 一括操作を提供する場合は単一Mutationとしてtransaction境界を定義します。ただしMedia uploadと派生物生成は1 request・1 Media・1 Jobに分離します。
 - Mutationのnestは許可せず、同階層のMutationはそれぞれ独立したtransactionです。
-- 内部errorの詳細をresponseへ公開しません。
+- 操作ごとに現在のUser状態、Membership、role、Custody、Uploaderを確認し、Client指定の識別子やroleを認可根拠にしません。
+- 非公開resourceの存在と内部errorの詳細をresponseへ不要に公開しません。
+- request size、Query depth、取得件数、rate limitに用途に応じた上限を設けます。
 - 破壊的変更には移行期間を設けます。
 
 ## Pagination
