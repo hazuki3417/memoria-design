@@ -4,7 +4,6 @@
 ## 概要
 
 > 実装状況: このページの設計判断には未実装の項目があります。個別の差分は各設計ページの概要を参照してください。
-> 決定日: 2026-08-15
 
 ## 目的
 
@@ -146,24 +145,22 @@ Communityから別Communityへの直接委譲は提供しません。
 - UserからCommunity
 - CommunityからUser
 
-## 9. User削除時に委譲または削除を選択する
-
-管理主体の委譲とUser削除機能自体は初回Releaseの必須機能ではありません。将来User削除を提供する場合に、利用可能な機能に応じて適用します。
+## 9. account削除時にUser管理Mediaを削除する
 
 **決定**
 
-Userが管理するMediaごとに委譲または削除を選び、未処理MediaがなくなってからUserを削除します。
+account削除は初回Releaseに含めます。管理主体の委譲は提供せず、User管理Mediaの件数と復元不能性を確認したうえで、確定対象を非同期cleanupで削除します。
 
 **意図**
 
-Mediaを世代を超えて引き継ぐ思想を尊重しつつ、すべてのMedia保存を強制せず、利用者の意思で削除も選択できるようにします。
+利用者がMediaの削除へ同意したうえでaccountを削除できるようにし、外部StorageやAuth0の一時的な失敗によって削除を再申請する状態を避けます。
 
 **制約**
 
-- CustodianなしのMediaを作らない
-- 一括処理を可能にする
-- 委譲時は共有を解除する
-- 削除時は復元できないことを明示する
+- CustodianなしのMediaを作らない。
+- User管理Mediaの削除確認を省略しない。
+- cleanup中はUserと対象Mediaを利用不可にする。
+- 管理主体の委譲は[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で将来検討する。
 
 ## 10. Media Groupは分類専用
 
