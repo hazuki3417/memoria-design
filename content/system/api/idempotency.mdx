@@ -11,6 +11,7 @@ Network timeout、Client retry、Outboxの再配送、Worker再起動により�
 | GraphQL Command | `idempotency_key` | Media作成、upload完了、job開始の二重実行 |
 | OutboxとRedis | `event_id` | 同じeventの重複配送 |
 | Media Worker | `job_id`と必要に応じて`step_id` | 派生fileの二重作成、重複状態更新 |
+| account削除・Storage cleanup | `user_id`・`job_id`・`operation_id` | 削除Job、Auth0削除、Storage削除の二重実行 |
 
 ## Client request
 
@@ -23,6 +24,7 @@ Clientは操作ごとに一意なIdempotency Keyを生成し、同じ操作をre
 - Media作成・upload完了
 - 非同期処理jobの開始
 - 外部Object Storageへの副作用を伴う操作
+- account削除受付と、外部Auth0・Storageを伴うcleanup
 
 Queryや同じ値を設定する単純な更新に一律で導入しません。
 
@@ -31,6 +33,14 @@ Queryや同じ値を設定する単純な更新に一律で導入しません。
 Outbox Publisherは、Redis送信成功後から`published_at`更新前に停止する可能性があります。そのため同じ`event_id`が複数回配送されても、Workerは同じjobを重複実行しないようにします。
 
 派生fileのkeyはMedia IDと変換条件から決定し、同じjobのretryで別の派生物を増やしません。DB更新はunique constraint、状態遷移、必要なrow lockで保護します。
+
+## 削除Jobと外部service
+
+account削除、Media削除、Storage cleanupでは、対象entityとJob・operationの一意性によって同じ要求を重複開始しません。各stepは完了済み状態を再確認し、同じrequestやWorker retryが届いても副作用を増やしません。
+
+Auth0 account削除やObject Storage削除では、対象がすでに削除済みである場合の扱いをstepごとに定義します。一時的な失敗はbackoff付きで再試行し、永続的な失敗は運用者が確認・再開できる状態へ遷移します。利用者へ同じ削除要求の再送を完了条件として求めません。
+
+削除中の状態と復元不可の共通方針は[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を参照します。
 
 ## Upload単位
 
