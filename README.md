@@ -70,7 +70,7 @@ npm run build
 
 User登録、Auth0認証、nickname、session、account削除を扱う場合は、[User設計](./content/user/index.mdx)を確認してください。
 
-Community、参加申請、招待URL、Administrator、共有、Uploader権限を扱う場合は、[Community設計](./content/community/index.mdx)、[Communityユースケース](./content/community/use-cases.mdx)、[Community権限](./content/community/authorization.mdx)を確認してください。各Product domainの標準構成と正本の所有境界は[ドキュメント管理方針](./content/documentation-policy.mdx)、ページの章立てと記載粒度は[設計書テンプレート](./content/design-document-templates.mdx)、共通DB規約は[物理データモデル共通規約](./content/system/data/physical-model-conventions.mdx)を参照してください。
+Community、参加申請、招待URL、Administrator、共有、Uploader権限を扱う場合は、[Community設計](./content/community/index.mdx)、[Communityユースケース](./content/community/use-cases.mdx)、[Community権限](./content/community/authorization.mdx)を確認してください。各Product domainの標準構成と正本の所有境界は[ドキュメント管理方針](./content/documentation-policy.mdx)、ページの章立てと記載粒度は[設計書テンプレート](./content/design-document-templates.mdx)、共通DB規約は[物理データモデル共通規約](./content/system/data/physical-model-conventions.mdx)、認証・Transaction・削除の共通規約は[横断設計](./content/system/cross-cutting/index.mdx)を参照してください。
 
 Mediaの派生画像・非同期処理を実装する場合は、[Media処理と派生物](./content/media/processing.mdx)、[非同期Media処理](./content/system/api/asynchronous-processing.mdx)、[Transactional Outbox](./content/system/api/transactional-outbox.mdx)、[Media表示と配信](./content/system/web/media-delivery.mdx)も確認してください。
 
