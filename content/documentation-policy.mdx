@@ -88,7 +88,18 @@ draw.io、SVG、旧MDXなどから正本を移行するときは、概要だけ�
 
 `_meta.js`で上記の順序を明示します。各ページの章立て、必須項目、表形式、記載粒度は[設計書テンプレート](/design-document-templates)を正本とします。複雑さに応じて権限、ライフサイクルなど必要なページを追加し、空のテンプレートを機械的に作りません。
 
-物理データモデルで複数domainに共通するID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に集約します。各domainには適用関係、固有のtable定義、例外だけを記載し、共通ルールを繰り返し定義しません。
+複数domainで同じ意味・運用になる方針は対応する正本へ集約します。
+
+| 共通事項 | 正本 |
+| --- | --- |
+| ID、日時、命名、constraint、index | [物理データモデル共通規約](/system/data/physical-model-conventions) |
+| 認証、認可、個人情報、秘密情報 | [認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy) |
+| Transaction、lock、競合、外部I/O | [Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency) |
+| 物理削除、削除確認、削除中状態、backup | [削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle) |
+| 入力形式、正規化、層ごとの検証 | [入力検証](/system/api/validation) |
+| request重複、Job重複、再試行 | [冪等性と再試行](/system/api/idempotency) |
+
+各domainには適用関係、固有の業務条件、例外だけを記載し、共通ルールを繰り返し定義しません。
 
 ## 正本の所有とdomain横断参照
 
