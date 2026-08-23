@@ -1,0 +1,20 @@
+# User設計判断
+
+| 判断 | 理由 |
+| --- | --- |
+| Auth0とMemoriaの責務を分離 | passwordを保持せずProduct dataを外部IdPへ依存させない |
+| issuer・subjectの組で識別 | tenantをまたぐsubject衝突を避ける |
+| 個人情報を最小化 | 個人開発での漏えい・運用負荷を抑える |
+| nicknameはMemoriaを正本 | Auth0更新による意図しない表示変更を避ける |
+| ACTIVE / DELETINGのみ | 要求のない仮登録・停止状態を持たない |
+| 削除受付後は即時利用不可 | cleanup失敗中にdataと権限が増えることを防ぐ |
+| Auth0外部不整合は運用対応 | 自動削除による不可逆なdata lossを避ける |
+| account削除前に再認証 | 共有端末やsession乗っ取りによる破壊操作を抑える |
+
+account削除は初回Releaseに含め、User管理Mediaの削除確認を省略しません。一部cleanup失敗時もUserに再申請を求めず、DELETINGとdurable Jobでsystemが完了責任を持ちます。
+
+最後のAdministratorがCommunity削除を選んだ場合だけ、通常の「Community管理Mediaが0件」という条件に例外を設けます。他UserのUploadを含む対象を明示し、Community名入力と再認証を必要とします。
+
+emailや表示名による自動統合、Auth0 profileの継続同期、Auth0側だけの削除によるMemoria data自動削除、削除済みUserの個人情報退避、独自の長期sessionは採用しません。
+
+将来機能は[#51](https://github.com/hazuki3417/memoria-design/issues/51)、[#52](https://github.com/hazuki3417/memoria-design/issues/52)、[#53](https://github.com/hazuki3417/memoria-design/issues/53)で管理します。
