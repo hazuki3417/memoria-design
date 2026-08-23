@@ -34,7 +34,7 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 | 開発プロセス・Iteration | [アジャイル開発とイテレーション運用](/development-process) |
 | ローカル開発・結合確認 | [ローカル開発環境](/local-development) |
 | Mediaドメイン | [Media設計](/media)・[設計判断](/media/design-decisions) |
-| Community・参加・共有・権限 | [Community詳細設計](/media/community)・[CommunityとMediaの共有](/media/community-access) |
+| Community・参加・共有・権限 | [Community設計](/community)・[Communityユースケース](/community/use-cases)・[Community権限](/community/authorization) |
 | 非同期処理・信頼性 | [非同期Media処理](/system/api/asynchronous-processing)・[Transactional Outbox](/system/api/transactional-outbox)・[冪等性](/system/api/idempotency) |
 | 派生画像・配信 | [Media処理と派生物](/media/processing)・[Media表示と配信](/system/web/media-delivery) |
 | 非機能要件・運用基準 | [非機能要件](/system/cross-cutting/non-functional-requirements) |
@@ -69,12 +69,16 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 
 ### Community、招待、共有、権限
 
-1. [Community詳細設計](/media/community)
-2. [CommunityとMediaの共有](/media/community-access)
-3. [Media物理データモデル](/media/physical-data-model)
-4. [Mediaレコードパターン](/media/record-patterns)
-5. [Mediaの整合性とTransaction](/media/consistency-transactions)
-6. 対象IssueとUser・Security・GraphQL・画面設計
+1. [Community設計](/community)
+2. [Communityユースケース](/community/use-cases)
+3. [Community権限](/community/authorization)
+4. [Community論理データモデル](/community/data-model)
+5. [Community物理データモデル](/community/physical-data-model)
+6. [Communityレコードパターン](/community/record-patterns)
+7. [Communityの整合性とTransaction](/community/consistency-transactions)
+8. [Community設計判断](/community/design-decisions)
+9. Mediaとの境界は[CommunityとMediaの共有](/media/community-access)とMedia側の正本を確認する
+10. 対象IssueとUser・Security・GraphQL・画面設計を確認する
 
 通知と管理主体委譲は初回Release対象外です。共有は閲覧関係の追加であり、管理主体を変更する委譲とは区別します。
 
@@ -216,6 +220,14 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 5. 採用する情報を現在のドキュメント構成へ統合する
 6. サイドメニュー、相互link、用語、実装差分の引用ブロックを更新する
 7. 元資料を削除する場合は、必要情報の移行完了を確認する
+
+### Product domainの設計書を追加・再構成する
+
+1. [ドキュメント管理方針](/documentation-policy)でdomain構成と正本の所有境界を確認する
+2. 対象domainの概要、ユースケース、権限、論理モデル、物理モデル、レコードパターン、Transaction、設計判断を確認する
+3. 情報を所有domainへ配置し、他domainには責務境界とlinkだけを記載する
+4. `_meta.js`、Home、README、AGENTS、Context、関連Issueの参照先を同期する
+5. 人間向け本文とContextへ同じ設計内容を複製しない
 
 ## タスクcontextに含める情報
 

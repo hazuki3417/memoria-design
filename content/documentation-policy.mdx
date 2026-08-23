@@ -71,6 +71,31 @@ draw.io、SVG、旧MDXなどから正本を移行するときは、概要だけ�
 
 人間が「プロダクト → 用語・ユースケース → システム全体 → 詳細設計 → 開発・運用」の順に理解できるようにします。Nextraの順序は各階層の`_meta.js`を正本とし、タイトルに「将来」「過去」「履歴」「初期」「現行調査」などの時間を表す分類を付けません。
 
+## Product domainごとの設計書構成
+
+独立したProduct domainは`content/<domain>/`へ配置し、MediaとCommunityを同じ階層で管理します。主要domainでは次の読み取り順序と設計粒度を共通化します。
+
+| 設計観点 | 推奨file | 記載内容 |
+| --- | --- | --- |
+| 概要 | `index.mdx` | 目的、対象範囲、主要概念、入口 |
+| ユースケース | `use-cases.mdx` | Actor、操作、前提条件、結果 |
+| 権限 | `authorization.mdx` | 役割、認可条件、権限失効。必要な場合のみ作成 |
+| 論理データモデル | `data-model.mdx` | entity、関連、多重度、domain境界 |
+| 物理データモデル | `physical-data-model.mdx` | table、column、PK、FK、constraint、index |
+| レコードパターン | `record-patterns.mdx` | 操作前後のdata、禁止状態、非影響範囲 |
+| 整合性とTransaction | `consistency-transactions.mdx` | Transaction境界、lock、競合、失敗時処理 |
+| 設計判断 | `design-decisions.mdx` | 決定、意図、制約、不採用理由 |
+
+`_meta.js`で上記の順序を明示します。複雑さに応じて権限、ライフサイクルなど必要なページを追加し、空のテンプレートを機械的に作りません。
+
+## 正本の所有とdomain横断参照
+
+各設計情報は、それを所有するdomainのページを正本とします。Community、Membership、Administrator、招待URL、参加申請のtable・状態遷移・Transactionは`content/community/`に置きます。Media、Custody、共有関係、Variant、Processing Job、Object Storageの設計は`content/media/`または対応するsystem設計に置きます。
+
+domainをまたぐ操作は、自domainで成立させる不変条件と依存先へのlinkを記載します。別domainのtable定義、権限表、詳細なTransactionを本文へ複製しません。設計変更時は所有元を先に更新し、依存するdomainでは責務境界と参照先を同期します。
+
+将来User、Group、Tagなどが独立した設計領域になった場合も、同じ構成と所有境界を適用します。
+
 ## Nextraのファイル構成
 
 Nextra 4とNext.js App Routerを使用し、責務を次のように分けます。

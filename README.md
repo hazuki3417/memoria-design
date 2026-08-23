@@ -54,7 +54,7 @@ npm run build
 ## 最初に読む資料
 
 1. [初回Releaseの範囲と成功条件](./content/first-release.mdx)
-2. [Media](./content/media/index.mdx)
+2. [Media](./content/media/index.mdx)・[Community](./content/community/index.mdx)
 3. [Media関連ユースケース](./content/media/use-cases.mdx)
 4. [ユビキタス言語](./content/ubiquitous.mdx)
 5. [リポジトリ構成](./content/system/index.mdx)
@@ -68,7 +68,7 @@ npm run build
 13. [コミットメッセージ規約](./content/commit-message.mdx)
 14. [バージョニング規約](./content/versioning.mdx)
 
-Community、参加申請、招待URL、Administrator、共有、Uploader権限を扱う場合は、[Community詳細設計](./content/media/community.mdx)と[CommunityとMediaの共有](./content/media/community-access.mdx)を確認してください。
+Community、参加申請、招待URL、Administrator、共有、Uploader権限を扱う場合は、[Community設計](./content/community/index.mdx)、[Communityユースケース](./content/community/use-cases.mdx)、[Community権限](./content/community/authorization.mdx)を確認してください。各Product domainの標準構成と正本の所有境界は[ドキュメント管理方針](./content/documentation-policy.mdx)を参照してください。
 
 Mediaの派生画像・非同期処理を実装する場合は、[Media処理と派生物](./content/media/processing.mdx)、[非同期Media処理](./content/system/api/asynchronous-processing.mdx)、[Transactional Outbox](./content/system/api/transactional-outbox.mdx)、[Media表示と配信](./content/system/web/media-delivery.mdx)も確認してください。
 

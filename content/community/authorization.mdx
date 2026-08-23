@@ -1,0 +1,87 @@
+# Community権限
+
+## 概要
+
+> 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
+
+Administrator、Member、Uploader、Community外Userに適用する認可規則を定義します。
+
+## MembershipとAdministrator
+
+Communityは少なくとも1人のAdministratorを持ちます。Administratorは必ず有効なMembershipを持ち、複数人を設定できます。参加申請を承認したUserはMemberとして参加します。
+
+| 操作 | Administrator | Member | Community外User |
+| --- | --- | --- | --- |
+| Community名・参加者一覧の閲覧 | 可能 | 可能 | 不可 |
+| Community名の変更 | 可能 | 不可 | 不可 |
+| 招待URLの発行・無効化・再発行 | 可能 | 不可 | 不可 |
+| 参加申請一覧の閲覧・承認・拒否 | 可能 | 不可 | 不可 |
+| Administrator権限の付与・解除 | 可能 | 不可 | 不可 |
+| Member・Administratorの除外 | 可能 | 不可 | 不可 |
+| CommunityへのMedia Upload | 可能 | 可能 | 不可 |
+| User管理MediaのCommunity共有 | 自分のMediaのみ可能 | 自分のMediaのみ可能 | 不可 |
+| Community内のGroup・Tagの作成とMedia分類 | 可能 | 可能 | 不可 |
+| 自分の退会 | 最後のAdministrator以外は可能 | 可能 | 不可 |
+| Community削除 | 条件を満たせば可能 | 不可 | 不可 |
+
+Administrator権限の付与対象は参加済みMemberです。別Administratorが残る場合に限り、AdministratorをMemberへ戻すか、Communityから直接除外できます。事前の降格や複数人承認は必要ありません。
+
+Administratorが2人同時に退会・除外・降格すると0人になる可能性があるため、Community行を同じ順序でlockし、更新後のAdministrator数を同じTransaction内で確認します。
+
+参加者一覧には表示名、Administrator role、利用可能なprofile画像だけを表示します。メールアドレスは表示しません。参加申請一覧はAdministratorだけが閲覧します。
+
+## Mediaの共有・直接Uploadと操作権限
+
+| 操作 | Custodian | Media本体 | Communityでの扱い |
+| --- | --- | --- | --- |
+| User管理Mediaを共有 | Userのまま | 複製しない | 参加者全員が閲覧できる |
+| Communityへ直接Upload | Community | 新しいMediaを登録 | Communityの参加者が閲覧できる |
+| User管理MediaをCommunityへ委譲 | UserからCommunityへ変更 | 複製しない | 初回Release対象外 |
+
+共有できるのは対象MediaのUser Custodian本人であり、本人が参加しているCommunityだけを共有先にできます。Administratorによる事前承認は不要です。1つのMediaを複数Communityへ共有できます。
+
+共有解除はUser Custodian本人、または共有先CommunityのAdministratorが実行できます。解除対象はそのCommunityとの閲覧関係と、そのCommunity内のGroup・Tag関連だけです。Media本体、Custody、他Communityの共有・分類には影響させません。
+
+CommunityへはAdministratorとMemberのどちらも直接Uploadできます。Community管理MediaのUploader本人は、Community参加中に限り、自分がUploadしたMediaを削除しOriginalをdownloadできます。
+
+| Media | 操作者 | Variant閲覧 | Original download | Media削除 | 共有解除 |
+| --- | --- | --- | --- | --- | --- |
+| User管理Media | User Custodian | 可能 | 可能 | 可能 | 可能 |
+| Communityへ共有されたUser管理Media | 共有先Administrator | 可能 | 不可 | 不可 | 対象Communityのみ可能 |
+| Communityへ共有されたUser管理Media | 共有先Member | 可能 | 不可 | 不可 | 不可 |
+| Community管理Media | Administrator | 可能 | 可能 | 可能 | 対象外 |
+| Community管理Media | 参加中のUploader本人 | 可能 | 可能 | 可能 | 対象外 |
+| Community管理Media | その他のMember | 可能 | 不可 | 不可 | 対象外 |
+| Community管理Media | 退会済みUploader | 不可 | 不可 | 不可 | 対象外 |
+
+Media情報の編集機能は、初回Releaseで必要な編集項目がない限り提供しません。将来追加する場合はAdministratorと参加中のUploader本人へ許可します。file本体の差し替えは提供しません。
+
+## 権限の失効
+
+退会・除外・User削除によりMembershipを失ったUserは、Communityの閲覧、Upload、分類、管理を行えません。Uploader本人も削除・Original download権限を失います。既存の署名付きURL・Signed Cookieは短い有効期間とし、失効後の再発行を禁止します。
+
+## GroupとTag
+
+AdministratorとMemberはCommunity内のGroup・Tagを作成し、閲覧できるMediaを分類できます。User管理MediaをCommunityへ共有した場合も、そのCommunity内だけで有効なGroup・Tagを設定できます。
+
+- Group・TagはMediaの管理主体や閲覧権限を変更しない。
+- Community側の分類は、共有元Userの個人領域の分類とは独立する。
+- 共有解除時は対象MediaのCommunity側Group・Tag関連だけを削除する。
+- Group・Tag本体と、他Mediaの分類は保持する。
+- Group・Tag自体の編集・削除権限、名称、階層構造はそれぞれの詳細設計で確定する。
+
+## エラーと境界条件
+
+| 状況 | 扱い |
+| --- | --- |
+| 未認証UserによるCommunity操作 | 認証が必要 |
+| Community外Userによる詳細取得 | 情報を公開しない |
+| 招待tokenが無効・期限切れ | 参加申請を受け付けない |
+| 参加済みUserの申請 | 重複参加として拒否 |
+| 未処理申請の重複 | 既存申請を維持し重複登録しない |
+| 拒否・取消し後の再申請 | 有効URLから可能 |
+| 最後のAdministratorの退会・降格・除外 | 拒否 |
+| Community管理Mediaが残るCommunity削除 | 拒否 |
+| Membershipを失ったUploaderの操作 | 拒否 |
+| 同時承認・拒否・取消し | 先にcommitした状態を採用 |
+| User削除と申請承認の競合 | 削除済みUserの参加を禁止 |

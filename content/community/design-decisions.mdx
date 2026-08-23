@@ -1,0 +1,105 @@
+# Community設計判断
+
+## 概要
+
+> 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
+
+Community domainで採用した方針、意図、制約、対象外を記録します。
+
+## 1. Communityは閉じた独立空間とする
+
+**決定**
+
+Communityを公開検索せず、招待URLとAdministratorの承認によって参加します。
+
+**意図**
+
+一般家庭でも使いやすい共有手段を維持し、第三者による画像閲覧を防ぎます。
+
+**制約**
+
+Communityをネストせず、参加者、Media、権限を別Communityへ継承しません。
+
+## 2. Administratorを常に1人以上維持する
+
+**決定**
+
+作成者を最初のAdministratorとし、複数Administratorを許可します。最後のAdministratorの退会・降格・除外を禁止します。
+
+**意図**
+
+Communityが管理不能になることを防ぎます。作成者だけの恒久的な権限は与えません。
+
+## 3. 招待URLと個別承認を組み合わせる
+
+**決定**
+
+招待URLは7日間有効とし、Communityごとに有効なURLを1件だけ保持します。期限内は複数Userが申請でき、すべてAdministratorが承認します。
+
+**意図**
+
+メールアドレス入力やメール送信基盤を不要にし、URL流出時も自動参加を防ぎます。
+
+**対象外**
+
+メール・push通知は[Issue #47](https://github.com/hazuki3417/memoria-design/issues/47)で将来検討します。
+
+## 4. 参加申請に有効期限を設けない
+
+**決定**
+
+申請は承認、拒否、本人取消し、User削除、Community削除まで保持します。
+
+**意図**
+
+通知がない初回Releaseでも、Administratorが申請を確認する前に失効することを防ぎます。
+
+## 5. Media共有と管理主体の委譲を分ける
+
+**決定**
+
+User管理MediaをCommunityへ共有してもCustodianは変更しません。Community管理へ変更する操作は委譲として扱い、初回Releaseには含めません。
+
+**意図**
+
+Media本体の複製を避け、閲覧許可と管理責任の変更を明確に区別します。委譲は[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で管理します。
+
+## 6. Uploaderに限定的な管理権限を与える
+
+**決定**
+
+Community Administratorと、Community参加中のUploader本人に、Community管理Mediaの削除とOriginal downloadを認めます。
+
+**意図**
+
+自分が投稿した画像を自分で削除・取得できる利用体験を維持し、退会後は権限を失効させます。
+
+## 7. 退会時にUser管理Mediaの共有を解除する
+
+**決定**
+
+Userが退会・除外された場合、本人がCustodianであるMediaの対象Community共有と、そのCommunityのGroup・Tag関連を解除します。
+
+**意図**
+
+退会後に本人が確認・管理できない共有を残さず、他Communityや個人領域への影響を防ぎます。
+
+## 8. Community管理Mediaが残るCommunityは削除しない
+
+**決定**
+
+Community管理Mediaが0件の場合だけ、Administrator1人の判断とCommunity名入力によって削除できます。
+
+**意図**
+
+Mediaを誤って一括削除することと、Custodianが存在しないMediaを防ぎます。
+
+## 9. 削除済みUploaderのMediaを保持する
+
+**決定**
+
+UploaderがUser削除された後もCommunity管理Mediaを保持し、投稿者を「削除済みUser」と表示します。
+
+**意図**
+
+Communityの共有資産を維持しつつ、削除済みUserの権限と不要な個人情報保持を避けます。

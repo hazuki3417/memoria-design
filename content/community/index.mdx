@@ -1,0 +1,44 @@
+# Community
+
+## 概要
+
+> 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
+
+Communityは、家族や友人などがMediaを共有する閉じた独立空間です。Mediaと並ぶ独立したProduct domainとして、参加、権限、招待、共有、分類、削除の方針を管理します。
+
+## 目的と対象範囲
+
+- 家族や知人が静止画像を安全に共有できる閉じた空間を提供する。
+- Community、Membership、Administrator、招待URL、参加申請を管理する。
+- User管理Mediaの共有とCommunity管理Mediaの直接Uploadを区別する。
+- Community内のGroup・Tagによる共同整理を扱う。
+- Community同士をネストせず、参加者、Media、権限を継承しない。
+
+## 主要概念
+
+| 概念 | 意味 |
+| --- | --- |
+| Community | 家族や知人がMediaを共有する閉じた独立空間 |
+| Membership | UserとCommunityの有効な参加関係 |
+| Administrator | Membershipを持ち、参加・設定・権限を管理するUser |
+| 招待URL | Administratorが発行する、参加申請を開始するためのURL |
+| 参加申請 | 招待URLを使ったUserが参加承認を求める記録 |
+| Media共有 | User CustodianがCommunity参加者に閲覧を許可する操作 |
+| Community管理Media | CommunityがCustodianであるMedia |
+
+## 設計書の読み取り順序
+
+1. [Communityユースケース](./use-cases)
+2. [Community権限](./authorization)
+3. [Community論理データモデル](./data-model)
+4. [Community物理データモデル](./physical-data-model)
+5. [Communityレコードパターン](./record-patterns)
+6. [Communityの整合性とTransaction](./consistency-transactions)
+7. [Community設計判断](./design-decisions)
+
+## 初回Release対象外
+
+- メール通知・push通知：[通知機能の検討 #47](https://github.com/hazuki3417/memoria-design/issues/47)
+- Media管理主体の委譲：[委譲機能の詳細設計 #48](https://github.com/hazuki3417/memoria-design/issues/48)
+- Community説明、公開検索、User block、一括承認・拒否、一括委譲
+- file本体の差し替え、実際の編集項目がないMedia編集画面
