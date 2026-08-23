@@ -1,0 +1,26 @@
+# Userレコードパターン
+
+## 登録
+
+Auth0認証済みでも登録未確定ならusers行はありません。登録確定時にU1をACTIVEで作成します。
+
+| table | key | 主な値 |
+| --- | --- | --- |
+| users | U1 | issuer=I1、subject=S1、nickname=家族A、status=ACTIVE |
+
+## account削除受付
+
+再認証と確認完了後、同じTransactionでU1をDELETINGへ更新し、D1を作成します。
+
+| table | key | 主な値 |
+| --- | --- | --- |
+| users | U1 | status=DELETING |
+| user_deletion_jobs | D1 | user_id=U1、status=PENDING、target_snapshot=確定対象 |
+
+以後のLoginと全操作を拒否し、対象Media・Communityを非表示・変更不可にします。
+
+## cleanup完了
+
+User管理Media、Variant、共有、関連を削除し、保持するCommunity管理Mediaのuploaded_by_user_idをNULLにします。Membershipと未処理申請を解除・無効化し、選択されたCommunityとMediaを削除します。Auth0のMemoria account削除後、usersとJobを物理削除します。
+
+途中失敗時は完了済みstepを再実行しても結果が変わらないようにし、UserとJobを保持して運用上再開します。
