@@ -1,0 +1,31 @@
+# User
+
+## 概要
+
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本domainで定義する登録・削除・整合性は未実装です。
+
+User domainは、Auth0で認証された主体とMemoria内部Userの対応、nickname、利用状態、登録・再認証・account削除を管理します。認証情報の正本はAuth0、Product内のUser・権限・Media・Community関係の正本はMemoriaです。
+
+## 原則
+
+- 個人情報は必要最小限だけ保持し、email、氏名、電話番号、住所、生年月日、profile画像を保存しない。
+- Auth0のissuerとsubjectの組で認証主体を識別し、内部User IDと分離する。
+- nicknameは重複可能でMemoriaを正本とする。
+- User状態はACTIVEとDELETINGだけを持つ。
+- account削除は初回Releaseに含め、復元できない物理削除として扱う。
+
+## 読み取り順序
+
+1. [Userユースケース](./use-cases)
+2. [認証と認可](./authentication-authorization)
+3. [User論理データモデル](./data-model)
+4. [User物理データモデル](./physical-data-model)
+5. [Userレコードパターン](./record-patterns)
+6. [Userの整合性とTransaction](./consistency-transactions)
+7. [User設計判断](./design-decisions)
+
+## 初回Release対象外
+
+- [profile画像 #51](https://github.com/hazuki3417/memoria-design/issues/51)
+- [複数認証方法のaccount統合 #52](https://github.com/hazuki3417/memoria-design/issues/52)
+- [公開用account ID #53](https://github.com/hazuki3417/memoria-design/issues/53)

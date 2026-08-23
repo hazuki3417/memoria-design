@@ -28,7 +28,7 @@ Administrator権限の付与対象は参加済みMemberです。別Administrator
 
 Administratorが2人同時に退会・除外・降格すると0人になる可能性があるため、Community行を同じ順序でlockし、更新後のAdministrator数を同じTransaction内で確認します。
 
-参加者一覧には表示名、Administrator role、利用可能なprofile画像だけを表示します。メールアドレスは表示しません。参加申請一覧はAdministratorだけが閲覧します。
+参加者一覧には現在のnicknameとAdministrator roleだけを表示します。profile画像とemail addressは初回Releaseで取得・保存・表示しません。参加申請一覧はAdministratorだけが閲覧します。
 
 ## Mediaの共有・直接Uploadと操作権限
 

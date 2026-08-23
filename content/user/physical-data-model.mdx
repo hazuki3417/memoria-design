@@ -1,0 +1,30 @@
+# User物理データモデル
+
+## users
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | 内部User ID |
+| auth_issuer | text | NOT NULL | Auth0 issuer |
+| auth_subject | text | NOT NULL | Auth0 subject |
+| nickname | text | NOT NULL、trim後に空でない | 表示名 |
+| status | varchar(16) | NOT NULL、CHECK | ACTIVE / DELETING |
+| created_at | timestamptz | NOT NULL | 登録時刻 |
+| updated_at | timestamptz | NOT NULL | 更新時刻 |
+
+(auth_issuer, auth_subject)へUNIQUE indexを設定します。email、氏名、profile画像URL、公開account ID、nickname履歴は保存しません。
+
+## user_deletion_jobs
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | Job ID |
+| user_id | varchar(26) | UNIQUE、FK users | 削除対象 |
+| status | varchar(16) | NOT NULL、CHECK | PENDING / RUNNING / FAILED |
+| target_snapshot | jsonb | NOT NULL | 確定時のMedia・Community対象 |
+| attempt_count | integer | NOT NULL、0以上 | 試行回数 |
+| last_error_code | text | NULL可 | 非機微error code |
+| created_at | timestamptz | NOT NULL | 受付時刻 |
+| updated_at | timestamptz | NOT NULL | 更新時刻 |
+
+完了後はUser物理削除に伴ってJobも削除します。Community管理Mediaを保持する場合はMedia側のuploaded_by_user_idをNULLにし、「削除済みUser」と表示します。削除前nicknameやAuth0 identifierは退避しません。

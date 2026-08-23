@@ -7,9 +7,7 @@
 
 ## 原則
 
-Mediaを世代をまたいで引き継ぐことを重視しますが、すべてのMediaを必ず保存することは強制しません。User削除時は、Userが管理するMediaごとに委譲または削除を選択します。
-
-未処理の管理Mediaが残っている状態ではUserを削除できません。Custodianが存在しないMediaは作りません。
+初回Releaseでは管理主体の委譲を提供しません。account削除時はUser管理Mediaの件数と復元不能な削除を明示して確認し、確定対象を非同期cleanupで削除します。cleanupの一部が失敗してもUserへ再申請を求めず、DELETING状態を維持してsystemが再試行・運用再開します。詳細は[Userユースケース](/user/use-cases)を正本とします。
 
 ```mermaid
 flowchart TD
@@ -51,7 +49,7 @@ Media Groupは分類であり管理単位ではありません。「Groupを委�
 
 ## User削除との関係
 
-Community管理MediaはUploaderのUser削除後も残し、投稿者は「削除済みUser」として表示します。`media.uploaded_by_user_id`を`NULL`にするか、削除済み識別子を保持するかといった具体的な匿名化方式はUser・Security詳細設計で決定します。Media Eventのactorも必要な範囲で匿名化し、Userの個人情報をMedia保存のためだけに永久保持しません。
+Community管理MediaはUploaderのUser削除後も残し、`media.uploaded_by_user_id`をNULLにして投稿者を「削除済みUser」と表示します。削除前nicknameやAuth0 identifierは保持しません。Media Eventのactorも必要な範囲で匿名化し、Userの個人情報をMedia保存のためだけに永久保持しません。
 
 Communityの最後のAdministratorは、別MemberへAdministrator権限を付与するかCommunityを削除するまでUser削除できません。その他のMembershipは退会時と同じく共有・Community分類を解除し、未処理の参加申請は無効化します。詳しくは[Communityユースケース](/community/use-cases)を参照します。
 

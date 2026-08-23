@@ -77,7 +77,7 @@
 ## ドキュメント構成
 
 - 初回Releaseの範囲、成功条件、対象外、優先順位は`content/first-release.mdx`を正本とします。Product全体の将来対象と初回Releaseの必須機能を区別します。
-- 独立したProduct domainは`content/<domain>/`へ配置し、MediaとCommunityを同じ階層で管理します。
+- 独立したProduct domainは`content/<domain>/`へ配置し、Media、Community、Userを同じ階層で管理します。
 - 各domainは概要、ユースケース、必要な権限、論理モデル、物理モデル、レコードパターン、整合性とTransaction、設計判断の順に整理します。
 - table定義、状態遷移、権限、Transactionは所有domainにだけ記載し、他domainは責務境界と正本へlinkします。
 - プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。

@@ -54,7 +54,7 @@ npm run build
 ## 最初に読む資料
 
 1. [初回Releaseの範囲と成功条件](./content/first-release.mdx)
-2. [Media](./content/media/index.mdx)・[Community](./content/community/index.mdx)
+2. [Media](./content/media/index.mdx)・[Community](./content/community/index.mdx)・[User](./content/user/index.mdx)
 3. [Media関連ユースケース](./content/media/use-cases.mdx)
 4. [ユビキタス言語](./content/ubiquitous.mdx)
 5. [リポジトリ構成](./content/system/index.mdx)
@@ -67,6 +67,8 @@ npm run build
 12. [ブランチ運用](./content/branch-strategy.mdx)
 13. [コミットメッセージ規約](./content/commit-message.mdx)
 14. [バージョニング規約](./content/versioning.mdx)
+
+User登録、Auth0認証、nickname、session、account削除を扱う場合は、[User設計](./content/user/index.mdx)を確認してください。
 
 Community、参加申請、招待URL、Administrator、共有、Uploader権限を扱う場合は、[Community設計](./content/community/index.mdx)、[Communityユースケース](./content/community/use-cases.mdx)、[Community権限](./content/community/authorization.mdx)を確認してください。各Product domainの標準構成と正本の所有境界は[ドキュメント管理方針](./content/documentation-policy.mdx)を参照してください。
 
