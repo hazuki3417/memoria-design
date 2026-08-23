@@ -34,8 +34,11 @@ Media Groupは分類であり管理単位ではありません。「Groupを委�
 
 ## 委譲
 
+管理主体の委譲は[初回Release対象外](https://github.com/hazuki3417/memoria-design/issues/48)です。将来機能を導入した後の選択肢として扱います。初回ReleaseでUser削除を提供する場合、委譲に依存せず、User管理Mediaを削除したうえで処理します。
+
+
 - UserまたはCommunityを委譲先にできる
-- 委譲時に既存公開をすべて解除する
+- 委譲時に既存共有をすべて解除する
 - Uploader情報は変更しない
 - 委譲をMedia Eventへ記録する
 
@@ -43,13 +46,13 @@ Media Groupは分類であり管理単位ではありません。「Groupを委�
 
 - Mediaを物理削除する
 - 復元できないことを明示する
-- Group関連と公開設定も削除する
+- Group関連と共有設定も削除する
 - 削除をMedia Eventへ記録できる
 
 ## User削除との関係
 
-Uploaderとしての参照は、User削除後に不明となることを許容します。Media Eventのactorも同様です。Userの個人情報をMedia保存のためだけに永久保持しません。
+Community管理MediaはUploaderのUser削除後も残し、投稿者は「削除済みUser」として表示します。`media.uploaded_by_user_id`を`NULL`にするか、削除済み識別子を保持するかといった具体的な匿名化方式はUser・Security詳細設計で決定します。Media Eventのactorも必要な範囲で匿名化し、Userの個人情報をMedia保存のためだけに永久保持しません。
 
-Communityの唯一の管理者、Membership、招待などはMediaとは別のUser削除条件です。Communityのライフサイクル設計で扱います。
+Communityの最後のAdministratorは、別MemberへAdministrator権限を付与するかCommunityを削除するまでUser削除できません。その他のMembershipは退会時と同じく共有・Community分類を解除し、未処理の参加申請は無効化します。詳しくは[Community詳細設計](./community)を参照します。
 
 

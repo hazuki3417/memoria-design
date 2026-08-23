@@ -35,7 +35,7 @@ Mediaを管理する責任の所在と、容量・課金の責任主体を明確
 
 **決定**
 
-Uploader、アップロード日時、重要なMedia Eventを記録します。UploaderやactorがUser削除後に不明となることは許容します。
+Uploader、アップロード日時、重要なMedia Eventを記録します。UploaderがUser削除された場合は「削除済みUser」として表示し、actorは必要な範囲で匿名化します。個人情報の具体的な匿名化方式はUser・Security設計で決定します。
 
 **意図**
 
@@ -68,11 +68,11 @@ Uploader、Custodian、著作権者は一致するとは限りません。法的
 - Custodianを法的Ownerと呼ばない
 - Mediaの`owner`という用語を避け、`custodian`を使用する
 
-## 4. User管理Mediaは複数Communityへ公開できる
+## 4. User管理Mediaは複数Communityへ共有できる
 
 **決定**
 
-1つのUser管理Mediaを複数Communityへ同時に公開できます。
+1つのUser管理Mediaを複数Communityへ同時に共有できます。共有は閲覧関係を追加する操作であり、Communityへの所属や管理主体の委譲ではありません。
 
 **意図**
 
@@ -81,14 +81,14 @@ Uploader、Custodian、著作権者は一致するとは限りません。法的
 **制約**
 
 - Media本体をCommunityごとに複製しない
-- 公開先は管理権限を得ない
-- 公開解除は他の公開先へ影響しない
+- 共有先は管理権限を得ない
+- 共有解除は他の共有先へ影響しない
 
-## 5. Community管理Mediaを別Communityへ公開しない
+## 5. Community管理Mediaを別Communityへ共有しない
 
 **決定**
 
-Communityが管理するMediaは、別Communityへ公開しません。Community間の共有、包含、ネストも設けません。
+Communityが管理するMediaは、別Communityへ共有しません。Community間の共有、包含、ネストも設けません。
 
 **意図**
 
@@ -98,11 +98,11 @@ Communityを家族などの閉じた独立空間として保ち、意図しな�
 
 Community間共有は閉鎖性を崩し、権限継承と削除時の影響を複雑にするため対応しません。新しい共有範囲が必要なら専用Communityを作ります。
 
-## 6. Community内部は参加者全員へ公開する
+## 6. Community内部は参加者全員へ共有する
 
 **決定**
 
-Communityへ公開されたMediaは、参加者全員が閲覧できます。
+Communityへ共有されたMediaは、参加者全員が閲覧できます。
 
 **意図**
 
@@ -110,23 +110,25 @@ Communityは内部でMediaを共有するための空間です。一部参加者
 
 **対応しない内容と理由**
 
-参加者ごとのACLや限定公開Groupは、利用方法と実装を複雑にするため対応しません。限定共有には別Communityを使用します。
+参加者ごとのACLや限定共有Groupは、利用方法と実装を複雑にするため対応しません。限定共有には別Communityを使用します。
 
-## 7. 委譲時に公開設定をすべて解除する
+## 7. 委譲時に共有設定をすべて解除する
+
+管理主体の委譲は初回Release対象外とし、[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で将来機能として管理します。
 
 **決定**
 
-Custodianを委譲すると、既存のCommunity公開をすべて解除します。
+Custodianを委譲すると、既存のCommunity共有をすべて解除します。
 
 **意図**
 
-新しいCustodianへ以前の公開判断を強制せず、Community管理Mediaの別Community公開などの不整合を防ぎます。必要な公開は委譲後に再設定します。
+新しいCustodianへ以前の共有判断を強制せず、Community管理Mediaの別Community共有などの不整合を防ぎます。必要な共有は委譲後に再設定します。
 
 **制約**
 
-- 公開解除とCustodian変更を同じ処理単位で扱う
-- 操作前に公開が解除されることを表示する
-- 承認・再公開依頼の業務ワークフローは設けない
+- 共有解除とCustodian変更を同じ処理単位で扱う
+- 操作前に共有が解除されることを表示する
+- 承認・再共有依頼の業務ワークフローは設けない
 
 ## 8. Community間の直接委譲を提供しない
 
@@ -146,6 +148,8 @@ Communityから別Communityへの直接委譲は提供しません。
 
 ## 9. User削除時に委譲または削除を選択する
 
+管理主体の委譲とUser削除機能自体は初回Releaseの必須機能ではありません。将来User削除を提供する場合に、利用可能な機能に応じて適用します。
+
 **決定**
 
 Userが管理するMediaごとに委譲または削除を選び、未処理MediaがなくなってからUserを削除します。
@@ -158,7 +162,7 @@ Mediaを世代を超えて引き継ぐ思想を尊重しつつ、すべてのMed
 
 - CustodianなしのMediaを作らない
 - 一括処理を可能にする
-- 委譲時は公開を解除する
+- 委譲時は共有を解除する
 - 削除時は復元できないことを明示する
 
 ## 10. Media Groupは分類専用
@@ -204,7 +208,7 @@ Mediaを物理削除し、ごみ箱、論理削除、archive、個別復元を�
 **制約**
 
 - 削除前に復元できないことを明示する
-- 関連するGroupと公開設定を削除する
+- 関連するGroupと共有設定を削除する
 - 障害復旧バックアップを個別復元へ利用しない
 - 外部ストレージとDB間の削除失敗は内部的に再試行する
 

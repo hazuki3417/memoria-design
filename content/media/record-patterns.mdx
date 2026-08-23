@@ -39,9 +39,9 @@ Worker完了後は`media_variants`へ320、640、960、1280、1920pxのWebPを�
 
 UploaderがU1、投稿先がC1の場合、`media.uploaded_by_user_id=U1`、`media_custodies.community_id=C1`、`media_custodies.user_id=NULL`とします。U1の投稿履歴とC1の管理責任は別々に保持します。
 
-C1参加者はVariantを閲覧でき、Original downloadはC1のCommunity Administratorだけに許可します。U1を例外扱いするかは[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)が確定するまで未決定です。
+C1参加者はVariantを閲覧できます。Original downloadと削除はC1のCommunity Administrator、およびC1へ参加中のUploader U1に許可します。U1が退会した場合、`media.uploaded_by_user_id=U1`が残っていてもMembershipがないため、閲覧・Original download・削除を拒否します。U1がUser削除され`uploaded_by_user_id=NULL`になった場合は「削除済みUser」と表示し、MediaはC1に残します。
 
-## User管理Mediaを複数Communityへ公開する
+## User管理Mediaを複数Communityへ共有する
 
 操作前:
 
@@ -50,7 +50,7 @@ C1参加者はVariantを閲覧でき、Original downloadはC1のCommunity Admini
 | media_custodies | M1 | user_id=U1 |
 | community_memberships | C1-U1、C2-U1 | U1が両Communityへ参加 |
 
-C1、C2へ公開した後:
+C1、C2へ共有した後:
 
 | table | key | 値 |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ C1、C2へ公開した後:
 
 `media_custodies(M1)`は変更しません。C1とC2の間に関係を作らず、Media本体も複製しません。
 
-## 公開を一つだけ解除する
+## 共有を一つだけ解除する
 
 M1-C1を解除します。
 
@@ -70,7 +70,36 @@ M1-C1を解除します。
 - CustodyとObject Storageは変更しない
 - ACCESS_REMOVED eventを追加
 
+## Communityを作成して招待する
+
+| table | key | 主な値 |
+| --- | --- | --- |
+| communities | C1 | name=家族 |
+| community_memberships | C1-U1 | U1が参加 |
+| community_administrators | C1-U1 | U1がAdministrator |
+| community_invitations | I1 | community_id=C1、token_hash=HASH1、expires_at=発行から7日後 |
+
+U2がI1から申請すると`community_join_requests(R1)`を`status=PENDING`で登録します。U1または他のAdministratorが承認すると、同じTransactionで`community_memberships(C1,U2)`を作成し、R1を`APPROVED`へ更新します。拒否や本人取消しの後は、同じCommunity・Userで新しい申請行を作成できます。
+
+## User退会時に共有とCommunity分類を解除する
+
+U1がM1をC1とC2へ共有し、C1のGroup G1とTag T1へ関連付けている場合、C1からの退会時に次を同じTransactionで処理します。
+
+- `community_administrators(C1,U1)`が存在すれば、別Administratorが残ることを確認して削除
+- `community_memberships(C1,U1)`を削除
+- `media_community_accesses(M1,C1)`を削除
+- M1とC1のG1・T1の関連だけを削除
+- `media_community_accesses(M1,C2)`、M1本体、Custody、G1・T1本体を維持
+
+U1がUploaderでCustodianがC1である別Mediaは削除しません。
+
+## Community削除の登録パターン
+
+C1にCommunity CustodyのMediaが残っている場合、Community削除を拒否します。対象Mediaが0件であれば、C1のMembership、Administrator、招待、参加申請、Community Group・Tag、M1-C1共有を削除します。User管理M1、M1-C2共有、C2側の分類は変更しません。
+
 ## UserからUserへ委譲する
+
+管理主体の委譲は将来機能であり、以下の委譲パターンは初回Release対象外です。
 
 操作前:
 
@@ -111,7 +140,7 @@ M1をC1からU2へ委譲します。
 - Accessは0件のまま
 - Eventへfrom_community=C1、to_user=U2を記録
 
-U2が必要なCommunityへ改めて公開します。
+U2が必要なCommunityへ改めて共有します。
 
 ## 禁止するCustodyパターン
 
@@ -180,7 +209,7 @@ U1 CustodyのMediaが0件になり、U1が管理するCommunityの委譲また�
 
 - media.statusをDELETINGへ更新
 - 原本・preview・thumbnail・動画派生物ごとにstorage operationを作成
-- 新しい閲覧・更新・公開・委譲を拒否
+- 新しい閲覧・更新・共有・委譲を拒否
 
 storage削除完了後のDB transaction:
 

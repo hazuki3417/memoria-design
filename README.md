@@ -68,6 +68,8 @@ npm run build
 13. [コミットメッセージ規約](./content/commit-message.mdx)
 14. [バージョニング規約](./content/versioning.mdx)
 
+Community、参加申請、招待URL、Administrator、共有、Uploader権限を扱う場合は、[Community詳細設計](./content/media/community.mdx)と[CommunityとMediaの共有](./content/media/community-access.mdx)を確認してください。
+
 Mediaの派生画像・非同期処理を実装する場合は、[Media処理と派生物](./content/media/processing.mdx)、[非同期Media処理](./content/system/api/asynchronous-processing.mdx)、[Transactional Outbox](./content/system/api/transactional-outbox.mdx)、[Media表示と配信](./content/system/web/media-delivery.mdx)も確認してください。
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。

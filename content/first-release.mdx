@@ -8,7 +8,7 @@
 
 ## 対象利用者と利用場面
 
-対象は、自分の画像を保存・整理するUserと、家族や部活動などの閉じたCommunityで画像を共有する参加者・Administratorです。Userは個人管理画像をCommunityへ公開する方法と、Community管理画像として直接Uploadする方法を利用します。
+対象は、自分の画像を保存・整理するUserと、家族や部活動などの閉じたCommunityで画像を共有する参加者・Administratorです。Userは個人管理画像をCommunityへ共有する方法と、Community管理画像として直接Uploadする方法を利用します。
 
 ## 初回Releaseに含める機能
 
@@ -18,11 +18,11 @@
 | 静止画像 | Upload、一覧表示、詳細表示、削除 | 動画や画像以外のファイルは含めない |
 | 表示用画像 | アスペクト比を維持した複数幅のWebP Variant | 一覧と詳細で同じVariantを利用し、原本より拡大しない |
 | 非同期処理 | 原本保存、Media/Custody登録、Processing Job、Transactional Outbox、Redis Streams、Worker | 冪等性、失敗、再試行、削除との競合を扱う |
-| Community | Community、参加者、Administratorと参加状況に応じた閲覧 | Community外のUserへ非公開にする |
-| 管理と公開 | User管理、Community管理、個人管理画像のCommunity公開、Communityへの直接Upload | UploaderとCustodianを分離し、追加権限は未確定事項として扱う |
+| Community | Community、参加者、Administrator、招待URL、参加申請と参加状況に応じた閲覧 | Community外のUserは閲覧不可。Administrator承認によって参加する |
+| 管理と共有 | User管理、Community管理、個人管理画像のCommunity共有、Communityへの直接Upload | UploaderとCustodianを分離し、参加中のUploader本人に削除・Original downloadを認める |
 | Group | Groupの作成・編集・削除と画像の整理 | 閲覧権限を制御しない。階層構造の要否は詳細設計で決定する |
 | Tag | Tagの作成・編集・削除、画像への付与・解除、Tagによる絞り込み | 管理範囲、編集権限、条件の詳細は要求・詳細設計で決定する |
-| アクセス制御 | User、Community参加者、Administrator、Custodianに応じた認可 | 原本アクセスを提供する場合はUser CustodianまたはCommunity Administratorに制限する |
+| アクセス制御 | User、Community参加者、Administrator、Custodian、Uploaderに応じた認可 | 原本アクセスはUser Custodian、Community Administrator、参加中の該当Uploaderに制限する |
 | 実行基盤 | EC2 + Docker、Deploy、秘密情報管理、Backup、復旧、監視 | 予算に応じて構成し、PostgreSQL/Redisの配置は運用設計で確定する |
 | 品質管理 | 各RepositoryのGitHub Actions quality gateと人間によるReview | ChatGPTの実行環境ではbuild、test、静的解析、構文検証を行わない |
 
@@ -32,6 +32,8 @@ Media削除は必須ですが、Userアカウント削除、管理主体の委�
 
 - 動画、PDF、文書、音声単体など静止画像以外の登録
 - 課金、料金体系、請求処理、自動Tag付け
+- メール通知・push通知：[通知機能 #47](https://github.com/hazuki3417/memoria-design/issues/47)
+- Media管理主体の委譲：[委譲機能 #48](https://github.com/hazuki3417/memoria-design/issues/48)
 - 利用価値を実現するために必須ではない一括操作や高度な検索
 - ごみ箱、削除済み画像の復元、アーカイブ
 - BrowserからS3への直接Upload
@@ -49,19 +51,20 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 3. 画像をGroupで整理し、Tagを付与・解除し、Tagで絞り込める。
 4. 画像を削除すると、一覧・詳細画面や関連付けから安全に除去される。
 
-### Communityへの公開
+### Communityへの共有
 
-1. Userが自分の管理する画像を所属Communityへ公開できる。
-2. Community参加者は公開された画像を閲覧できる。
+1. Userが自分の管理する画像を所属Communityへ共有できる。
+2. Community参加者は共有された画像を閲覧できる。
 3. Community外のUserは閲覧できず、一般参加者は原本を取得できない。
-4. 公開解除、参加資格の喪失、権限変更後は、新しい閲覧許可を発行しない。
+4. 共有解除、参加資格の喪失、権限変更後は、新しい閲覧許可を発行しない。
 
 ### Communityへの直接Upload
 
 1. 所属するUserがCommunityへ静止画像をUploadできる。
 2. 操作したUserはUploaderとして記録され、CommunityがCustodianになる。
 3. Community Administratorは管理権限に基づいて操作できる。
-4. Uploader本人への例外的な権限は、未確定のまま暗黙に実装せず、専用Issueの結論に従う。
+4. Community参加中のUploader本人は、自分がUploadしたMediaを削除し、Originalをdownloadできる。
+5. 退会・除外・User削除後はUploader本人の権限を失効させる。
 
 ### 異常系と運用
 
@@ -78,7 +81,7 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 | 領域 | 判断する内容 | 管理Issue |
 | --- | --- | --- |
 | Community | 参加者、Administrator、認可、管理関係 | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
-| Uploader権限 | Communityへ直接UploadしたUserの例外的権限 | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
+| Uploader権限 | Community参加中のUploader本人による削除・Original download | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
 | User・認証 | 認証、初期化、User lifecycle | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
 | Group | 所属、操作権限、階層、関連、削除 | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
 | Tag要求 | 分類目的、所属、操作主体、検索要求 | [#23](https://github.com/hazuki3417/memoria-design/issues/23) |
