@@ -43,23 +43,31 @@ Userは複数Communityへ参加できます。同じUserが参加していても
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 現行・詳細要レビュー |
+| 状態 | 将来 |
 | 意味 | UserがCommunityへ参加している関係 |
-| 補足 | 参加・脱退・履歴は存在するが、招待やCommunity削除を含む詳細ライフサイクルは別途設計する |
+| 補足 | 招待URLからの参加申請をAdministratorが承認すると作成する。退会・除外時は、User管理Mediaの共有とCommunity内分類を解除する |
 
 ### Community Member（コミュニティ参加者）
 
-Communityへ参加しているUserです。Communityに公開されたMedia、またはCommunityが管理するMediaを閲覧できます。
+Communityへ参加しているUserです。Communityへ共有されたMedia、またはCommunityが管理するMediaを閲覧できます。AdministratorもMembershipを持つMemberです。
 
 ### Community Administrator（コミュニティ管理者）
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 現行・詳細要レビュー |
-| 意味 | Communityの参加・管理情報を操作するUser |
+| 状態 | 将来 |
+| 意味 | Communityの参加、招待、権限、名称、削除を管理するUser。Communityごとに常に1人以上存在する |
 | 現行実装との対応 | DBやコードに`owner`という識別子が残る場合がある |
 
 MediaのCustodianと混同しないため、プロダクト設計ではCommunity Administratorまたはコミュニティ管理者を使用します。
+
+### Community Invitation（Community招待URL）
+
+Administratorが発行する、Communityへの参加申請を開始するためのURLです。Communityごとに有効なURLは1件とし、発行から7日間は複数Userが申請できます。tokenを知っているだけでは参加できず、Administratorによる承認が必要です。
+
+### Community Join Request（Community参加申請）
+
+招待URLを利用したUserがCommunityへの参加を申請する記録です。状態は`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`を使用し、未処理の申請はCommunity・Userごとに1件に制限します。
 
 ## Media
 
@@ -135,7 +143,7 @@ upload完了など同じ操作の再送を識別するkeyです。同一keyに�
 | 目的 | アップロード操作のトレース |
 | 表さないもの | 著作権者、法的所有者、現在の管理主体 |
 
-Mediaを委譲してもUploaderは変更しません。User削除後に不明になることを許容します。
+Community管理MediaのUploaderは、Community参加中に限り、自分がuploadしたMediaの削除とOriginal downloadができます。User削除後は「削除済みUser」として表示し、個人情報の匿名化方式はUser・Security設計で決定します。将来管理主体を委譲する場合もUploaderは変更しません。
 
 ### Custodian（管理主体）
 
@@ -156,22 +164,23 @@ Mediaを委譲してもUploaderは変更しません。User削除後に不明に
 | 意味 | Communityへの参加関係を通してMediaを閲覧できるUser |
 | 補足 | Mediaの管理権限を持つことを意味しない |
 
-## 公開と委譲
+## 共有と委譲
 
-### Publish（公開）
+### Share（共有）
 
-Userが管理するMediaをCommunityの参加者全員から閲覧可能にする操作です。
+Userが管理するMediaを、Userが所属するCommunityの参加者全員から閲覧可能にする操作です。
 
-- 公開してもCustodianはUserのままです。
-- 1つのMediaを複数Communityへ公開できます。
-- Communityは公開されたMediaの管理権限を取得しません。
+- 共有してもCustodianはUserのままです。
+- Media本体を複製せず、1つのMediaを複数Communityへ共有できます。
+- Communityは共有されたMediaの管理権限を取得しません。
 - Community内の参加者別ACLは設けません。
+- 共有はCommunityへの所属変更や管理主体の委譲とは異なります。
 
-「共有」は広い意味を持つため、アクセス関係を追加する具体的な操作には「公開」を使用します。
+既存の`Publish`、公開、`media_community_accesses`などの実装識別子は移行上の都合で残る場合がありますが、Product上の操作は「共有」を使用します。
 
-### Unpublish（公開解除）
+### Unshare（共有解除）
 
-Mediaと対象Communityの閲覧関係だけを解除する操作です。他Communityへの公開、Media本体、Custodianは変更しません。
+Mediaと対象Communityの閲覧関係だけを解除する操作です。User Custodianまたは対象Community Administratorが実行でき、共有元Userの退会・除外時にも自動実行します。他Communityへの共有、Media本体、Custodianは変更しません。
 
 ### Transfer / Custodian Transfer（委譲）
 
@@ -183,9 +192,9 @@ MediaのCustodianを変更する操作です。
 - UserからCommunity
 - CommunityからUser
 
-委譲時は既存のCommunity公開をすべて解除します。Uploaderは変更しません。CommunityからCommunityへの直接委譲は、具体的なユースケースがないため提供しません。
+委譲時は既存のCommunity共有をすべて解除します。Uploaderは変更しません。CommunityからCommunityへの直接委譲は、具体的なユースケースがないため提供しません。管理主体の委譲は初回Release対象外です。
 
-### Media Community Access（Community公開関係）
+### Media Community Access（Community共有関係）
 
 | 項目 | 内容 |
 | --- | --- |
@@ -204,7 +213,7 @@ Communityが管理するMediaは、そのCommunity内部で閲覧できるため
 | 状態 | 将来・Image Groupとして一部実装 |
 | 意味 | Mediaを名称と親子関係で分類・整理する構造 |
 | 構造 | 複数の親を許可する有向非巡回グラフ（DAG） |
-| 影響しないもの | Custodian、公開範囲、閲覧権限、物理保存場所 |
+| 影響しないもの | Custodian、共有範囲、閲覧権限、物理保存場所 |
 
 1つのMediaは複数Media Groupへ所属できます。Groupから除外またはGroupを削除してもMedia本体は削除しません。
 
@@ -258,6 +267,6 @@ Mediaについて「削除」と記載した場合は、現在の合意では物
 | Content | Mediaの旧称。現行識別子の説明以外では使用しない |
 | Owner（Media） | 法的所有者やCommunity管理者と混同するため、Custodianを使用する |
 | 著作権者 | システムで管理・証明しない |
-| 共有 | 一般説明には使用できるが、具体的なアクセス操作には公開・公開解除を使用する |
+| 公開・Publish | Product上の操作は共有・Shareを使用する。既存実装識別子の説明を除き、Communityへの所属や一般公開を意味する表現として使用しない |
 | ACL（Community内部） | 参加者別のMedia閲覧制御は提供しない |
 

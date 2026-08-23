@@ -3,14 +3,14 @@
 
 ## 概要
 
-> 実装状況: 静止画像を中心とした一部の操作は実装済みです。Media、動画、Custodian、Community公開、Media Eventを含む設計との差分は未実装です。
+> 実装状況: 静止画像を中心とした一部の操作は実装済みです。Media、動画、Custodian、Community共有、Media Eventを含む設計との差分は未実装です。
 
 ## Actor
 
 | Actor | 役割 |
 | --- | --- |
-| User | Mediaをアップロード、管理、公開、分類する |
-| Community Member | Community内で公開されたMediaを閲覧する |
+| User | Mediaをアップロード、管理、共有、分類する |
+| Community Member | Community内で共有されたMediaを閲覧する |
 | Community Administrator | Communityの参加・管理情報を操作する |
 | System | ファイル、メタデータ、関連、Media Eventの整合性を維持する |
 
@@ -28,26 +28,28 @@
 ### Mediaを閲覧・downloadする
 
 - User管理MediaのOriginalはUser Custodianだけがdownloadできる
-- Community管理MediaのOriginalはCommunity Administratorがdownloadできる
-- Communityの一般参加者は表示用Variantを閲覧できるがOriginalはdownloadできない
-- 公開先Communityの管理者であっても、User管理MediaのOriginalはdownloadできない
-- Communityへ直接uploadしたUserの例外的な権限は[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)で別途検討する
+- Community管理MediaのOriginalはCommunity Administratorと参加中のUploader本人がdownloadできる
+- その他のCommunity参加者は表示用Variantを閲覧できるがOriginalはdownloadできない
+- 共有先Communityの管理者であっても、User管理MediaのOriginalはdownloadできない
+- 退会・除外・User削除後のUploaderはOriginalをdownloadできない
 
-### User管理MediaをCommunityへ公開する
+### User管理MediaをCommunityへ共有する
 
-- CustodianであるUserが公開先Communityを選ぶ
-- 1つのMediaを複数Communityへ公開できる
-- 公開先参加者全員が閲覧できる
+- CustodianであるUserが共有先Communityを選ぶ
+- 1つのMediaを複数Communityへ共有できる
+- 共有先参加者全員が閲覧できる
 - CustodianはUserのまま
-- 別の公開先には影響しない
+- 別の共有先には影響しない
 
-### User管理Mediaの公開を解除する
+### User管理Mediaの共有を解除する
 
 - 対象Communityとの閲覧関係だけを削除する
-- 他Communityへの公開は維持する
+- 他Communityへの共有は維持する
 - Media本体とCustodianは変更しない
 
 ### Mediaを委譲する
+
+管理主体の委譲は初回Release対象外です。[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で将来機能として検討します。
 
 対応する遷移はUser→User、User→Community、Community→Userです。
 
@@ -58,7 +60,7 @@
 
 結果:
 
-- 既存公開をすべて解除する
+- 既存共有をすべて解除する
 - Custodianを変更する
 - Uploaderは変更しない
 - CUSTODIAN_CHANGEDイベントを記録する
@@ -67,7 +69,8 @@
 
 - 復元できないことを表示する
 - 物理ファイル、派生ファイル、DBレコードを削除する
-- Group関連と公開設定を削除する
+- Group関連と共有設定を削除する
+- Community管理MediaはAdministratorと参加中のUploader本人が削除できる
 - 問い合わせによる個別復元を提供しない
 
 ### User削除前に管理Mediaを解決する
@@ -80,7 +83,7 @@
 ### MediaをGroupへ追加・除外する
 
 - 1つのMediaを複数Groupへ追加できる
-- 追加・除外でCustodianと公開範囲を変更しない
+- 追加・除外でCustodianと共有範囲を変更しない
 - Groupから除外してもMedia本体を削除しない
 
 ### Media Groupを関連付ける
@@ -95,8 +98,8 @@
 | --- | --- |
 | 著作権者を登録・証明する | 正確な判定と権利管理が困難 |
 | Mediaを複数主体で共同管理する | 責任・課金主体が曖昧になる |
-| Community内で参加者別に公開する | Community内全員共有の目的に反する |
-| Community管理Mediaを別Communityへ公開する | Communityの独立性を崩す |
+| Community内で参加者別に共有する | Community内全員共有の目的に反する |
+| Community管理Mediaを別Communityへ共有する | Communityの独立性を崩す |
 | Community間で直接委譲する | 具体的な利用場面がない |
 | Groupでアクセス制御する | 分類と権限が混在する |
 | 削除Mediaを復元する | ライフサイクルと問い合わせ対応が複雑になる |

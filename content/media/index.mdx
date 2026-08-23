@@ -30,8 +30,8 @@ classDiagram
 
 - Uploaderは最初にアップロードしたUserです。著作権者や法的所有者を意味しません。
 - CustodianはMediaを現在管理する1 Userまたは1 Communityです。
-- Viewerは公開先Communityへの参加を通してMediaを閲覧します。
-- Media Eventはアップロード、委譲、公開変更、削除など重要操作のトレースです。
+- Viewerは共有先Communityへの参加を通してMediaを閲覧します。
+- Media Eventはアップロード、委譲、共有変更、削除など重要操作のトレースです。
 - Media VariantはOriginalから生成する表示用の派生物です。画像一覧と詳細表示は同じ派生物を使用します。
 - Media Processing Jobは派生物の非同期生成を管理します。Uploader、Custodian、閲覧権限はそれぞれ独立した概念です。
 
@@ -40,12 +40,12 @@ classDiagram
 1. Mediaには常に1つのCustodianが存在します。
 2. Custodianは1 Userまたは1 Communityのどちらか一方です。
 3. 管理責任と閲覧可能範囲を分離します。
-4. User管理Mediaは複数Communityへ公開できます。
-5. Community管理Mediaは別Communityへ公開しません。
-6. Community内部では参加者全員が公開Mediaを閲覧できます。
+4. User管理Mediaは複数Communityへ共有できます。
+5. Community管理Mediaは別Communityへ共有しません。
+6. Community内部では参加者全員が共有Mediaを閲覧できます。
 7. Media Groupは分類専用で、管理・閲覧権限に影響しません。
 8. 削除したMediaは復元できません。
 9. 著作権者、利用許諾、権利移転は管理しません。
 
-詳細は[ユースケース](./use-cases)、[論理データモデル](./data-model)、[物理データモデル](./physical-data-model)、[レコードパターン](./record-patterns)、[整合性とTransaction](./consistency-transactions)、[Media処理と派生物](./processing)を参照してください。
+詳細は[Community詳細設計](./community)、[ユースケース](./use-cases)、[論理データモデル](./data-model)、[物理データモデル](./physical-data-model)、[レコードパターン](./record-patterns)、[整合性とTransaction](./consistency-transactions)、[Media処理と派生物](./processing)を参照してください。
 

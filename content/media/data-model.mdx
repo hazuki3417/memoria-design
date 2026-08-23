@@ -16,7 +16,7 @@ erDiagram
   MEDIA ||--o{ MEDIA_EVENT : traced_by
   MEDIA ||--o{ MEDIA_VARIANT : derived_as
   MEDIA ||--o{ MEDIA_PROCESSING_JOB : processed_by
-  MEDIA ||--o{ MEDIA_COMMUNITY_ACCESS : published_to
+  MEDIA ||--o{ MEDIA_COMMUNITY_ACCESS : shared_to
   COMMUNITY ||--o{ MEDIA_COMMUNITY_ACCESS : can_view
 ```
 
@@ -27,7 +27,7 @@ erDiagram
 | id | Media識別子 |
 | mediaType | IMAGEまたはVIDEO |
 | fileName・fileSize・mimeType | 原本の属性 |
-| uploadedByUserId | 最初のUploader。User削除後は不明を許容 |
+| uploadedByUserId | 最初のUploader。User削除後は「削除済みUser」として扱う |
 | uploadedAt | アップロード日時 |
 | createdAt・updatedAt | 登録・更新日時 |
 
@@ -39,7 +39,7 @@ Media自体には管理主体を埋め込みません。Uploaderは操作の実�
 
 Media Variantは対象Media、派生形式、幅・高さ、storage key、byte数を保持します。Imageではアスペクト比を維持した複数幅のWebPを生成し、一覧と詳細表示で共用します。Processing JobはMedia、処理種別、状態、試行回数、失敗内容を保持し、1 Jobは1 Mediaだけを対象にします。
 
-## Custodianと公開
+## Custodianと共有
 
 各MediaはUser Media CustodyまたはCommunity Media Custodyを必ず一つだけ持ちます。両方がない状態と両方がある状態をDB制約または同等の仕組みで禁止します。
 
@@ -61,7 +61,9 @@ GroupはUserまたはCommunityのスコープを一つ持ち、Mediaは複数Gro
 
 ## Community
 
-Community、Membership、Community Administratorを管理します。Communityはネストせず、参加者・Media・権限を別Communityへ継承しません。MembershipはCommunity公開Mediaを閲覧する前提です。
+Community、Membership、Community Administrator、招待URL、参加申請を管理します。Administratorは有効なMembershipを持ち、Communityごとに常に1人以上存在します。Communityはネストせず、参加者・Media・権限を別Communityへ継承しません。MembershipはCommunity共有Mediaを閲覧し、Uploader権限を行使する前提です。
+
+招待URLはCommunityに所属し、7日間有効です。参加申請は未承認のものだけCommunity・Userごとに1件とし、Administratorの承認でMembershipを作成します。詳細は[Community詳細設計](./community)を参照します。
 
 ## 詳細設計
 
