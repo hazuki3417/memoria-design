@@ -209,12 +209,6 @@ PKは`(media_group_id, media_id)`です。GroupのscopeとMediaの操作権限�
 
 PKは`(parent_group_id, child_group_id)`です。自己参照をCHECKで禁止し、多段循環は追加前にrecursive CTEまたはServiceのgraph探索で検出します。親子は同一scopeに限定します。
 
-## 他domainとの境界
-
-`communities`、`community_memberships`、`community_administrators`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。
-
-Media domainは`media_custodies`と`media_community_accesses`を所有し、Communityへの参照と共有・管理関係を定義します。
-
 ### Storage operation
 
 `media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。
@@ -232,3 +226,9 @@ Media domainは`media_custodies`と`media_community_accesses`を所有し、Comm
 | created_at・updated_at | timestamptz | NOT NULL  登録・更新時刻 |
 
 uniqueは`(media_id, operation_type, object_key)`です。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。
+
+## 他domainとの境界
+
+`communities`、`community_memberships`、`community_administrators`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。
+
+Media domainは`media_custodies`と`media_community_accesses`を所有し、Communityへの参照と共有・管理関係を定義します。
