@@ -34,7 +34,7 @@ PostgreSQL、Object Storage、Auth0は一つのTransactionにできません。�
 
 ## Backupとの関係
 
-障害復旧用backupに削除済みdataが保持期限まで残る場合がありますが、個別User・Community・Mediaの復元には使用しません。backupの保持期間と復旧目標は[非機能要件](./non-functional-requirements)を正本とします。
+障害復旧用backupに削除済みdataが保持期限まで残る場合がありますが、個別User・Community・Mediaの復元には使用しません。backupは非公開かつ暗号化して保持し、削除済みdataが保持期限まで残ることを残存riskとして明示します。保持期間と復旧目標は[非機能要件](./non-functional-requirements)、Privacy上の制約は[Security・Privacy要求](./security-privacy-requirements)を正本とします。
 
 ## Domain固有の削除条件
 

@@ -6,7 +6,7 @@
 
 非機能要件は、Memoriaを安全かつ継続的に運用するための性能、容量、信頼性、security、運用上の基準です。初期構成は個人開発による小規模運用とEC2上のDockerを前提とし、高可用性構成や常時監視体制を先に要求しません。
 
-この文書の数値は初期の設計目標です。実測結果、利用人数、扱うMediaの形式、予算に応じて見直します。初回Releaseの対象機能は[Issue #26](https://github.com/hazuki3417/memoria-design/issues/26)、Security・Privacyの詳細は[Issue #27](https://github.com/hazuki3417/memoria-design/issues/27)、動画固有の処理条件は[Issue #20](https://github.com/hazuki3417/memoria-design/issues/20)で確定します。
+この文書の数値は初期の設計目標です。実測結果、利用人数、扱うMediaの形式、予算に応じて見直します。初回Releaseの対象機能は[Issue #26](https://github.com/hazuki3417/memoria-design/issues/26)、Security・Privacyの詳細は[Security・Privacy要求](./security-privacy-requirements)、動画固有の処理条件は[Issue #20](https://github.com/hazuki3417/memoria-design/issues/20)で確定します。
 
 ## 前提と適用範囲
 
@@ -144,7 +144,7 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 認証主体、認可の再評価、個人情報最小化、秘密情報の扱いは[認証・認可・Privacy共通方針](./authentication-authorization-privacy)を正本とします。本節は運用上の受け入れ基準だけを扱います。
 
-この節は運用に必要な共通基準です。個人情報の分類、EXIF、通報対応、Cookie、CSRF、残存riskなどの詳細は[Security・Privacy要求](https://github.com/hazuki3417/memoria-design/issues/27)で確定します。
+この節は運用に必要な共通基準です。個人情報の分類、EXIF、通報対応、Cookie、CSRF、残存riskなどの詳細は[Security・Privacy要求](./security-privacy-requirements)を正本とします。
 
 - 通信経路にはTLSを使用し、Object Storageへの非暗号化通信を許可しません。
 - S3 bucketは非公開とし、保存dataとEC2のEBSを暗号化します。

@@ -11,7 +11,9 @@ APIは構造化logにZap、traceにOpenTelemetryを使用し、ローカルで�
 - request・traceの相関IDを伝播します。
 - Web、API、PostgreSQL、Outbox Event、Redis Streams、Media Worker、Object Storageの間でtrace contextを引き継ぎ、非同期境界でも処理を追跡できるようにします。
 - Job ID、Media ID、attempt、配送状態で処理を関連付け、署名付きURLやcredentialは記録しません。
-- password、token、Media本体、不要な個人情報を記録しません。対象情報の分類は[認証・認可・Privacy共通方針](./authentication-authorization-privacy)を正本とします。
+- password、認証・招待token、署名付きURL、credential、Media本体、GPS、撮影情報、不要な元file名、nickname、Auth0 issuer・subjectを通常logやtraceへ記録しません。
+- request body、GraphQL変数、認証headerを一律に出力せず、request ID、Job ID、操作結果、error code、処理時間と必要最小限の内部IDだけを記録します。
+- 保護対象と運用上の残存riskは[Security・Privacy要求](./security-privacy-requirements)を正本とします。
 - 保存期間の初期値はApplication log 30日、trace 7日、Media Event 90日とし、無期限保存を既定にしません。費用、検索性、Privacy要求に応じて見直します。
 - DAM・APMという製品分類ではなく、観測目的とsignalで整理します。
 

@@ -1,0 +1,146 @@
+# Security・Privacy要求
+
+## 概要
+
+> 実装状況: Auth0認証、基本的な権限制御、S3互換Storageは一部存在します。画像metadata除去、統一的な認可、招待保護、rate limit、secret保護、backup運用には差分があります。
+
+Memoriaが保護するdata、想定する脅威、許容しないrisk、初回Releaseの対策と対象外を定義します。家庭・Communityの非公開画像を扱う小規模な個人開発を前提とし、実装方式は各domainおよびWeb、API、IaCの設計へ引き渡します。
+
+## 基本方針
+
+- Media、User情報、Community情報はprivate by defaultとする。
+- 認証はAuth0、Product内の認可はMemoriaが担当する。
+- 操作ごとに現在のUser状態、Membership、role、Custody、Uploaderを確認する。
+- 不要な個人情報を収集・保存・表示しない。
+- Originalは変更せず保持し、通常表示はmetadataを除去したVariantに限定する。
+- 削除は物理削除を基本とし、利用者向けの個別復元を提供しない。
+- 初期のEC2 + Docker構成と個人運用で継続できる対策を優先する。
+
+## 保護対象とdata分類
+
+| 分類 | 対象 | 保護要件 |
+| --- | --- | --- |
+| secret・認証情報 | credential、認証token、session、招待token、署名情報 | 最小権限、短期利用、log・Client・Repositoryへの非出力 |
+| Original | uploadされた画像file | private Storage、個別認可、短期署名、無加工保存 |
+| Image Variant | 通常表示用のWebP | private配信、閲覧認可、metadata除去 |
+| 画像metadata | GPS、撮影日時、撮影端末、元file名 | 業務dataとして抽出・保存・表示しない |
+| User情報 | 内部User ID、Auth0 issuer・subject、nickname、状態 | 用途を限定し、不要な認証identifierを公開しない |
+| Community情報 | Community名、Membership、申請、role、Group、Tag | 有効なMembershipと操作権限に基づいて保護する |
+| 運用data | log、trace、Job、Event、backup | 必要最小限の記録、保持期限、参照権限制御、暗号化 |
+
+nickname、Community名、Group名、Tag名にも利用者が個人を特定できる情報を入力する可能性があります。公開dataとみなさず、所属とユースケースに応じて表示範囲を制限します。招待画面では有効な招待URLを持つ人へCommunity名だけを表示します。
+
+## Actorと脅威
+
+| Actor | 想定する脅威 | 必要な対策 |
+| --- | --- | --- |
+| 未認証者 | 非公開画像の直接取得、招待URLの推測 | private Storage、認証、推測困難なtoken |
+| 別のUser・Community | 他人のMedia、参加者、Group、Tagの取得 | 操作単位の認可、所属とCustodyの再確認 |
+| 正規Member | Original取得、他人のMedia削除、管理操作 | roleとUploaderを区別した認可 |
+| 退会・除外済みUser | 過去のURLや権限による継続閲覧 | 新規署名の拒否、短い署名有効期間 |
+| 招待URLの取得者 | URLだけによる不正参加 | Login、User登録、Administrator承認 |
+| Bot・悪意あるClient | token探索、大量Upload、過剰Query | rate limit、入力検証、取得件数・request制限 |
+| 利用者本人 | 意図しない削除、位置情報の露出 | 明示確認、再認証、Variantのmetadata除去 |
+| 運用者・設定不備 | secret露出、bucket公開、backup漏えい | 最小権限、非公開設定、暗号化、運用手順 |
+| 外部service障害 | Auth0・Storage・DBの不整合 | fail closed、durable Job、retry、運用再開 |
+
+非公開画像の無認可取得、退会後の新しい閲覧許可、一般MemberによるOriginal取得、不要な個人情報の保存、secretのlog出力は許容しません。発行済みの署名付きURLが短い有効期間中に利用可能なriskと、障害復旧用backupに削除済みdataが保持期限まで残るriskは、制限と運用条件を明示したうえで許容します。
+
+## User情報と認証
+
+Productが保持するUser情報は内部ID、Auth0のissuer・subject、nickname、状態、必要な時刻に限定します。email、氏名の専用項目、電話番号、住所、生年月日、profile画像、古いnickname、削除済みUserの認証identifierは保存しません。
+
+Auth0表示名は登録画面のnickname初期値としてだけ利用します。認証tokenは必要な認証処理とsession維持に限って扱い、業務dataとして保存しません。session、Cookie、CSRFの実装は採用する認証方式に合わせ、HttpOnly、Secure、適切なSameSite、期限、再認証を適用します。
+
+## Mediaとmetadata
+
+Originalは利用者がuploadしたdataを加工せず保存します。Image Variantは向きを正しく表示するために必要な情報だけ処理に利用し、EXIF、GPS、撮影日時、端末情報などの埋め込みmetadataを除去したWebPとして生成します。metadataをDBへ抽出・保存せず、一覧や詳細画面にも表示しません。
+
+OriginalをdownloadできるUserには、位置情報などのmetadataが含まれる可能性を案内できるようにします。Originalの原本性とmetadata除去を同時に満たすため、Original自体の書き換えは行いません。
+
+Uploadは許可された静止画像だけを対象とし、拡張子、申告されたContent-Type、file signature、decode可能性、file size、画素数を組み合わせて確認します。文書、PDF、実行file、動画、SVGは、安全性と対象範囲が別途合意されるまで初回Releaseで受け付けません。具体的な対応形式と画素数は静止画像処理の詳細設計、容量上限は[非機能要件](./non-functional-requirements)で管理します。
+
+## Community、招待、Media権限
+
+Communityは参加者以外へ公開しません。招待tokenは推測困難な乱数で生成してhashだけを保存し、有効期間を7日とします。有効な招待URLはCommunityごとに1件とし、参加にはAuth0 Login、User登録、Administrator承認を要求します。
+
+OriginalをdownloadできるのはUser管理MediaのCustodian、Community管理MediaのAdministrator、Communityへ参加中の対象Uploader本人だけです。共有先CommunityのAdministratorを含む他のMemberはVariantのみ閲覧できます。退会、除外、削除後は操作時点の権限を再評価し、新しい署名付きURLやCookieを発行しません。
+
+Custodyの委譲は初回Release対象外です。将来導入する際は、共有関係、Group・Tag、Original権限、既存署名の再評価を専用Issueで設計します。具体的な権限表は[Community権限](/community/authorization)を正本とします。
+
+## Storageと配信
+
+S3 bucketとbackupは非公開にし、public access block、保存時の暗号化、必要最小限のIAM権限を適用します。CloudFrontを利用する場合はOrigin Access Controlを使い、APIの認可後に短期間のSigned URLまたはSigned Cookieを発行します。
+
+Original downloadの署名期限は5分、表示用Variantの署名期限は15分を初期値とします。署名発行時の権限確認と権限喪失後の再発行禁止を必須とし、発行済み署名の即時・完全失効は保証しません。Storage keyにはUser ID、Community ID、利用者の元file名を含めません。
+
+非公開Mediaの先読みとcacheも通常表示と同じ認可済み配信経路を使用します。共有cacheやClient側の公開設定により別のUserへ転用できる状態を作りません。
+
+## API、GraphQL、入力制限
+
+GraphQLのQuery、Mutation、必要なfieldごとに認証と認可を評価し、Clientから渡されたrole、User ID、Community IDを権限の根拠にしません。非公開resourceの存在や内部構造を不要に開示せず、SQL、stack trace、credential、内部error詳細をresponseへ含めません。
+
+一覧取得数、request size、Query depth、過剰なbatch取得には合理的な上限を設定します。招待URL照会、参加申請、Upload、OriginalのURL発行、account削除、GraphQL requestには対象に応じてrate limitを適用します。一般的なAPI制限の初期値はUserあたり60 request/分、burst 20とし、用途別の値は後続設計で決定します。
+
+IP addressを制限判定に使う場合は必要最小限・短期間の利用に限定し、恒久的な利用者追跡のために保存しません。
+
+## Log、trace、Event
+
+記録できる情報はrequest ID、Job ID、操作種別、結果、error code、処理時間、必要最小限の内部IDに限定します。操作確認に必要なCommunity削除などのeventは、secretや不要な個人情報を含めず記録します。
+
+password、access token、refresh token、session、招待token、署名付きURL、credential、画像本体、GPS、撮影情報、不要な元file名、nickname、Auth0 issuer・subjectを通常のlogやtraceに記録しません。request bodyやGraphQL変数を一律に出力しない構成を採用します。
+
+Application logは30日、traceは7日、Media Eventは90日を初期保持期間とし、参照権限を制限します。詳細は[ログ・可観測性](./observability)と[非機能要件](./non-functional-requirements)を参照します。
+
+## 削除、backup、復旧
+
+User、Community、Mediaは物理削除を基本とし、Original、Variant、関連record、外部service cleanupを対象に含めます。account削除では影響確認とAuth0再認証を行い、受付後はUserをDELETINGとして直ちに操作不可にします。
+
+外部cleanupに失敗してもUserを再有効化せず、durable Jobを保持してretryまたは運用者による再開を可能にします。Communityに残るMediaのUploader参照はNULLとし、画面では「削除済みUser」と表示します。
+
+暗号化された障害復旧用backupには削除済みdataが保持期限まで残る場合があります。DB backupの初期保持期間は14日とし、個別User・Mediaの復元依頼には利用しません。復旧時は復旧対象、参照権限、削除済みdataへの影響を確認します。
+
+## Infrastructure、secret、運用
+
+通信にはHTTPSを使用し、Storageとbackupは暗号化します。DBや内部通信の保護はEC2 + Docker構成の境界に応じて設計します。secretをGit、Issue、PR、設計書、container image、Client bundle、log、IaC outputへ含めず、実行環境から注入します。
+
+運用者の権限は業務上必要な範囲へ限定し、障害対応に不要なOriginalの閲覧や、画像・tokenの外部共有を禁止します。認可拒否の急増、rate limit超過、secret露出、backup失敗、非同期cleanup失敗を検知対象とし、個人運用で確認できる方法を採用します。
+
+不正・違法Media、著作権、通報、削除依頼に対する法的判断や責任境界は、技術設計だけで確定しません。必要な運用窓口と対応判断はProduct運用として別途扱います。
+
+## 初回Releaseの対象外
+
+- 24時間有人監視、専任Security team、SIEMによる統合監視。
+- 改ざん耐性と長期保持を前提とする完全な監査基盤。
+- 高度なmalware scanning、違法画像自動判定、行動追跡、fingerprinting。
+- 高額なWAF、複雑な独自key管理、過剰なnetwork分離。
+- Member単位の複雑な個別ACLとCustodyの委譲。
+- ごみ箱、個別復元、削除済みdataの利用者向け復旧。
+- Auth0との常時同期、別認証方法のaccount統合。
+- Originalを書き換えてmetadataを除去する処理。
+- 撮影日時、位置情報、端末情報を利用する検索・分類。
+
+## 詳細設計への引き渡し
+
+| 領域 | 後続設計 | 引き渡す要件 |
+| --- | --- | --- |
+| 静止画像処理 | Issue #44 | 許可形式、signature確認、画素数上限、向き補正、Variantのmetadata除去 |
+| GraphQL契約 | Issue #17 | 操作単位の認可、一覧上限、error公開範囲、rate limit |
+| 画面・操作 | Issue #18 | 招待画面の最小公開、削除確認、Original metadataの案内 |
+| EC2運用 | Issue #45 | secret注入、HTTPS、private Storage、backup暗号化、監視 |
+| Group・Tag | Issue #42・#43 | 所属境界、非公開名称、Mediaとの認可整合 |
+| User・Community | 既存domain設計 | 再認証、token保護、Membership失効、Uploader権限 |
+
+## 受け入れ条件
+
+- 未認証者、別User、別Communityが非公開Mediaを取得できない。
+- Communityの一般Memberは、Uploader本人でない限りOriginalを取得できない。
+- 退会・除外・削除後に新しい閲覧許可やOriginal URLを発行しない。
+- Image VariantにEXIF、GPS、撮影端末などのmetadataが含まれない。
+- emailなど不要な個人情報と削除済みUserの認証identifierを保存しない。
+- secret、token、署名付きURL、画像metadataをlogやtraceへ出力しない。
+- 不正形式、decode不能file、上限を超える画像を拒否する。
+- 招待URLだけでCommunityへ参加できない。
+- account削除に影響確認と再認証を要求し、失敗してもaccessを復活させない。
+- Storageとbackupを公開せず、保持期間を過ぎたdataを破棄する。
+- 初回Releaseの対象外と許容する残存riskを説明できる。

@@ -1,5 +1,6 @@
 export default {
   "index": "横断設計",
+  "security-privacy-requirements": "Security・Privacy要求",
   "authentication-authorization-privacy": "認証・認可・Privacy",
   "transactions-consistency": "Transaction・競合制御",
   "deletion-lifecycle": "削除・Lifecycle",
