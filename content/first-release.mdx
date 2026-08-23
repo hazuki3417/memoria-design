@@ -14,7 +14,7 @@
 
 | 領域 | 必須範囲 | 設計上の留意点 |
 | --- | --- | --- |
-| 認証・User | ログインとアプリケーション利用に必要なUser初期化 | Auth0と既存の認証・認可方針に従う |
+| 認証・User | Login、nickname登録・変更、Logout、session失効、account削除 | Auth0とMemoriaの責務を分離し、個人情報を最小化する |
 | 静止画像 | Upload、一覧表示、詳細表示、削除 | 動画や画像以外のファイルは含めない |
 | 表示用画像 | アスペクト比を維持した複数幅のWebP Variant | 一覧と詳細で同じVariantを利用し、原本より拡大しない |
 | 非同期処理 | 原本保存、Media/Custody登録、Processing Job、Transactional Outbox、Redis Streams、Worker | 冪等性、失敗、再試行、削除との競合を扱う |
@@ -26,12 +26,13 @@
 | 実行基盤 | EC2 + Docker、Deploy、秘密情報管理、Backup、復旧、監視 | 予算に応じて構成し、PostgreSQL/Redisの配置は運用設計で確定する |
 | 品質管理 | 各RepositoryのGitHub Actions quality gateと人間によるReview | ChatGPTの実行環境ではbuild、test、静的解析、構文検証を行わない |
 
-Media削除は必須ですが、Userアカウント削除、管理主体の委譲、原本ダウンロード用画面を自動的に初回Releaseの必須機能とはしません。それらを提供する場合は既存の不変条件と認可設計に従います。
+Media削除とUser account削除は初回Releaseの必須機能です。管理主体の委譲と独立した原本download画面は初回Releaseの必須機能とはしません。それらを提供する場合は既存の不変条件と認可設計に従います。
 
 ## 初回Releaseに含めない機能
 
 - 動画、PDF、文書、音声単体など静止画像以外の登録
 - 課金、料金体系、請求処理、自動Tag付け
+- profile画像、複数認証方法のaccount統合、公開用account ID：[#51](https://github.com/hazuki3417/memoria-design/issues/51)・[#52](https://github.com/hazuki3417/memoria-design/issues/52)・[#53](https://github.com/hazuki3417/memoria-design/issues/53)
 - メール通知・push通知：[通知機能 #47](https://github.com/hazuki3417/memoria-design/issues/47)
 - Media管理主体の委譲：[委譲機能 #48](https://github.com/hazuki3417/memoria-design/issues/48)
 - 利用価値を実現するために必須ではない一括操作や高度な検索
@@ -82,7 +83,7 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 | --- | --- | --- |
 | Community | [Community設計](/community)：参加者、Administrator、認可、管理関係 | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
 | Uploader権限 | Community参加中のUploader本人による削除・Original download | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
-| User・認証 | 認証、初期化、User lifecycle | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
+| User・認証 | [User設計](/user)：認証、登録、nickname、session、account削除 | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
 | Group | 所属、操作権限、階層、関連、削除 | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
 | Tag要求 | 分類目的、所属、操作主体、検索要求 | [#23](https://github.com/hazuki3417/memoria-design/issues/23) |
 | Tag詳細設計 | 物理モデル、認可、関連、絞り込み | [#43](https://github.com/hazuki3417/memoria-design/issues/43) |
