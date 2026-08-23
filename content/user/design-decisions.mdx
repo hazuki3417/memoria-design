@@ -1,20 +1,114 @@
 # User設計判断
 
-| 判断 | 理由 |
-| --- | --- |
-| Auth0とMemoriaの責務を分離 | passwordを保持せずProduct dataを外部IdPへ依存させない |
-| issuer・subjectの組で識別 | tenantをまたぐsubject衝突を避ける |
-| 個人情報を最小化 | 個人開発での漏えい・運用負荷を抑える |
-| nicknameはMemoriaを正本 | Auth0更新による意図しない表示変更を避ける |
-| ACTIVE / DELETINGのみ | 要求のない仮登録・停止状態を持たない |
-| 削除受付後は即時利用不可 | cleanup失敗中にdataと権限が増えることを防ぐ |
-| Auth0外部不整合は運用対応 | 自動削除による不可逆なdata lossを避ける |
-| account削除前に再認証 | 共有端末やsession乗っ取りによる破壊操作を抑える |
+## 概要
 
-account削除は初回Releaseに含め、User管理Mediaの削除確認を省略しません。一部cleanup失敗時もUserに再申請を求めず、DELETINGとdurable Jobでsystemが完了責任を持ちます。
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
 
-最後のAdministratorがCommunity削除を選んだ場合だけ、通常の「Community管理Mediaが0件」という条件に例外を設けます。他UserのUploadを含む対象を明示し、Community名入力と再認証を必要とします。
+User domainで採用した認証、個人情報、状態管理、account削除の方針、意図、制約、対象外を記録します。
 
-emailや表示名による自動統合、Auth0 profileの継続同期、Auth0側だけの削除によるMemoria data自動削除、削除済みUserの個人情報退避、独自の長期sessionは採用しません。
+## 1. Auth0とMemoriaの責務を分離する
 
-将来機能は[#51](https://github.com/hazuki3417/memoria-design/issues/51)、[#52](https://github.com/hazuki3417/memoria-design/issues/52)、[#53](https://github.com/hazuki3417/memoria-design/issues/53)で管理します。
+**決定**
+
+認証、password、外部identity、認証sessionはAuth0が管理し、nickname、User状態、Membership、Media権限はMemoriaが管理します。
+
+**意図**
+
+password管理をProductへ持ち込まず、Product固有dataと認可判断を外部IdPの都合へ依存させないためです。
+
+## 2. issuerとsubjectの組でUserを識別する
+
+**決定**
+
+Auth0のissuer・subjectを組み合わせて内部Userに対応付け、同じemailや表示名を理由に自動統合しません。
+
+**意図**
+
+tenantをまたぐsubjectの衝突と、本人確認なしの誤統合・account乗っ取りを防ぐためです。
+
+**対象外**
+
+複数認証方法のaccount統合は[Issue #52](https://github.com/hazuki3417/memoria-design/issues/52)で将来検討します。
+
+## 3. 個人情報を必要最小限にする
+
+**決定**
+
+email、氏名、電話番号、住所、生年月日、profile画像を保存しません。Auth0表示名は登録時のnickname初期値としてだけ使用します。
+
+**意図**
+
+個人開発における情報漏えい、保持、削除、運用上の責任を抑えるためです。
+
+**対象外**
+
+profile画像は[Issue #51](https://github.com/hazuki3417/memoria-design/issues/51)、公開用account IDは[Issue #53](https://github.com/hazuki3417/memoria-design/issues/53)で管理します。
+
+## 4. nicknameはMemoriaを正本とする
+
+**決定**
+
+nicknameは重複を許可し、Userが登録・変更します。Auth0から継続同期せず、過去のnicknameも保持しません。
+
+**意図**
+
+外部providerのprofile変更によってProduct内の表示が意図せず変わることを防ぐためです。
+
+## 5. User状態をACTIVEとDELETINGに限定する
+
+**決定**
+
+登録確定後はACTIVE、account削除受付後はDELETINGとし、削除完了後はUserを物理削除します。
+
+**意図**
+
+仮登録、停止、削除済み状態の管理を不要にし、必要な非同期cleanupだけを表現するためです。
+
+## 6. account削除を初回Releaseに含める
+
+**決定**
+
+User管理Mediaの復元不能な削除を明示し、最終確定前にAuth0で再認証します。削除受付後は即時に利用を停止し、durable Jobがcleanupを完了させます。
+
+**意図**
+
+本人確認と削除内容への同意を維持しながら、外部I/Oの失敗でUserが削除を再申請し続ける状態を防ぐためです。
+
+**制約**
+
+- User管理Mediaの件数と復元不能性を確認する。
+- 対象MediaとCommunityを受付時点で固定する。
+- 再試行・運用再開中もUserを復帰させない。
+- 外部provider accountは削除しない。
+
+## 7. 最後のAdministratorにはCommunityの扱いを選ばせる
+
+**決定**
+
+最後のAdministratorは別Memberの昇格、またはCommunity削除を選択します。account削除時にCommunity削除を選んだ場合だけ、Community管理Mediaを含めて削除できます。
+
+**意図**
+
+Communityの管理不能化を防ぎつつ、Mediaが残っていることだけでaccount削除を完了できない状態を避けるためです。
+
+**制約**
+
+他UserのUploadを含む削除対象、参加者数、Media件数を表示し、Community名入力と再認証を必要とします。
+
+## 8. Auth0側の不整合でMemoria dataを削除しない
+
+**決定**
+
+Auth0 accountが外部操作で削除・無効化された場合はLoginを拒否し、Memoria User、Media、Communityを保持します。
+
+**意図**
+
+外部serviceの操作によって復元できないProduct dataが自動削除されることを避けるためです。初回Releaseでは運用課題として扱います。
+
+## 採用しない方式
+
+- emailや表示名によるUserの自動統合。
+- Auth0 profileの継続同期。
+- Auth0側の削除を契機としたMemoria dataの自動削除。
+- 削除済みUserのnickname・email・認証identifierの退避。
+- 長期間sessionを維持する独自認証機構。
