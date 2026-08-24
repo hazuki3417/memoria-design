@@ -58,7 +58,7 @@ npm run build
 3. [Media関連ユースケース](./content/media/use-cases.mdx)
 4. [ユビキタス言語](./content/ubiquitous.mdx)
 5. [リポジトリ構成](./content/system/index.mdx)
-6. [非機能要件](./content/system/cross-cutting/non-functional-requirements.mdx)
+6. [非機能要件](./content/system/cross-cutting/non-functional-requirements.mdx)・[Security・Privacy要求](./content/system/cross-cutting/security-privacy-requirements.mdx)
 7. [ドキュメント管理方針](./content/documentation-policy.mdx)
 8. [Context map](./content/context/index.mdx)
 9. [ローカル開発環境](./content/local-development.mdx)
@@ -75,3 +75,5 @@ Community、参加申請、招待URL、Administrator、共有、Uploader権限�
 Mediaの派生画像・非同期処理を実装する場合は、[Media処理と派生物](./content/media/processing.mdx)、[非同期Media処理](./content/system/api/asynchronous-processing.mdx)、[Transactional Outbox](./content/system/api/transactional-outbox.mdx)、[Media表示と配信](./content/system/web/media-delivery.mdx)も確認してください。
 
 資料は日本語で記載し、設計と実装の差異を発見した場合は推測で解消せず、IssueまたはPRで報告します。
+
+BackendとGraphQLの実装規約は[Backend実装規約](./content/system/api/implementation-conventions.mdx)・[GraphQL・gqlgen実装規約](./content/system/api/graphql-implementation.mdx)、Frontendの状態管理は[Frontend実装規約](./content/system/web/implementation-conventions.mdx)を参照してください。PostgreSQL・Redisの自己運用、migration、EC2運用は[PostgreSQL・Redis運用](./content/system/data/postgresql-redis-operations.mdx)・[DB schema migration](./content/system/data/schema-migration.mdx)・[EC2・Docker運用基盤](./content/system/infrastructure/ec2-runtime-operations.mdx)を正本とします。

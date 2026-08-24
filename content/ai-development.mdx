@@ -230,3 +230,11 @@ AIは許可の範囲を推測で拡張しません。人間による手動操作
 - `memoria-api`のGraphQL・sqlc生成物同期検査
 - `memoria-IaC`のルートと`src/`に分散したNodeパッケージ構成の整理
 - 各リポジトリのbranch protectionと必須チェックの設定
+
+## AI支援開発における仕様とtest
+
+品質保証はTDDやBDDの手順そのものではなく、人間が確認した仕様、Behavior、公開契約、不変条件と、それらを検証するtestに基づきます。AIが初期の実装とtestを同時に生成しても、それだけを品質上の問題とはしません。
+
+人間はtestが期待する振る舞い、正常系、境界、失敗、認可、実装変更への耐性を表しているかReviewします。実装詳細へ過度に依存するtest、実質的に失敗しないtest、coverage数値だけを目的としたtestを避けます。
+
+仕様の確認後、testと実装を作成し、GitHub Actionsで検証し、その後の変更に対してtestを回帰防止のSafety Netとして維持します。ChatGPT実行環境でbuild・test・構文検証を行わない既存方針は変更しません。

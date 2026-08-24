@@ -55,6 +55,8 @@ WorkerはConsumer Groupで水平scaleできます。画像と動画の負荷差�
 - 配送保証はAt-Least-Onceとし、Exactly Onceを前提にしません。
 - 成果物保存、必要なDB更新、job完了の後に`XACK`します。
 - Worker停止後のpending messageは`XAUTOCLAIM`などで回収します。
+- Redis data喪失時はPostgreSQLのOutboxとProcessing Jobを照合し、未処理対象を冪等に再enqueueします。
+- 専用DLQを初期必須にせず、恒久失敗はPostgreSQL上のJob状態で追跡します。
 - 一時的な失敗は上限付きbackoffでretryします。
 - 回復不能な失敗はjobを`FAILED`として運用から確認できるようにします。
 - 同じeventやjobが再配送されても成果物が重複しないようにします。

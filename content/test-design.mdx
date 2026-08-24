@@ -70,3 +70,17 @@ k6は大規模な負荷試験だけではなく、変更による性能劣化を
 応答時間、一覧件数、file size、非同期処理、認可、削除、backup、復旧、監視の初期目標と受け入れ条件は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
 
 通常のPRでは変更に対応する境界値test、認可test、冪等性test、構成検査を優先します。k6による性能測定、復旧演習、障害注入は初回Release前または対象基盤の変更時に実施し、すべてのPRで長時間の運用試験を必須にしません。
+
+## Behavior、Contract、不変条件
+
+testは実装詳細やmethod呼び出し回数ではなく、期待する振る舞い、公開契約、認可、状態遷移、不変条件、境界値、失敗時の整合性を確認します。Domainはunit test、Use Caseは振る舞い中心のunit test、Repositoryは実PostgreSQL、Redis処理は実Redis、GraphQLはAPI integration testで検証します。
+
+Frontendは既存のVitest、Testing Library、Storybook、必要なPlaywrightを使用します。mockは外部境界に限定し、内部構造を過度に固定しません。table-driven testは同一Behaviorの入力variationに使い、異なる業務scenarioを一つのtableへ混在させません。
+
+coverageは不足を見つける補助指標であり、数値だけを品質目標にしません。人間はtestが仕様を表現し、失敗・境界・securityを含み、実装を壊したときに検出できるかをReviewします。
+
+## Architectureと生成物の機械検査
+
+DomainからInfrastructure、Transport、gqlgen、pgx、Redis、Zap、OpenTelemetryへの禁止依存や、ApplicationへのGraphQL生成型の流入は、重要なimport ruleに絞ってCIで検査します。巨大な専用Architecture frameworkは初期前提にしません。
+
+Backendはgofmt、go vet、staticcheck、必要最小限のlint、unit・integration test、生成物同期、buildを対象にします。Frontendは既存のBiome、TypeScript、Vitest、GraphQL codegen、Storybook、Next buildを対象とし、ESLint・Prettierを重複導入しません。migration、image起動、Repository横断E2Eは段階と必要性に応じて追加します。

@@ -1,0 +1,60 @@
+# Backend実装規約
+
+## 概要
+
+> 実装状況: GraphQL、Service、Domain、Repository、Infrastructureは既存実装があります。実行単位の分離、依存境界の機械検査、統一的なError分類と生成手順には差分があります。
+
+memoria-apiの実装規約を定義します。[APIクリーンアーキテクチャ](./clean-architecture)は責務と依存方向、本ページは具体的な実装上の判断を正本とします。Layerの追加や抽象化そのものを目的にしません。
+
+## 実行単位と依存方向
+
+API、Media Worker、Outbox Publisherを同一Repositoryで所有し、独立したprocessとして起動します。実行entry pointはAPI、Worker、Publisherごとに分け、具体的なdirectoryは実装Repositoryを正本とします。
+
+- TransportはApplicationとDomainを呼び出し、Infrastructureは内側のContractを実装する。
+- Domainはgqlgen、pgx、Redis client、Zap、OpenTelemetry、AWS SDKへ依存しない。
+- ApplicationへGraphQL生成型、DB row、SDK固有型を持ち込まない。
+- Architecture上のLayer境界と、Transaction、span、timeout、logの境界を同一視しない。
+- 重要なimport制約だけをCIで機械的に検査し、空のLayerや巨大な独自frameworkを作らない。
+
+## Use Case、DI、Repository
+
+一つの利用者目的またはSystem操作をUse Case単位とし、contextと入力を受け取ります。認可、処理順序、Transaction境界、冪等性はUse Caseが所有します。
+
+依存関係はmainまたはbootstrapからconstructor injectionで組み立てます。DI framework、汎用Repository、技術都合のCRUD抽象化は導入しません。interfaceはRepository、Storage、外部service、Clockなど、置換または境界が実際に必要な対象へ限定します。
+
+RepositoryはUse Caseが必要とする永続化操作を提供し、独自にTransaction境界を決定しません。DomainはTransactionや外部I/Oを知りません。詳細は[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)を参照します。
+
+## Error設計
+
+Go標準のerror、errors.Is、errors.As、error wrappingを基本とし、DomainやApplicationをTransport固有のError型へ依存させません。
+
+| 分類 | 意味 |
+| --- | --- |
+| VALIDATION | 入力形式または業務上の入力条件が不正 |
+| UNAUTHENTICATED | 認証されていない、または認証が無効 |
+| FORBIDDEN | 対象操作の権限がない |
+| NOT_FOUND | 対象が存在しない、または公開できない |
+| CONFLICT | 状態競合、一意制約違反、重複操作 |
+| UNAVAILABLE | 外部依存の一時的な利用不可 |
+| INTERNAL | 公開できない予期しない内部障害 |
+
+GraphQLで公開するcode、Operation固有のerrorと存在秘匿の扱いは[GraphQL契約](./graphql)で具体化します。想定済みの入力Errorや認可拒否を一律にERROR logへ出力せず、予期しない障害は適切なBoundaryで一度だけ記録します。Error、Log level、retry、metric、alert、GraphQL codeを単一の万能型へ集約しません。
+
+## SQL、並行処理、context
+
+- SQLはparameterized queryを使い、必要なcolumnを明示し、原則としてSELECT *を避ける。
+- PostgreSQLのSQLとindexを素直に利用し、汎用query builderを必須にしない。
+- context.Contextは関数の第一引数として伝播し、structへ保持せず、途中でcontext.Backgroundへ置換しない。
+- Domain entityへcontextを持ち込まない。
+- goroutineは停止責任、cancel、error伝達が明確な場合だけ起動する。
+- fire-and-forgetを業務処理に使用せず、耐久性が必要な非同期処理はOutbox、Redis Streams、Workerへ渡す。
+
+timeout、retry、shutdownの共通規約は[実行時の信頼性](/system/cross-cutting/runtime-reliability)を参照します。
+
+## 命名、生成、コメント
+
+Go package名は短い英小文字とし、utils、common、helpersの乱用やinterfaceへのI接頭辞を避けます。constructorはNewを基本とし、生成codeは編集しません。
+
+gqlgen、sqlc、mockなどの生成元・生成物の所有者と生成commandはmemoria-apiを正本とし、GitHub Actionsで生成差分を確認します。gofmt、go vet、staticcheckと必要最小限のlintを利用し、styleを人間のReviewで議論しません。
+
+commentはcodeの説明ではなく、判断理由、制約、非自明な背景を記録します。共通化は見た目の重複ではなく、変更理由が同じかどうかで判断します。

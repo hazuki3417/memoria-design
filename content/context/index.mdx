@@ -33,6 +33,11 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 | 文書の正本と記載形式 | [ドキュメント管理方針](/documentation-policy)・[設計書テンプレート](/design-document-templates) |
 | 物理データモデル共通規約 | [物理データモデル共通規約](/system/data/physical-model-conventions) |
 | Security・Privacy・脅威・保護対象 | [Security・Privacy要求](/system/cross-cutting/security-privacy-requirements) |
+| Backend実装規約・GraphQL境界 | [Backend実装規約](/system/api/implementation-conventions)・[GraphQL・gqlgen実装規約](/system/api/graphql-implementation) |
+| Frontend状態管理・実装規約 | [Frontend実装規約](/system/web/implementation-conventions) |
+| PostgreSQL・Redis自己運用・migration | [PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)・[DB schema migration](/system/data/schema-migration) |
+| EC2・Docker・Deploy基盤 | [EC2・Docker運用基盤](/system/infrastructure/ec2-runtime-operations) |
+| Timeout・retry・health check・停止 | [実行時の信頼性](/system/cross-cutting/runtime-reliability) |
 | 認証・認可・個人情報 | [認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy) |
 | Transaction・競合制御 | [Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency) |
 | 削除・Lifecycle | [削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle) |
@@ -77,12 +82,31 @@ ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実�
 
 保護対象、権限、metadata、secret、残存riskの決定内容をContextへ複製せず、上記の正本を順に参照します。
 
+### Backend実装、GraphQL、生成code
+
+1. [APIクリーンアーキテクチャ](/system/api/clean-architecture)
+2. [Backend実装規約](/system/api/implementation-conventions)
+3. [GraphQL契約](/system/api/graphql)と[GraphQL・gqlgen実装規約](/system/api/graphql-implementation)
+4. [実行時の信頼性](/system/cross-cutting/runtime-reliability)と[ログ・可観測性](/system/cross-cutting/observability)
+5. [入力検証](/system/api/validation)、[Transaction・競合制御](/system/cross-cutting/transactions-consistency)、[テスト設計](/test-design)
+6. memoria-apiの実行可能なschema、生成設定、README、GitHub Actions
+
+### PostgreSQL、Redis、migration、EC2運用
+
+1. [EC2・Docker運用基盤](/system/infrastructure/ec2-runtime-operations)
+2. [PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)
+3. [DB schema migration](/system/data/schema-migration)
+4. [非機能要件](/system/cross-cutting/non-functional-requirements)と[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)
+5. [ビルド・デプロイ](/build-deploy)、[設定・シークレット](/system/cross-cutting/configuration)、[実行時の信頼性](/system/cross-cutting/runtime-reliability)
+6. memoria-apiとmemoria-IaCが所有する実装、設定、Issue
+
 ### Web画面・UI
 
 1. Issueの受け入れ条件
 2. `memoria-web/AGENTS.md`とREADME
-3. [ローカル開発環境](/local-development)
-4. 対象route・feature・component・Storybook
+3. [Frontend実装規約](/system/web/implementation-conventions)
+4. [ローカル開発環境](/local-development)
+5. 対象route・feature・component・Storybook
 5. [コンポーネント設計](/system/web)
 6. API利用がある場合はGraphQL設計とAPI側schema
 

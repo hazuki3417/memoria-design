@@ -82,7 +82,11 @@
 - 各ページの章立て、情報の粒度、表形式は`content/design-document-templates.mdx`を正本とし、作成・更新時に適用します。
 - ID、日時、命名、constraint、indexなどの共通DB規約は`content/system/data/physical-model-conventions.mdx`へ集約し、domain文書へ複製しません。
 - Security・Privacyの保護対象、脅威、metadata、残存risk、対象外は`content/system/cross-cutting/security-privacy-requirements.mdx`を正本とします。
-- 認証・認可・Privacy、Transaction・競合制御、削除・Lifecycleの共通方針は`content/system/cross-cutting/`へ集約します。
+- 認証・認可・Privacy、Transaction・競合制御、削除・Lifecycle、実行時の信頼性の共通方針は`content/system/cross-cutting/`へ集約します。
+- BackendとGraphQLの実装規約は`content/system/api/implementation-conventions.mdx`、`content/system/api/graphql-implementation.mdx`を正本とします。
+- Frontend状態管理と実装規約は`content/system/web/implementation-conventions.mdx`を正本とし、静的解析には既存のBiomeを使用します。
+- PostgreSQL・RedisのEC2上での自己運用とmigrationは`content/system/data/postgresql-redis-operations.mdx`、`content/system/data/schema-migration.mdx`を正本とします。
+- 初期のEC2・Docker・EBS・SSM運用は`content/system/infrastructure/ec2-runtime-operations.mdx`を正本とし、RDS、ElastiCache、ECS/Fargateを初期の必須構成にしません。
 - 入力検証と冪等性は`content/system/api/validation.mdx`、`content/system/api/idempotency.mdx`を正本とします。
 - table定義、状態遷移、権限、Transactionは所有domainにだけ記載し、他domainは責務境界と正本へlinkします。
 - プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。

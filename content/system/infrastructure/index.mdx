@@ -16,11 +16,13 @@ IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
 - API、Media Worker、Outbox PublisherはEC2上で独立したcontainer・processとして実行します。構成管理には必要に応じてDocker Composeを使用します。
 - ECS/Fargateは運用負荷や個別scalingの必要性が高まった場合の移行先とし、初期導入を前提にしません。
 - 常駐するWorkerとPublisherをLambdaへ置き換えることは前提にしません。短時間で独立した処理が生じた場合に限り、用途ごとに評価します。
+- PostgreSQLとRedisはEC2上のDocker containerで運用し、永続領域をEBSへ配置します。RDSとElastiCacheは初期構成に含めません。
 - 非同期配送にはRedis Streams、状態とOutboxにはPostgreSQLを使用します。
+- EC2管理とdeployにはSSM、GitHub ActionsからAWSへの認証にはOIDCを使用し、SSH公開と長期Access Keyを標準にしません。
 - S3 bucketはprivateとし、CloudFront Origin Access Controlと期限付き署名でMediaを配信します。
 - APIとWorkerは責務に応じて別container imageとし、PublisherはAPI imageを再利用できます。
 
-[初回Releaseの範囲と成功条件](/first-release)を運用判断の基準とします。container配置、PostgreSQLとRedisの構成、Deploy、Backup、復旧手順の具体化は[初回ReleaseのEC2運用・Deploy・Backupの詳細設計](https://github.com/hazuki3417/memoria-design/issues/45)で扱います。
+[EC2・Docker運用基盤](./ec2-runtime-operations)を初期実行構成の正本とし、[初回Releaseの範囲と成功条件](/first-release)を運用判断の基準とします。container配置、PostgreSQLとRedisの構成、Deploy、Backup、復旧手順の具体化は[初回ReleaseのEC2運用・Deploy・Backupの詳細設計](https://github.com/hazuki3417/memoria-design/issues/45)で扱います。
 
 ## EC2運用と将来的な移行
 

@@ -1,0 +1,30 @@
+# DB schema migration
+
+## 概要
+
+> 実装状況: PostgreSQL schemaと生成codeは既存実装があります。versioned migration、deploy工程での単一実行、互換性確認、復旧手順は詳細設計と実装が必要です。
+
+PostgreSQL schema、migration SQL、生成物はmemoria-apiが所有し、実行環境、権限、deploy手順はmemoria-IaCが所有します。初回Releaseに必要な再現可能な初期化と安全な適用を優先し、高度な無停止移行は適用条件に応じて扱います。
+
+## Migrationの所有と実行
+
+- version管理されたSQL migrationを利用し、gooseは導入候補として扱う。
+- 採用tool、directory、command、設定はmemoria-apiの実行可能な定義を正本とする。
+- API、Worker、Publisherの通常起動時に自動migrationを実行しない。
+- deploy工程で専用の一時migration containerを起動し、対象environmentごとに一度だけ適用する。
+- 複数EC2や複数processが存在しても、各instanceから重複実行しない。
+- migrationが失敗した場合は後続Application deployを開始せず、既存dataと適用履歴を確認する。
+
+## Deploy順序と互換性
+
+新しいApplication artifactを準備し、migrationを適用し、成功後にApplicationをdeployします。複数instanceを順に切り替える場合、移行期間中は旧versionと新versionの両方が同じschemaで動作できる状態を維持します。
+
+既存本番dataや稼働中Userが存在しない初回Releaseでは、expand／migrate／contractを常に要求しません。既存data保持、無停止切替、複数version共存が必要な破壊的変更では、後方互換な追加、必要なbackfill、旧構造の削除を段階に分けます。
+
+## Data変更、rollback、検証
+
+大量dataの変換は小さなbatchと再実行可能なbackfillを検討し、lock、timeout、DB負荷を確認します。大きなindex追加ではCREATE INDEX CONCURRENTLYなどPostgreSQLの標準機能を条件に応じて評価します。
+
+rollbackはdown migrationを安易に実行せず、後方互換なschema上で以前のimmutable Application imageへ戻す方法を優先します。不可逆なschema変更ではbackup、restore、roll-forwardの条件を事前に確認します。
+
+schema、SQL、sqlc生成物、migrationの整合はGitHub Actionsで検証します。具体的な運用手順、既存data移行、停止許容、復旧判断は[DB schema migrationの詳細設計](https://github.com/hazuki3417/memoria-design/issues/28)と[EC2運用設計](https://github.com/hazuki3417/memoria-design/issues/45)で確定します。

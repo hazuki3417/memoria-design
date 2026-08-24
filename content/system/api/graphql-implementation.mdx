@@ -1,0 +1,40 @@
+# GraphQL・gqlgen実装規約
+
+## 概要
+
+> 実装状況: gqlgen、GraphQL schema、resolver、生成codeは存在します。認証境界、error分類、DataLoader lifecycle、schema進化、保護制限の統一には差分があります。
+
+[GraphQL契約](./graphql)をClient向け契約の正本とし、本ページはgqlgen、resolver、DataLoader、schema更新の実装規約を定義します。
+
+## Resolverと境界
+
+resolverはGraphQL入力をApplication入力へ変換し、Use Caseを実行し、結果をGraphQL responseへ変換します。
+
+- resolverからDB、Redis、S3を直接操作しない。
+- Business rule、認可条件、Transaction境界をresolverへ実装しない。
+- GraphQL生成型をDomainやApplicationへ渡さない。
+- Mutationは原則としてInput ObjectとPayloadを使用する。
+- nullable fieldは業務上の意味を表し、更新時には未指定、null、値ありを必要に応じて区別する。
+- gqlgenの標準機能を優先し、独自のOptional frameworkを作らない。
+
+## Authenticationと認可
+
+BrowserはNext.jsのHttpOnly session Cookieを利用し、Next.jsがAccess Tokenを付けてGo GraphQL APIへ接続するBFF寄りの構成を基本とします。APIはAccess Tokenの署名、issuer、audience、有効期限を検証し、issuerとsubjectからACTIVE Userを解決します。ID TokenをAPI認可に使用しません。
+
+Resource認可はMemoria側で操作ごとに現在のMembership、role、Custody、Uploaderを評価します。Auth0のcoarse permissionやClient指定IDだけで認可しません。詳細は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を参照します。
+
+## Error、制限、DataLoader
+
+Application ErrorはTransport境界でGraphQL errorへ変換し、errors[].extensions.codeをClientとの分類契約として扱います。SQL、stack trace、token、Storage情報など内部詳細は返しません。
+
+request size、timeout、query depthまたはcomplexity、一覧件数、batch request、rate limitに用途に応じた制限を設けます。productionでは開発用Playground、GraphiQL、debug errorを無効化し、introspectionの公開範囲は利用方法に応じて判断します。高度な解析基盤を初回Releaseの前提にはしません。
+
+DataLoaderのcacheとbatch範囲は1 GraphQL requestに限定します。request間でUserやCommunityをまたぐcacheを共有せず、関連取得のN+1削減以外の責務を持たせません。
+
+## Schema進化と生成
+
+追加可能なfieldや型を先に提供し、Clientを移行し、不要になった契約へdeprecatedを付け、利用状況を確認してから削除します。突然のrenameやremoveを行いません。
+
+ULID、Date、DateTime、Timeなどのscalarは契約上の意味、nullable条件、形式を明示します。具体的なSDL、operation、fragment、生成型は所有Repositoryを正本とし、生成codeを手編集しません。
+
+初回Releaseに必要なOperation、認可、error、画面対応は[GraphQL契約の詳細設計](https://github.com/hazuki3417/memoria-design/issues/17)で確定します。

@@ -16,4 +16,15 @@
 - S3、backup、認証設定に付与する権限は実行主体ごとに必要最小限とします。
 - 詳細な保護対象とEC2運用への引き渡し条件は[Security・Privacy要求](./security-privacy-requirements)を参照します。
 
+## 設定値の分類と注入
 
+| 種類 | 決定時点 | 管理方法 |
+| --- | --- | --- |
+| Constant | build・source code | codeとversion管理 |
+| Config | deploy・process起動 | 実行環境から注入 |
+| 業務data | 実行時 | PostgreSQLなど所有domainの永続化 |
+| Secret | 実行時・運用時 | 非公開の実行環境から最小権限で注入 |
+
+process起動時に設定を読み込み、必須項目を検証し、型付きのConfigとして依存先へ渡します。各Layerでos.Getenvを直接繰り返し呼び出さず、secret値をerror、log、trace、Client bundleへ含めません。
+
+secret storeの具体的なserviceは予算と運用要件に応じて選択し、高額な専用platformを初回Releaseの必須条件にしません。

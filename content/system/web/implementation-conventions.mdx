@@ -1,0 +1,43 @@
+# Frontend実装規約
+
+## 概要
+
+> 実装状況: Next.js、React、Apollo Client、feature構成、Biome、Vitest、Storybookは既存実装があります。状態管理の統一、GraphQL生成規約、主要画面の契約と認証境界には差分があります。
+
+memoria-webにおける状態管理、component、GraphQL、form、生成codeの共通判断を定義します。具体的なroute、operation、script、設定は実装Repositoryを正本とします。
+
+## 状態管理
+
+| 状態 | 所有者 |
+| --- | --- |
+| GraphQL server state | Apollo Client |
+| formの入力・検証・送信状態 | React Hook Form |
+| local UI state | ReactのuseState・useReducer |
+| route、共有可能な検索条件 | Next.js Router・search params |
+| 限定的なcomponent間共有 | React Context |
+
+Apollo cache内のserver stateをReact stateへ重複保存しません。Redux、Zustand、Jotai、Recoilなどの追加global state libraryは、標準手段で管理できない具体的な要求が生じるまで採用しません。
+
+## ComponentとReact
+
+機能を中心にcomponentを配置し、Presentation／Container／ViewModelの固定Layerを強制しません。custom hookは複数箇所で共有する振る舞いがある場合に導入します。
+
+useEffectは外部systemとの同期を主目的とし、導出可能な表示stateをeffectから再生成しません。useMemo、useCallback、optimistic updateは計測された性能問題または必要な利用体験がある場合に限定します。
+
+## GraphQLとApollo
+
+GraphQL operationとfragmentは対象featureの近くへ配置し、componentが必要なfieldを明示します。schema由来の型はCodegenで生成し、手書きや生成物の手編集を行いません。
+
+API dataへのアクセスはGraphQLとApollo Clientへ集約します。Mutation後は正確性を優先し、必要であればrefetchQueriesから始めます。複雑なcache更新は、利用体験や転送量の問題が具体化した場合だけ導入します。
+
+## Formと認証
+
+form stateはReact Hook Formへ一元化し、Client側validationは利用者支援として扱います。最終的なvalidationと認可はAPIが保証し、server validation errorをform上の対応fieldへ反映します。
+
+認証はNext.jsがHttpOnly session Cookieを保持し、必要なAccess TokenをAPI呼び出しへ渡すBFF寄りの構成を基本とします。tokenをBrowserの公開state、URL、logへ露出しません。具体的な認証設定は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)とUser設計に従います。
+
+## 命名と品質
+
+componentはPascalCase、hookはuseで始め、variableとfunctionはcamelCaseとします。GraphQL operation名はPascalCaseとし、fragmentは所有componentと対象typeが識別できる名称にします。
+
+TypeScriptのstrictな型検査を基本とし、anyを避け、外部から受け取る未知の値はunknownから絞り込みます。formatとlintには既存のBiomeを使用し、同じ責務のESLintやPrettierを追加前提にしません。検証は[テスト設計](/test-design)とGitHub Actionsのquality gateに従います。
