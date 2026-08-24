@@ -1,0 +1,39 @@
+# PostgreSQL・Redis運用
+
+## 概要
+
+> 実装状況: PostgreSQLとRedisをEC2上のDocker containerとして運用する構成、EBS永続化、backup、AOF、復旧手順は詳細設計と実装が必要です。
+
+初回ReleaseではPostgreSQLとRedisをmanaged serviceではなくEC2上のDocker containerとして運用します。RDS、ElastiCache、専用HA clusterは初期構成に含めず、運用負荷、可用性要求、予算が変化した時点で再評価します。
+
+## Dataの正本
+
+| 対象 | 正本・役割 | 障害時の優先度 |
+| --- | --- | --- |
+| PostgreSQL | User、Community、Media、Custody、Job、Outbox | 必須復旧対象 |
+| S3 Original | 利用者がuploadした原本 | 必須復旧対象 |
+| Image Variant | Originalから再生成できる配信用data | 必要に応じて再生成 |
+| Redis | Queue、Stream、cache、一時状態 | 再構築可能 |
+| EC2 | containerを実行するhost | IaCとimageから再構築 |
+
+PostgreSQLとRedisの永続領域をcontainer filesystemだけに依存させず、EBS volumeまたは明示的なhost mountで保持します。volumeの保護、暗号化、容量監視は[memoria-IaCの運用設計](/system/infrastructure/ec2-runtime-operations)に従います。
+
+## PostgreSQL container
+
+初期はSingle Primaryを許容し、DB version、volume、resource上限、起動順、health check、接続権限を明示します。日次backupはpg_dumpなどの論理backupを非公開・暗号化されたS3へ保存し、EBS snapshotを補助的な復旧手段として扱います。
+
+backupは取得しただけで完了とせず、別環境へのrestore、必要なtableの整合性、復旧手順を確認します。初期のbackup保持14日、RPO 24時間、RTO 24時間は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
+
+PITR、WAL archive、pgBackRest、WAL-G、Multi-Region、HA clusterは、損失許容時間や運用上の要求が変わるまで導入しません。version upgrade、容量監視、backup、restoreは自己運用責務です。
+
+## Redis container
+
+RedisはPostgreSQLの代替となる業務dataの正本にしません。Redis Streamsを使用するためAOFを有効化する方針とし、永続領域を明示します。具体的なfsync方式、memory上限、eviction policyは運用詳細設計で決定します。
+
+Worker停止によるpending messageはConsumer GroupのPELとXAUTOCLAIMなどで回復します。Redis dataが失われた場合はPostgreSQLのOutbox、Processing Job、配送状態から未処理対象を照合し、冪等に再enqueueできるようにします。専用DLQを初期の必須構成にせず、恒久失敗はPostgreSQLのJob状態を正本とします。
+
+## Query、cache、性能判断
+
+正規化された業務model、実際のquery pattern、適切なindex、keyset pagination、EXPLAINによる確認を優先し、早期denormalizationを行いません。Read modelはQuery向けの表現であり、SQL VIEWだけを意味しません。
+
+Redisが存在することだけを理由にcacheを導入しません。indexとSQL改善で不足する場合だけ、PostgreSQLを正本とするcache-asideとTTLを検討します。cache障害時は可能な範囲でDBへfallbackし、write-through、write-behind、分散lock、requestをまたぐDataLoader cacheを初期前提にしません。

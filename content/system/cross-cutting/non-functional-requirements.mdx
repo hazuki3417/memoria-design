@@ -11,7 +11,8 @@
 ## 前提と適用範囲
 
 - 一つのProductをUserまたはCommunityが利用し、画像と動画以外の一般fileは扱いません。
-- 初期の実行基盤は単一のEC2上でDocker containerを稼働させ、必要に応じてAPI、Media Worker、Outbox Publisherを別processとして管理します。
+- 初期の実行基盤は単一のEC2上でDocker containerを稼働させ、API、Media Worker、Outbox Publisherを別processとして管理します。
+- PostgreSQLとRedisもEC2上のDocker containerとして運用し、永続領域をEBSへ配置します。RDS、ElastiCache、ECS/Fargateを初期の必須構成にしません。
 - PostgreSQLは業務dataとTransactional Outbox、Redis Streamsは非同期配送、Object StorageはOriginalとMedia Variantを担当します。
 - 原本のupload経路はFrontend → API → Object Storageです。FrontendからS3への直接uploadは将来的な最適化候補です。
 - 認証はAuth0、認可はMemoriaのUser、Community、Custodian、Membershipに基づいて判定します。

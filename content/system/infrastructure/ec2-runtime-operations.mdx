@@ -1,0 +1,45 @@
+# EC2・Docker運用基盤
+
+## 概要
+
+> 実装状況: IaCにEC2、private S3、IAMなどの初期定義があります。PostgreSQL・Redis container、EBS、SSM deploy、migration、backup、restore、実運用監視は未実装です。
+
+初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心とした最小構成で定義します。Applicationとstateful serviceを同じEC2へ配置できる構成を基本とし、負荷や運用上の問題が生じた場合に物理配置を見直します。
+
+## 実行構成と責務
+
+| 実行単位 | 主な責務 | 所有Repository |
+| --- | --- | --- |
+| Web container | Next.js、session、GraphQL client | memoria-web |
+| API container | GraphQL、認可、PostgreSQL、Storage操作 | memoria-api |
+| Media Worker | Redis Streams消費、Image Variant生成 | memoria-api |
+| Outbox Publisher | PostgreSQL OutboxからRedisへの配送 | memoria-api |
+| PostgreSQL container | 業務data、Job、Outboxの正本 | memoria-api・memoria-IaC |
+| Redis container | Stream、cache、再構築可能な一時状態 | memoria-api・memoria-IaC |
+| OpenTelemetry Collector | 同一EC2上のtrace・metric収集 | memoria-IaC |
+
+Collectorは1 EC2につき1つを共有する構成を基本とし、採用時期と出力先は費用と運用要求に応じて決定します。Collector停止だけでApplicationを停止させません。API、Worker、Publisherは論理的に分離し、物理EC2の分離は必要になってから行います。
+
+## Network、IAM、container保護
+
+公開するendpointをHTTPSに必要な範囲へ限定し、Security Groupで通信境界を制御します。SSHをInternetへ公開せず、運用とdeployにはSSMを標準経路として使用します。
+
+EC2には最小権限のinstance profileを設定し、IMDSv2を必須化します。GitHub ActionsからAWSへはOIDCと短期credentialを利用し、長期Access KeyをApplicationやRepositoryへ配置しません。
+
+Application containerはnon-root、非privileged、最小runtime imageを基本とし、Docker socketをmountしません。multi-stage build、依存関係scan、image scanはCIと運用費用に応じて適用します。
+
+## Deployとrollback
+
+Docker imageは一度buildし、commit SHAまたはimage digestで固定します。latestをdeploy対象の識別子にしません。deploy logicはRepository内のversion管理されたscriptまたは設定として保管し、environmentごとの同時deployを禁止します。
+
+migrationは専用の一時containerで一度だけ実行し、成功後にApplicationを更新します。複数EC2が存在する場合だけ1台ずつrolling deployします。単一EC2での瞬断や再起動は、初期可用性目標の範囲で扱います。
+
+production deployには人間による承認を必要とします。rollbackは検証済みの以前のimmutable imageを再deployする方法を基本とし、schema互換性とbackupを事前に確認します。
+
+## Backup、復旧、見直し条件
+
+PostgreSQLとS3 Originalを必須復旧対象とし、RedisはPostgreSQL上のOutboxとProcessing Jobから再構築します。EC2はIaCとDocker imageから再構築できる対象として扱います。
+
+DB backup、EBS snapshot、暗号化、保持期間、restore確認は[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)に従います。RPO、RTO、retention、監視thresholdは[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
+
+RDS、ElastiCache、ECS/Fargate、Multi-AZ、Multi-Region、Kubernetes、Service Mesh、advanced WAFは初期の必須構成に含めません。負荷、障害、運用時間、費用の実測に基づき、問題が顕在化した構成だけを再評価します。具体的な配置、手順、見積り、責任分担は[初回ReleaseのEC2運用詳細設計](https://github.com/hazuki3417/memoria-design/issues/45)で確定します。

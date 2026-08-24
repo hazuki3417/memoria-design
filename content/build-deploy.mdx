@@ -27,3 +27,11 @@ build commandは環境ごとに実行し、BuildKitのlayer cacheで実際の再
 GHCR上の共通base imageは標準構成に含めません。Media Workerのnative依存が増え、build時間や転送量が実際の問題になった場合に限り、base imageの公開範囲、更新手順、cache効果を確認して検討します。
 
 CIはLinux runner上で必要なruntimeをsetupし、local環境保護を目的とするDevboxの導入を必須にしません。CIの検証項目と実行段階は[テスト設計](/test-design)を参照してください。
+
+## Deploy、migration、rollback
+
+GitHub ActionsでbuildしたDocker imageをcommit SHAまたはdigestで識別し、同じartifactをdeployへ再利用します。latestを本番の識別子にしません。AWS接続はOIDC、EC2への操作はSSMを標準とし、長期Access KeyとSSH公開を前提にしません。
+
+PostgreSQL migrationは専用の一時containerでdeploy全体につき一度だけ実行し、成功後にApplicationを更新します。process起動ごとの自動migrationは行いません。複数EC2がある場合だけ1台ずつrolling deployします。
+
+production deployは人間の承認を必要とし、environmentごとの同時実行を防ぎます。rollbackは互換性を維持した以前のimmutable imageへの再deployを基本とします。詳細は[EC2・Docker運用基盤](/system/infrastructure/ec2-runtime-operations)と[DB schema migration](/system/data/schema-migration)を参照してください。

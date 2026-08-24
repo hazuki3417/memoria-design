@@ -33,5 +33,7 @@ CommandはMedia登録、公開、委譲、削除など状態を変更するユ�
 - DataLoaderはGraphQL request内の関連data取得をまとめ、N+1 queryを抑制します。
 - Redis Streamsへの配送はAPIから直接行わず、Transactional OutboxとOutbox Publisherへ委譲します。
 
+実装上の責務配置は[Backend実装規約](./implementation-conventions)、resolverと契約境界は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照してください。
+
 詳細は[非同期処理](/system/api/asynchronous-processing)、[Transactional Outbox](/system/api/transactional-outbox)、[冪等性](/system/api/idempotency)を参照してください。
 

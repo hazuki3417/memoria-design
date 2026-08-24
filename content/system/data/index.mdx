@@ -4,7 +4,7 @@
 
 > 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
 
-データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。
+データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。初期構成ではPostgreSQLとRedisをEC2上のDocker containerとして運用し、Redisは再構築可能な配送・一時状態として扱います。
 
 ## PostgreSQL
 
@@ -14,7 +14,7 @@
 - Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
 - transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
 
-ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)を参照してください。
+ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)、自己運用と復旧は[PostgreSQL・Redis運用](./postgresql-redis-operations)、schema変更は[DB schema migration](./schema-migration)を参照してください。
 
 ## MongoDBを主要永続化先にしない理由
 

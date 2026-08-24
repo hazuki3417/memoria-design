@@ -1,0 +1,43 @@
+# 実行時の信頼性
+
+## 概要
+
+> 実装状況: API processと基本的なcontext利用は存在します。統一的なtimeout、health check、graceful shutdown、Worker停止、pool budgetの運用には差分があります。
+
+API、Media Worker、Outbox Publisherに共通するcontext、timeout、retry、health check、停止処理、connection poolの設計を定義します。具体的な初期値は[非機能要件](./non-functional-requirements)を正本とします。
+
+## Contextとcancel
+
+- context.Contextを呼び出しの第一引数として外部I/OとUse Caseへ伝播する。
+- contextをstructに保存せず、処理途中でBackgroundへ置換しない。
+- Domain entityへcontextを渡さない。
+- context.Canceledは通常のretry対象やERROR log対象にしない。
+- 業務上の非同期実行はrequest contextから独立したdurable Jobとして開始する。
+
+## Timeoutとretry
+
+requestまたはJobなどApplication Boundaryで全体のdeadlineを決め、子処理のdeadlineが親を超えないようにします。Architectureの各Layerに機械的なWithTimeoutを追加しません。
+
+retryは一時的な障害と冪等な操作に限定し、同じ呼び出しへ複数のretry Layerを重ねません。SDKや外部clientの標準retryを優先します。SDKの短期retryとWorker Jobの長期retryは対象・時間スケールが異なる場合に限って共存できます。
+
+## Health check
+
+| 判定 | 確認対象 | 対象外 |
+| --- | --- | --- |
+| liveness | process自身が動作していること | DB、Redis、Collectorなど外部依存 |
+| readiness | requestまたはJobを処理できることと必須依存 | 可観測性基盤など任意依存 |
+| startup | 必須設定とApplication自身の初期化 | 一時停止中の外部依存を理由とした恒常的なcrash loop |
+
+PostgreSQLがAPI全体に必須であれば、readinessで短いtimeoutの軽量な確認を行います。OpenTelemetry Collectorの停止だけでprocessをreadiness failureにしません。具体的なendpointとDocker設定はEC2運用設計で確定します。
+
+## Graceful shutdown
+
+停止要求を受けたprocessはreadinessを無効化し、新規受付を停止し、進行中処理の完了を待ちます。deadline超過時はcancelした後、外部client、OpenTelemetry、loggerを順に終了させます。
+
+APIはHTTP serverのgraceful shutdownを利用します。Workerは新しいJobの取得を停止し、処理中Jobを待機します。完了前に停止したmessageをACKせず、pending recoveryで再処理可能にします。
+
+## Connection poolと並行処理
+
+PostgreSQLとRedis clientはprocessごとに共有します。connection poolの上限はDB全体のconnection budget、API・Worker・Publisherのprocess数、管理用接続から逆算し、各processが独立して最大値を確保する設計を避けます。
+
+goroutineは終了待機、cancel、error伝達の責任を明確にし、fire-and-forgetを業務処理へ利用しません。pool、timeout、retryの具体値は運用計測後に調整します。

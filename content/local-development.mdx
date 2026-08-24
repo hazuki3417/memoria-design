@@ -108,4 +108,10 @@ npmパッケージは`package.json`と`package-lock.json`へ記録します。De
 - Windowsブラウザからの`localhost`到達と、WebからAPIへの通信を分けて確認します。
 - バージョン、ポート、環境変数、起動コマンドは、各実装リポジトリのREADMEと実行可能な設定を正本とします。
 
+## Backend依存serviceと再現可能な入口
 
+PostgreSQLとRedisはDocker Composeで起動し、共通構成と開発・CI差分を必要に応じて分離します。Go、Node.js、PostgreSQL major、Redis major、Docker base image、Devbox packageのversionはRepositoryから再現できるよう固定し、latestへの依存を避けます。
+
+公開可能な設定例は.env.exampleで管理し、実際の.envやsecretはGitへ含めません。migration、GraphQL・SQL生成、test、DB reset、seedは所有Repositoryで一貫した入口を用意します。makeなど具体的なcommand名は現行実装とREADMEを正本とし、未導入のcommandを確定済み手順として記載しません。
+
+開発環境の完成条件は、runtimeの再現、PostgreSQL・Redisの起動、API・Web・Worker・Publisherの起動、migration、生成、test、必要なreset・seedをREADMEから追跡できることです。ChatGPT上ではこれらを実行せず、GitHub Actionsへ検証を委譲します。

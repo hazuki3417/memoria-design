@@ -8,7 +8,9 @@ User、Community、Mediaに共通する認証、操作主体、認可の再評�
 
 - 認証はAuth0、Product内のUser解決と認可はMemoriaが担当する。
 - Auth0のissuerとsubjectの組で内部Userを一意に解決する。
-- tokenの署名、issuer、audience、有効期限を検証する。
+- BrowserはNext.jsのHttpOnly session Cookieを使用し、Next.jsからAPIへAuth0 Access Tokenを渡すBFF寄りの構成を基本とする。
+- APIはAccess Tokenの署名、issuer、audience、有効期限を検証する。
+- ID TokenをAPIのAuthorizationに使用せず、tokenをURLや公開stateへ保存しない。
 - ACTIVE Userだけが操作でき、未登録・DELETING Userは拒否する。
 - 内部User IDと外部認証identifierを公開用識別子として扱わない。
 

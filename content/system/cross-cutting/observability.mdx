@@ -28,3 +28,17 @@ local開発では必要に応じてJaegerなどでtraceを可視化します。�
 Application log、trace、Media Event、Outbox Eventは目的と保持期間を分離します。Media Eventは利用者操作の最小限のtraceであり、改ざん防止や長期保存を前提とした汎用監査logにはしません。
 
 保持期間、request応答時間、Outbox滞留、Job失敗、backup失敗、alert閾値の正本は[非機能要件](./non-functional-requirements)を参照してください。
+
+## OpenTelemetry Collectorとspan
+
+EC2上でCollectorを運用する場合は、API、Worker、Publisherが同一hostのCollectorを共有し、OTLPで送信します。Collectorの停止をApplicationの必須readiness条件にはしません。
+
+Applicationが手動で作成するspanはUse Caseを基本単位とし、resolver、Domain、Repository、Pipeline stepごとに機械的なspanを追加しません。HTTP、PostgreSQL、Redis、外部HTTPは標準instrumentationを優先します。
+
+span attributeは必要な項目だけをallowlistで設定し、inputやoutput全体をJSONで記録しません。SQLはparameterized queryの構造を必要に応じて扱い、parameter値を記録しません。Zap logにはtrace_idとspan_idを必要に応じて関連付け、logとtraceの責務は分離します。
+
+## Metricのcardinality
+
+metricはrequestの個別追跡ではなく集計、傾向、warningの判断に利用します。operation、status、error分類、Media種別など低cardinalityの属性を使用し、User ID、Media ID、Job ID、event ID、trace ID、file名、自由記述をmetric labelへ含めません。
+
+標準metricがある場合は独自metricを重複作成しません。既存の初期目標とthresholdは[非機能要件](./non-functional-requirements)を正本とし、sampling、bucket、dashboardの細部は実測と運用要求に応じて調整します。
