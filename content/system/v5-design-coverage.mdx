@@ -1,0 +1,224 @@
+# v5設計カバレッジ
+
+## 目的
+
+2026-08-26 v5 checkpointに含まれる設計項目を、Infrastructure/Persistenceだけに限定せず全件統合対象として管理します。既存GitHub設計と同等の項目も「追加不要」として捨てず、既存正本がその責務を満たすことを確認対象にします。
+
+競合時の解決方針は[v5設計統合方針](./v5-design-integration-policy)を参照してください。
+
+## V5 Current Overrides / New Decisions
+
+1. 現在のフェーズ / Implementation Detailed Designへの移行
+2. MongoDBに関する判断
+   - MongoDB選定の本質
+   - PostgreSQL + JSONB
+   - MongoDB再検討条件
+   - 水平分散性能の選定優先度
+3. PostgreSQL HA / 冗長構成
+   - Replication Mode
+   - Failover
+   - Read Scaling
+   - Replication != Backup
+   - HA Observability
+4. Docker Development / Production Parity
+   - 通常開発とHA検証の分離
+   - Local HAの限界
+5. Redis HA Baseline
+   - Failure Tolerance
+   - Placement
+   - Sentinel-aware Client
+   - Redis Cluster再検討条件
+   - Durability / Recovery
+   - Development HA profile
+6. Current Infrastructure Topology Direction
+7. PostgreSQL Persistence Model v0
+8. users v0
+9. communities v0
+10. community_memberships v0
+11. community_invitations v0
+12. upload_intents v0
+13. media v0
+14. tags v0
+15. media_tags v0
+16. processing_jobs v0
+17. images v0
+18. image_variants v0
+19. outbox_events v0
+20. idempotency_records v0
+21. 全体Relation v0
+22. Application UseCase → Persistence対応 v0
+23. Schema詳細化前に決めない事項
+24. PostgreSQL横断詳細化順序
+25. 次作業の再開条件
+26. v5 Summary
+
+## Inherited Application / Cross-cutting Design
+
+以下はv5が全文継承するv4設計であり、すべて統合対象です。
+
+1. 現在の技術スタック / 前提
+2. 共通設計思想
+   - 標準優先
+   - 責務重複禁止
+   - Architecture Boundary / Operational Boundary分離
+   - AI/複数人開発を考慮した機械的Rule enforcement
+3. Backend API / Worker / Publisher
+4. Media Processing / Redis Streams / Outbox
+5. Media Model / Storage / Image Delivery
+6. Ownership / Authorization基礎
+7. Idempotency
+8. Date / Time / ID
+9. Database Performance / CQRS Read Model
+10. DB / Constant / Config / Secret
+11. Authentication Foundation
+12. Error Design
+13. Logging / OpenTelemetry
+14. Metrics Policy
+15. Timeout / Cancellation / Retry
+16. Health Check
+17. Graceful Shutdown / Connection Pool
+18. DB Migration / Deploy Compatibility
+19. CI/CD / Deployment Baseline
+20. Security Baseline
+21. AWS / Runtime Baseline
+22. PostgreSQL Container Operation
+23. Redis Container Operation
+24. Backup / Restore / DR
+25. API / GraphQL Protection
+26. GraphQL Schema Evolution / DataLoader
+27. Cache Policy
+28. Frontend State Management
+29. Dependency / Version / Retention
+30. Development Environment
+31. Backend Clean Architecture Implementation
+32. UseCase / DI / Repository / Transaction
+33. Validation / Domain / Infrastructure
+34. SQL / Concurrency / Context
+35. GraphQL / gqlgen Implementation
+36. Frontend Implementation
+37. Testing
+38. AI Assisted Development / Test Philosophy
+39. Naming / Generated Code / Formatting
+40. Static Analysis / Architecture Enforcement
+41. CI Quality Gate
+42. Comment / TODO / Abstraction Policy
+43. 開発環境の完成条件
+44. 現時点で先に決めない事項
+45. Authentication / Authorization Implementation
+46. Logical CQRS
+47. Persistence Convention
+48. Data Consistency / Concurrency
+49. Cache Baseline
+50. API / Schema Evolution
+51. Feature Flag
+52. Upload Lifecycle
+53. Search / Filter / Sort
+54. Worker / Async Job
+55. Frontend UX
+56. Audit / Data Lifecycle
+57. Development Seed / Fixture
+58. ADR
+
+## Application / Domain Detailed Design
+
+59. Application / Domain Design全体像
+60. Application/Public Interface rule
+   - Generic Scope APIを避ける
+   - Polymorphic ID禁止
+   - Semantic String
+61. ID / Time / Default Order
+62. User Domain
+63. Authentication / Onboarding
+   - IdentityとPrincipal分離
+   - GetApplicationBootstrap
+   - CreateApplicationUser
+64. Community Domain
+65. Membership
+66. Community UseCases
+   - CreateCommunity
+   - UpdateCommunity
+   - LeaveCommunity
+   - RemoveCommunityMember
+   - ChangeCommunityMemberRole
+   - Community Reads
+67. Community Invitation
+68. Invitation Preview / Onboarding Workflow
+69. AcceptCommunityInvitation
+70. Media Domain
+71. Media File Formats
+72. Media Ownership / Scope
+73. Media Authorization
+74. Complete Upload / Media Creation
+75. Delete Media
+76. Get / List Media
+77. Original Download
+78. ProcessingJob / Reprocess
+79. Image
+80. ImageVariant / Artifact Publication
+81. Media Detail Read Model
+82. Image List / Variant Delivery Read
+83. Tag Domain / Tagging Positioning
+84. Tag Entity / Scope
+85. Media Tagging = Desired State
+86. Tagging Input / Resolve-or-Create
+87. Tagging Concurrency
+88. Tagging during Upload
+89. Storage Usage Definition
+90. Storage Usage Read
+91. Storage Quota
+92. Community Delete Workflow
+93. CQRS Read Model Principles
+94. Application Public UseCase Inventory
+   - Bootstrap / User
+   - Community
+   - Membership
+   - Invitation
+   - User Media
+   - Community Media
+   - Storage
+95. Internal Application Operations
+96. State Machine Final Review
+   - Media
+   - Community
+   - ProcessingJob
+   - UploadIntent
+   - CommunityInvitation
+97. Authorization Final Review
+98. Concurrency Final Review
+99. Idempotency Final Review
+100. Error Contract Final Review
+101. Transaction Boundary Final Review
+   - CompleteUpload
+   - CreateCommunity
+   - AcceptInvitation
+   - DeleteMedia
+   - DeleteCommunity
+   - Reprocess
+102. Sync / Async Boundary Final Review
+   - Complete Upload response guarantee
+   - Delete Media response guarantee
+   - Delete Community response guarantee
+103. Observability Application Rules
+104. GraphQL Contract Direction
+105. Frontend Application Rules
+106. Persistence Rules
+107. Security / Infrastructure Compatibility
+108. Initial Release「やらないこと」Final Checklist
+109. Application Detailed Design Completion
+110. Implementation Detailed Designへの移行
+111. 次作業の再開指示
+112. Reconsider Conditions
+113. 設計時の回答 / 思考方針
+
+## 統合ルール
+
+上記の各項目は次のいずれかでGitHub設計へ存在させます。
+
+```text
+A. 既存正本に同等以上の設計がある
+B. PR #58で既存正本へ追記・更新する
+C. 新規正本として追加する
+D. 合意済み競合としてv5原案をoverrideし、統合方針に理由を記録する
+```
+
+`Initial Release外`は削除理由にしません。将来機能を見越した既存Domain/Persistence設計は維持し、Release Scopeと分離します。
