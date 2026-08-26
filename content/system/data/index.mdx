@@ -2,22 +2,57 @@
 
 ## 概要
 
-> 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
+> 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custody、Media Event、Processing、Outboxなどには設計との差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を実装の正本とします。
 
-データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。初期構成ではPostgreSQLとRedisをEC2上のDocker containerとして運用し、Redisは再構築可能な配送・一時状態として扱います。
+データは、ドメインの整合性とPersistent Application Truthを保持するPostgreSQL、原本・派生fileを保持するObject Storage、再構築可能な配送・一時状態を扱うRedisへ責務分離します。ProductionではPostgreSQL HAとRedis Sentinel HAを使用し、DevelopmentではDocker Composeで通常の軽量構成とHA検証構成を使い分けます。
 
-## PostgreSQL
+## PostgreSQLの責務
 
-- Mediaの属性、Uploader、Custodian、Community公開、Group、Media Eventを保持します。
-- CustodianはUserまたはCommunityのどちらか一つであることを保証します。
+- User、Community、Membership、InvitationなどのIdentity / Community stateを保持します。
+- Mediaそのものと、Uploader provenance、Custody、Community Access、Group、Tag、Media Eventを分離して保持します。
+- Upload IntentでUpload前のreservationとQuota concurrencyを表現し、accepted original fileだけをMediaとして扱います。
+- Processing JobをMedia lifecycleから分離し、Image / Variantと生成Jobの関係を保持します。
+- Transactional OutboxとProcessing Jobを非同期処理のPersistent Truthとし、Redis Streamsをdelivery triggerとして扱います。
+- meaningful side-effect commandのretry semanticsをPersistenceで保証できるよう、Idempotency persistenceをUseCase要件に基づいて設計します。
 - foreign key、unique、check constraintで表現できる整合性はDBでも保証します。
-- Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
-- transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
+- Groupの多段循環、last administrator、Quota reservationなど複数row / tableにまたがるInvariantはService transaction、lock、conditional updateとDB constraintを組み合わせて保証します。
+- transactionはユースケース単位で設計し、外部I/OをDB transactionへ含めません。
 
-ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)、自己運用と復旧は[PostgreSQL・Redis運用](./postgresql-redis-operations)、schema変更は[DB schema migration](./schema-migration)を参照してください。
+## Persistence Modelの詳細化順序
+
+PostgreSQL SchemaはDomainごとに物理詳細を完成させてから次へ進むのではなく、Application全体のPersistence Modelを先に揃え、横断的に詳細化します。
+
+```text
+1. 全Table / Relation / Responsibility
+2. 共通Data Type
+3. Nullability
+4. FK / Referential Integrity
+5. UNIQUE / CHECK
+6. Deletion Strategy
+7. Index / Access Pattern
+8. Transaction / Lock
+9. Concurrency Invariant
+10. Outbox / Idempotency Persistence
+11. Migration / Expand-Migrate-Contract
+12. Final DDL
+```
+
+この順序は、FK、削除、index、lock、migrationを部分最適で先に固定して全体整合性を崩すことを避けるためのBaselineです。既に共通規約として確定しているID、日時、命名などを未決定へ戻すものではありません。
+
+## 将来機能とPersistence Design
+
+初期ReleaseでUI / APIを提供しないことを理由に、将来要件として合理性のあるDomain modelをPersistence Designから削除しません。たとえばMedia Community Access、Custody Transfer、Media Event、User起点Community Join Requestなどは、Release ScopeとDomain / Persistence Designを分離して扱います。
+
+一方、将来利用する可能性だけでgeneric frameworkや不要な抽象を先行実装しません。将来拡張できる構造を維持することと、将来機能を初期Releaseへ実装することは別判断です。
+
+## Storage UsageとQuota
+
+Storage Usage専用counter tableを初期前提にしません。確定済みMediaと有効なUpload reservationを基礎にUsageを扱い、同時UploadによるQuota超過はUpload Intentのreservationとtransaction / lockで防止します。counterや集計projectionが必要になった場合は、実測された性能要件に基づいて追加します。
 
 ## MongoDBを主要永続化先にしない理由
 
-同じドメイン情報をPostgreSQLとMongoDBへ重複保持すると、正本、transaction、整合性、migrationが複雑になります。Mediaの主要metadataはPostgreSQLへ集約します。MongoDBを利用する場合は、PostgreSQLでは満たせない具体的なユースケースとdata ownershipを先に定義します。
+現在のDomainはEntity間Relation、FK、UNIQUE / CHECK、transaction、row lock、aggregation、JOINの比重が高いため、PostgreSQLを中心DBとします。MongoDBを「水平分散しやすい」「schemaが柔軟」という理由だけで追加しません。
 
+可変・nestedなmetadataが必要な場合はPostgreSQL + JSONBを中間選択肢として優先します。Media Analysis、Provider Raw Payload、AI execution resultなどDocument自体が自然なAggregateとなり、構造variationとDocument単位Read / Writeが支配的になった場合にMongoDBを再評価します。
 
+ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)、自己運用と復旧は[PostgreSQL・Redis運用](./postgresql-redis-operations)、schema変更は[DB schema migration](./schema-migration)を参照してください。
