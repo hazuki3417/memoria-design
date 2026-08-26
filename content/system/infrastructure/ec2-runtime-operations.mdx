@@ -2,9 +2,9 @@
 
 ## 概要
 
-> 実装状況: IaCにEC2、private S3、IAMなどの初期定義があります。PostgreSQL・Redis container、EBS、SSM deploy、migration、backup、restore、実運用監視は未実装です。
+> 実装状況: IaCにEC2、private S3、IAMなどの初期定義があります。PostgreSQL / Redis HA container、multi-host配置、EBS、SSM deploy、migration、backup、restore、実運用監視は未実装です。
 
-初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心とした最小構成で定義します。Applicationとstateful serviceを同じEC2へ配置できる構成を基本とし、負荷や運用上の問題が生じた場合に物理配置を見直します。
+初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心に定義します。ProductionではApplicationとstateful serviceを単一EC2へ同居させる構成を可用性Baselineにせず、PostgreSQLとRedisのHA topologyを複数Failure Domainへ配置できる構成とします。低コスト検証環境と通常のlocal developmentではSingle nodeを許容します。
 
 ## 実行構成と責務
 
@@ -14,11 +14,19 @@
 | API container | GraphQL、認可、PostgreSQL、Storage操作 | memoria-api |
 | Media Worker | Redis Streams消費、Image Variant生成 | memoria-api |
 | Outbox Publisher | PostgreSQL OutboxからRedisへの配送 | memoria-api |
-| PostgreSQL container | 業務data、Job、Outboxの正本 | memoria-api・memoria-IaC |
-| Redis container | Stream、cache、再構築可能な一時状態 | memoria-api・memoria-IaC |
-| OpenTelemetry Collector | 同一EC2上のtrace・metric収集 | memoria-IaC |
+| PostgreSQL containers | 業務data、Job、Outboxの正本、Primary / Standby HA | memoria-api・memoria-IaC |
+| Redis containers | Stream、cache、再構築可能な一時状態、Sentinel HA | memoria-api・memoria-IaC |
+| OpenTelemetry Collector | trace・metric収集 | memoria-IaC |
 
-Collectorは1 EC2につき1つを共有する構成を基本とし、採用時期と出力先は費用と運用要求に応じて決定します。Collector停止だけでApplicationを停止させません。API、Worker、Publisherは論理的に分離し、物理EC2の分離は必要になってから行います。
+API、Worker、Publisherは論理的に分離します。Productionの物理配置はFailure Domainとresource要求を考慮して決定し、stateful HA nodeを同一Hostへ集約して冗長構成とはみなしません。CollectorはApplicationの可用性依存先にせず、Collector停止だけでApplicationを停止させません。
+
+## DevelopmentとProductionのTopology
+
+DevelopmentではDocker Composeを使用します。通常開発はSingle PostgreSQL / Single Redisで軽量に起動できる構成とし、HA profileではProduction相当のPostgreSQL HAとRedis Sentinel topologyを再現します。
+
+Development用Composeを無変更でProductionへ使用しません。共通化するのはcontainer image、version、HA software、startup command、health check、基本configuration template、metrics integration、network / service naming conventionです。ProductionではEBS、Secrets Manager / SSM等のcredential管理、実resource limit、multi-host / multi-AZ、backup / archive、monitoring / alertingを環境固有設定として適用します。
+
+Local HAはsoftware-level failover、reconnect、election、recoveryを検証するためのものです。同一Docker Host上の複数containerをInfrastructure-level HAとはみなしません。Host / network / AZ / disk failureはAWS上の検証環境で確認します。
 
 ## Network、IAM、container保護
 
@@ -32,14 +40,14 @@ Application containerはnon-root、非privileged、最小runtime imageを基本�
 
 Docker imageは一度buildし、commit SHAまたはimage digestで固定します。latestをdeploy対象の識別子にしません。deploy logicはRepository内のversion管理されたscriptまたは設定として保管し、environmentごとの同時deployを禁止します。
 
-migrationは専用の一時containerで一度だけ実行し、成功後にApplicationを更新します。複数EC2が存在する場合だけ1台ずつrolling deployします。単一EC2での瞬断や再起動は、初期可用性目標の範囲で扱います。
+migrationは専用の一時containerで一度だけ実行し、成功後にApplicationを更新します。複数Application hostが存在する場合はschema compatibilityを維持しながらrolling deployできるようにします。stateful HA nodeはquorum、replication、failoverへの影響を確認し、同時停止させません。
 
 production deployには人間による承認を必要とします。rollbackは検証済みの以前のimmutable imageを再deployする方法を基本とし、schema互換性とbackupを事前に確認します。
 
 ## Backup、復旧、見直し条件
 
-PostgreSQLとS3 Originalを必須復旧対象とし、RedisはPostgreSQL上のOutboxとProcessing Jobから再構築します。EC2はIaCとDocker imageから再構築できる対象として扱います。
+PostgreSQLとS3 Originalを必須復旧対象とし、RedisはPostgreSQL上のOutboxとProcessing Jobから再構築可能にします。EC2はIaCとDocker imageから再構築できる対象として扱います。
 
-DB backup、EBS snapshot、暗号化、保持期間、restore確認は[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)に従います。RPO、RTO、retention、監視thresholdは[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
+ReplicationはBackupではありません。DB backup、WAL archive、EBS、暗号化、保持期間、restore確認は[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)に従います。RPO、RTO、retention、監視thresholdは[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
 
-RDS、ElastiCache、ECS/Fargate、Multi-AZ、Multi-Region、Kubernetes、Service Mesh、advanced WAFは初期の必須構成に含めません。負荷、障害、運用時間、費用の実測に基づき、問題が顕在化した構成だけを再評価します。具体的な配置、手順、見積り、責任分担は[初回ReleaseのEC2運用詳細設計](https://github.com/hazuki3417/memoria-design/issues/45)で確定します。
+RDS、ElastiCache、ECS/Fargate、Multi-Region、Kubernetes、Service Mesh、advanced WAFは初期の必須構成に含めません。managed serviceや別runtimeへの移行は、負荷、障害、運用時間、費用の実測に基づいて再評価します。PostgreSQL / RedisのHAそのものはProduction Baselineとして扱い、managed service導入とは別判断にします。
