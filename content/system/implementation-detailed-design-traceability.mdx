@@ -1,0 +1,57 @@
+# Implementation Detailed Design Traceability
+
+## 目的
+
+Issue #59 の Implementation Detailed Design について、共有済み設計資料と GitHub 正本から実装詳細への反映状況を追跡します。
+
+## 運用原則
+
+- 共有済み資料に明記された設計は、GitHub 現行正本との競合を確認した上で漏れなく反映する。
+- GitHub に同等以上の設計が存在する場合は既存正本を維持し、重複する正本を作らない。
+- 共有資料にも GitHub 正本にも具体的決定がない事項は推測で補完せず、未決定事項として Issue で追跡する。
+- Application / Domain semantics を DB・framework・library の都合で変更しない。
+- 重要な技術選定は必要に応じて ADR として記録する。
+
+## Workstream
+
+| Workstream | 上位 Contract | Implementation Detail | 状態 |
+| --- | --- | --- | --- |
+| PostgreSQL | `content/system/data/*`, Domain physical data model | 全 Relation 横断レビュー、FK、CHECK、UNIQUE、Index、Deletion、Lock、Migration、Final DDL | 進行中 |
+| GraphQL | `content/system/api/*`, Application baseline | Query / Mutation / Input / Payload / Enum / Scalar / Connection / Error mapping | 未着手 |
+| Go Application / Infrastructure | Application baseline, Domain UseCase | package、interface、Repository、Transaction manager、error type | 未着手 |
+| Outbox / Redis / Worker | async / outbox / data operations | event schema、stream、consumer group、retry、reclaim、idempotency | 未着手 |
+| Frontend | frontend / GraphQL baseline | route、feature、operation、Apollo cache、RHF、URL state | 未着手 |
+| Test | testing baseline | Domain / UseCase / DB / GraphQL / async / E2E | 未着手 |
+| Infrastructure | infrastructure baseline | node placement、PostgreSQL HA、Redis Sentinel、Compose profile、backup/restore | 未着手 |
+
+## PostgreSQL 横断レビュー
+
+### 既設計として採用する事項
+
+- Application-generated ULID を `varchar(26)` で保存する。
+- 時刻は `timestamptz` を使用する。
+- table / column は `snake_case` とする。
+- column は原則 `NOT NULL` とし、NULL は domain 上の意味を明記する。
+- PK / FK / UNIQUE / CHECK で表現できる invariant は DB でも保証する。
+- cross-table invariant は transaction、row lock、conditional update と integration test で保証する。
+- index は実 access pattern、Job acquisition、recovery condition に対応するものだけ作る。
+- 外部 I/O を PostgreSQL transaction に含めない。
+- PostgreSQL を durable source of truth とし、Redis Streams は delivery / trigger として扱う。
+- Outbox と idempotency persistence を Application transaction と整合させる。
+
+### 照合で確認した修正対象
+
+Media の現行物理モデルには、統合済み上位設計より古い `media_variants` の Media 直結モデルが残っています。上位設計では Media から logical Image を分離し、Image Variant は Image に属します。このため Issue #59 では `media -> images -> image_variants` を正として物理モデルを更新します。
+
+### 未決定として課題化する事項
+
+以下は共有資料・現行正本に方針はあるものの、実装値または最終仕様が確定していないため、推測で決定しません。
+
+- 全 table の final executable DDL と migration 順序
+- `normalized_name` の Unicode normalization / case folding / whitespace normalization の厳密な algorithm
+- idempotency record の保持期間と response snapshot の具体形式
+- outbox payload の versioning / serialization schema
+- Processing Job / Variant publication の final constraint と lock SQL
+- PostgreSQL HA manager / failover endpoint に依存する migration・connection 実装詳細
+
+これらは Issue #59 本体または後続 Issue で追跡し、設計確定後に正本へ反映します。
