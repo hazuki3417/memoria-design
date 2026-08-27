@@ -1,0 +1,178 @@
+# v5設計カバレッジ / Traceability
+
+## 目的
+
+2026-08-26 v5 checkpointの全設計項目について、GitHub正本への着地点を照合した結果です。v5はInfrastructure/Persistenceだけでなく、継承されたv4 Application/Cross-cutting設計を含めて全件統合対象とします。
+
+分類は `A=既存正本で充足`、`B=PR #58で既存正本を更新`、`C=PR #58で新規正本へ統合`、`D=合意済みoverride` です。複数分類の場合は併記します。競合解決の理由は[v5設計統合方針](./v5-design-integration-policy)を参照してください。
+
+## V5 Current Overrides / New Decisions
+
+| # | 項目 | 状態 | GitHub正本 |
+|---|---|---|---|
+| 1 | 現在のフェーズ / Implementation Detailed Design移行 | C | `application-detailed-design-baseline.mdx` |
+| 2 | MongoDB判断 / PostgreSQL+JSONB / 再検討条件 | B | `data/index.mdx` |
+| 3 | PostgreSQL HA / replication / failover / backup分離 / observability | B | `data/postgresql-redis-operations.mdx`, `infrastructure/*` |
+| 4 | Docker Development / Production parity | B | `infrastructure/ec2-runtime-operations.mdx` |
+| 5 | Redis HA / Sentinel / durability / recovery | B | `data/postgresql-redis-operations.mdx` |
+| 6 | Infrastructure topology direction | B,D | `infrastructure/index.mdx`, `ec2-runtime-operations.mdx` |
+| 7 | PostgreSQL Persistence Model v0 | B,D | `data/index.mdx`,各Domain data model |
+| 8 | users v0 | A,D | `user/data-model.mdx`, `user/physical-data-model.mdx` |
+| 9 | communities v0 | A,D | `community/data-model.mdx`, `community/physical-data-model.mdx` |
+| 10 | community_memberships v0 | A,D | `community/*data-model.mdx` |
+| 11 | community_invitations v0 | A,D | `community/*data-model.mdx` |
+| 12 | upload_intents v0 | B | `data/index.mdx`, `media/*` |
+| 13 | media v0 | A,B,D | `media/data-model.mdx`, `media/physical-data-model.mdx` |
+| 14 | tags v0 | B | `data/index.mdx`, `media/*` |
+| 15 | media_tags v0 | B | `data/index.mdx`, `media/*` |
+| 16 | processing_jobs v0 | A,B | `media/processing.mdx`, `data/index.mdx` |
+| 17 | images v0 | A,B | `media/processing.mdx`, `data/index.mdx` |
+| 18 | image_variants v0 | A,B | `media/processing.mdx`, `data/index.mdx` |
+| 19 | outbox_events v0 | A,B | `api/transactional-outbox.mdx`, `data/index.mdx` |
+| 20 | idempotency_records v0 | A,B | `api/idempotency.mdx`, `data/index.mdx` |
+| 21 | 全体Relation v0 | B | `data/index.mdx` |
+| 22 | UseCase → Persistence対応 v0 | B,C | `data/index.mdx`, `application-detailed-design-baseline.mdx` |
+| 23 | Schema詳細化前に決めない事項 | B,C | `data/index.mdx`, `implementation-cross-cutting-baseline.mdx` |
+| 24 | PostgreSQL横断詳細化順序 | B | `data/index.mdx` |
+| 25 | 次作業の再開条件 | C | `application-detailed-design-baseline.mdx`, `context/index.mdx` |
+| 26 | v5 Summary | C | 本文書および各正本 |
+
+## Inherited Application / Cross-cutting Design 1–58
+
+| # | 項目 | 状態 | GitHub正本 |
+|---|---|---|---|
+| 1 | 技術スタック / 前提 | A,C | `technology-stack.mdx`, `implementation-cross-cutting-baseline.mdx` |
+| 2 | 共通設計思想 | C | `implementation-cross-cutting-baseline.mdx` |
+| 3 | Backend API / Worker / Publisher | A,C | `api/index.mdx`, `implementation-cross-cutting-baseline.mdx` |
+| 4 | Media Processing / Redis Streams / Outbox | A,B,C | `api/asynchronous-processing.mdx`, `transactional-outbox.mdx` |
+| 5 | Media Model / Storage / Image Delivery | A,B | `media/*`, `data/storage.mdx`, `web/media-delivery.mdx` |
+| 6 | Ownership / Authorization基礎 | A,D | `cross-cutting/authentication-authorization-privacy.mdx`, Domain authorization |
+| 7 | Idempotency | A,C | `api/idempotency.mdx`, cross-cutting baseline |
+| 8 | Date / Time / ID | A,C | `data/physical-model-conventions.mdx` |
+| 9 | DB Performance / CQRS Read Model | A,C | `application-detailed-design-baseline.mdx`, cross-cutting baseline |
+| 10 | DB / Constant / Config / Secret | A,C | `cross-cutting/configuration.mdx`, cross-cutting baseline |
+| 11 | Authentication Foundation | A,C | `user/authentication-authorization.mdx`, cross-cutting auth |
+| 12 | Error Design | A,C | `api/*`, application baseline |
+| 13 | Logging / OpenTelemetry | A,C | `cross-cutting/observability.mdx` |
+| 14 | Metrics Policy | A,C | `cross-cutting/observability.mdx` |
+| 15 | Timeout / Cancellation / Retry | A,C | `cross-cutting/runtime-reliability.mdx` |
+| 16 | Health Check | A,C | `cross-cutting/runtime-reliability.mdx` |
+| 17 | Graceful Shutdown / Connection Pool | A,C | `cross-cutting/runtime-reliability.mdx` |
+| 18 | DB Migration / Deploy Compatibility | A,C | `data/schema-migration.mdx`, cross-cutting baseline |
+| 19 | CI/CD / Deployment Baseline | A,C | `build-deploy.mdx`, cross-cutting baseline |
+| 20 | Security Baseline | A,C | `cross-cutting/security-privacy-requirements.mdx` |
+| 21 | AWS / Runtime Baseline | A,B | `infrastructure/*` |
+| 22 | PostgreSQL Container Operation | A,B | `data/postgresql-redis-operations.mdx` |
+| 23 | Redis Container Operation | A,B | `data/postgresql-redis-operations.mdx` |
+| 24 | Backup / Restore / DR | A,B | `data/postgresql-redis-operations.mdx`, NFR |
+| 25 | API / GraphQL Protection | A,C | `api/graphql*.mdx`, security baseline |
+| 26 | GraphQL Schema Evolution / DataLoader | A,C | `api/graphql*.mdx`, cross-cutting baseline |
+| 27 | Cache Policy | C | `implementation-cross-cutting-baseline.mdx` |
+| 28 | Frontend State Management | A,C | `web/implementation-conventions.mdx`, application baseline |
+| 29 | Dependency / Version / Retention | A,C | `versioning.mdx`, NFR, cross-cutting baseline |
+| 30 | Development Environment | A,B,C | `local-development.mdx`, infrastructure, cross-cutting baseline |
+| 31 | Backend Clean Architecture Implementation | A,C | `api/clean-architecture.mdx` |
+| 32 | UseCase / DI / Repository / Transaction | A,C | `api/implementation-conventions.mdx`, cross-cutting baseline |
+| 33 | Validation / Domain / Infrastructure | A,C | `api/validation.mdx`, clean architecture |
+| 34 | SQL / Concurrency / Context | A,C | `transactions-consistency.mdx`, cross-cutting baseline |
+| 35 | GraphQL / gqlgen Implementation | A,C | `api/graphql-implementation.mdx` |
+| 36 | Frontend Implementation | A,C | `web/implementation-conventions.mdx` |
+| 37 | Testing | A,C | `test-design.mdx`, cross-cutting baseline |
+| 38 | AI Assisted Development / Test Philosophy | A,C | `ai-development.mdx`, cross-cutting baseline |
+| 39 | Naming / Generated Code / Formatting | A,C | API/Web conventions, cross-cutting baseline |
+| 40 | Static Analysis / Architecture Enforcement | A,C | API/Web conventions, cross-cutting baseline |
+| 41 | CI Quality Gate | A,C | `test-design.mdx`, `build-deploy.mdx`, cross-cutting baseline |
+| 42 | Comment / TODO / Abstraction Policy | C | `implementation-cross-cutting-baseline.mdx` |
+| 43 | 開発環境の完成条件 | A,C | `local-development.mdx`, cross-cutting baseline |
+| 44 | 現時点で先に決めない事項 | C | `implementation-cross-cutting-baseline.mdx` |
+| 45 | Authentication / Authorization Implementation | A,C | User/Cross-cutting auth |
+| 46 | Logical CQRS | C | Application baseline, cross-cutting baseline |
+| 47 | Persistence Convention | A,B | `data/physical-model-conventions.mdx`, `data/index.mdx` |
+| 48 | Data Consistency / Concurrency | A,C | `transactions-consistency.mdx`, cross-cutting baseline |
+| 49 | Cache Baseline | C | `implementation-cross-cutting-baseline.mdx` |
+| 50 | API / Schema Evolution | A,C | `api/graphql*.mdx`, cross-cutting baseline |
+| 51 | Feature Flag | C | `implementation-cross-cutting-baseline.mdx` |
+| 52 | Upload Lifecycle | B,C | `data/index.mdx`, application/cross-cutting baseline |
+| 53 | Search / Filter / Sort | C | Application/cross-cutting baseline |
+| 54 | Worker / Async Job | A,C | `api/asynchronous-processing.mdx`, cross-cutting baseline |
+| 55 | Frontend UX | A,C | `web/implementation-conventions.mdx`, cross-cutting baseline |
+| 56 | Audit / Data Lifecycle | A,C | `deletion-lifecycle.mdx`, cross-cutting baseline |
+| 57 | Development Seed / Fixture | C | `implementation-cross-cutting-baseline.mdx` |
+| 58 | ADR | C | `implementation-cross-cutting-baseline.mdx` |
+
+## Application / Domain Detailed Design 59–113
+
+| # | 項目 | 状態 | GitHub正本 |
+|---|---|---|---|
+| 59 | Application / Domain全体像 | C | `application-detailed-design-baseline.mdx` |
+| 60 | Public Interface rule | C | Application baseline |
+| 61 | ID / Time / Default Order | A,C | Physical convention, Application baseline |
+| 62 | User Domain | A,D | `user/*` |
+| 63 | Authentication / Onboarding | A,C | `user/*`, Application baseline |
+| 64 | Community Domain | A,D | `community/*` |
+| 65 | Membership | A,D | `community/*` |
+| 66 | Community UseCases | A,D | `community/use-cases.mdx` |
+| 67 | Community Invitation | A,D | `community/*` |
+| 68 | Invitation Preview / Onboarding | A,C | Community/User docs, Application baseline |
+| 69 | AcceptCommunityInvitation | A,D | `community/use-cases.mdx`, consistency docs |
+| 70 | Media Domain | A,B,D | `media/*` |
+| 71 | Media File Formats | A | `media/*`, storage docs |
+| 72 | Media Ownership / Scope | A,D | `media/data-model.mdx`, `community-access.mdx` |
+| 73 | Media Authorization | A,D | Media/Community authorization docs |
+| 74 | Complete Upload / Media Creation | B,C | Data/Application baseline, Media use cases |
+| 75 | Delete Media | A,C | Media lifecycle, Application baseline |
+| 76 | Get / List Media | A,C | Media use cases, Application baseline |
+| 77 | Original Download | A,D | Media use cases/authorization |
+| 78 | ProcessingJob / Reprocess | A,B,C | `media/processing.mdx`, Application baseline |
+| 79 | Image | A,B | `media/processing.mdx`, data model |
+| 80 | ImageVariant / Artifact Publication | A,B,C | `media/processing.mdx`, Application baseline |
+| 81 | Media Detail Read Model | A,C | Media docs, Application baseline |
+| 82 | Image List / Variant Delivery Read | A,C | Media/Web delivery, Application baseline |
+| 83 | Tag Domain / Positioning | B,C | Media/Data/Application baseline |
+| 84 | Tag Entity / Scope | B,D | Media/Data model |
+| 85 | Media Tagging Desired State | C | Application baseline |
+| 86 | Tagging Input / Resolve-or-Create | C | Application baseline |
+| 87 | Tagging Concurrency | C | Application baseline, transactions baseline |
+| 88 | Tagging during Upload | C | Application baseline |
+| 89 | Storage Usage Definition | B,C | Data/Application baseline |
+| 90 | Storage Usage Read | C | Application baseline |
+| 91 | Storage Quota | B,C | Data/Application/Cross-cutting baseline |
+| 92 | Community Delete Workflow | A,C | Community lifecycle, Application baseline |
+| 93 | CQRS Read Model Principles | C | Application baseline |
+| 94 | Public UseCase Inventory | C | Application baseline |
+| 95 | Internal Application Operations | C | Application baseline |
+| 96 | State Machine Final Review | A,C,D | Domain docs, Application baseline |
+| 97 | Authorization Final Review | A,C,D | Domain auth, Application baseline |
+| 98 | Concurrency Final Review | A,C | Transaction docs, Application baseline |
+| 99 | Idempotency Final Review | A,C | API idempotency, Application baseline |
+| 100 | Error Contract Final Review | A,C | API/Application baseline |
+| 101 | Transaction Boundary Final Review | A,C | Domain consistency, Application baseline |
+| 102 | Sync / Async Boundary Final Review | A,C | Async/lifecycle/Application baseline |
+| 103 | Observability Application Rules | A,C | Observability, Application baseline |
+| 104 | GraphQL Contract Direction | A,C | GraphQL docs, Application baseline |
+| 105 | Frontend Application Rules | A,C | Web conventions, Application baseline |
+| 106 | Persistence Rules | A,B,C | Data conventions/index, Application baseline |
+| 107 | Security / Infrastructure Compatibility | A,B,C | Security/Infrastructure/Application baseline |
+| 108 | Initial Release「やらないこと」 | A,C,D | `first-release.mdx`, integration policy, Application baseline |
+| 109 | Application Detailed Design Completion | C | Application baseline |
+| 110 | Implementation Detailed Design移行 | C | Application baseline, Context map |
+| 111 | 次作業の再開指示 | C | Context map |
+| 112 | Reconsider Conditions | C | Application/Cross-cutting baseline |
+| 113 | 設計時の回答 / 思考方針 | A,C | `AGENTS.md`, `ai-development.mdx` |
+
+## 合意済みoverrideの要点
+
+- Community roleは`member | admin`を維持する。
+- Invitation acceptは直接Membershipを成立させ、Join Requestは独立した将来機能として維持する。
+- Media本体へUser/Community ownership IDを持たせず`media_custodies`で管理関係を分離する。
+- Media Community Access / Media Event / Custody Transfer等の将来設計は、Initial ReleaseでUI/API提供しなくても論理設計として維持する。
+- Media Group DAGを維持し、Group scopeはGroup自身が持つ。
+- ProcessingJob / Image / ImageVariant / atomic publicationはv5を取り込む。
+- User lifecycle / account deletionはGitHub現行を維持しInitial Release対象とする。保持MediaのUploader FKはUser削除後NULL化しPII snapshotを保持しない。
+- ULID=`varchar(26)`等、既に確定済みのPersistence共通規約を未決定へ戻さない。
+
+## 照合結果
+
+全26 Current Override、全58 Cross-cutting、全55 Application/Domain項目（59–113）にGitHub上の着地点を割り当てました。単なる項目一覧ではなく、A/B/C/Dと正本pathを追跡できる状態を完成条件とします。
+
+`Initial Release外`は設計削除理由にしません。将来機能を見越したDomain/Persistence構造は維持し、Release Scopeと分離します。

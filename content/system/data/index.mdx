@@ -4,20 +4,32 @@
 
 > 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
 
-データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。初期構成ではPostgreSQLとRedisをEC2上のDocker containerとして運用し、Redisは再構築可能な配送・一時状態として扱います。
+データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。ProductionではPostgreSQLをPersistent Application TruthとしてHA構成で運用し、Redisは再構築可能な配送・一時状態として扱います。DevelopmentではDocker Composeの通常軽量構成とHA検証profileを使い分けます。
 
 ## PostgreSQL
 
 - Mediaの属性、Uploader、Custodian、Community公開、Group、Media Eventを保持します。
-- CustodianはUserまたはCommunityのどちらか一つであることを保証します。
+- CustodianはUserまたはCommunityのどちらか一つであることを保証します。Media本体へUser/Community ownership IDを直接持たせず、管理関係はCustodyとして分離します。
 - foreign key、unique、check constraintで表現できる整合性はDBでも保証します。
 - Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
 - transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
+- ProcessingJob、Transactional Outbox、Idempotency persistenceをPostgreSQL上のApplication Truthとして扱います。
+- Upload中のQuota reservationはUpload Intentで表現し、Storage Usageは確定Mediaと有効reservationから算出します。初期段階では専用Usage Counter Tableを設けません。
+
+## Persistence Model詳細化
+
+個別Domainを先にDDLまで深掘りせず、全Table / Relation / Responsibilityを先にレビューします。その後、共通Data Type、Nullability、FK、UNIQUE/CHECK、Deletion、Index、Transaction/Lock、Concurrency、Outbox/Idempotency、Migration、Final DDLの順に横断詳細化します。
+
+既存GitHubで既に確定しているULID `varchar(26)`、`timestamptz`、snake_case等の共通規約は未決定へ戻しません。
 
 ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)、自己運用と復旧は[PostgreSQL・Redis運用](./postgresql-redis-operations)、schema変更は[DB schema migration](./schema-migration)を参照してください。
 
+v5 checkpoint全体の統合対象と合意済みoverrideは、[v5設計カバレッジ](/system/v5-design-coverage)と[v5設計統合方針](/system/v5-design-integration-policy)を参照します。
+
 ## MongoDBを主要永続化先にしない理由
 
-同じドメイン情報をPostgreSQLとMongoDBへ重複保持すると、正本、transaction、整合性、migrationが複雑になります。Mediaの主要metadataはPostgreSQLへ集約します。MongoDBを利用する場合は、PostgreSQLでは満たせない具体的なユースケースとdata ownershipを先に定義します。
+同じドメイン情報をPostgreSQLとMongoDBへ重複保持すると、正本、transaction、整合性、migrationが複雑になります。Mediaの主要metadataはPostgreSQLへ集約します。
 
+MongoDBは単に「Schemaが柔軟」「水平分散できる」という理由では採用しません。Documentが自然なAggregate / Read-Write単位で、Nested Object / Arrayが主要構造となり、Entity間Relation / FK / JOINが相対的に弱い具体的ユースケースが生じた場合に再検討します。
 
+RelationalなEntityを維持しつつ一部metadataだけ可変な場合は、PostgreSQL + JSONBを中間選択肢とします。Media Analysis、provider raw payload、AI analysis result等のDocument性が強い領域が実際に必要になった場合も、まずPostgreSQL JSONBで不自然さを観測した上でMongoDB分離を評価します。

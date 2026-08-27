@@ -1,0 +1,182 @@
+# v5設計統合方針
+
+## 目的
+
+`catchup_design_checkpoint_2026-08-26_v5_infra_postgres_foundation.txt` に含まれる設計項目を欠落なくMemoria設計へ取り込むための統合規約です。
+
+v5はv4 Application詳細設計全文を継承しているため、Infrastructure / Persistenceだけではなく、Application / Domain / Authorization / Concurrency / Idempotency / Error / Transaction / Async / Observability / GraphQL / Frontend / Testing / Development / Security等をすべて統合対象とします。
+
+## Source of Truth
+
+GitHub `develop` の既存設計を基準とし、v5と競合しない設計は追加します。競合については2026-08-26の統合レビューで合意した内容を優先します。
+
+### 合意済みoverride
+
+- Infrastructureはv5のProduction HA baselineを採用する。
+- DevelopmentはDocker / Docker Composeを利用し、通常軽量profileとHA検証profileを分ける。
+- PostgreSQL SchemaはDomain単位で先に深掘りせず、全体Persistence Modelを先にレビューしてから横断詳細化する。
+- Community Administrator専用tableは採用せず、`community_memberships.role = member | admin`で表現する。
+- Community Invitationはaccept時にMembershipを直接作成する。User起点Join RequestはInvitationとは独立した将来機能として設計を維持する。
+- Mediaは独立Entityとして扱い、User / Communityの管理関係を`media_custodies`へ分離する。Media本体へowner User / Community IDを持たせない。
+- Media Community Access、Media Event、Custody Transfer等は将来機能を見越したDomain/Persistence Designとして維持し、Initial Release Scopeとは分離する。
+- Media Groupは既存DAGモデルを維持し、Group自身がUser XOR Community scopeを持つ。
+- ProcessingJob / Image / ImageVariant / atomic artifact publicationはv5の設計を取り込む。
+- TagはUser XOR Community scopeを持つ独立Entityとし、MediaとのN:M associationを`media_tags`で表現する。
+- User lifecycle / account deletionはGitHub現行設計を維持する。`ACTIVE -> DELETING -> physical delete`を採用し、account deletionはInitial Release対象とする。
+- User削除後も保持されるMediaの`uploaded_by_user_id`はNULL化し、削除済みUserとして扱う。PII snapshotは保持しない。
+- 既存Persistence共通規約（ULID `varchar(26)`等）はv5の未決定状態へ戻さない。
+
+## 全項目統合対象
+
+以下はv5に含まれる全設計領域であり、既存の同等設計がある場合も意味を失わないよう正本へ統合・参照します。
+
+### Foundation / Infrastructure / Persistence
+
+- 設計優先順位: Correctness → Simplicity → Explicitness → Observability → Optimize when needed
+- Implementation Detailed Designへの移行順序
+- MongoDB / PostgreSQL / PostgreSQL + JSONBの選定基準と再検討条件
+- PostgreSQL Primary + Standby、Streaming Replication、Failover、Read Scaling、Backup/PITR、HA Observability
+- Docker Development / Production software topology parity
+- Redis 1 Primary + 2 Replica + Sentinel x3 / quorum 2、Sentinel-aware client、AOF/EBS、Outboxからのrecovery
+- Production failure-domain分離とself-host baseline
+- PostgreSQL Persistence Model全体レビューと横断詳細化順序
+- Upload Intent / Quota reservation
+- Processing Job persistence
+- Transactional Outbox
+- Idempotency persistence
+- Storage Usageを専用counter tableではなくMedia + active reservationから算出する原則
+- Expand-Migrate-Contract migration
+
+### Cross-cutting Architecture
+
+- Backend API / Worker / Publisher責務分離
+- Redis Streams / Transactional Outbox / at-least-once / idempotent consumer
+- Media processingとimmutable source / immutable artifact
+- Ownership / Authorization基礎
+- Idempotency
+- Date / Time / ID
+- Logical CQRS / Read Model
+- DB / Constant / Config / Secret
+- Authentication foundation
+- Error contract
+- Structured Logging / OpenTelemetry / Trace-Log correlation
+- Metrics policy
+- Timeout / Cancellation / Retry
+- Liveness / Readiness / Startup health checks
+- Graceful shutdown / connection pool
+- Deploy compatibility
+- CI/CD
+- Security baseline
+- PostgreSQL / Redis container operation
+- Backup / Restore / DR
+- API / GraphQL protection
+- GraphQL schema evolution / DataLoader
+- Cache policy
+- Frontend state management
+- Dependency version / retention
+- Development environment
+
+### Implementation Baseline
+
+- Backend Clean Architecture
+- UseCase / DI / Repository / Transaction
+- Validation / Domain / Infrastructure boundary
+- SQL / concurrency / context
+- GraphQL / gqlgen
+- Frontend implementation
+- Testing baseline
+- AI assisted development / test philosophy
+- Naming / generated code / formatting
+- Static analysis / architecture enforcement
+- CI Quality Gate
+- Comment / TODO / abstraction policy
+- Development environment completion criteria
+- Authentication / Authorization implementation
+- Logical CQRS implementation
+- Persistence conventions
+- Data consistency / concurrency
+- Cache
+- API / Schema evolution
+- Feature Flag
+- Upload lifecycle
+- Search / Filter / Sort
+- Worker / Async Job
+- Frontend UX
+- Audit / Data Lifecycle
+- Development Seed / Fixture
+- ADR
+
+### Application / Domain Detailed Design
+
+- Application/Public Interface rule: User / Communityのsemanticが異なる場合はgeneric scope APIを避ける
+- Business polymorphic ID禁止
+- Semantic String
+- ID / Time / Default Order
+- User Domain
+- Authentication / Onboarding / Bootstrap / CreateApplicationUser
+- Community Domain
+- Membership
+- Community UseCases
+- Community Invitation
+- Invitation Preview / Onboarding / Accept
+- Media Domain / formats
+- Media management scope / authorization
+- Complete Upload / Media Creation
+- Delete / Get / List Media
+- Original Download
+- ProcessingJob / Reprocess
+- Image / ImageVariant / Artifact Publication
+- Media Detail / Image List / Variant Delivery Read Model
+- Tag Domain / Scope / Desired State / Resolve-or-Create / Concurrency / Upload時Tagging
+- Storage Usage / Storage Quota
+- Community Delete Workflow
+- CQRS Read Model principles
+- Public UseCase Inventory
+- Internal Application Operations
+- State Machine final review
+- Authorization final review
+- Concurrency final review
+- Idempotency final review
+- Error Contract final review
+- Transaction Boundary final review
+- Sync / Async Boundary final review
+- Observability Application rules
+- GraphQL Contract direction
+- Frontend Application rules
+- Persistence rules
+- Security / Infrastructure compatibility
+- Initial Releaseで提供しない機能の明示（ただし将来設計を削除する意味ではない）
+- Application Detailed Design completion criteria
+- Implementation Detailed Designへの移行条件
+- Reconsider Conditions
+
+## Initial Release Scopeと将来設計
+
+機能提供時期とDomain/Persistence Designを分離します。
+
+```text
+Initial ReleaseでUI/APIを提供しない
+!=
+将来を見越したDomain/Persistence設計を削除する
+```
+
+既存設計またはv5に合理的な将来拡張モデルがある場合、Initial Release外であることだけを理由に削除しません。
+
+## Persistence詳細化の順序
+
+```text
+1. 全Table / Relation / Responsibilityレビュー
+2. 共通Data Type
+3. Nullability
+4. FK / Referential Integrity
+5. UNIQUE / CHECK
+6. Deletion Strategy
+7. Index
+8. Transaction / Lock
+9. Concurrency Invariant
+10. Outbox / Idempotency Persistence
+11. Migration / Expand-Migrate-Contract
+12. Final DDL
+```
+
+既存GitHubで既に確定済みの横断規約はこの順序で未決定へ戻さず、既存決定として入力に含めます。

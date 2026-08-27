@@ -1,0 +1,61 @@
+# Current design baseline context
+
+## 目的
+
+設計・実装・テストを再開するときに、現在の確定Baselineと読み取り順序を短く共有するContextです。詳細仕様をここへ複製せず、GitHub上の正本へ誘導します。
+
+## 現在のフェーズ
+
+Application / Domain詳細設計は完了済みです。現在はImplementation Detailed Designへ進みます。Application semanticsを再設計するのではなく、確定したContractを上位に置いて実装詳細を具体化します。
+
+推奨順序は次です。
+
+```text
+PostgreSQL Persistence Design
+  -> GraphQL Schema
+  -> Go Application / Infrastructure
+  -> Outbox / Redis / Worker contracts
+  -> Frontend Detailed Design
+  -> Test Design
+  -> Implementation
+```
+
+PostgreSQLはDomain単位で局所的にDDLを完成させず、全Table/Relationを先にレビューし、共通型 -> Nullability -> FK -> UNIQUE/CHECK -> Deletion -> Index -> Transaction/Lock -> Concurrency -> Outbox/Idempotency -> Migration -> DDLの順で横断詳細化します。
+
+## 必ず読む正本
+
+1. `/system/v5-design-integration-policy` — v5と既存GitHub設計の競合解決
+2. `/system/v5-design-coverage` — v5全項目のA/B/C/D traceability
+3. `/system/application-detailed-design-baseline` — Application/Domain横断Contract
+4. `/system/implementation-cross-cutting-baseline` — Implementation/Cross-cutting Baseline
+5. 対象Domainの`use-cases / authorization / data-model / physical-data-model / consistency-transactions / design-decisions`
+6. `/system/data/physical-model-conventions`と`/system/data`
+7. 対象実装repositoryのschema・設定・実装・test
+
+## 現行Infrastructure Baseline
+
+Productionは単一EC2への全component同居をBaselineにしません。PostgreSQLはPrimary + Standby HA、streaming replication、multi-host/multi-AZ方向です。Redisは1 Primary + 2 Replicas + Sentinel x3/quorum 2です。ReplicationとBackupを分離し、WAL archive/restore/PITRを別途設計します。
+
+DevelopmentはDocker ComposeでProduction software topologyを再現します。通常の軽量profileとHA検証profileを分離し、同じimage/configにenvironment overlayを適用します。
+
+## 現行Persistence / Async Baseline
+
+PostgreSQLがpersistent application truthです。Redis Streamsはdelivery/temporary stateでありbusiness truthにしません。APIは通常Redisへ直接publishせず、DB transactionでTransactional Outboxを記録しPublisherが配送します。Workerはat-least-once deliveryを前提にidempotentにします。
+
+Media本体へUser/Community ownership IDを埋め込まず、`media_custodies`で管理関係を分離します。Community Access、Media Event、Custody Transfer等はInitial Releaseで機能提供しなくても将来設計として維持します。
+
+## 合意済みoverride
+
+- Community roleは`member | admin`。
+- Invitation acceptはMembershipを直接成立させる。Join Requestは独立した将来機能。
+- Media GroupはDAGを維持し、Group scopeはGroup自身が保持する。
+- ProcessingJob / Image / ImageVariant / atomic publicationはv5方式を採用する。
+- User lifecycle/account deletionはGitHub現行設計を維持しInitial Release対象。User物理削除後、保持MediaのUploader FKはNULL化しPII snapshotを残さない。
+- ULIDはPostgreSQLで`varchar(26)`等、既存で確定済みのPersistence規約を未決定へ戻さない。
+- `Initial Release外`と`将来を見越したDomain/Persistence設計`を分離する。未提供を理由に将来設計を削除しない。
+
+## 実装時の判断
+
+既存仕様・実装を推測せず、対象GitHub repositoryの最新状態を確認します。設計と実装が違う場合は設計を勝手に実装へ合わせず差分を報告します。大きな設計判断が必要なら人間と合意してから変更します。
+
+未確定のImplementation DetailはIssueで管理し、確定した重要Decisionは対応する正本またはADRへ反映します。

@@ -1,37 +1,57 @@
-# IaCアーキテクチャ
+# インフラストラクチャ設計
 
+## 目的
 
-## 概要
+Memoriaは、AWS上でContainer化したApplicationとself-hosted PostgreSQL / Redisを運用します。Production相当構成では単一Host同居を可用性Baselineとせず、Application、PostgreSQL HA、Redis Sentinel HAのfailure domainを分離します。
 
-> 実装状況: AWS CDKにはEC2、非公開S3、最小権限IAMなど初期基盤の定義があります。API・Media Worker・Outbox Publisherの実運用構成、監視、backup、復旧手順は未実装です。
-> 実装の正本: `memoria-IaC`
+設計優先順位はCorrectness、Simplicity、Explicitness、Observability、必要性が観測された後のOptimizationの順です。
 
-IaCはAWS CDKでruntime、network、IAM、storage、監視を構築します。
+## Production baseline
 
-- stackは変更・deploy・rollbackの責務境界で分割し、「一マイクロサービス一stack」を規約にしません。
-- 最小権限を基本とし、stateful resourceはretention、backup、migrationを明示します。
-- 環境差分はbranchではなくCDK設定、GitHub Environments、AWS側で表現します。
-- secretをrepository、output、設計書へ保存しません。
-- 初期の実行基盤にはEC2とDockerを使用し、予算に応じた構成で運用します。
-- API、Media Worker、Outbox PublisherはEC2上で独立したcontainer・processとして実行します。構成管理には必要に応じてDocker Composeを使用します。
-- ECS/Fargateは運用負荷や個別scalingの必要性が高まった場合の移行先とし、初期導入を前提にしません。
-- 常駐するWorkerとPublisherをLambdaへ置き換えることは前提にしません。短時間で独立した処理が生じた場合に限り、用途ごとに評価します。
-- PostgreSQLとRedisはEC2上のDocker containerで運用し、永続領域をEBSへ配置します。RDSとElastiCacheは初期構成に含めません。
-- 非同期配送にはRedis Streams、状態とOutboxにはPostgreSQLを使用します。
-- EC2管理とdeployにはSSM、GitHub ActionsからAWSへの認証にはOIDCを使用し、SSH公開と長期Access Keyを標準にしません。
-- S3 bucketはprivateとし、CloudFront Origin Access Controlと期限付き署名でMediaを配信します。
-- APIとWorkerは責務に応じて別container imageとし、PublisherはAPI imageを再利用できます。
+- Application / API / Worker / Outbox PublisherはDocker container / processとして分離可能な構成にします。
+- PostgreSQLはPrimary 1 + Standby 1以上を基本とし、Streaming Replicationを利用します。初期候補はasync replicationです。
+- Primary / Standbyは別Host / 別failure domainへ配置し、Productionでは可能なら別AZとします。
+- Applicationは個別DB Hostへ固定依存せず、DB endpoint / routingを介してcurrent Primaryへ接続できる構成にします。
+- Redisは1 Primary + 2 Replicas、Sentinel x3、quorum 2をBaselineとし、ApplicationはSentinel-aware clientを使用します。
+- Redis Clusterは初期リリースでは採用しません。Sharding requirementが具体化した場合に再検討します。
+- RDS / ElastiCacheを現時点のBaselineとはせず、EC2 / EBS / S3 / IAM / Security Group / SSM等を中心としたself-host方針を維持します。
 
-[EC2・Docker運用基盤](./ec2-runtime-operations)を初期実行構成の正本とし、[初回Releaseの範囲と成功条件](/first-release)を運用判断の基準とします。container配置、PostgreSQLとRedisの構成、Deploy、Backup、復旧手順の具体化は[初回ReleaseのEC2運用・Deploy・Backupの詳細設計](https://github.com/hazuki3417/memoria-design/issues/45)で扱います。
+具体的なEC2台数、Application node配置、PostgreSQL HA manager / proxy、automatic failover方式はImplementation Detailed Designで確定します。
 
-## EC2運用と将来的な移行
+## Availability / Recovery
 
-EC2を採用する場合、OS更新、containerの再起動、logの保存、backup、障害復旧は運用責務として管理します。機密情報はimageやrepositoryへ含めず、AWS上の権限と設定から取得します。
+ReplicationとBackupは別責務です。
 
-API、Publisher、Workerは実行基盤に依存しないcontainerとして分離します。ECS/Fargateへ移行する場合も、domain処理、Redis Streams、Transactional Outbox、Mediaの権限設計を変更せず、配置と運用方法を移行します。
+```text
+Replication = Availability
+Backup      = Recovery
+```
 
-stack名はresourceの責務を表す名称にします。`MemoriaRecord`は採用しないマイクロサービス構成を連想させるため使用せず、変更時はresource置換とdeploy影響を確認します。
+PostgreSQLはperiodic/base backup + WAL archive + Object Storage + restore testを基本方向とし、必要なRPOに応じてPITRを利用します。RedisはAOF / EBSを利用可能ですがApplication Truthではなく、Redis Streams loss時はPostgreSQL Outbox / ProcessingJob stateからreconciliationして再配送します。
 
-## 初期運用の非機能要件
+## Development / Production parity
 
-単一EC2を前提とする可用性、RPO・RTO、backup retention、監視項目、運用費用、構成の見直し条件は[非機能要件](/system/cross-cutting/non-functional-requirements)を参照します。Multi-AZ、ECS/Fargate、managed databaseを初期の必須構成として追加せず、実測された運用上の課題と予算に基づいて判断します。
+DevelopmentでもProductionと同じsoftware topology、version、image、health check、基本configuration templateを利用します。ただしDevelopment用ComposeをそのままProductionへ配備することはしません。
+
+```text
+Normal Development
+→ Docker Compose: Single PostgreSQL / Single Redisを許容
+
+HA Validation
+→ Docker Compose HA profile: PostgreSQL HA + Redis Data x3 + Sentinel x3
+
+Production
+→ EC2 + Docker + EBS + multi-host / multi-AZ + production secrets / monitoring / backup
+```
+
+Local Docker HAはsoftware-level failover / reconnect / electionの検証用であり、Host / AZ failureを再現するInfrastructure-level HAとは区別します。
+
+## Observability
+
+PostgreSQLではPrimary/Standby availability、replication lag、WAL、disk、connection、CPU/memory、checkpoint、backup、restore test、failover stateを監視対象とします。RedisではPrimary/Replica/Sentinel availability、replication/failover、Streams、AOF/disk等を観測可能にします。具体的thresholdは運用要件と実測に基づいて決めます。
+
+## 関連設計
+
+Runtime運用は[EC2 Runtime運用](./ec2-runtime-operations)、PostgreSQL / Redisの詳細は[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)を参照します。
+
+v5 checkpoint全体の統合対象と合意済みoverrideは、[v5設計カバレッジ](/system/v5-design-coverage)と[v5設計統合方針](/system/v5-design-integration-policy)を参照します。

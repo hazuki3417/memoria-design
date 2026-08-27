@@ -1,0 +1,134 @@
+# Application詳細設計Baseline
+
+## 位置づけ
+
+この文書は、v5 checkpointが継承するApplication / Domain詳細設計の横断BaselineをGitHub側の正本として保持するための索引兼Contractです。Domain固有の詳細はUser / Community / Media各正本を優先し、API・Cross-cutting・Webの詳細はそれぞれのSystem正本を参照します。
+
+設計優先順位は `Correctness -> Simplicity -> Explicitness -> Observability -> Optimize when needed` とします。将来拡張できる構造は壊しませんが、将来機能を初期Releaseへ先回り実装しません。
+
+## Application / Public Interface
+
+Public UseCaseはUser / Community等のbusiness semanticsを保ち、安易なgeneric scope APIへ統合しません。Business associationで `type + id` のpolymorphic IDを使用しません。role / state / type等はnumeric codeではなくsemantic stringを用います。
+
+ID / DateTime / default orderは既存Persistence Conventionを正本とし、一覧の特別な業務順序がない場合は `created_at DESC, id DESC` をBaselineとします。
+
+## Public UseCase Inventory
+
+初期Application Contractは少なくとも次の責務を明示的に分離します。
+
+- Bootstrap / User: Application User registration、bootstrap、current user
+- Community: create / update / delete / get / list
+- Membership: leave / remove member / change role / member reads
+- Invitation: create / preview / accept / revoke等、既存Community正本で定義された操作
+- User Media: prepare / complete upload、get/list、tag update、delete、download、reprocess
+- Community Media:同等のmedia operationをCommunity authorization semanticsで提供
+- Storage: User / Community usageとquota read
+
+Public UseCase名はGraphQL field名候補ですが、Application designはGraphQL schemaのmirrorではありません。
+
+## Internal Application Operations
+
+Public UseCaseとは別に、Worker / Publisher / cleanup / reconciliation等の内部operationを持ちます。Redis Streamsはdelivery mechanism、PostgreSQLのProcessing Job / Outbox等をpersistent truthとして扱います。内部operationをPublic APIへ露出させません。
+
+## State Machine
+
+- Media: `active -> deleting -> physical delete`
+- Community: `active -> deleting -> physical delete`
+- ProcessingJob: `pending -> processing -> succeeded | failed | cancelled`
+- UploadIntent: initial persistence stateは`prepared -> completed`を基本とし、expiryはtimeからderivedできる
+- CommunityInvitation: revoked / consumed / expired / activeはInvitation factsと時刻から判定する
+
+Processing stateをMedia lifecycleへ混ぜません。Reprocessは新しいProcessingJobです。
+
+## Authorization
+
+認証済みIdentityとApplication User Principalを分離します。Authorizationは対象Resourceのowner / custody / membership / role等のDomain factから判定し、GraphQL resolverやFrontendだけに依存させません。
+
+User / Community操作のauthorization semanticsは各Domain正本を優先します。Community admin権限はMembership roleで表現し、last-admin invariantを維持します。
+
+## Concurrency
+
+最低限、次を競合対象として設計します。
+
+- quota reservation / CompleteUpload
+- last adminのrole change / leave / remove
+- invitation consume
+- tag resolve-or-create / desired-state synchronization
+- deleteと更新・処理のrace
+- same Media + purposeのactive ProcessingJob uniqueness
+- idempotency keyの同時実行
+
+必要なDB constraint、transaction、row lockをPersistence詳細設計で横断的に確定します。
+
+## Idempotency
+
+意味のあるside effect commandはretry semanticsを定義します。少なくともUpload completion、Invitation accept、delete / reprocess等でnetwork retryやat-least-once deliveryによる二重副作用を防ぎます。Generic frameworkを先に固定せず、UseCase requirementからPersistenceを決めます。
+
+## Error Contract
+
+Domain/Application errorをInfrastructure errorやGraphQL generated typeへ依存させません。Expected application errorを明示的に分類し、raw exceptionや内部情報をPublic contractへ露出しません。Transport層でGraphQL error contractへmappingします。
+
+## Transaction Boundary
+
+- CompleteUpload: reservation検証、Media/Tag association、ProcessingJob、Outbox等のpersistent stateを整合させる
+- CreateCommunity: Communityと初期admin Membershipをatomicに成立させる
+- AcceptInvitation: invitation consumeとMembership成立をretry-safeに整合させる
+- DeleteMedia: `deleting`遷移とdurable cleanup requestをresponse前にcommitする
+- DeleteCommunity: `deleting`遷移とdurable cleanup requestをresponse前にcommitする
+- Reprocess: new ProcessingJobとenqueueに必要なOutbox stateを整合させる
+
+外部I/Oや重いMedia処理をDB transaction内へ不要に抱え込みません。
+
+## Sync / Async Boundary
+
+CompleteUpload responseまでにaccepted Mediaのpersistent stateとprocessing requestのdurabilityを保証し、画像生成等はasyncで実行します。
+
+DeleteMedia responseまでにMediaを`deleting`へ遷移しUserから不可視化し、cleanup requestをdurableにします。S3 cleanup、related row cleanup、physical deleteはasyncです。
+
+DeleteCommunity responseまでにCommunityを`deleting`へ遷移しUserから不可視・mutate不可とし、cleanup requestをdurableにします。Community Media、Tag/association、Invitation、Membership、physical delete等はasync cleanup対象です。
+
+Taggingや通常Readへ不要なasync processingを導入しません。
+
+## CQRS / Read Model
+
+Logical CQRSを採用し、Command modelとQuery向けRead modelを責務として分離できますが、初期から別DBやevent sourcingを必須にしません。Read modelはSQL VIEWに限定しません。N+1回避、pagination、filter/sort、authorizationをQuery Serviceで明示します。
+
+## Observability
+
+Automatic HTTP / DB / Redis / external HTTP instrumentationを優先し、manual spanは原則UseCase boundaryへ置きます。Redis Stream async contextへW3C trace contextをpropagateします。
+
+`user_id` / `media_id`等のhigh-cardinality IDをmetric labelへ使用しません。username、invitation token、presigned URL、raw GraphQL variables、file body、secret、PIIを無制限にlog/traceしません。Expected application errorでERROR logを量産せず、同一errorを複数boundaryで重複記録しません。
+
+## GraphQL Contract Direction
+
+Generated GraphQL typesをDomain/Applicationへ漏らしません。MutationはInput Objectを用い、User / Community separate operationsを維持します。Relay Connection / opaque cursor、storage bytes用`Int64` scalar、RFC3339 UTC secondsのDateTimeをBaselineとします。
+
+Schema evolutionはAdd -> Deprecate -> migrate -> Remove。Generated codeをcommitし、generation diffをCIで検証します。
+
+## Frontend Application Rules
+
+State ownershipは以下をBaselineとします。
+
+- Apollo Client: server state
+- React Hook Form: form / editable draft
+- React local state: local UI state
+- URL / search params: navigation / shareable filter-sort state
+- Context: limited cross-tree UI/app context
+
+具体的必要性なしにRedux / Zustand等を追加しません。Auth0後はApplication Bootstrapでregistration requirementを判定します。Invitation deep linkはlogin/signup/registration後に同じInvitation URLへ復帰します。
+
+Media Tag editorはdesired tag valuesを保持しfull desired setを送信します。added/removed diffをFrontendのtruthにしません。Media filter/sortはURL stateを基本とし、Apollo dataをeditable draft以外の理由でReact stateへコピーしません。Optimistic updateはlow-risk operationに限定します。
+
+## Persistence / Security Compatibility
+
+Application invariantをDB都合で変更しません。Business polymorphic associationを避け、semantic state、FK、UNIQUE/CHECK、transaction/lockで可能なintegrityをDBでも支えます。Redisをbusiness truthにしません。
+
+Original / Variantはprivate storageを基本とし、signed URLをlog/traceへ出しません。Authorization済みApplication operationを経由してdeliveryします。
+
+## Initial Release外と再検討条件
+
+将来機能を見越したDomain/Persistence構造は維持しますが、Initial Release外の機能は`first-release.mdx`のscopeに従います。Sharing、ownership transfer、human-unique handle/search、standalone Tag management、collaborative tag editing、usage projection、managed DB/cache、external search、CDN等は具体Requirementが発生した時点で再検討します。
+
+## Implementation Detailed Designへの移行
+
+Application詳細設計はBaseline確定済みとして扱い、次はImplementation Detailed Designへ進みます。PersistenceはDomainごとの部分最適ではなく、全Table / Relationをレビューしてから共通型、Nullability、FK、UNIQUE/CHECK、Deletion、Index、Transaction/Lock、Concurrency、Outbox/Idempotency、Migration、DDLの順で横断詳細化します。

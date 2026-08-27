@@ -1,4 +1,5 @@
 export default {
-  "index": "Context map"
+  "index": "Context map",
+  "current-design-baseline": "Current design baseline"
 }
 
