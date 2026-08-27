@@ -1,0 +1,145 @@
+# Implementation横断設計Baseline
+
+## 位置づけ
+
+この文書は、v5 checkpointが継承するCross-cutting / Implementation設計のうち、Domain固有文書へ属さない横断ルールをGitHub上で欠損なく保持するためのBaselineです。より具体的な正本が存在する事項は、その文書を優先します。
+
+設計優先順位は `Correctness -> Simplicity -> Explicitness -> Observability -> Optimize when needed` とします。標準機能を優先し、同じ責務を複数layer・複数libraryへ重複させません。Architecture BoundaryとOperational Boundaryを分離し、AI支援・複数人開発でも機械的に検査できるruleを優先します。
+
+## Backend processと非同期処理
+
+`memoria-api`はAPI、Media Worker、Outbox Publisherを同一repositoryで所有しつつ、独立process/containerとして実行できる境界を維持します。PostgreSQLをpersistent application truth、Redis Streamsをtrigger/deliveryとし、APIから通常Redisへ直接publishしません。DB transactionでOutboxへ記録しPublisherがRedisへ配送します。
+
+Deliveryはat-least-onceを前提とし、Workerはidempotentにします。retry回数をboundedにし、stale pending entryのreclaimを可能にします。Partial artifactをcurrentとして公開せず、Image Variantのpublicationは全必要artifact生成後にatomicに切り替えます。
+
+## ID・日時・設定・Secret
+
+Application IDはULID、PostgreSQLでは`varchar(26)`をBaselineとします。時刻はUTCを基準としPostgreSQLは`timestamptz`、Public DateTimeはRFC3339 UTC secondsを基準とします。
+
+定数、環境設定、Secretを区別します。Secretをrepository、log、trace、GraphQL responseへ露出しません。環境差分はconfigurationで表現し、business ruleを環境変数へ逃がしません。
+
+## Authentication・Authorization
+
+External IdentityとApplication Principalを分離します。Auth0 authentication成功だけでApplication User登録済みとはみなしません。AuthorizationはApplication/Domain層でresource factから判定し、resolver・Frontendだけへ依存させません。
+
+## Error・Timeout・Retry
+
+Expected application error、validation error、authorization error、conflict、not found、infrastructure failureを区別します。内部exception、SQL、stack trace、secretをPublic errorへ露出しません。
+
+External I/Oにはtimeoutを設定し、request cancellationを下流へ伝播します。retryはidempotentまたはidempotencyを保証できるoperationに限定し、exponential backoff + jitterを基本とします。無制限retryを行いません。
+
+## Health・Shutdown・Connection
+
+Livenessとreadinessを分離します。Readinessは新規trafficを安全に処理できることを示し、shutdown時はreadinessを落として新規受付を止め、in-flight request/jobをgrace period内で終了させます。DB/Redis connection poolはprocess concurrencyとDB接続上限から明示的に設計します。
+
+## Migration・Deploy compatibility
+
+DB migrationはroll-forwardを基本とし、deploy中の旧新Applicationが共存できるexpand/migrate/contractを優先します。破壊的schema変更とApplication deployを単一瞬間の切替へ依存させません。Generated schema/code差分はCIで検証します。
+
+## CI/CD・Quality Gate
+
+CIは少なくともformat/lint、static analysis、type/build、unit test、必要なintegration test、generated-code driftを検査します。Architecture dependency rule、禁止import、generated code改変等、機械判定できる規約はCIへ寄せます。
+
+Quality Gateを通らない変更を通常の完成状態として扱いません。ただし既知のbaseline failureを一時許容する場合は、原因・範囲・後続Issueを明示します。
+
+## Security baseline
+
+Least privilege、private-by-default、TLS、secret separation、dependency update、input validationをBaselineとします。Original/Variantはprivate storageを基本とし、presigned URLやtokenをlog/traceへ出しません。GraphQLにはdepth/complexity、payload size、rate/abuse対策を必要性に応じて適用します。
+
+## PostgreSQL・Redis・Backup
+
+Production PostgreSQLはPrimary + StandbyのHA topologyをBaselineとし、streaming replicationを使用します。初期候補はasync replicationです。ReplicationはBackupではありません。Backup/WAL archive/restore test/PITRを別責務として設計します。
+
+Redisは1 Primary + 2 Replicas、Sentinel x3、quorum 2をBaselineとし、clientはSentinel-awareとします。Redis Clusterは初期採用しません。Redis lossからPostgreSQL truth/Outboxを使って回復可能にします。
+
+## API / GraphQL
+
+GraphQL generated typeをDomain/Applicationへ漏らしません。MutationはInput Objectを用い、business semanticsの異なるUser/Community operationをgeneric scope APIへ統合しません。PaginationはRelay Connection + opaque cursorをBaselineとし、N+1はDataLoader/Query Service等で回避します。
+
+Schema evolutionはAdd -> Deprecate -> migrate -> Removeです。Public contractの変更はconsumer migration期間を考慮します。
+
+## Cache
+
+Cacheはperformance optimizationでありbusiness truthにしません。Source of Truth、key、TTL、invalidation、stale許容範囲を定義できないcacheは追加しません。まずDB/query/indexを改善し、実測上必要な箇所だけcacheします。
+
+## Frontend state
+
+Server stateはApollo Client、form/editable draftはReact Hook Form、local UIはReact local state、shareable navigation/filter/sortはURL、限定的cross-tree stateはContextを基本とします。具体的必要性なしにRedux/Zustand等を追加しません。
+
+Apollo dataを理由なくReact stateへ複製せず、Optimistic updateは失敗時rollbackが明確なlow-risk operationに限定します。
+
+## Dependency・Version・Retention
+
+Dependencyは安定版を使用し、同一責務のlibraryを重複導入しません。Version pin/rangeはrepositoryの更新方針とruntime compatibilityに従います。Data/log/backup retentionは具体Requirementとprivacy/operation要件から定義し、根拠なく永久保持しません。
+
+## Development Environment
+
+DevelopmentはDockerでProduction software topologyを再現します。通常開発用の軽量Compose profileとHA検証profileを分離します。Development ComposeをそのままProductionへdeployするのではなく、共通image/configとenvironment overlayでparityを保ちます。
+
+Local HAはfailure behaviorの検証用であり、物理host/AZ failureを完全再現するものではありません。
+
+## Backend Clean Architecture
+
+Dependency directionはDelivery/Infrastructure -> Application -> Domainを守ります。UseCaseはbusiness workflow、Repository interfaceはApplication/Domainが必要とするpersistence contract、Transaction managerは複数repositoryを跨ぐatomic boundaryを表現します。
+
+Validationをtransport/domain/infrastructureで重複させず、各layerの責務に応じて分離します。SQL detailやgqlgen typeをDomainへ漏らしません。`context.Context`はrequest cancellation/deadline等のtechnical contextとして扱い、business parameter carrierにしません。
+
+## Testing
+
+Domain invariantはfast unit test、UseCase workflowはmock/fakeを適切に用いたtest、DB constraint/transaction/concurrencyはPostgreSQL integration test、GraphQL mappingはAPI integration test、Outbox/Redis/Workerはdelivery/retry/idempotency integration test、critical user flowはE2Eで検証します。
+
+Test pyramidを絶対視せず、failure costと検出したいriskからtest levelを選びます。AI生成codeにも人手codeと同じQuality Gateを適用します。
+
+## Naming・Generated Code・Formatting
+
+Domain terminologyを命名へ使用し、曖昧な`Manager`/`Util`/`Helper`の乱用を避けます。Generated codeはgeneratorを正本とし手編集しません。Formatter/linterの結果をstyle議論より優先します。
+
+TODOはowner/理由/解消条件またはIssueを追跡できる形にします。将来必要かもしれないだけのabstractionを作りません。
+
+## Logical CQRS
+
+Command modelとQuery modelは論理的に分離できますが、初期から別DB/event sourcingを要求しません。Query Serviceはread use caseに最適化したjoin/aggregationを許容し、Domain aggregate再構築を全readへ強制しません。
+
+## Data consistency / Concurrency
+
+DBで表現可能なInvariantはPK/FK/UNIQUE/CHECKで支えます。複数row/tableのInvariantはtransaction、row lock、conditional update、partial unique index等をUseCaseごとに選びます。Lost updateやdouble consumeをApplicationの事前readだけで防ぎません。
+
+## Feature Flag
+
+Feature flagは未完成機能を安全に統合する等の具体用途がある場合だけ使用します。Flagにはowner、default、適用環境、削除条件を持たせ、永久的なbusiness configurationとして増殖させません。Schema/data migrationはflag offでも後方互換にします。
+
+## Upload Lifecycle
+
+UploadはPrepare/IntentとCompleteを分離します。Prepare時にquota reservationを確保し、CompleteでObject存在・size/type等を検証してMedia作成へ確定します。Intent expiry/abort/failure時にreservationを解放可能にします。同時Uploadによるquota超過を事前readだけで防ぎません。
+
+## Search / Filter / Sort
+
+初期はPostgreSQLで満たせる検索・filter・sortを優先し、外部Search Engineは具体Requirementが出るまで導入しません。Filter/sortはPublic contractとして許可項目を明示し、SQL column名をそのまま外部contractにしません。Default orderは特別な業務順序がなければ`created_at DESC, id DESC`です。
+
+## Worker / Async Job
+
+Job stateはPostgreSQLをtruthとし、Redis pending entryだけをJob状態として扱いません。Workerはclaim、processing、success/failure、retry、stale recoveryを明示し、process crash後に再開可能にします。Poison messageを無限loopさせません。
+
+## Frontend UX
+
+Loading/empty/error/permission denied/processing状態を明示します。Long-running operationは同期完了を装わず、server truthを再取得できる導線を持たせます。Invitation deep linkはauthentication/onboarding後に元URLへ復帰します。
+
+## Audit / Data Lifecycle
+
+具体的な監査要件がない段階で巨大なAudit Frameworkを作りません。必要なresourceについてActor/Action/Target/Timestamp等を永続化します。
+
+DBとObject Storage削除を単一transactionとして扱いません。DBで削除状態とdurable cleanup requestを確定してからasync cleanupし、S3削除失敗でDB transactionをrollbackしません。AWS Lifecycleで代替できるcleanupは標準機能を優先します。
+
+## Development Seed / Fixture
+
+Deterministic Seedを用意し、reset後に主要画面・状態をすぐ確認できることを目標とします。標準候補はUser A/B、Community A/B、Membership、Media ready/processing/failed、Empty Stateです。大量random dataは`seed-large`等へ分離し、Production seedとTest fixtureの完全共通化を強制しません。
+
+## ADR
+
+重要かつ将来理由を忘れやすいDecisionだけ軽量ADRへ残します。候補はULID、Logical CQRS、EC2 + Docker、self-host PostgreSQL/Redis、Transactional Outbox、Redis Streamsです。
+
+ADRは`Context / Decision / Consequences / Reconsider When`を基本とし、statusを持つ場合は`Proposed / Accepted / Superseded`程度とします。古いADRを削除せず、新ADRからsupersedeします。
+
+## 先に決めない事項
+
+具体RequirementやImplementation検証なしに、外部Search Engine、Redis Cluster、managed DB/cacheへの移行、CDN、巨大Audit Framework、event sourcing、microservice分割、global state library等を先に固定しません。再検討条件が成立した時点でADRまたは設計文書を更新します。
