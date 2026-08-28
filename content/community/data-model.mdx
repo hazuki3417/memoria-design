@@ -13,7 +13,7 @@ erDiagram
   COMMUNITY ||--o{ COMMUNITY_MEMBERSHIP : has
   USER ||--o{ COMMUNITY_MEMBERSHIP : joins
   COMMUNITY ||--o{ COMMUNITY_INVITATION : issues
-  COMMUNITY_INVITATION ||--o{ COMMUNITY_JOIN_REQUEST : accepts
+  COMMUNITY ||--o{ COMMUNITY_JOIN_REQUEST : receives
   USER ||--o{ COMMUNITY_JOIN_REQUEST : requests
   COMMUNITY ||--o{ MEDIA_COMMUNITY_ACCESS : shares
   MEDIA ||--o{ MEDIA_COMMUNITY_ACCESS : shared_as
@@ -30,11 +30,11 @@ Communityは識別子、必須の名称、作成日時、更新日時を持ち�
 
 MembershipはCommunityとUserの参加関係であり、`role`として`member`または`admin`を持ちます。`admin` MembershipがAdministrator権限を表します。Communityごとに少なくとも1人の`admin`が存在する不変条件は、Community行のlockとService transactionで保証します。
 
-## 招待URLと参加申請
+## InvitationとUser起点Join Request
 
-招待URLはCommunityに紐付き、発行から7日間有効です。参加申請は招待、Community、申請Userを参照し、`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`の状態を持ちます。
+InvitationはCommunityに紐付く招待URLを表し、発行から7日間有効です。Initial ReleaseのInvitation acceptは有効なInvitationをconsumeし、Membershipを直接成立させます。
 
-Invitation acceptとUser起点Join Requestは別のApplication semanticsです。Initial ReleaseのInvitation acceptはMembershipを直接成立させます。`community_join_requests`はUser起点の参加申請を表す将来機能として設計を維持し、Invitation acceptの中間状態には使用しません。
+User起点Join RequestはInvitationとは独立した将来機能です。Communityと申請Userを参照し、`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`の状態を持ちます。Invitationを参照せず、Invitation acceptの中間状態にも使用しません。
 
 ## Media domainとの境界
 
