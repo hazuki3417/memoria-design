@@ -1,0 +1,121 @@
+# PostgreSQL Implementation Review
+
+## 概要
+
+Issue #59 における PostgreSQL Implementation Detailed Design の横断レビュー正本です。Domain ごとの論理・物理データモデルを個別最適化せず、全 Relation を同じ順序で確認してから executable schema を確定します。
+
+## 詳細化順序
+
+1. 全 table / relation inventory
+2. common type と identifier
+3. nullability
+4. FK と deletion strategy
+5. UNIQUE / CHECK / partial unique
+6. access pattern と index
+7. transaction boundary
+8. row lock / conditional update / concurrency invariant
+9. outbox / idempotency persistence
+10. async processing publication invariant
+11. migration / compatibility
+12. final executable DDL
+
+途中段階の table 定義を final DDL と扱いません。
+
+## Relation inventory
+
+### User / Authentication
+
+User identity、authentication mapping、account lifecycle、deletion operation を User domain 正本から取り込みます。User 削除完了後は User record を物理削除し、保持対象 Media の uploader reference は `SET NULL` とします。削除済み User の nickname、email、authentication identifier は退避しません。
+
+### Community
+
+Community、Membership、Invitation、User起点Join RequestをCommunity domain正本から取り込みます。Administrator専用relationは設けず、`community_memberships.role = member | admin`で権限を表現します。Communityごとに1人以上のadminを維持する不変条件はCommunity row lockとtransactionで保証します。
+
+Initial ReleaseのInvitation acceptは有効なInvitationの検証・consumeと`member` Membership作成を同じtransactionで直接成立させます。User起点Join RequestはInvitation acceptとは独立した将来機能としてrelation/stateを維持し、Initial ReleaseでUI/APIを提供しないことを理由に論理設計から削除しません。
+
+### Media
+
+Media 本体は custody / access / classification / processing から独立させます。
+
+主要 relation:
+
+- `media`
+- `media_custodies`
+- `media_community_accesses`
+- `media_events`
+- `images`
+- `image_variants`
+- `media_processing_jobs`
+- `media_groups`
+- `media_group_media`
+- `media_group_relations`
+- Tag relation
+- upload / quota reservation relation
+- storage operation relation
+
+`media` に owner User / Community ID を直接保持しません。現在の管理主体は `media_custodies` の XOR relation で表現します。一方 `uploaded_by_user_id` は ownership ではなく provenance なので Media に保持し、User 物理削除時は `SET NULL` とします。
+
+Image は Media から解釈された logical image とし、複数 page を持つ source では `source_index` により識別します。Image Variant は Media ではなく Image に属する delivery artifact とします。Original Media は immutable です。
+
+### Classification
+
+Media Group は User または Community の分類空間に属するため Group 自身が XOR scope を保持します。Media Group relation は DAG を許容し、自己参照は禁止、多段 cycle は transaction 内の検証で防止します。
+
+Tag も User / Community scope を持つ独立 entity とし、Media とは join relation で関連付けます。表示名と uniqueness/search 用 `normalized_name` を分離します。正規化 algorithm の厳密値は未決定です。
+
+### Processing / Async
+
+Processing Job は PostgreSQL 上の durable truth です。Redis Streams の entry は Job identity の代替ではありません。API transaction は Job / domain state / Outbox を整合して commit し、Publisher が Redis Streams へ delivery します。
+
+Reprocess 中は既存 current artifact を提供し続け、新 artifact は staged 状態で生成します。必要な artifact がすべて成功した後だけ publication を切り替え、partial artifact を current として公開しません。
+
+### Outbox / Idempotency
+
+Outbox と利用者向け Media Event は別目的の record とします。Outbox は delivery reliability、Media Event は domain operation trace を担います。
+
+Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。保持期間、response snapshot、cleanup interval の具体値は未決定です。
+
+## Constraint review principles
+
+- scope XOR は CHECK で保証する。
+- 同一 scope 内 uniqueness は composite UNIQUE または必要に応じて partial unique index で保証する。
+- Community Membership roleはCHECKで`member | admin`に限定し、last-admin invariantはtransactionで保証する。
+- 1 Media = 1 current custody は PK / UNIQUE と同一 transaction の作成で保証する。
+- cross-table authorization や scope compatibility を FK だけで表現しない。Application transaction で対象 row を lock して検証する。
+- retry される async write は natural/composite uniqueness または idempotency key により duplicate を防止する。
+- history / trace を Media 本体削除後も保持する relation では、保持要件に反する CASCADE FK を設定しない。
+
+## Deletion review principles
+
+- aggregate ownership と保持要件に応じて `CASCADE` / `RESTRICT` / `SET NULL` を選択する。
+- Object Storage 等の外部 cleanup は DB transaction 外で durable operation として追跡する。
+- `DELETING` は cleanup の processing state であり、trash / restore 用 soft delete ではない。
+- Query は通常 active/current state のみを返し、cleanup worker は processing state を明示的に取得する。
+
+## Index review principles
+
+Index は次の access pattern が確認できる場合に限り追加します。
+
+- cursor pagination の filter + sort + tie-breaker
+- owner/custodian/scope 単位の lookup
+- pending Outbox / Job / storage operation acquisition
+- retry / recovery scan
+- uniqueness enforcement
+
+単に FK が存在するという理由だけで index を追加しません。
+
+## 未決定事項
+
+以下は Implementation Detailed Design で今後確定します。
+
+- 全 Relation の最終 column inventory と executable DDL
+- final FK action と constraint name
+- cursor query ごとの composite index 順序
+- Invitation consume / idempotencyの最終物理表現
+- Processing publication の具体的 current/staged schema
+- Outbox event versioning と payload schema
+- Idempotency retention / cleanup policy
+- Tag normalization algorithm
+- migration rollout / rollback SQL
+
+未決定事項は資料にない値を推測して埋めず、Issue で追跡します。

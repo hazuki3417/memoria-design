@@ -16,10 +16,9 @@ ID、日時、命名、constraint、index、削除方針は[物理データモ�
 erDiagram
   COMMUNITIES ||--o{ COMMUNITY_MEMBERSHIPS : has
   USERS ||--o{ COMMUNITY_MEMBERSHIPS : joins
-  COMMUNITY_MEMBERSHIPS ||--o| COMMUNITY_ADMINISTRATORS : administers
   COMMUNITIES ||--o{ COMMUNITY_INVITATIONS : issues
-  COMMUNITY_INVITATIONS ||--o{ COMMUNITY_JOIN_REQUESTS : receives
   USERS ||--o{ COMMUNITY_JOIN_REQUESTS : requests
+  COMMUNITIES ||--o{ COMMUNITY_JOIN_REQUESTS : receives
 ```
 
 ## 所有table
@@ -41,19 +40,10 @@ erDiagram
 | --- | --- | --- | --- |
 | community_id | varchar(26) | FK communities ON DELETE CASCADE | 所属先 |
 | user_id | varchar(26) | FK users | 参加User |
+| role | varchar(16) | NOT NULL、CHECK | `member` / `admin` |
 | joined_at | timestamptz | NOT NULL | 参加時刻 |
 
-PKは`(community_id, user_id)`です。`(user_id, community_id)`へindexを追加します。退会・User削除時は共有解除や最終Administrator確認が必要なため、単純なFK cascadeだけに依存しません。
-
-### community_administrators
-
-| 列 | 型 | 制約 | 意味 |
-| --- | --- | --- | --- |
-| community_id | varchar(26) | 複合FK community_memberships | 対象Community |
-| user_id | varchar(26) | 複合FK community_memberships | Administrator |
-| granted_at | timestamptz | NOT NULL | 付与時刻 |
-
-PKは`(community_id, user_id)`です。複合FKによって参加していないUserをAdministratorに任命できません。Communityごとに1人以上という条件は、Community行lockとService transactionで保証します。
+PKは`(community_id, user_id)`です。`(user_id, community_id)`へindexを追加します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、単純なFK cascadeだけに依存しません。
 
 ### community_invitations
 
@@ -69,13 +59,16 @@ PKは`(community_id, user_id)`です。複合FKによって参加していない
 
 `revoked_at IS NULL`を条件とするCommunity単位のpartial unique indexで、失効処理されていない招待URLを1件に制限します。期限切れURLは再発行Transaction内で`revoked_at`を設定してから新規行を作成します。期限判定に現在時刻を使うpartial indexは作成しません。
 
+Initial ReleaseのInvitation acceptは有効なInvitationを検証・consumeし、`community_memberships(role='member')`を同じTransactionで直接作成します。Join RequestをInvitation acceptの中間relationとして作成しません。
+
 ### community_join_requests
+
+`community_join_requests`はInvitation acceptとは独立したUser起点Join Requestの将来機能です。Initial ReleaseではUI/APIを提供しませんが、将来設計としてrelationを維持します。
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | 申請ID |
 | community_id | varchar(26) | FK communities ON DELETE CASCADE | 参加申請先 |
-| invitation_id | varchar(26) | FK community_invitations | 使用した招待 |
 | applicant_user_id | varchar(26) | FK users | 申請者 |
 | status | varchar(16) | NOT NULL、CHECK | `PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED` |
 | requested_at | timestamptz | NOT NULL | 申請時刻 |
@@ -89,4 +82,4 @@ Media domainが所有する`media_custodies`と`media_community_accesses`は[Med
 
 ## 他domainとの境界
 
-`communities`、`community_memberships`、`community_administrators`、`community_invitations`、`community_join_requests`は本ページを設計上の正本とします。GraphQL・実行可能SQL schemaの正本は実装を所有する`memoria-api`です。
+`communities`、`community_memberships`、`community_invitations`、`community_join_requests`は本ページを設計上の正本とします。GraphQL・実行可能SQL schemaの正本は実装を所有する`memoria-api`です。

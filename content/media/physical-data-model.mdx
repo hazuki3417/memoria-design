@@ -2,13 +2,13 @@
 
 ## 概要
 
-> 実装状況: PostgreSQLは`images`、`image_groups`などImage中心です。このページのMediaテーブル、Custody、Media Event、動画属性、storage operationは未実装です。
+> 実装状況: PostgreSQLは`images`、`image_groups`などImage中心です。このページのMedia table、Custody、Media Event、動画属性、storage operationは未実装です。
 
 PostgreSQLへ実装するMedia関連table、column、constraint、index、削除規則を定義します。
 
 ## 共通規約
 
-ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。本ページではMedia domain固有の定義と例外を記載します.
+ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。本ページではMedia domain固有の定義と例外を記載します。
 
 ## 全体ER
 
@@ -20,16 +20,15 @@ erDiagram
   COMMUNITIES ||--o{ MEDIA_CUSTODIES : community_custodian
   COMMUNITIES ||--o{ COMMUNITY_MEMBERSHIPS : has
   USERS ||--o{ COMMUNITY_MEMBERSHIPS : joins
-  COMMUNITY_MEMBERSHIPS ||--o| COMMUNITY_ADMINISTRATORS : administers
   COMMUNITIES ||--o{ COMMUNITY_INVITATIONS : issues
-  COMMUNITY_INVITATIONS ||--o{ COMMUNITY_JOIN_REQUESTS : receives
   USERS ||--o{ COMMUNITY_JOIN_REQUESTS : requests
-  MEDIA ||--o| MEDIA_IMAGES : image_detail
+  COMMUNITIES ||--o{ COMMUNITY_JOIN_REQUESTS : receives
+  MEDIA ||--o| IMAGES : image_detail
+  IMAGES ||--o{ IMAGE_VARIANTS : derived_as
   MEDIA ||--o| MEDIA_VIDEOS : video_detail
   MEDIA ||--o{ MEDIA_COMMUNITY_ACCESSES : shared_to
   COMMUNITIES ||--o{ MEDIA_COMMUNITY_ACCESSES : receives
   MEDIA ||--o{ MEDIA_EVENTS : traced_by
-  MEDIA ||--o{ MEDIA_VARIANTS : derived_as
   MEDIA ||--o{ MEDIA_PROCESSING_JOBS : processed_by
   MEDIA_GROUPS ||--o{ MEDIA_GROUP_MEDIA : contains
   MEDIA ||--o{ MEDIA_GROUP_MEDIA : classified
@@ -64,9 +63,11 @@ index:
 - `(media_type, created_at DESC, id DESC)`
 - `(status)`は削除処理の再開に使用
 
-### media_images・media_videos
+### images・media_videos
 
-#### media_images
+ImageはMediaのsubtype detailとして`images`に分離します。Image VariantはMediaへ直接ぶら下げず、必ず`images`を親とします。
+
+#### images
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -79,7 +80,7 @@ index:
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | media_id | varchar(26) | PK、FK media ON DELETE CASCADE | 対象Media ID |
-| width・height | integer | NOT NULL、CHECK 1以上 | 画像・動画の幅と高さ |
+| width・height | integer | NOT NULL、CHECK 1以上 | 動画の幅と高さ |
 | duration_ms | bigint | NOT NULL、CHECK 1以上 | 再生時間（ミリ秒） |
 | codec | varchar(64) | NOT NULL | 動画codec |
 | frame_rate | numeric(8,3) | NULL可、CHECK 0より大きい | frame rate |
@@ -114,19 +115,21 @@ index:
 - `(user_id, media_id)` WHERE `user_id IS NOT NULL`
 - `(community_id, media_id)` WHERE `community_id IS NOT NULL`
 
-### media_variants
+### image_variants
+
+Image VariantはImage固有の派生物です。Media共通variant tableは設けません。
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | Variant ID |
-| media_id | varchar(26) | NOT NULL、FK media ON DELETE CASCADE | 元のMedia |
+| image_media_id | varchar(26) | NOT NULL、FK images(media_id) ON DELETE CASCADE | 元Image |
 | format | varchar(32) | NOT NULL | `WEBP`などの派生形式 |
 | width・height | integer | NOT NULL、CHECK 1以上 | 派生画像の寸法 |
 | storage_key | text | NOT NULL、UNIQUE | Object Storageのkey |
 | size_bytes | bigint | NOT NULL、CHECK 0以上 | 派生物の容量 |
 | created_at | timestamptz | NOT NULL | 生成完了時刻 |
 
-`(media_id, format, width)`にUNIQUE constraintを設定し、同じJobの再実行でVariantを重複作成しません。動画固有の列が必要になった場合は要件に応じて拡張します。
+`(image_media_id, format, width)`にUNIQUE constraintを設定し、同じJobの再実行でVariantを重複作成しません。動画派生物は要件が具体化した時点で別設計として追加し、Image Variantへ混在させません。
 
 ### media_processing_jobs
 
@@ -229,6 +232,6 @@ uniqueは`(media_id, operation_type, object_key)`です。このtableは復元�
 
 ## 他domainとの境界
 
-`communities`、`community_memberships`、`community_administrators`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。
+`communities`、`community_memberships`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。Administrator専用tableは使用しません。
 
 Media domainは`media_custodies`と`media_community_accesses`を所有し、Communityへの参照と共有・管理関係を定義します。

@@ -12,29 +12,30 @@ Community固有のentityと、User・Media domainとの関連を定義します�
 erDiagram
   COMMUNITY ||--o{ COMMUNITY_MEMBERSHIP : has
   USER ||--o{ COMMUNITY_MEMBERSHIP : joins
-  COMMUNITY_MEMBERSHIP ||--o| COMMUNITY_ADMINISTRATOR : administers
   COMMUNITY ||--o{ COMMUNITY_INVITATION : issues
-  COMMUNITY_INVITATION ||--o{ COMMUNITY_JOIN_REQUEST : accepts
+  COMMUNITY ||--o{ COMMUNITY_JOIN_REQUEST : receives
   USER ||--o{ COMMUNITY_JOIN_REQUEST : requests
   COMMUNITY ||--o{ MEDIA_COMMUNITY_ACCESS : shares
   MEDIA ||--o{ MEDIA_COMMUNITY_ACCESS : shared_as
   COMMUNITY ||--o{ MEDIA_CUSTODY : manages
 ```
 
-AdministratorをMembershipとは別tableで表現する既存設計に合わせ、role列と別tableの二重管理は行いません。Membershipを持つ全員がMemberであり、Administrator行の存在が管理権限を表します。
+Community内の権限は`COMMUNITY_MEMBERSHIP.role`で表現し、`member`または`admin`を保持します。Administrator専用entityは設けず、Membershipと権限を二重管理しません。
 
 ## Community
 
 Communityは識別子、必須の名称、作成日時、更新日時を持ちます。名称の重複は許可し、説明、作成者専用属性、親Communityを持ちません。
 
-## MembershipとAdministrator
+## MembershipとRole
 
-MembershipはCommunityとUserの参加関係です。Administratorは有効なMembershipを参照する別entityとして表現し、Communityごとに少なくとも1人存在します。role列と別entityの二重管理は行いません。
+MembershipはCommunityとUserの参加関係であり、`role`として`member`または`admin`を持ちます。`admin` MembershipがAdministrator権限を表します。Communityごとに少なくとも1人の`admin`が存在する不変条件は、Community行のlockとService transactionで保証します。
 
-## 招待URLと参加申請
+## InvitationとUser起点Join Request
 
-招待URLはCommunityに紐付き、発行から7日間有効です。参加申請は招待、Community、申請Userを参照し、`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`の状態を持ちます。
+InvitationはCommunityに紐付く招待URLを表し、発行から7日間有効です。Initial ReleaseのInvitation acceptは有効なInvitationをconsumeし、Membershipを直接成立させます。
+
+User起点Join RequestはInvitationとは独立した将来機能です。Communityと申請Userを参照し、`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`の状態を持ちます。Invitationを参照せず、Invitation acceptの中間状態にも使用しません。
 
 ## Media domainとの境界
 
-Communityへの共有関係とCustodyはMedia domainが所有します。Community側はMembership・Administrator・Uploaderとの組み合わせによって認可を判定します。Mediaの論理モデルは[Media論理データモデル](/media/data-model)を正本とします。
+Communityへの共有関係とCustodyはMedia domainが所有します。Community側はMembership role・Uploaderとの組み合わせによって認可を判定します。Mediaの論理モデルは[Media論理データモデル](/media/data-model)を正本とします。
