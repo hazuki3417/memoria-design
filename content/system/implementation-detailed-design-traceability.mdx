@@ -14,15 +14,58 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 
 ## Workstream
 
-| Workstream | 上位 Contract | Implementation Detail | 状態 |
-| --- | --- | --- | --- |
-| PostgreSQL | `content/system/data/*`, Domain physical data model | 全 Relation 横断レビュー、FK、CHECK、UNIQUE、Index、Deletion、Lock、Migration、Final DDL | 進行中 |
-| GraphQL | `content/system/api/*`, Application baseline | Query / Mutation / Input / Payload / Enum / Scalar / Connection / Error mapping | 未着手 |
-| Go Application / Infrastructure | Application baseline, Domain UseCase | package、interface、Repository、Transaction manager、error type | 未着手 |
-| Outbox / Redis / Worker | async / outbox / data operations | event schema、stream、consumer group、retry、reclaim、idempotency | 未着手 |
-| Frontend | frontend / GraphQL baseline | route、feature、operation、Apollo cache、RHF、URL state | 未着手 |
-| Test | testing baseline | Domain / UseCase / DB / GraphQL / async / E2E | 未着手 |
-| Infrastructure | infrastructure baseline | node placement、PostgreSQL HA、Redis Sentinel、Compose profile、backup/restore | 未着手 |
+| Workstream | 上位 Contract | Implementation Detail | 状態 | 主な追跡先 |
+| --- | --- | --- | --- | --- |
+| PostgreSQL | `content/system/data/*`, Domain physical data model | 全 Relation 横断レビュー、FK、CHECK、UNIQUE、Index、Deletion、Lock、Migration、Final DDL | 進行中 | #28, #42, #43, #44, #61 |
+| GraphQL | `content/system/api/*`, Application baseline | Query / Mutation / Input / Payload / Enum / Scalar / Connection / Error mapping | baseline照合済み・具体化待ち | #17, #61 |
+| Go Application / Infrastructure | Application baseline, Domain UseCase | package、interface、Repository、Transaction manager、error type | baseline照合済み・具体化待ち | #21, #61 |
+| Outbox / Redis / Worker | async / outbox / data operations | event schema、stream、consumer group、retry、reclaim、idempotency | baseline照合済み・具体化待ち | #44, #61 |
+| Frontend | frontend / GraphQL baseline | route、feature、operation、Apollo cache、RHF、URL state | baseline照合済み・具体化待ち | #18, #61 |
+| Test | testing baseline | Domain / UseCase / DB / GraphQL / async / E2E | baseline照合済み・具体化待ち | #21, #61 |
+| Infrastructure | infrastructure baseline | node placement、PostgreSQL HA、Redis Sentinel、Compose profile、backup/restore | v5 baseline反映済み・具体化待ち | #45, #61 |
+
+## 横断照合で確定したoverride / baseline
+
+### Community
+
+- Community管理権限は `community_memberships.role = member | admin` で表現し、Administrator専用entity/tableを使用しない。
+- Community作成時の最初のMembershipを`admin`とするが、恒久的な作成者特権は設けない。
+- 最後のadminを失うrole変更・退会・除外・User削除はTransactionで拒否する。
+- Invitation acceptはMembershipを直接成立させる。
+- User起点Join RequestはInvitationとは独立した将来機能として扱う。
+
+### Media / Image
+
+- Mediaは独立entityとし、管理主体はMedia本体のUser/Community列ではなくCustody relationで表現する。
+- Community shareとCustody transferを別概念とする。
+- 静止画像は `Media -> Image -> Image Variant` を正本とし、Media直結の汎用`media_variants`を使用しない。
+- Group / Tagは分類・検索のための機能であり認可境界ではない。
+- Group / TagはUser scopeまたはCommunity scopeを持つ。
+- 動画は初回Releaseで機能提供しないが、Media共通層と将来拡張可能な境界は維持する。
+
+### Async / reliability
+
+- PostgreSQLをdurable source of truthとし、Redis Streamsをdelivery / triggerとして扱う。
+- PostgreSQL commitをAPI成功条件とし、Redis配送完了を同期成功条件に含めない。
+- DB更新と非同期処理の連動にはTransactional Outboxを使用する。
+- Outbox配送の重複は`event_id`、Worker処理は`job_id` / `step_id`を冪等性境界として扱う。
+- 複数Publisherのclaimには`FOR UPDATE SKIP LOCKED`を利用する。
+- Redis消失・Worker停止からPostgreSQL上のOutbox / Processing Jobを基準に再enqueue可能にする。
+
+### Frontend
+
+- server stateはApollo Client、form stateはReact Hook Form、共有可能なfilter / sort / pageはURL stateを正本とする。
+- 追加global state libraryやserver stateの二重保持を前提にしない。
+- Community role、Invitation、Image Variant等の画面表現は上記Domain baselineに従う。
+
+### Infrastructure / migration
+
+- 初期runtimeはEC2 + Docker + EBS + S3とする。
+- Web、API、Worker、Outbox Publisher、PostgreSQL、Redisをcontainerとして扱い、Docker Composeで構成する。
+- PostgreSQL / Redisも初回ReleaseではEC2上で自己運用する。
+- DB migrationは通常process起動時に実行せず、deploy工程の一時migration containerで一度実行する。
+- migration成功後にApplicationをdeployし、失敗時は後続deployを開始しない。
+- rollbackは互換schema上で以前のimmutable imageを再deployする方式を優先する。
 
 ## PostgreSQL 横断レビュー
 
@@ -36,22 +79,96 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - cross-table invariant は transaction、row lock、conditional update と integration test で保証する。
 - index は実 access pattern、Job acquisition、recovery condition に対応するものだけ作る。
 - 外部 I/O を PostgreSQL transaction に含めない。
-- PostgreSQL を durable source of truth とし、Redis Streams は delivery / trigger として扱う。
 - Outbox と idempotency persistence を Application transaction と整合させる。
 
-### 照合で確認した修正対象
+### 横断照合で解消した旧設計
 
-Media の現行物理モデルには、統合済み上位設計より古い `media_variants` の Media 直結モデルが残っています。上位設計では Media から logical Image を分離し、Image Variant は Image に属します。このため Issue #59 では `media -> images -> image_variants` を正として物理モデルを更新します。
+- CommunityのAdministrator専用entity/tableを廃止し、Membership roleへ統一した。
+- InvitationをJoin Requestの前段階とする旧表現を廃止し、Invitation acceptによるMembership直接成立へ統一した。
+- Media直結`media_variants`を廃止し、`media -> images -> image_variants`へ統一した。
+- 将来のCustody transferと初回ReleaseのCommunity shareを明確に分離した。
 
-### 未決定として課題化する事項
+## 未決定事項の管理
 
-以下は共有資料・現行正本に方針はあるものの、実装値または最終仕様が確定していないため、推測で決定しません。
+共有資料・GitHub正本に具体的決定がない事項は推測で補完しない。横断的な未決定事項はIssue #61、領域固有事項は対応Issueで追跡する。
 
-- 全 table の final executable DDL と migration 順序
-- `normalized_name` の Unicode normalization / case folding / whitespace normalization の厳密な algorithm
-- idempotency record の保持期間と response snapshot の具体形式
-- outbox payload の versioning / serialization schema
-- Processing Job / Variant publication の final constraint と lock SQL
-- PostgreSQL HA manager / failover endpoint に依存する migration・connection 実装詳細
+### Persistence / migration
 
-これらは Issue #59 本体または後続 Issue で追跡し、設計確定後に正本へ反映します。
+- 全tableのfinal executable DDLとmigration順序
+- source designで未指定のFK action / constraint name
+- access patternから一意に確定できないcomposite index column order
+- `normalized_name`のUnicode normalization / case folding / whitespace normalization
+- idempotency retention、cleanup interval、response snapshot representation
+- Outbox event versioning / serialization / payload schema
+- Processing Job / Image Variantのcurrent-vs-staged publication schemaとlock SQL
+- migration rollout / rollback SQL
+- PostgreSQL HA manager / failover endpoint依存のconnection / migration behavior
+
+### GraphQL
+
+- 資料に明記されていない最終Operation名、Input / Payload field、nullability
+- Relay Connectionの各一覧への具体適用と上限値
+- upload / delete / processingの最終payloadとobservable state
+- operation単位のidempotency key適用範囲
+
+### Go Application / Infrastructure
+
+- package / interfaceの最終分割
+- Repository method signature、Transaction manager API、domain/application error typeの具体形
+- DB error / GraphQL errorへの最終mapping
+
+### Async / Worker
+
+- Redis stream / consumer group名
+- event / job payloadのversioned schema
+- retry回数、backoff、reclaim idle time等の具体値
+- orphan object cleanupと部分失敗補償の具体手順
+
+### Frontend
+
+- route名とroute hierarchy
+- breakpoint / supported viewport等の具体値
+- GraphQL operationごとのApollo cache更新方法
+- 文言、confirmation detail、error presentationの最終形
+
+### Test
+
+- layer別test suite / fixture / testcontainer構成
+- coverage threshold等の具体値
+- async failure / recovery、migration、restoreを含むintegration / E2E scenarioの最終一覧
+
+### Infrastructure
+
+- EC2/node placement
+- PostgreSQL HA manager / failover endpoint
+- Redis Sentinel placement / client設定
+- Docker Compose profile / dependency / healthcheckの最終構造
+- WAL archive / restore softwareとprocedure
+- volume / filesystem、monitoring / alerting、restore drillの具体値
+
+## Issue対応表
+
+| 領域 | 主Issue | 状態 |
+| --- | --- | --- |
+| 要求coverage | #24 | coverage整理済み、#59完了時に最終確認 |
+| Application全体 | #21 | baseline整理済み、詳細化継続 |
+| Group | #42 | semantics確定、Implementation Detail待ち |
+| Tag | #23 / #43 | 要求確定、正規化等のDetail待ち |
+| 静止画像 | #44 | pipeline baseline確定、具体値待ち |
+| GraphQL | #17 | baseline反映済み、SDL / Operation具体化待ち |
+| Frontend | #18 | baseline反映済み、route / flow具体化待ち |
+| Migration | #28 | execution baseline確定、tool / SQL等待ち |
+| Infrastructure | #45 | v5 baseline確定、HA / Compose / restore等待ち |
+| 将来動画 | #20 | 将来境界更新済み |
+| 将来通知 | #47 | Invitation / Join Request semantics更新済み |
+| 将来Custody transfer | #48 | current Custody / share semantics更新済み |
+| 横断未決定事項 | #61 | open |
+
+## 完了条件
+
+Issue #59のtraceability作業は、以下を満たした時点で完了とする。
+
+- 共有資料に記載された設計項目が対応するGitHub正本または明示的なoverrideへtraceされている。
+- 旧仕様との競合が解消され、Community / Media / Async / Frontend / Infrastructureで同じsemanticsを参照している。
+- 資料にもGitHub正本にもない具体値が、推測で埋められずIssueへ分離されている。
+- 各Workstreamの次の詳細設計先がIssue対応表から追跡できる。
