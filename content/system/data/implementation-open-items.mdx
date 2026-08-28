@@ -2,25 +2,27 @@
 
 ## 目的
 
-共有済み資料および GitHub 正本に具体的な決定が存在しない PostgreSQL / Persistence 実装詳細を記録します。ここに記載された事項は、既設計の欠落ではなく今後設計を詰める対象です。
+共有済み資料およびGitHub正本に具体的な決定が存在しないPostgreSQL / Persistence実装詳細を記録します。ここに記載された事項は既設計の欠落ではなく、今後設計を詰める対象です。
 
-追跡 Issue: [#61 design: resolve remaining PostgreSQL implementation details](https://github.com/hazuki3417/memoria-design/issues/61)
+横断追跡Issue: [#61 design: resolve remaining implementation details](https://github.com/hazuki3417/memoria-design/issues/61)
+
+本ページは#61のうちData / Persistence領域だけを扱います。GraphQL、Frontend、Worker、Infrastructure等の未決定事項は#61と各主Issueを参照します。
 
 ## 未決定事項
 
 | 項目 | 現在確定している境界 | 今後決定する内容 |
 | --- | --- | --- |
-| Final DDL | 論理 relation、共通型、主要 constraint 方針 | 全 column、constraint name、FK action、index、migration SQL |
-| Tag normalization | `name` と `normalized_name` を分離し scope 内 uniqueness を保証 | Unicode normalization、case folding、空白処理、locale policy |
-| Processing publication | old current を提供しながら new artifact を staged 生成し all-or-nothing publish | current/staged の物理表現、lock/conditional update SQL |
-| Outbox schema | PostgreSQL が truth、Publisher が Redis Streams へ delivery | event version、payload envelope、serialization、retention |
-| Idempotency persistence | actor + operation + key を一意化し request hash を検証 | retention、response snapshot、cleanup interval、payload size limit |
-| Upload quota reservation | concurrent upload の超過を reservation で防止 | reservation table の final column、expiry、cleanup query、lock SQL |
-| Migration compatibility | backward compatible rollout を基本とする | 各変更の expand/migrate/contract 手順と rollback SQL |
-| HA-aware DB client | PostgreSQL HA を production baseline とする | failover endpoint 確定後の connection / retry / migration execution detail |
+| Final DDL | 論理relation、共通型、主要constraint方針 | 全column、constraint name、未指定FK action、index、migration SQL |
+| Tag normalization | `name`と`normalized_name`を分離しscope内uniquenessを保証 | Unicode normalization、case folding、空白処理、locale policy |
+| Processing publication | old currentを提供しながらnew artifactをstaged生成しall-or-nothing publish | current/stagedの物理表現、lock/conditional update SQL |
+| Outbox schema | PostgreSQLがtruth、PublisherがRedis Streamsへdelivery | event version、payload envelope、serialization、retention |
+| Idempotency persistence | actor + operation + keyを一意化しrequest hashを検証 | retention、response snapshot、cleanup interval、payload size limit |
+| Upload quota reservation | concurrent uploadの超過をreservationで防止 | reservation tableのfinal column、expiry、cleanup query、lock SQL |
+| Migration compatibility | versioned migrationとcompatible rolloutを基本とする | 変更ごとのrollout/rollback SQL、必要な場合のexpand/migrate/contract手順 |
+| HA-aware DB client | PostgreSQL HAをproduction baselineとする | failover endpoint確定後のconnection / retry / migration execution detail |
 
 ## 更新ルール
 
-決定した項目は対応する正本へ移し、このページから削除または「決定済み」として参照先を記載します。重要な技術選定は ADR、実装単位で独立して追跡すべきものは GitHub Issue とします。
+決定した項目は対応する正本へ反映し、本ページから削除または「決定済み」として参照先を記載します。重要な技術選定はADR、実装単位で独立して追跡すべきものはGitHub Issueとします。
 
-Issue #61 を閉じる条件は、上記項目について明示的な設計判断が行われ、対応する正本と Implementation Detailed Design traceability が更新されていることです。
+#61のData / Persistence項目を解消する条件は、上記項目について明示的な設計判断が行われ、対応する正本とImplementation Detailed Design traceabilityが更新されていることです。
