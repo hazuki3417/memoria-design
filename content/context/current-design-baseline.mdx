@@ -36,7 +36,9 @@ PostgreSQLはDomain単位で局所的にDDLを完成させず、全Table/Relatio
 
 Productionは単一EC2への全component同居をBaselineにしません。PostgreSQLはPrimary + Standby HA、streaming replication、multi-host/multi-AZ方向です。Redisは1 Primary + 2 Replicas + Sentinel x3/quorum 2です。ReplicationとBackupを分離し、WAL archive/restore/PITRを別途設計します。
 
-DevelopmentはDocker ComposeでProduction software topologyを再現します。通常の軽量profileとHA検証profileを分離し、同じimage/configにenvironment overlayを適用します。
+DevelopmentでもRedis Data x3 / Sentinel x3を標準構成としてDocker Composeで再現し、failover、client reconnect、election、recoveryを検証可能にします。同一Docker Host上の構成はsoftware-level HA検証用であり、Infrastructure-level HAとはみなしません。
+
+MongoDBは現行のDevelopment / Production componentとして採用しません。具体的なDocument Databaseのユースケースが生じた場合に、PostgreSQL / JSONBとの比較を含めて再評価します。
 
 ## 現行Persistence / Async Baseline
 
