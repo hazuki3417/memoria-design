@@ -1,0 +1,103 @@
+# CI/CD
+
+## 概要
+
+CI/CDは、変更を安全に統合し、再現可能なartifactを生成し、承認された環境へ同一artifactをdeployするための仕組みとして扱います。
+
+この文書はCI/CD全体の責務と境界の正本とし、個別repositoryのworkflow名、command、実装詳細は各repositoryで管理します。build artifact、deploy、migration、rollbackの詳細は[ビルド・デプロイ](/build-deploy)、branchとReleaseの流れは[ブランチ戦略](/branch-strategy)、検証内容の詳細は[テスト設計](/test-design)を参照してください。
+
+## 基本原則
+
+- CIは変更を統合してよいかを機械的に検証する責務を持ちます。
+- CDは検証済みartifactを対象environmentへ安全に反映する責務を持ちます。
+- CIとCDの境界でsource codeを再buildせず、CIで生成・識別した同一artifactをdeployへ引き渡します。
+- workflow固有の都合でApplication、Infrastructure、Testの責務をCI/CDへ取り込みません。
+- GitHub Actionsをautomationの実行基盤とし、AWS認証にはOIDCと短期credentialを使用します。
+- Productionへの変更は人間の承認なしに自動反映しません。
+- Quality Gateを通過していない変更をdeploy対象にしません。
+
+## CIの責務
+
+CIはPull Requestや統合対象commitに対して、repositoryが定義するQuality Gateを実行します。
+
+CIが担う代表的な責務は次のとおりです。
+
+- source code、configuration、generated artifactなどの静的な整合性検証
+- unit / integration等、repositoryで定義された自動testの実行
+- ApplicationやInfrastructure artifactのbuild可能性の検証
+- Docker ComposeなどDevelopment実行環境定義の構築・起動可能性の検証
+- IaCのsynth、diff、policy checkなどdeploy前検証
+- Releaseまたはdeployで利用するimmutable artifactの生成と識別
+- 検証結果をPull Request / commit statusとして可視化し、merge可否の判断材料にすること
+
+CIは「workflowが成功したこと」自体を目的にせず、各Quality Gateが定義した品質特性を検証します。例えば実行環境Quality Gateはcontainerを起動できることを保証するものであり、Redis failoverなどservice固有の振る舞いまで暗黙に保証しません。
+
+## CDの責務
+
+CDはCIで検証・生成されたartifactをenvironmentへ反映します。
+
+CDが担う代表的な責務は次のとおりです。
+
+- deploy対象のversion、commit SHA、image digestなどを一意に特定すること
+- environmentごとの認証・設定・secretを安全に適用すること
+- 必要なdatabase migrationをApplication更新と分離して一度だけ実行すること
+- Infrastructure / Applicationを定義された順序で更新すること
+- Production deploy前の承認を強制すること
+- 同一environmentへの競合deployを防止すること
+- deploy結果を記録し、どのartifactがどのenvironmentで稼働しているか追跡可能にすること
+- 問題発生時にrollbackまたはroll-forwardできる状態を維持すること
+
+CDはdeploy時にsource codeの品質を再判定する場所ではありません。deploy成立に必要なpreconditionやenvironment固有の確認は行いますが、CI Quality Gateと同じtest suiteを無条件に再実行しません。
+
+## Quality GateとTestの境界
+
+Quality Gateは、変更を次の段階へ進めるために必須となる自動検証です。すべてのtestを常にQuality Gateに含める必要はありません。
+
+高速で再現性が高く、変更の統合可否を直接判断できる検証をPull RequestのQuality Gateとして優先します。時間が長い検証、外部environmentへ強く依存する検証、failover・障害注入・長時間performance testなどは、必要に応じてscheduled workflow、manual workflow、専用検証environmentなどへ分離します。
+
+どの検証を必須Quality Gateとするかは、各repositoryの責務と変更リスクに基づいて決定します。CI/CD基盤側が個別testの成功条件を独自に定義しません。
+
+## RepositoryとCI/CDの責務分担
+
+各repositoryは自身が所有するsource code、configuration、artifactについてQuality Gateとbuild手順を所有します。cross-repositoryのReleaseやdeploy orchestrationが必要になった場合も、各repositoryのartifact境界を維持します。
+
+`memoria-design`はCI/CD全体の責務、共通原則、environment間の境界を管理します。各Application / Infrastructure repositoryは、その原則に従って具体的なGitHub Actions workflow、Make target、Dockerfile、deployment script等を管理します。
+
+workflow間で同じ処理が増えた場合はreusable workflowや共通actionを検討できますが、共通化そのものを目的にしません。責務・入力・出力が安定してから共通化します。
+
+## Environment
+
+branchとenvironmentを同一視しません。`develop`や`main`はcodeの統合段階を表し、Development / Validation / Productionなどは実行先を表します。
+
+GitHub Environmentsはenvironment固有のsecret、approval、protection ruleを管理する境界として利用します。Productionでは人間の承認と同時deploy防止を必須とします。
+
+## Artifact
+
+Deploy可能なartifactはimmutableかつ追跡可能であることを基本とします。Docker imageはcommit SHAまたはdigestで識別し、Production deployの識別子として`latest`を使用しません。
+
+同じReleaseの途中でartifactを再buildするとCIで検証したものとProductionへdeployしたものが一致しなくなるため、build once / deploy same artifactを原則とします。
+
+## Observabilityと監査性
+
+CI/CDでは最低限、次の情報をGitHub Actions、GitHub Release、deploy記録などから追跡できる状態を目指します。
+
+- どのcommit / Releaseを対象としたか
+- どのQuality Gateを通過したか
+- どのartifactを生成・deployしたか
+- 誰がProduction deployを承認したか
+- いつ、どのenvironmentへdeployしたか
+- deployが成功したか、rollback / roll-forwardが必要だったか
+
+## 今後の詳細設計
+
+この文書では責務の境界を定義し、具体workflow topologyは固定しません。今後、実装に合わせて少なくとも次を詳細化します。
+
+- repositoryごとの必須Quality Gate一覧
+- Pull Request / `develop` / Release / tagごとのworkflow trigger
+- artifact registryとretention
+- Validation environmentへのdeploy方式
+- Production Release / deploy workflow
+- migration workflowとApplication deployの依存関係
+- rollback / roll-forward手順
+- GitHub Environmentsのapproval / protection rule
+- cross-repository Releaseが必要になった場合のorchestration
