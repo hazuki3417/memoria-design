@@ -4,7 +4,7 @@
 
 > 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
 
-データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。ProductionではPostgreSQLをPersistent Application TruthとしてHA構成で運用し、Redisは再構築可能な配送・一時状態として扱います。DevelopmentではDocker Composeの通常軽量構成とHA検証profileを使い分けます。
+データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。ProductionではPostgreSQLをPersistent Application TruthとしてHA構成で運用し、Redisは再構築可能な配送・一時状態として扱います。DevelopmentではProductionと同じRedis Sentinel software topologyをDocker Composeで再現します。
 
 ## PostgreSQL
 
@@ -26,10 +26,12 @@ ID、日時、命名、制約、index、削除の共通方針は[物理データ
 
 v5 checkpoint全体の統合対象と合意済みoverrideは、[v5設計カバレッジ](/system/v5-design-coverage)と[v5設計統合方針](/system/v5-design-integration-policy)を参照します。
 
-## MongoDBを主要永続化先にしない理由
+## MongoDBを現行構成に採用しない
+
+MongoDBは現行のApplication / Infrastructure componentとして採用しません。Development / Productionの実行環境、Application dependency、必須設定にも含めません。
 
 同じドメイン情報をPostgreSQLとMongoDBへ重複保持すると、正本、transaction、整合性、migrationが複雑になります。Mediaの主要metadataはPostgreSQLへ集約します。
 
-MongoDBは単に「Schemaが柔軟」「水平分散できる」という理由では採用しません。Documentが自然なAggregate / Read-Write単位で、Nested Object / Arrayが主要構造となり、Entity間Relation / FK / JOINが相対的に弱い具体的ユースケースが生じた場合に再検討します。
+将来もMongoDBを恒久的に禁止するものではありません。ただし単に「Schemaが柔軟」「水平分散できる」という理由では採用せず、Documentが自然なAggregate / Read-Write単位で、Nested Object / Arrayが主要構造となり、Entity間Relation / FK / JOINが相対的に弱い具体的ユースケースが生じた場合に再検討します。
 
 RelationalなEntityを維持しつつ一部metadataだけ可変な場合は、PostgreSQL + JSONBを中間選択肢とします。Media Analysis、provider raw payload、AI analysis result等のDocument性が強い領域が実際に必要になった場合も、まずPostgreSQL JSONBで不自然さを観測した上でMongoDB分離を評価します。
