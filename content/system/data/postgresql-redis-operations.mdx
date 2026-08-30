@@ -62,6 +62,8 @@ DevelopmentでもRedisの通常構成としてProductionと同じRedis Sentinel 
 
 Redis Dataのservice名はroleに依存しない`redis-node-1`、`redis-node-2`、`redis-node-3`とします。初期Primary / Replicaの役割はstartup configurationで決定し、failover後もservice名とCurrent roleを同一視しません。Sentinelは`redis-sentinel-1`、`redis-sentinel-2`、`redis-sentinel-3`とします。ApplicationはDevelopmentでもSentinel-aware clientを使用し、固定Redis nodeへ接続しません。
 
+Sentinelの初期configurationはRepositoryで共通templateとして管理します。Sentinelはruntime中にconfigurationを書き換えるため、複数Sentinel containerで同一の書き込み可能な設定ファイルを共有しません。各Sentinelは共通templateから生成した専用の書き込み可能なconfigurationを使用し、そのruntime configurationはSentinelごとの独立した永続volumeで保持します。Repository上のtemplateはruntimeから書き換えないread-onlyな入力として扱い、初期状態へ戻す場合は各Sentinelのruntime volumeを削除して再生成します。
+
 Local Docker HAはsoftware-level failover、client reconnect、election、recoveryの検証用です。同一Laptop / Docker Host内の構成をInfrastructure-level HAとはみなしません。Host failure、network partition、AZ failure、disk failureなどはAWS上の検証環境で確認します。
 
 DevelopmentとProductionではPostgreSQL / Redis version、container image、HA software/version、startup command、health check、基本configuration template、metrics integration、service naming conventionを可能な範囲で共通化します。Redisは実装着手時点の最新安定版を確認して採用し、再現性のためcontainer imageのversionを明示的に固定します。Redis / Sentinel固有parameterはtopology成立に必要な設定を除いて標準設定を基本とし、性能・可用性・障害復旧要件と計測結果に基づいて調整します。一方、volume、credentials、resource limits、multi-host / multi-AZ、backup / archive、monitoring / alertingは環境固有設定として分離します。
