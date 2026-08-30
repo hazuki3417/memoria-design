@@ -49,6 +49,42 @@ CDが担う代表的な責務は次のとおりです。
 
 CDはdeploy時にsource codeの品質を再判定する場所ではありません。deploy成立に必要なpreconditionやenvironment固有の確認は行いますが、CI Quality Gateと同じtest suiteを無条件に再実行しません。
 
+## ReleaseからCDへの暫定フロー
+
+ReleaseからCDへの具体的な運用要件は未確定のため、初期実装を進めるための暫定方針を次のように定義します。この節は長期的な確定仕様ではなく、実際のRelease・運用経験、environment構成、cross-repository coordinationの要件が明確になった時点で再評価します。
+
+暫定フローは次を基準とします。
+
+1. `develop`をRelease候補として検証し、`develop`から`main`へのRelease PRを作成する。
+2. Release PRで必須Quality Gate、変更内容、migration、deploy順序、rollback / roll-forward方針を確認する。
+3. 人間の承認後にRelease PRを`main`へmergeし、Release対象commitを確定する。
+4. `main`のRelease対象commitを基準としてdeploy可能なimmutable artifactを生成または確定し、commit SHA / image digestとの対応を記録する。
+5. `vMAJOR.MINOR.PATCH` tagとGitHub ReleaseをRelease対象commitに作成し、GitHub Releaseの公開をCD開始の標準triggerとする。
+6. CDはGitHub Releaseに対応する検証済みartifactを取得し、Production deployのpreconditionを確認する。
+7. GitHub EnvironmentのProduction approvalで人間の明示的な承認を要求する。
+8. 承認後、必要なmigrationを一度だけ実行し、成功後にApplication / Infrastructureを定義された順序でdeployする。
+9. deploy結果と実際に稼働したRelease / commit SHA / artifact digestを記録する。
+
+`main`へのmergeだけではProduction deployを開始しません。Releaseとして公開する意思決定とProductionへ反映する処理を分離するため、暫定的にGitHub ReleaseをCD開始点とします。
+
+GitHub Releaseの作成とProductionへの反映成功も同一視しません。Releaseはdeploy対象を識別するversioned record、CDはそのReleaseをenvironmentへ反映する処理として扱い、実際の稼働版はdeployment historyで確認します。
+
+同じReleaseの再deployが必要な場合は新しいReleaseを作成せず、同じimmutable artifactを指定してCDを再実行できる構成を目指します。rollbackも原則として新しいsource buildではなく、互換性を確認した過去のimmutable artifactを再deployします。
+
+### 暫定方針を再評価する条件
+
+次のいずれかが具体化した場合は、このRelease -> CDフローを再設計します。
+
+- Validation / StagingなどProduction前の常設environmentが必要になった場合
+- 複数repositoryのReleaseを一つのProduct Releaseとして同期する必要が生じた場合
+- GitHub Release作成前にProduction deployする運用要件が生じた場合
+- progressive delivery、blue/green、canaryなどのdeploy方式を採用する場合
+- database migrationやInfrastructure変更に独立したapproval / orchestrationが必要になった場合
+- rollbackだけでは安全に復旧できず、roll-forwardを中心としたRelease管理が必要になった場合
+- Release頻度や運用負荷により人間のapproval pointを変更する必要が生じた場合
+
+これらが発生するまでは、workflow topologyを過度に一般化せず、GitHub Release -> Production approval -> CDという単純な経路を基準とします。
+
 ## Quality GateとTestの境界
 
 Quality Gateは、変更を次の段階へ進めるために必須となる自動検証です。すべてのtestを常にQuality Gateに含める必要はありません。
@@ -90,13 +126,13 @@ CI/CDでは最低限、次の情報をGitHub Actions、GitHub Release、deploy�
 
 ## 今後の詳細設計
 
-この文書では責務の境界を定義し、具体workflow topologyは固定しません。今後、実装に合わせて少なくとも次を詳細化します。
+この文書では責務の境界とRelease -> CDの暫定フローを定義します。今後、実装に合わせて少なくとも次を詳細化します。
 
 - repositoryごとの必須Quality Gate一覧
 - Pull Request / `develop` / Release / tagごとのworkflow trigger
 - artifact registryとretention
 - Validation environmentへのdeploy方式
-- Production Release / deploy workflow
+- Production Release / deploy workflowの実装詳細
 - migration workflowとApplication deployの依存関係
 - rollback / roll-forward手順
 - GitHub Environmentsのapproval / protection rule
