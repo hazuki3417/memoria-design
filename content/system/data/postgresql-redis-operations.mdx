@@ -52,17 +52,19 @@ Productionでは可能なら3 Failure Domain / 3 AZへ分散し、同一HostにS
 
 Redis ClusterはSharding / Horizontal Scaleが具体的に必要になった場合に再評価し、初回Releaseでは採用しません。
 
-Redis Streamsを使用するためAOFをBaselineとし、永続領域を明示します。具体的なfsync方式、memory上限、eviction policyは運用詳細設計で決定します。
+Redis Streamsを使用するためAOFをBaselineとし、永続領域を明示します。初期構成では強いmessage durabilityを保証せず、Redis標準の非同期replicationを使用します。`WAIT` / `WAITAOF`などの追加の書き込み確認は初期前提にせず、必要な配送保証が具体化した時点で再評価します。具体的なfsync方式、memory上限、eviction policyなどの運用parameterは、実装・検証・運用で必要性が判明した時点で調整します。
 
 Worker停止によるpending messageはConsumer GroupのPELとXAUTOCLAIMなどで回復します。Redis dataが失われた場合はPostgreSQLのOutbox、Processing Job、配送状態から未処理対象を照合し、冪等にRedis Streamsへ再publish / re-enqueueします。恒久失敗はPostgreSQLのJob状態を正本とします。
 
 ## Development topology
 
-通常開発ではDeveloper Experienceを優先し、Single PostgreSQL / Single Redisを許容します。HA profileではPostgreSQL HAとRedis Data x 3 / Sentinel x 3をDocker Composeで再現します。
+DevelopmentでもRedisの通常構成としてProductionと同じRedis Sentinel topologyを再現し、Single Redisを標準構成にしません。Redis Data x 3 / Sentinel x 3をDocker Composeで構成し、Redis Dataは初期状態をPrimary x 1 / Replica x 2、Sentinel quorumを2とします。
+
+Redis Dataのservice名はroleに依存しない`redis-node-1`、`redis-node-2`、`redis-node-3`とします。初期Primary / Replicaの役割はstartup configurationで決定し、failover後もservice名とCurrent roleを同一視しません。Sentinelは`redis-sentinel-1`、`redis-sentinel-2`、`redis-sentinel-3`とします。ApplicationはDevelopmentでもSentinel-aware clientを使用し、固定Redis nodeへ接続しません。
 
 Local Docker HAはsoftware-level failover、client reconnect、election、recoveryの検証用です。同一Laptop / Docker Host内の構成をInfrastructure-level HAとはみなしません。Host failure、network partition、AZ failure、disk failureなどはAWS上の検証環境で確認します。
 
-DevelopmentとProductionではPostgreSQL / Redis version、container image、HA software/version、startup command、health check、基本configuration template、metrics integration、service naming conventionを可能な範囲で共通化します。一方、volume、credentials、resource limits、multi-host / multi-AZ、backup / archive、monitoring / alertingは環境固有設定として分離します。
+DevelopmentとProductionではPostgreSQL / Redis version、container image、HA software/version、startup command、health check、基本configuration template、metrics integration、service naming conventionを可能な範囲で共通化します。Redisは実装着手時点の最新安定版を確認して採用し、再現性のためcontainer imageのversionを明示的に固定します。Redis / Sentinel固有parameterはtopology成立に必要な設定を除いて標準設定を基本とし、性能・可用性・障害復旧要件と計測結果に基づいて調整します。一方、volume、credentials、resource limits、multi-host / multi-AZ、backup / archive、monitoring / alertingは環境固有設定として分離します。
 
 ## Query、cache、性能判断
 
