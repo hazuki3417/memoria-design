@@ -54,6 +54,24 @@ failover、障害注入、長時間performance testなど、実行時間や外�
 
 Pull Request CIでbuildしたartifactは検証用artifactとして扱えますが、そのartifactをそのままProduction deployの正本にはしません。通常のmerge commitではPull Request headと統合後commitが異なるため、deploy可能artifactは統合後のcommitを基準として生成・識別します。
 
+### `develop`向けPRの必須Quality Gate
+
+`develop`へ変更を統合する通常のPull Requestでは、各repositoryが現在所有する次のQuality Gateを必須とします。workflowの分割方法やcommand名そのものを共通化するのではなく、各repositoryが自身の責務に応じたGateを所有します。
+
+| Repository | Required check | 保証する内容 |
+| --- | --- | --- |
+| `memoria-api` | `quality / api` | Goの静的検査、test、buildが成功すること |
+| `memoria-api` | `runtime-quality / runtime` | Development用Docker Compose定義を構築・起動でき、対象containerが継続稼働できること |
+| `memoria-web` | `quality / web` | GraphQL client生成、source check、型検査、unit test、Next.js build、client bundleへのserver secret混入検査が成功すること |
+| `memoria-IaC` | `quality / iac` | source formatting、TypeScript検査、Infrastructure test、CDK synthが成功すること |
+| `memoria-design` | `quality / design` | documentation siteをbuildできること |
+
+これらは2026-08時点のrepository実装を基準とした初期必須Gateです。repositoryの責務やQuality Gate構成を変更する場合は、workflowだけを変更してrequired checkの意味を暗黙に変えず、必要に応じてこの設計とbranch protection設定も同時に更新します。
+
+必須Gateの一部を一時的にskipしてmergeすることを通常運用にはしません。Gate自体の障害やGitHub Actions障害などで例外対応が必要になった場合は、理由と影響を明示した人間の判断として扱い、恒常的なbypass経路にはしません。
+
+`memoria-api`にはGraphQL / sqlcのgenerated codeを更新する`generate`処理がありますが、現行の`quality / api`はgenerated codeがschema / queryと同期していること自体を独立して保証していません。generated code consistencyを必須PR Gateへ追加するかは別途設計し、現時点では既存Gateの必須化を妨げないものとします。
+
 ### `develop`統合後CI
 
 `develop`統合後CIの目的は、実際に`develop`へ記録された統合commitが再現可能であり、次のRelease候補として継続的に健全であることを確認することです。
@@ -186,9 +204,9 @@ CI/CDでは最低限、次の情報をGitHub Actions、GitHub Release、deploy�
 
 この文書では責務の境界、CIの実行段階、Release -> CDの暫定フローを定義します。未確定の詳細はIssueとして管理し、実装要件が具体化した段階で設計します。
 
-- repositoryごとの必須Quality Gate一覧
 - workflow triggerの具体構成
 - Release PR固有のQuality Gate
+- `memoria-api`のgenerated code consistency Gate
 - `develop` / `main`統合後のartifact生成・publish範囲
 - Release CIのversion / artifact確定方式
 - artifact registryとretention
