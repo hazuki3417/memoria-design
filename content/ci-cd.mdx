@@ -32,6 +32,62 @@ CIが担う代表的な責務は次のとおりです。
 
 CIは「workflowが成功したこと」自体を目的にせず、各Quality Gateが定義した品質特性を検証します。例えば実行環境Quality Gateはcontainerを起動できることを保証するものであり、Redis failoverなどservice固有の振る舞いまで暗黙に保証しません。
 
+## CIの実行段階
+
+CIはすべてのtriggerで同じ責務を持つ単一段階とはせず、Pull Request、統合後、Releaseの段階を分けて扱います。具体的なworkflowファイルを段階ごとに分割することまでは要求せず、同一workflowを再利用しても構いません。重要なのは、各実行が何を検証し、どのcommitやartifactを正本として扱うかを区別することです。
+
+### Pull Request CI
+
+Pull Request CIの目的は、対象変更をbase branchへ統合してよいかを判定することです。
+
+- Pull Requestの最新head commitを対象としてrepositoryが定義する必須Quality Gateを実行します。
+- source codeを変更した場合は最新commitに対する検証結果をmerge判断に使用し、古いcommitの成功結果を引き継ぎません。
+- lint / format / static analysis、unit / integration test、build、generated artifact整合性、IaC synthなど、repositoryの責務に応じた検証を行います。
+- Docker Compose等のDevelopment実行環境そのものを所有するrepositoryでは、build・起動可能性を独立したQuality Gateとして扱えます。
+- `develop`向け通常PRと`main`向けRelease PRで共通するrepository Quality Gateは原則として同じ基準を維持し、Release PRだから通常Gateを弱めません。
+- Release固有の自動検証が必要になった場合は、通常Quality Gateを置き換えず追加Gateとして定義します。
+- 必須Quality Gateが失敗、cancel、未完了、または必要なGateが未実行の状態ではmergeしません。
+
+Pull Request CIはdeployを行いません。Production credential、Production Environment、Production resourceへの変更を必要とする処理も通常のPull Request CIへ含めません。
+
+failover、障害注入、長時間performance testなど、実行時間や外部environment依存が大きい検証は必須Pull Request Gateへ無条件に含めず、scheduled / manual workflowや専用検証environmentへ分離します。
+
+Pull Request CIでbuildしたartifactは検証用artifactとして扱えますが、そのartifactをそのままProduction deployの正本にはしません。通常のmerge commitではPull Request headと統合後commitが異なるため、deploy可能artifactは統合後のcommitを基準として生成・識別します。
+
+### `develop`統合後CI
+
+`develop`統合後CIの目的は、実際に`develop`へ記録された統合commitが再現可能であり、次のRelease候補として継続的に健全であることを確認することです。
+
+- `develop`へのpushで実際の統合commitを対象にQuality Gateを再実行します。
+- Pull Requestで検証済みであっても、merge commitそのものの検証を省略しません。
+- Pull Request CIと同じ検証commandやworkflowを再利用できます。
+- 結果はbranchの健全性を示すcommit statusとして記録します。
+- `develop`統合後CIの失敗は既に成立したmergeを自動的に巻き戻さず、原因を修正する新しい変更でbranchを正常状態へ戻します。
+- `develop`統合後CIからProduction deployを開始しません。
+
+`develop`への統合ごとにdeploy可能artifactをregistryへ永続保存するか、build verificationだけを行うかは現時点では固定しません。Releaseで再利用可能なartifactをどの段階から保持するかはartifact registry / retention設計と合わせて決定します。
+
+### Release PR CI
+
+`develop`から`main`へのRelease PRでも、通常のPull Request CIと同じrepository Quality Gateを実行します。Release PRは通常検証を省略するための経路ではありません。
+
+これに加えて、Release時にだけ必要な機械検証が定義された場合はRelease固有Gateを追加できます。migration compatibility、destructive Infrastructure change、version / Release metadataなどの具体的なGateは別途設計します。
+
+変更内容、関連PR、互換性、migration、deploy順序、rollback / roll-forward方針など、人間のRelease判断を必要とする事項は自動Quality Gateだけへ押し込みません。Release PRではCI結果と人間のreviewの両方を成立条件とします。
+
+### `main`統合後 / Release CI
+
+`main`へのmerge後は、Release PRのheadではなく`main`に記録されたRelease対象commitを正本として扱います。
+
+- `main`のRelease対象commitに対してrepository Quality Gateを再実行します。
+- Release/deploy用artifactはこの統合後commitを基準として生成または確定します。
+- artifactはcommit SHAやdigest等でimmutableかつ一意に追跡可能にします。
+- Release artifact生成後にCD側でsource codeを再buildしません。
+- artifact生成・公開に失敗した場合、そのartifactをProduction deploy対象として扱いません。
+- `main`へのmergeだけではProduction deployを開始しません。
+
+Release artifactを`main` merge時に生成するか、GitHub Release作成時に生成・確定するか、version metadataをいつ付与するかは未決定です。Release -> CDの暫定フローではGitHub ReleaseをCD開始点としますが、artifact確定方式は別途詳細設計します。
+
 ## CDの責務
 
 CDはCIで検証・生成されたartifactをenvironmentへ反映します。
@@ -111,7 +167,9 @@ GitHub Environmentsはenvironment固有のsecret、approval、protection ruleを
 
 Deploy可能なartifactはimmutableかつ追跡可能であることを基本とします。Docker imageはcommit SHAまたはdigestで識別し、Production deployの識別子として`latest`を使用しません。
 
-同じReleaseの途中でartifactを再buildするとCIで検証したものとProductionへdeployしたものが一致しなくなるため、build once / deploy same artifactを原則とします。
+Pull Request CIで生成したartifactは検証用途に利用できますが、Production deployの正本にはしません。通常のmerge commitではPull Request headと統合後commitが異なるため、deploy可能artifactは`main`のRelease対象commitなど統合後のcommitを基準として生成・識別します。
+
+同じReleaseの途中でartifactを再buildするとCIで検証したものとProductionへdeployしたものが一致しなくなるため、Release/deploy用artifactを確定した後はbuild once / deploy same artifactを原則とします。
 
 ## Observabilityと監査性
 
@@ -126,14 +184,19 @@ CI/CDでは最低限、次の情報をGitHub Actions、GitHub Release、deploy�
 
 ## 今後の詳細設計
 
-この文書では責務の境界とRelease -> CDの暫定フローを定義します。今後、実装に合わせて少なくとも次を詳細化します。
+この文書では責務の境界、CIの実行段階、Release -> CDの暫定フローを定義します。未確定の詳細はIssueとして管理し、実装要件が具体化した段階で設計します。
 
 - repositoryごとの必須Quality Gate一覧
-- Pull Request / `develop` / Release / tagごとのworkflow trigger
+- workflow triggerの具体構成
+- Release PR固有のQuality Gate
+- `develop` / `main`統合後のartifact生成・publish範囲
+- Release CIのversion / artifact確定方式
 - artifact registryとretention
 - Validation environmentへのdeploy方式
 - Production Release / deploy workflowの実装詳細
 - migration workflowとApplication deployの依存関係
 - rollback / roll-forward手順
 - GitHub Environmentsのapproval / protection rule
+- branch protection / required checks
+- 長時間・障害系testの実行経路
 - cross-repository Releaseが必要になった場合のorchestration
