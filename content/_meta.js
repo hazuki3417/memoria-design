@@ -16,6 +16,7 @@ export default {
   "commit-message": "コミットメッセージ",
   "branch-strategy": "ブランチ運用",
   "versioning": "バージョニング",
+  "ci-cd": "CI/CD",
   "build-deploy": "ビルド・デプロイ",
   "ai-development": "AI支援開発",
   "-- Documentation": {"type":"separator","title":"ドキュメント"},
