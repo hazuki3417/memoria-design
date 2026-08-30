@@ -4,7 +4,7 @@
 
 > 実装状況: IaCにEC2、private S3、IAMなどの初期定義があります。PostgreSQL / Redis HA container、multi-host配置、EBS、SSM deploy、migration、backup、restore、実運用監視は未実装です。
 
-初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心に定義します。ProductionではApplicationとstateful serviceを単一EC2へ同居させる構成を可用性Baselineにせず、PostgreSQLとRedisのHA topologyを複数Failure Domainへ配置できる構成とします。低コスト検証環境と通常のlocal developmentではSingle nodeを許容します。
+初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心に定義します。ProductionではApplicationとstateful serviceを単一EC2へ同居させる構成を可用性Baselineにせず、PostgreSQLとRedisのHA topologyを複数Failure Domainへ配置できる構成とします。低コスト検証環境ではSingle nodeを許容します。通常のlocal developmentではPostgreSQLはSingle nodeを許容し、RedisはRedis Data x3 / Sentinel x3を標準構成とします。
 
 ## 実行構成と責務
 
@@ -22,7 +22,7 @@ API、Worker、Publisherは論理的に分離します。Productionの物理配�
 
 ## DevelopmentとProductionのTopology
 
-DevelopmentではDocker Composeを使用します。通常開発はSingle PostgreSQL / Single Redisで軽量に起動できる構成とし、HA profileではProduction相当のPostgreSQL HAとRedis Sentinel topologyを再現します。
+DevelopmentではDocker Composeを使用します。PostgreSQLは通常開発でSingle nodeを許容し、HA検証時にProduction相当のPostgreSQL HAを再現します。Redisは通常開発からRedis Data x3 / Sentinel x3 / quorum 2を標準構成とし、Single RedisやHA profileへの切り替えを標準手順にしません。Redisの詳細なDevelopment topologyは[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)を正本とします。
 
 Development用Composeを無変更でProductionへ使用しません。共通化するのはcontainer image、version、HA software、startup command、health check、基本configuration template、metrics integration、network / service naming conventionです。ProductionではEBS、Secrets Manager / SSM等のcredential管理、実resource limit、multi-host / multi-AZ、backup / archive、monitoring / alertingを環境固有設定として適用します。
 
