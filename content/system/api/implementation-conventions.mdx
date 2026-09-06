@@ -24,6 +24,18 @@ API、Media Worker、Outbox Publisherを同一Repositoryで所有し、独立し
 
 RepositoryはUse Caseが必要とする永続化操作を提供し、独自にTransaction境界を決定しません。DomainはTransactionや外部I/Oを知りません。詳細は[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)を参照します。
 
+### Use Case Outputと外部I/O由来の値
+
+Use Caseの結果に、署名URLなど外部I/Oによって生成されるApplication上必要な値が含まれる場合は、Domain Entityへその値を追加せず、Use Case固有のOutput型で表現します。
+
+- Domain EntityはObject Storage path、署名URL、GraphQL表示都合など外側の表現を保持しない。
+- Use Caseは必要なRepositoryやStorage Portを協調させ、Domain Entityと外部I/O由来の値をUse Case Outputへまとめる。
+- Use Case OutputはApplication境界の型であり、GraphQL生成型、DB row、SDK固有型を使用しない。
+- MapperはUse Case OutputからGraphQL modelへの型変換に限定し、Object Storage pathの組み立てや署名URL生成などの外部I/Oを実行しない。
+- すべてのUse CaseにOutput型を機械的に追加せず、Domain Entityだけで結果を十分に表現できる場合はそのまま返してよい。
+
+例えば画像取得でPreview URLやThumbnail URLが必要な場合、Image Domain Entity自体にはURLを持たせず、Imageと必要なURLを含むImage取得Use CaseのOutput型として返します。これによりDomainをStorage表現から独立させ、TransportへStorage内部ruleを漏らしません。
+
 ## Error設計
 
 Go標準のerror、errors.Is、errors.As、error wrappingを基本とし、DomainやApplicationをTransport固有のError型へ依存させません。
