@@ -30,10 +30,6 @@ UserとCommunityが所有するTransactionは、それぞれ[Userの整合性と
 - 同じCommunityへの同時共有は複合PKで重複を防止
 - update件数が期待値と異なる場合は競合errorとしてrollback
 
-### Communityとの境界
-
-Community作成、Administrator権限、招待URL、参加申請、退会・除外、Community削除のTransactionと競合制御は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。Media domainではCommunityとの共有、Media Custody、Upload、Media削除、Object Storageとの整合性を扱います。
-
 ### Group DAG
 
 relation追加前に、追加するchildからparentへ到達できるかをrecursive CTEで確認します。確認とinsertは同一transactionで行い、関連するGroup行を一定順序でlockします。
@@ -103,7 +99,15 @@ Event作成は対象のdomain変更と同じDB transactionで行います。Even
 
 clientが指定したUser IDやCommunity IDだけを根拠にしません。Community管理MediaのOriginal download・削除ではAdministrator、または有効なMembershipを持つUploader本人であることを確認します。共有されたUser管理Mediaに対してAdministrator権限を拡張しません。
 
-## Errorと再試行
+## 外部I/Oと失敗時処理
+
+Object StorageへのOriginal保存・削除とDB更新は単一Transactionにできないため、upload時はDB失敗後の補償削除、削除時は`media_storage_operations`による冪等retryで最終整合性を保証します。派生物生成はDB commit後にOutboxを介してWorkerへ配送し、API成功条件にRedis配送完了を含めません。
+
+## 他domainとの境界
+
+Community作成、Membership role、Invitation、User起点Join Request、退会・除外、Community削除のCommunity側Transactionは[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。User削除受付とUser状態は[Userの整合性とTransaction](/user/consistency-transactions)を正本とします。Media domainはCommunityとの共有、Media Custody、Upload、Media削除、Object Storageとの整合性を保証します。
+
+## エラーと境界条件
 
 - constraint違反はdomain errorへ変換し、DB詳細を共有しない
 - deadlock・serialization failureは上限回数を設けてretry
