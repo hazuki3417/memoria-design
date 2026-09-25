@@ -6,24 +6,26 @@
 
 User登録、状態遷移、削除対象固定、外部serviceとのcleanupにおけるdomain固有のTransaction境界を定義します。共通のlock順序と外部I/O処理は[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)、削除中状態とretryは[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を参照します。
 
-## 登録と通常操作
+## Transaction境界
 
-登録確定はissuer・subjectのUNIQUE制約を利用し、同時登録では1件だけ成功させます。各requestでACTIVEを確認し、DELETING変更後に新しい操作がcommitされないようUser行lockまたは条件付き更新を使用します。
+登録確定はissuer・subjectのUNIQUE制約を利用し、User作成を一つのTransactionで確定します。
 
-## account削除のTransaction境界
+account削除の受付TransactionではUser行をlockしてACTIVEを再確認し、最後のAdministrator、Media、Communityの選択と再認証結果を検証します。削除対象snapshotを固定してUserをDELETINGへ変更し、JobをPENDINGで作成します。対象の有無によってflowを変えません。
 
-受付TransactionではUser行をlockしてACTIVEを再確認し、最後のAdministrator、Media、Communityの選択と再認証結果を検証します。削除対象snapshotを固定してUserをDELETINGへ変更し、JobをPENDINGで作成します。重複requestは既存Jobを返し、対象の有無によってflowを変えません。
+Auth0 account削除、Media cleanup、Community側のcleanupなど、DB外I/Oやdomainをまたぐ長時間処理は受付Transactionへ含めず、User削除Jobで進行します。
 
-## 外部I/Oと非同期cleanup
+## 競合制御
 
-Auth0削除とMedia cleanupはUser削除Jobで管理します。FAILED時もUserはDELETINGを維持し、重複防止と再試行は[冪等性と再試行](/system/api/idempotency)に従います。
+同時登録ではissuer・subjectのUNIQUE制約により1件だけ成功させます。各requestでACTIVEを確認し、DELETING変更後に新しい操作がcommitされないようUser行lockまたは条件付き更新を使用します。
 
-削除対象は受付後に変更できません。Community、Membership、Media/Custodyのlock順序を各domainと揃え、同時Upload・権限変更・削除との競合を拒否します。
+account削除の重複requestは既存Jobを返します。削除対象は受付後に変更できません。Community、Membership、Media/Custodyのlock順序を各domainと揃え、同時Upload・権限変更・削除との競合を拒否します。
+
+## 外部I/Oと失敗時処理
+
+Auth0削除とMedia cleanupはUser削除Jobで管理します。FAILED時もUserはDELETINGを維持し、完了済みstepを安全に再実行できるようにします。重複防止と再試行は[冪等性と再試行](/system/api/idempotency)に従います。
+
+Auth0側だけが削除・無効化された場合はMemoria dataを自動削除せず、Login不能として保持し運用対応します。
 
 ## 他domainとの境界
 
-Media削除・Uploader匿名化は[Mediaの整合性とTransaction](/media/consistency-transactions)、Membership・Administrator・Community削除は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
-
-## Auth0不整合
-
-Auth0側だけが削除・無効化されてもMemoria dataを自動削除せず、Login不能として保持し運用対応します。
+Media削除・Uploader匿名化は[Mediaの整合性とTransaction](/media/consistency-transactions)、Membership・Administrator・Community削除は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。User domainは削除受付時のUser状態と対象snapshotを保証し、各domainの不変条件を迂回しません。

@@ -6,14 +6,31 @@
 
 Auth0とMemoriaの責務、User固有の認証主体解決、再認証、復帰先を定義します。全domain共通の認証、認可、個人情報、秘密情報の扱いは[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を参照します。
 
-## 主体と責務
+## 主体と役割
 
-| 情報・処理 | 正本 |
+| 主体 | 役割 |
 | --- | --- |
-| password、外部identity、認証session | Auth0 |
-| issuer・subjectと内部Userの対応 | Memoria |
-| nickname、User状態 | Memoria |
-| Membership、Administrator、Media権限 | 各Memoria domain |
+| User | Auth0で認証し、Memoria Userとして操作する |
+| Auth0 | password、外部identity、認証sessionを管理する |
+| Memoria | issuer・subjectと内部Userの対応、nickname、User状態を管理する |
+| 各Memoria domain | Membership、Administrator、Media権限を管理する |
+
+## 操作と権限
+
+| 操作 | 許可主体・条件 | 禁止事項 |
+| --- | --- | --- |
+| User登録 | Auth0で認証済みで、issuer・subjectに対応するUserが存在しない主体 | 同じissuer・subjectの重複登録 |
+| 通常操作 | issuer・subjectに対応するACTIVE User | DELETING User、登録未確定Userによる操作 |
+| nickname変更 | ACTIVE User本人 | 他Userのnickname変更 |
+| account削除確定 | ACTIVE User本人。最終確定前にAuth0で再認証する | 再認証失敗・取消し・期限切れ時の削除開始 |
+
+token検証と権限の再評価は共通方針に従います。User domainではissuer・subjectに対応するUserがACTIVEであることを確認します。
+
+## 権限失効
+
+LogoutではMemoriaとAuth0のsessionを終了します。session失効時は再Loginし、User状態と現在のCommunity権限を再評価します。UserがDELETINGへ遷移した時点でLoginと新しい操作を拒否し、cleanup完了後はMemoria Userを物理削除します。
+
+Login・登録後の復帰先はallowlistに一致する内部相対URLだけを受け付け、Uploadや削除操作を自動再開しません。
 
 ## 取得する認証情報
 
@@ -23,17 +40,9 @@ Auth0からはissuer、subjectと登録画面のnickname初期値に使う表示
 
 issuerとsubjectの組は1件のUserにだけ対応します。同じemailや表示名を根拠に統合しません。一致するUserがない場合は登録画面へ遷移し、複数件に一致する不整合は認証失敗として運用対応します。
 
-## token検証と権限評価
-
-token検証と権限の再評価は共通方針に従います。User domainではissuer・subjectに対応するUserがACTIVEであることを確認します。
-
 ## 再認証
 
 account削除の最終確定前はAuth0再認証を必須とします。失敗・取消し・期限切れの場合は削除Jobを開始せず、MediaとCommunityの個別確認も省略しません。
-
-## session失効と復帰先
-
-session失効時は再Loginし、User状態と現在の権限を再評価します。Login・登録後の復帰先はallowlistに一致する内部相対URLだけを受け付けます。
 
 ## エラーと境界条件
 

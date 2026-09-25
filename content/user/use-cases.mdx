@@ -16,24 +16,38 @@ User登録、Login、nickname変更、session失効、account削除、Auth0不�
 
 ## 新規登録
 
-Auth0で認証後、表示名が取得できる場合はnickname入力欄の初期値にします。Userが確認・変更して登録を確定した時点でだけMemoria UserをACTIVEで作成します。認証だけではrecordを作らず、登録前はUpload、Community作成、参加申請を許可しません。招待URLから来た場合は登録後に許可された内部URLへ戻します。
+Auth0で認証済みで、issuer・subjectに対応するMemoria Userが存在しないUserが実行します。Auth0から表示名を取得できる場合はnickname入力欄の初期値にします。
+
+Userがnicknameを確認・変更して登録を確定した時点でだけMemoria UserをACTIVEで作成します。認証だけではrecordを作らず、登録前はUpload、Community作成、参加申請を許可しません。招待URLから来た場合は登録後に許可された内部URLへ戻します。
+
+同じissuer・subjectに対応するUserがすでに存在する場合は重複登録せず、認証主体を一意に解決できない場合は登録を拒否します。
 
 ## nicknameを登録・変更する
 
-nicknameは必須で重複を許可し、前後空白を除去した空文字を拒否します。登録後はMemoria nicknameを正本とし、Auth0から同期しません。ACTIVE Userはnicknameを変更でき、過去値は保存しません。
+登録時またはACTIVE User本人が実行します。nicknameは必須で重複を許可し、前後空白を除去した空文字を拒否します。
+
+登録後はMemoria nicknameを正本とし、Auth0から同期しません。変更に成功した場合は現在値を置き換え、過去値は保存しません。DELETING Userによる変更は許可しません。
 
 ## Login・Logout・session失効
 
-issuer・subjectに一致するACTIVE Userだけが利用できます。DELETING UserはAuth0認証に成功しても利用できません。session失効時は再Loginし、現在のUser状態とCommunity権限を再評価します。安全な内部URLだけを復帰先にし、Uploadや削除操作は自動再開しません。LogoutはMemoriaとAuth0のsessionを終了し、Google等の外部provider accountは削除しません。
+Auth0で認証し、issuer・subjectに一致するACTIVE UserだけがMemoriaを利用できます。DELETING UserはAuth0認証に成功しても利用できません。
+
+session失効時は再Loginし、現在のUser状態とCommunity権限を再評価します。安全な内部URLだけを復帰先にし、Uploadや削除操作は自動再開しません。LogoutはMemoriaとAuth0のsessionを終了し、Google等の外部provider accountは削除しません。
 
 ## accountを削除する
 
-最終確定前にAuth0で再認証します。User管理Mediaの件数と復元不能な削除、最後のAdministratorであるCommunityごとの別Member昇格またはCommunity削除を明示的に確認します。Community削除時は参加者数、Community管理Media件数、他UserのUploadも削除されることを表示し、Community名入力を要求します。対象が0件でも同じflowを使用します。
+ACTIVE User本人が実行し、最終確定前にAuth0で再認証します。User管理Mediaの件数と復元不能な削除、最後のAdministratorであるCommunityごとの別Member昇格またはCommunity削除を明示的に確認します。Community削除時は参加者数、Community管理Media件数、他UserのUploadも削除されることを表示し、Community名入力を要求します。対象が0件でも同じflowを使用します。
 
-確定後はDELETINGとして即時利用不可にし、確定時点の対象を固定して非同期Jobで削除します。別AdministratorがいるCommunityは保持してMembershipと共有を解除します。保持するCommunity管理MediaのUploaderは「削除済みUser」と表示します。完了後はMemoria UserとMemoria用Auth0 accountを物理削除し、外部provider accountは削除しません。
+再認証、必要なCommunityの選択、確認が完了しない場合は削除を開始しません。確定後はDELETINGとして即時利用不可にし、確定時点の対象を固定して非同期Jobで削除します。別AdministratorがいるCommunityは保持してMembershipと共有を解除します。保持するCommunity管理MediaのUploaderは「削除済みUser」と表示します。完了後はMemoria UserとMemoria用Auth0 accountを物理削除し、外部provider accountは削除しません。
 
-削除完了後に同じ外部providerでLoginした場合は新しいUserとして登録でき、過去のMedia、Membership、権限、Uploader関係を復元しません。
+削除完了後に同じ外部providerでLoginした場合は新しいUserとして登録でき、過去のMedia、Membership、権限、Uploader関係を復元しません。Media削除・Uploader匿名化は[Media設計](/media)、Membership・Administrator・Community削除は[Community設計](/community)を正本とします。
 
 ## Auth0側の削除・無効化へ対応する
 
-Loginを拒否しますがMemoria dataを自動削除しません。初回Releaseでは継続同期を行わず、発見した不整合は運用課題として扱います。
+Auth0側のaccountが削除・無効化され、認証主体を利用できない場合はLoginを拒否しますが、Memoria dataを自動削除しません。初回Releaseでは継続同期を行わず、発見した不整合は運用課題として扱います。
+
+## 対象外
+
+- 複数認証方法のaccount統合は[Issue #52](https://github.com/hazuki3417/memoria-design/issues/52)で将来検討します。
+- profile画像は[Issue #51](https://github.com/hazuki3417/memoria-design/issues/51)で将来検討します。
+- 公開用account IDは[Issue #53](https://github.com/hazuki3417/memoria-design/issues/53)で将来検討します。

@@ -10,14 +10,22 @@ User domainが所有するentity、認証主体、状態、不変条件、他dom
 
 User集約は内部User ID、認証主体、nickname、状態を所有します。Auth0 account、Media、Community、Membershipは別集約であり、User削除workflowがそれらを調整します。
 
-| 概念 | 不変条件 |
+| 概念 | 責務・関連 |
 | --- | --- |
-| User | 内部IDを持ち、ACTIVEまたはDELETINGである |
-| Auth Identity | issuer・subjectの組が1件のUserにだけ対応する |
-| Nickname | 必須、重複可能、現在値だけを保持する |
-| Deletion Job | Userごとに有効なJobは1件で、削除対象snapshotを持つ |
+| User | 内部User ID、認証主体、nickname、利用状態を所有する |
+| Auth Identity | Auth0のissuer・subjectで認証主体を識別し、1件のUserへ対応する |
+| Nickname | Userの現在の表示名を表す |
+| Deletion Job | account削除対象のsnapshotとcleanup状態を保持する |
 
-## 状態遷移と不変条件
+## 不変条件
+
+- Userは内部IDを持ち、状態はACTIVEまたはDELETINGのどちらかである。
+- issuer・subjectの組は1件のUserにだけ対応する。
+- nicknameは必須で重複を許可し、現在値だけを保持する。
+- Userごとに有効なDeletion Jobは1件だけで、削除対象snapshotを持つ。
+- 登録未確定の認証主体はMemoria Userとして扱わない。
+
+## 状態遷移
 
 ```mermaid
 stateDiagram-v2
@@ -26,7 +34,7 @@ stateDiagram-v2
     DELETING --> [*]: cleanup完了・物理削除
 ```
 
-仮登録、DELETED、SUSPENDED状態は初回Releaseに設けません。登録未確定の認証主体はMemoria Userではありません。
+仮登録、DELETED、SUSPENDED状態は初回Releaseに設けません。
 
 ## 他domainとの境界
 
