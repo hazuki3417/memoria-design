@@ -59,7 +59,7 @@ PKは`(community_id, user_id)`です。`(user_id, community_id)`へindexを追�
 
 `revoked_at IS NULL`を条件とするCommunity単位のpartial unique indexで、失効処理されていない招待URLを1件に制限します。期限切れURLは再発行Transaction内で`revoked_at`を設定してから新規行を作成します。期限判定に現在時刻を使うpartial indexは作成しません。
 
-Initial ReleaseのInvitation acceptは有効なInvitationを検証・consumeし、`community_memberships(role='member')`を同じTransactionで直接作成します。Join RequestをInvitation acceptの中間relationとして作成しません。
+Initial ReleaseのInvitation acceptは有効なInvitationを検証し、`community_memberships(role='member')`を同じTransactionで直接作成します。Invitation自体に使用済み状態を表すcolumnは持たせず、有効期間内は複数Userが同じURLを利用できます。Join RequestをInvitation acceptの中間relationとして作成しません。
 
 ### community_join_requests
 
