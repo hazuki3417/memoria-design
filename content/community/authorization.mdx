@@ -6,16 +6,29 @@
 
 Administrator、Member、Uploader、Community外Userに適用するdomain固有のroleと認可規則を定義します。認証、現在の権限の再評価、個人情報、秘密情報の扱いは[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を参照します。
 
-## MembershipとAdministrator
+## 主体と役割
 
-Communityは少なくとも1人のAdministratorを持ちます。Administratorは必ず有効なMembershipを持ち、複数人を設定できます。参加申請を承認したUserはMemberとして参加します。
+| 主体 | 役割 |
+| --- | --- |
+| Administrator | `role=admin`のMembershipを持ち、Community設定、招待、参加管理、権限管理を行う |
+| Member | `role=member`のMembershipを持ち、Mediaの閲覧・Upload・分類を行う |
+| Uploader | Community管理MediaをUploadしたUser。Membershipが有効な間だけ本人向けMedia権限を持つ |
+| Community外User | Membershipを持たず、Community内部情報へアクセスできない |
+
+Communityは少なくとも1人のAdministratorを持ちます。Administratorは必ず有効なMembershipを持ち、複数人を設定できます。
+
+## 操作と権限
+
+### MembershipとAdministrator
+
+Communityは少なくとも1人のAdministratorを持ちます。Administratorは必ず有効なMembershipを持ち、複数人を設定できます。Initial Releaseでは有効なInvitationをacceptしたUserをMemberとして参加させます。User起点Join RequestはInvitationとは独立した将来機能です。
 
 | 操作 | Administrator | Member | Community外User |
 | --- | --- | --- | --- |
 | Community名・参加者一覧の閲覧 | 可能 | 可能 | 不可 |
 | Community名の変更 | 可能 | 不可 | 不可 |
 | 招待URLの発行・無効化・再発行 | 可能 | 不可 | 不可 |
-| 参加申請一覧の閲覧・承認・拒否 | 可能 | 不可 | 不可 |
+| User起点Join Request一覧の閲覧・承認・拒否（将来） | 可能 | 不可 | 不可 |
 | Administrator権限の付与・解除 | 可能 | 不可 | 不可 |
 | Member・Administratorの除外 | 可能 | 不可 | 不可 |
 | CommunityへのMedia Upload | 可能 | 可能 | 不可 |
@@ -28,7 +41,7 @@ Administrator権限の付与対象は参加済みMemberです。別Administrator
 
 Administratorが2人同時に退会・除外・降格すると0人になる可能性があるため、Community行を同じ順序でlockし、更新後のAdministrator数を同じTransaction内で確認します。
 
-参加者一覧には現在のnicknameとAdministrator roleだけを表示します。profile画像とemail addressは初回Releaseで取得・保存・表示しません。参加申請一覧はAdministratorだけが閲覧します。
+参加者一覧には現在のnicknameとAdministrator roleだけを表示します。profile画像とemail addressは初回Releaseで取得・保存・表示しません。将来User起点Join Requestを提供する場合、その一覧はAdministratorだけが閲覧します。
 
 ## Mediaの共有・直接Uploadと操作権限
 
@@ -56,7 +69,7 @@ CommunityへはAdministratorとMemberのどちらも直接Uploadできます。C
 
 Media情報の編集機能は、初回Releaseで必要な編集項目がない限り提供しません。将来追加する場合はAdministratorと参加中のUploader本人へ許可します。file本体の差し替えは提供しません。
 
-## 権限の失効
+## 権限失効
 
 退会・除外・User削除によりMembershipを失ったUserは、Communityの閲覧、Upload、分類、管理を行えません。Uploader本人も削除・Original download権限を失います。既存の署名付きURL・Signed Cookieは短い有効期間とし、失効後の再発行を禁止します。
 
@@ -76,12 +89,12 @@ AdministratorとMemberはCommunity内のGroup・Tagを作成し、閲覧でき�
 | --- | --- |
 | 未認証UserによるCommunity操作 | 認証が必要 |
 | Community外Userによる詳細取得 | 情報を公開しない |
-| 招待tokenが無効・期限切れ | 参加申請を受け付けない |
-| 参加済みUserの申請 | 重複参加として拒否 |
-| 未処理申請の重複 | 既存申請を維持し重複登録しない |
-| 拒否・取消し後の再申請 | 有効URLから可能 |
+| 招待tokenが無効・期限切れ | Invitation acceptを拒否 |
+| 参加済みUserのInvitation accept | 重複参加として拒否 |
+| User起点Join Requestの重複（将来） | 既存PENDING申請を維持し重複登録しない |
+| User起点Join Requestの拒否・取消し後（将来） | 将来機能の契約に従う |
 | 最後のAdministratorの退会・降格・除外 | 拒否 |
 | Community管理Mediaが残るCommunity削除 | 拒否 |
 | Membershipを失ったUploaderの操作 | 拒否 |
-| 同時承認・拒否・取消し | 先にcommitした状態を採用 |
-| User削除と申請承認の競合 | 削除済みUserの参加を禁止 |
+| User起点Join Requestの同時承認・拒否・取消し（将来） | 先にcommitした状態を採用 |
+| User削除とInvitation acceptの競合 | 削除済みUserの参加を禁止 |

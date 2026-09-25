@@ -6,7 +6,7 @@
 
 Community作成、招待、参加、Membership role、退会・除外、削除に関するdomain固有のTransaction境界と競合制御を定義します。共通のlock順序、状態再確認、外部I/Oの扱いは[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)を参照します。
 
-## Transaction境界と排他制御
+## Transaction境界
 
 | 操作 | 同じTransactionで確定する内容 |
 | --- | --- |
@@ -21,7 +21,11 @@ Community作成、招待、参加、Membership role、退会・除外、削除�
 | 共有追加・解除 | Membership・Custody確認、Access追加・削除、Community分類関連削除、Event記録 |
 | Community削除 | Community lock、管理Media不存在確認、関連情報削除・無効化 |
 
-Community、Membership、Media/Custodyのlock順序とlock後の認可・存在確認は共通方針に従います。Community削除と直接Uploadが競合する場合も同じCommunity行をlockし、削除後のUploadや管理Mediaを残した削除を防ぎます。
+## 競合制御
+
+Community、Membership、Media/Custodyのlock順序とlock後の認可・存在確認は共通方針に従います。Role変更、退会、除外、User削除ではCommunity行を`SELECT ... FOR UPDATE`でlockし、変更後の`admin` Membership数を再確認します。
+
+Community削除と直接Uploadは同じCommunity行をlockします。Invitation accept、User起点Join Requestの状態変更も対象recordをlockし、lock後に有効性・現在状態・Membershipを再確認します。
 
 ## Administrator不在の防止
 
@@ -45,9 +49,15 @@ User起点Join RequestはInvitation acceptとは独立した将来機能です�
 
 Community削除とCommunityへの直接Uploadは同じCommunity行をlockします。後続TransactionはCommunity存在とCommunity Custody件数を再評価し、管理Mediaを残した削除や削除済みCommunityへのUploadを防ぎます。
 
-## Media domainとの境界
+## 外部I/Oと失敗時処理
 
-Object Storage、Media削除、Outbox、Processing JobのTransactionは[Mediaの整合性とTransaction](/media/consistency-transactions)を正本とします。
+Community domainの通常操作はDB内で完結させ、Object Storageなどの外部I/OをCommunityのTransactionへ含めません。Media file削除、派生物、Outbox、Processing Jobなどの外部I/Oを伴う処理はMedia domainへ委ねます。
+
+retry可能な操作では、lock後に現在状態を再確認し、重複requestによってMembership、Invitation、共有関係を重複作成しないよう[冪等性と再試行](/system/api/idempotency)に従います。Community削除やUser削除に伴うcleanupでは[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を適用します。
+
+## 他domainとの境界
+
+Community domainはMembership、role、Invitation、User起点Join RequestとCommunity削除時のCommunity側整合性を保証します。Object Storage、Media削除、Custody、共有、Outbox、Processing JobのTransactionは[Mediaの整合性とTransaction](/media/consistency-transactions)を正本とし、User削除受付とUser状態は[Userの整合性とTransaction](/user/consistency-transactions)を正本とします。
 
 ## エラーと境界条件
 

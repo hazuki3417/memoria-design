@@ -30,29 +30,37 @@ Communityをネストせず、参加者、Media、権限を別Communityへ継承
 
 Communityが管理不能になることを防ぎます。作成者だけの恒久的な権限は与えません。
 
-## 3. 招待URLと個別承認を組み合わせる
+## 3. Invitation acceptでMembershipを直接成立させる
 
 **決定**
 
-招待URLは7日間有効とし、Communityごとに有効なURLを1件だけ保持します。期限内は複数Userが申請でき、すべてAdministratorが承認します。
+招待URLは7日間有効とし、Communityごとに有効なURLを1件だけ保持します。Initial Releaseでは有効なInvitationをacceptしたUserのMembershipを直接成立させ、Administratorの個別承認やJoin Requestを挟みません。
 
 **意図**
 
-メールアドレス入力やメール送信基盤を不要にし、URL流出時も自動参加を防ぎます。
+メールアドレス入力やメール送信基盤を不要にし、Invitation URLを受け取ったUserが追加の承認待ちなしで参加できるflowとします。
+
+**制約**
+
+参加成立前に表示するCommunity情報は名称だけとし、Member一覧やMediaは公開しません。User起点Join RequestはInvitationとは独立した将来機能として扱います。
 
 **対象外**
 
 メール・push通知は[Issue #47](https://github.com/hazuki3417/memoria-design/issues/47)で将来検討します。
 
-## 4. 参加申請に有効期限を設けない
+## 4. User起点Join RequestをInvitationから分離する
 
 **決定**
 
-申請は承認、拒否、本人取消し、User削除、Community削除まで保持します。
+User起点Join RequestはInvitation acceptの中間状態に使用せず、Communityへの参加申請を行う将来機能として独立させます。Initial ReleaseではUI/APIを提供しません。
 
 **意図**
 
-通知がない初回Releaseでも、Administratorが申請を確認する前に失効することを防ぎます。
+Invitationを受け取ったUserの参加flowと、User側からCommunityへ参加を求める将来flowを混同せず、それぞれの認可・状態遷移を独立して設計できるようにします。
+
+**制約**
+
+将来提供する場合、申請は承認、拒否、本人取消し、User削除、Community削除まで保持し、同じCommunity・UserのPENDING申請を同時に複数作成しません。
 
 ## 5. Media共有と管理主体の委譲を分ける
 
