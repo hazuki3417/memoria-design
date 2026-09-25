@@ -20,11 +20,20 @@ Communityは、家族や友人などがMediaを共有する閉じた独立空間
 | --- | --- |
 | Community | 家族や知人がMediaを共有する閉じた独立空間 |
 | Membership | UserとCommunityの有効な参加関係 |
-| Administrator | Membershipを持ち、参加・設定・権限を管理するUser |
-| 招待URL | Administratorが発行する、参加申請を開始するためのURL |
-| 参加申請 | 招待URLを使ったUserが参加承認を求める記録 |
+| Administrator | admin roleのMembershipを持ち、参加・設定・権限を管理するUser |
+| 招待URL | Administratorが発行する、Communityへの参加を開始するためのURL |
+| User起点Join Request | Invitationとは独立した将来の参加申請 |
 | Media共有 | User CustodianがCommunity参加者に閲覧を許可する操作 |
 | Community管理Media | CommunityがCustodianであるMedia |
+
+## 制約と責務境界
+
+- Communityごとに少なくとも1人のAdministratorを維持し、Administrator専用entityは設けない。
+- Communityは閉じた独立空間とし、別Communityへ参加者、Media、権限を継承しない。
+- Community domainはCommunity、Membership、Invitation、User起点Join Requestを所有する。
+- MediaのCustody、共有関係、Media削除はMedia domainを正本とする。
+- Userの認証主体とaccount lifecycleはUser domainを正本とする。
+- Group・Tagは分類に使用し、Mediaの管理主体や閲覧権限を変更しない。
 
 ## 設計書の読み取り順序
 
