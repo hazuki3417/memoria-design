@@ -4,7 +4,7 @@
 
 > 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
 
-Community固有のentityと、User・Media domainとの関連を定義します。
+Community固有のentityと、User・Media domainとの関連、不変条件を定義します。
 
 ## Entityと関連
 
@@ -22,20 +22,29 @@ erDiagram
 
 Community内の権限は`COMMUNITY_MEMBERSHIP.role`で表現し、`member`または`admin`を保持します。Administrator専用entityは設けず、Membershipと権限を二重管理しません。
 
-## Community
+### Community
 
 Communityは識別子、必須の名称、作成日時、更新日時を持ちます。名称の重複は許可し、説明、作成者専用属性、親Communityを持ちません。
 
-## MembershipとRole
+### MembershipとRole
 
-MembershipはCommunityとUserの参加関係であり、`role`として`member`または`admin`を持ちます。`admin` MembershipがAdministrator権限を表します。Communityごとに少なくとも1人の`admin`が存在する不変条件は、Community行のlockとService transactionで保証します。
+MembershipはCommunityとUserの参加関係であり、`role`として`member`または`admin`を持ちます。`admin` MembershipがAdministrator権限を表します。
 
-## InvitationとUser起点Join Request
+### InvitationとUser起点Join Request
 
 InvitationはCommunityに紐付く招待URLを表し、発行から7日間有効です。Initial ReleaseのInvitation acceptは有効なInvitationをconsumeし、Membershipを直接成立させます。
 
 User起点Join RequestはInvitationとは独立した将来機能です。Communityと申請Userを参照し、`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`の状態を持ちます。Invitationを参照せず、Invitation acceptの中間状態にも使用しません。
 
-## Media domainとの境界
+## 不変条件
 
-Communityへの共有関係とCustodyはMedia domainが所有します。Community側はMembership role・Uploaderとの組み合わせによって認可を判定します。Mediaの論理モデルは[Media論理データモデル](/media/data-model)を正本とします。
+- Communityごとに少なくとも1人の`admin` Membershipが存在する。
+- 同じCommunityとUserのMembershipは1件だけ存在する。
+- Administratorは必ず有効なMembershipを持ち、Administrator専用entityは持たない。
+- Communityごとに失効処理されていないInvitationは1件だけ存在する。
+- User起点Join Requestでは、同じCommunity・Userの`PENDING`申請を同時に複数持たない。
+- Communityは別Communityを親または子として持たず、参加者・Media・権限を継承しない。
+
+## 他domainとの境界
+
+Community domainはCommunity、Membership、Invitation、User起点Join Requestを所有します。Communityへの共有関係とCustodyはMedia domainが所有し、Community側はMembership role・Uploaderとの組み合わせによって認可を判定します。Mediaの論理モデルは[Media論理データモデル](/media/data-model)を正本とします。Userの認証主体とaccount lifecycleは[User論理データモデル](/user/data-model)を正本とします。
