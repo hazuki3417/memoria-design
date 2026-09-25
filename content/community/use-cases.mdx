@@ -47,7 +47,7 @@ AdministratorがCommunityごとに1件の有効な招待URLを発行します。
 
 Community外の登録済みUserが、有効なInvitation URLを使って実行します。未登録Userはloginまたは登録後、元の招待画面へ戻ります。参加成立前に表示するCommunity情報は名称だけとし、Member一覧、Media、Group、Tag、メールアドレスは表示しません。
 
-Invitation acceptではURLの有効性、Communityの存在、Membershipが存在しないことを確認し、Invitationのconsumeと`role=member`のMembership作成を同じTransactionで確定します。参加済みUser、期限切れ・無効化済みInvitation、削除済みCommunityでは新しいMembershipを作成しません。
+Invitation acceptではURLの有効性、Communityの存在、Membershipが存在しないことを確認し、Invitationの有効性をlock後に再確認し、`role=member`のMembership作成を同じTransactionで確定します。Invitation自体にUserごとの使用済み状態は記録しません。参加済みUser、期限切れ・無効化済みInvitation、削除済みCommunityでは新しいMembershipを作成しません。
 
 Initial ReleaseではInvitation acceptにAdministrator承認を挟まず、Join Requestも作成しません。このflowの正本は[Community論理データモデル](./data-model)と[Communityの整合性とTransaction](./consistency-transactions)です。
 
