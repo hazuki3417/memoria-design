@@ -72,7 +72,7 @@ M1-C1を解除します。
 
 ## Communityとの境界
 
-Community作成、招待URL、参加申請、退会、Community削除の具体的な登録パターンは[Communityレコードパターン](/community/record-patterns)を正本とします。Media domainでは、共有関係、Custody、Uploader権限、Media本体への影響を扱います。
+Community作成、Membership、Invitation、User起点Join Request、退会、Community削除の具体的な登録パターンは[Communityレコードパターン](/community/record-patterns)を正本とします。Media domainでは、共有関係、Custody、Uploader権限、Media本体への影響を扱います。
 
 ## UserからUserへ委譲する
 
@@ -119,7 +119,9 @@ M1をC1からU2へ委譲します。
 
 U2が必要なCommunityへ改めて共有します。
 
-## 禁止するCustodyパターン
+## 禁止・境界パターン
+
+### 禁止するCustodyパターン
 
 | user_id | community_id | 判定 |
 | --- | --- | --- |
@@ -196,3 +198,15 @@ storage削除完了後のDB transaction:
 
 Media本体を復元するレコードやarchive pathは作りません。
 
+
+
+## 非影響範囲
+
+- Community共有の追加・解除ではMedia本体、Custody、他Communityへの共有を変更しません。
+- Groupへの追加・除外、Group間relationの変更ではMedia本体、Custody、Community共有を変更しません。
+- Uploaderの退会・User削除では、Community管理Media本体とCommunity Custodyを削除しません。
+- 将来のCustody委譲ではUploaderを変更せず、委譲対象外Mediaへ影響させません。
+
+## 他domainの正本
+
+Community作成、Membership、Invitation、User起点Join Request、退会・Community削除のCommunity側レコードは[Communityレコードパターン](/community/record-patterns)を正本とします。User account削除の受付・状態遷移は[User domain](/user)を正本とし、本ページではMedia側に生じるレコード変化だけを扱います。

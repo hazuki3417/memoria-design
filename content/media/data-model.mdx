@@ -6,6 +6,8 @@
 
 このページはMemoriaの論理データモデルを定義します。
 
+## Entityと関連
+
 ```mermaid
 erDiagram
   USER ||--o{ MEDIA : uploads
@@ -59,11 +61,22 @@ erDiagram
 
 GroupはUserまたはCommunityのスコープを一つ持ち、Mediaは複数Groupへ所属できます。Group関係はDAGで、複数の親を許可し、直接・間接の循環を禁止します。
 
-## Community
+## 不変条件
 
-Community、Membership、Community Administrator、招待URL、参加申請を管理します。Administratorは有効なMembershipを持ち、Communityごとに常に1人以上存在します。Communityはネストせず、参加者・Media・権限を別Communityへ継承しません。MembershipはCommunity共有Mediaを閲覧し、Uploader権限を行使する前提です。
+- 各MediaはUserまたはCommunityのどちらか一方をCustodianとして必ず1つ持つ。
+- User管理Mediaだけが複数CommunityへのMedia Community Accessを持てる。
+- Community管理Mediaは別CommunityへのAccessを持たない。
+- Uploader、Custodian、閲覧権限は独立した概念として扱う。
+- Media Groupは分類専用で、Custodyや閲覧権限を変更しない。
+- Group関係はDAGとし、自己参照と直接・間接の循環を禁止する。
 
-招待URLはCommunityに所属し、7日間有効です。参加申請は未承認のものだけCommunity・Userごとに1件とし、Administratorの承認でMembershipを作成します。詳細は[Community論理データモデル](/community/data-model)を参照します。
+## 他domainとの境界
+
+Community、Membership、Invitation、User起点Join RequestはCommunity domainが所有します。Initial ReleaseのInvitation acceptはMembershipを直接成立させ、User起点Join RequestはInvitationとは独立した将来機能です。詳細は[Community論理データモデル](/community/data-model)を正本とします。
+
+Media domainはMedia、Custody、Communityへの共有関係、Media Group、Variant、Processing Jobを所有します。Community MembershipはCommunity共有Mediaの閲覧やUploader権限を行使する前提として参照します。
+
+Userの認証主体とaccount lifecycleは[User論理データモデル](/user/data-model)を正本とします。
 
 ## 詳細設計
 

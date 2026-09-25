@@ -230,6 +230,14 @@ PKは`(parent_group_id, child_group_id)`です。自己参照をCHECKで禁止�
 
 uniqueは`(media_id, operation_type, object_key)`です。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。
 
+## 削除規則
+
+- Media削除は`DELETING`を経由し、Object Storageの原本・派生物を冪等に削除した後、Group関連、Access、Custody、subtype、Media本体を物理削除します。
+- `media_events`はMedia本体の物理削除後も必要期間の操作traceを保持できるよう、`media_id`へFKを設定しません。
+- User削除時、UploaderやEvent actorの履歴参照は`ON DELETE SET NULL`で匿名化し、User CustodyのMediaはUser削除前のcleanupで解消します。
+- Community管理Mediaが残るCommunityの通常削除はCommunity domain側で拒否し、Media cleanupをCommunity FKのcascadeだけで代替しません。
+- Group関連やCommunity Accessの削除によってMedia本体を削除しません。
+
 ## 他domainとの境界
 
 `communities`、`community_memberships`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。Administrator専用tableは使用しません。
