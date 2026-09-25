@@ -4,7 +4,7 @@
 
 > 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
 
-Community作成、招待、参加承認、退会、削除の前後で作成・維持・削除するレコードを定義します。例ではUserを`U1`・`U2`、Communityを`C1`・`C2`、Mediaを`M1`とします。
+Community作成、Invitationによる参加、将来のUser起点Join Request、退会、削除の前後で作成・維持・削除するレコードを定義します。例ではUserを`U1`・`U2`、Communityを`C1`・`C2`、Mediaを`M1`とします。
 
 ## Communityを作成して招待する
 
@@ -14,7 +14,7 @@ Community作成、招待、参加承認、退会、削除の前後で作成・�
 | community_memberships | C1-U1 | U1が参加 |
 | community_invitations | I1 | community_id=C1、token_hash=HASH1、expires_at=発行から7日後 |
 
-U2がI1から申請すると`community_join_requests(R1)`を`status=PENDING`で登録します。U1は`community_memberships(C1,U1).role=admin`としてAdministrator権限を持ちます。U1または他のAdministratorが承認すると、同じTransactionで`community_memberships(C1,U2, role=member)`を作成し、R1を`APPROVED`へ更新します。拒否や本人取消しの後は、同じCommunity・Userで新しい申請行を作成できます。
+U1は`community_memberships(C1,U1).role=admin`としてAdministrator権限を持ちます。U2が有効なI1をacceptすると、Invitationの有効性とMembership不存在を確認し、同じTransactionで`community_memberships(C1,U2, role=member)`を直接作成します。Invitation acceptでは`community_join_requests`を作成しません。
 
 ## User退会時に共有とCommunity分類を解除する
 
@@ -34,7 +34,7 @@ C1にCommunity CustodyのMediaが残っている場合、Community削除を拒�
 
 ## 申請の拒否・取消し・再申請
 
-`community_join_requests(R1)`が`PENDING`の場合、Administratorの拒否で`REJECTED`、本人の取消しで`CANCELLED`へ更新します。`(community_id, applicant_user_id)`のpartial unique indexは`PENDING`だけを対象とするため、有効な招待URLがあればR2として再申請できます。
+User起点Join RequestはInvitationとは独立した将来機能です。`community_join_requests(R1)`が`PENDING`の場合、Administratorの拒否で`REJECTED`、本人の取消しで`CANCELLED`へ更新します。`(community_id, applicant_user_id)`のpartial unique indexは`PENDING`だけを対象とするため、解決後は将来機能の契約に従ってR2として再申請できます。
 
 ## 最後のAdministratorの保護
 

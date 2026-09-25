@@ -32,7 +32,7 @@ MembershipはCommunityとUserの参加関係であり、`role`として`member`�
 
 ### InvitationとUser起点Join Request
 
-InvitationはCommunityに紐付く招待URLを表し、発行から7日間有効です。Initial ReleaseのInvitation acceptは有効なInvitationをconsumeし、Membershipを直接成立させます。
+InvitationはCommunityに紐付く招待URLを表し、発行から7日間有効です。Initial ReleaseのInvitation acceptは有効なInvitationを検証し、Membershipを直接成立させます。Invitation自体を使用済み状態にはせず、有効期間内は複数Userが同じURLを利用できます。
 
 User起点Join RequestはInvitationとは独立した将来機能です。Communityと申請Userを参照し、`PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED`の状態を持ちます。Invitationを参照せず、Invitation acceptの中間状態にも使用しません。
 
