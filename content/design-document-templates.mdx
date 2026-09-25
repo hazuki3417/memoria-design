@@ -2,7 +2,15 @@
 
 ## 目的
 
-Product domainごとの設計書について、ページの責務、必須の章立て、記載粒度、表記を統一します。テンプレートは記載漏れと形式の揺れを防ぐ基準であり、不要な空見出しや意味のないページを増やすものではありません。
+Product domainごとの設計書について、ページの責務、必須情報、標準の章立て、記載粒度、表記を統一します。テンプレートは記載漏れと形式の揺れを防ぐ基準であり、不要な空見出しや意味のないページを増やすものではありません。
+
+## 適用原則
+
+- 「必須情報」は、そのページの責務を満たすために原則として記載する情報を表す。
+- 必須情報に該当する事実や設計が存在しない場合、空見出しを作らず省略できる。省略によって仕様の有無が曖昧になる場合は、該当しない理由を本文で明示する。
+- 「任意追加項目」は、domainの複雑さやriskに応じて追加する。列挙されていないdomain固有の見出しも、ページの責務を逸脱しない範囲で追加できる。
+- 標準見出しはdomain間の比較と探索性のために使用し、同じ意味の情報を別名の見出しへ分散させない。
+- domain固有の追加項目を理由に、別ページや横断設計が所有する情報を複製しない。
 
 ## 共通の書式
 
@@ -14,57 +22,86 @@ Product domainごとの設計書について、ページの責務、必須の章
 - 共通規約は横断設計へ集約し、domain固有ページでは適用関係と例外だけを記載する。
 - 認証・認可・Privacy、Transaction・競合制御、削除・Lifecycle、入力検証、冪等性は、それぞれの共通方針を正本とする。
 - 名称は同じ概念に対して統一し、表の列順、章立て、粒度をページ種別ごとに揃える。
+- domain横断情報は、自domainが保証することと依存先の正本を記載する。
 - 実装に必要な制約、境界条件、失敗時処理を省略せず、不要な詳細は機械的に追加しない。
 
 ## Domain概要
 
-推奨fileはindex.mdxです。
+推奨fileは`index.mdx`です。
 
-1. 概要: domainの目的、対象範囲、実装との差分。
-2. 主要概念: entity、actor、重要な用語。
-3. 制約と責務境界: 所有する情報と他domainへの依存。
-4. 設計書の読み取り順序: 個別ページへのlink。
-5. 初回Release対象外: 対象外の機能と追跡Issue。
+### 必須情報
+
+1. 概要: domainが扱う内容と実装との差分。
+2. 目的と対象範囲: domainの目的、所有する責務、明示的な対象範囲。
+3. 主要概念: entity、actor、重要な用語。
+4. 制約と責務境界: domainが守る主要制約、他domainが所有する情報、依存関係。
+5. 設計書の読み取り順序: 個別ページへのlink。
+6. 初回Release対象外: 対象外の機能と、追跡が必要な場合のIssue。
+
+### 任意追加項目
+
+概念図、主要な状態遷移、domain全体を理解するための補助図、domain固有の重要原則を追加できます。
 
 ## ユースケース
 
-推奨fileはuse-cases.mdxです。
+推奨fileは`use-cases.mdx`です。
+
+### 必須情報
 
 1. 概要: 対象actorと操作範囲。
-2. Actor: 必要な場合は役割を表で示す。
-3. ユースケース: 操作ごとに前提条件、実行主体、処理結果、境界条件を記載する。
-4. 対象外: 提供しない操作と理由、必要な場合は関連Issue。
+2. Actor: actorと役割。
+3. ユースケース: 操作ごとに実行主体、前提条件、操作内容、正常終了時の結果、拒否・境界条件を記載する。
+4. domain横断の影響: 他domainへ影響する操作では、自domainの結果と依存先の正本を示す。
+5. 対象外: 意図的に提供しない操作と理由。将来機能として追跡する場合は関連Issueを示す。
 
-各操作には一つの見出しを設け、正常系だけでなく拒否条件と他domainへの影響を明示します。
+各操作には一つの見出しを設けます。実行主体、前提条件、結果などを機械的に小見出しへ分割する必要はありませんが、必要な情報は本文、表、箇条書きのいずれかで確認できる状態にします。
+
+### 任意追加項目
+
+状態遷移図、操作一覧表、複数ユースケース共通の規則、複雑なworkflow、再認証などの特殊な事前条件を追加できます。レビュー状況や作業進捗は設計本文の分類に使用しません。
 
 ## 認証・認可
 
-推奨fileはauthorization.mdxです。認証と認可をまとめる必要があるdomainではauthentication-authorization.mdxを使用できます。
+推奨fileは`authorization.mdx`です。認証と認可をまとめる必要があるdomainでは`authentication-authorization.mdx`を使用できます。
+
+### 必須情報
 
 1. 概要: 認証・認可の対象、責務境界、[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)への参照。
 2. 主体と役割: actor、role、必要な前提条件。
 3. 操作と権限: 操作、許可主体、条件、禁止事項。
-4. 権限失効: 退会、削除、session失効などの影響。
+4. 権限失効: 退会、削除、logout、session失効などが権限へ与える影響。
 5. エラーと境界条件: 未認証、権限不足、対象消失、競合。
+
+### 任意追加項目
+
+外部IdP、token検証、claim、再認証、session、復帰URL、domain固有role、権限表、特殊な権限継承を追加できます。
 
 ## 論理データモデル
 
-推奨fileはdata-model.mdxです。
+推奨fileは`data-model.mdx`です。
 
-1. 概要: domainが所有する概念と目的。
-2. Entityと関連: entity、関連、多重度、状態。
-3. 不変条件: 排他性、一意性、必須条件、状態遷移。
-4. 他domainとの境界: 所有者と正本へのlink。
+### 必須情報
 
-物理型、index、SQL固有の制約は物理データモデルへ分離します。
+1. 概要: domainが所有する論理概念と目的。
+2. Entityと関連: entityの責務、関連、必要な多重度と状態。
+3. 不変条件: 排他性、一意性、必須関係など、domainとして常に成立させる条件。
+4. 他domainとの境界: 情報の所有者、外部entityとの関係、依存先の正本。
+
+### 任意追加項目
+
+状態遷移、entityごとの詳細節、論理ER、aggregate、DAG、Custodyなどの特殊な関係、非同期処理概念を追加できます。
+
+物理table・column・SQL型・index・SQL固有のconstraintは物理データモデルへ分離します。
 
 ## 物理データモデル
 
-推奨fileはphysical-data-model.mdxです。
+推奨fileは`physical-data-model.mdx`です。
+
+### 必須情報
 
 1. 概要: 対象domain、所有table、実装との差分。
 2. 共通規約: [物理データモデル共通規約](/system/data/physical-model-conventions)への参照とdomain固有の例外。
-3. 全体ER: 関連が複数ある場合にdiagramを示す。
+3. 全体ER: 複数tableの関連を理解するために必要な場合にdiagramを示す。
 4. 所有table: tableごとにcolumn、型、制約、意味を記載する。
 5. index・一意制約: 該当tableの直下で検索条件と重複防止を説明する。
 6. 削除規則: FK動作、物理削除、保持対象、例外を説明する。
@@ -72,32 +109,56 @@ Product domainごとの設計書について、ページの責務、必須の章
 
 column表は「列 / 型 / 制約 / 意味」の4列に統一します。共通のID型や時刻型をdomainごとに再定義せず、共通規約へlinkします。
 
+### 任意追加項目
+
+特殊index、partition、JSON構造、Object Storageとの対応、Outbox、Job table、補助ER、domain固有のDB constraintを追加できます。
+
 ## レコードパターン
 
-推奨fileはrecord-patterns.mdxです。
+推奨fileは`record-patterns.mdx`です。
 
-1. 概要: 検証する操作と対象範囲。
-2. 代表的な正常パターン: 操作前後のrecordと結果。
-3. 禁止・境界パターン: 制約違反、重複、競合。
-4. 非影響範囲: 変更してはいけない他domain・他record。
+### 必須情報
+
+1. 概要: 具体的なrecordで検証する操作と対象範囲。
+2. 代表的な正常パターン: 主要操作について操作前のrecord、操作、操作後のrecord、成立する不変条件を示す。
+3. 禁止・境界パターン: constraint違反、重複、競合など、DBまたはServiceが拒否する状態。
+4. 非影響範囲: 操作によって変更してはいけない他domain・他record。
+
+代表IDを使い、before / afterと不変条件を具体的に検証できる粒度で記載します。
+
+### 任意追加項目
+
+複数段階の操作、DAG、削除、競合、domain横断の具体例、同一操作の複数正常パターンを追加できます。
 
 ## 整合性とTransaction
 
-推奨fileはconsistency-transactions.mdxです。
+推奨fileは`consistency-transactions.mdx`です。
 
-1. 概要: 不変条件、Transactionの対象、[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)への参照。
-2. Transaction境界: 何を同じ処理単位で確定するか。
-3. 競合制御: lock順序、条件付き更新、重複request。
-4. 外部I/Oと失敗時処理: domain固有の対象と、[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)、[冪等性と再試行](/system/api/idempotency)への参照。
-5. 他domainとの境界: 所有者と正本へのlink。
+### 必須情報
+
+1. 概要: 守る不変条件、Transactionの対象、[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)への参照。
+2. Transaction境界: atomicに確定する操作とTransaction外になる処理。
+3. 競合制御: 同時操作、lock順序、条件付き更新、重複request。
+4. 外部I/Oと失敗時処理: DB外I/O、commit前後の扱い、retry・recovery・補償処理と、[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)、[冪等性と再試行](/system/api/idempotency)への参照。
+5. 他domainとの境界: domain横断操作で自domainが保証することと依存先の正本。
+
+### 任意追加項目
+
+操作別Transaction、非同期cleanup、Outbox、Job、DAGの競合制御、Auth0やObject Storageなど外部system固有の処理、エラーと境界条件、test観点を追加できます。
 
 ## 設計判断
 
-推奨fileはdesign-decisions.mdxです。
+推奨fileは`design-decisions.mdx`です。
+
+### 必須情報
 
 1. 概要: 何についての判断を記録するか。
-2. 採用した判断: 判断ごとに決定、意図、制約を記載する。
-3. 採用しない方式: 不採用理由と必要な将来Issue。
-4. 他domainへの影響: 別domainの正本へのlink。
+2. 採用した判断: 判断ごとに決定、意図・理由、制約・trade-offを記載する。
+3. 採用しない方式: 意味のある代替案がある場合に、不採用理由と必要な将来Issueを記載する。
+4. 他domainへの影響: 別domainへ影響する判断では、影響と正本へのlinkを記載する。
 
-一覧表だけで判断を終えず、後から判断理由を再確認できる粒度で背景とtrade-offを残します。
+一覧表や結論だけで判断を終えず、後から判断理由を再確認できる粒度で背景とtrade-offを残します。
+
+### 任意追加項目
+
+複数判断に共通する目的、設計変更時の原則、将来再検討する条件、関連Issueを追加できます。
