@@ -102,7 +102,7 @@ Product domainごとの設計書について、ページの責務、必須情報
 1. 概要: 対象domain、所有table、実装との差分。
 2. 共通規約: [物理データモデル共通規約](/system/data/physical-model-conventions)への参照とdomain固有の例外。
 3. 全体ER: 複数tableの関連を理解するために必要な場合にdiagramを示す。
-4. 所有table: tableごとにcolumn、型、制約、意味を記載する。
+4. 所有table: **所有する全tableを漏れなく列挙**し、tableごとにcolumn、型、制約、意味を記載する。文章だけの簡略定義で代替しない。
 5. index・一意制約: 該当tableの直下で検索条件と重複防止を説明する。
 6. 削除規則: FK動作、物理削除、保持対象、例外を説明する。
 7. 他domainとの境界: 外部参照と設計の正本を示す。

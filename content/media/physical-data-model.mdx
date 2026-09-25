@@ -145,11 +145,43 @@ Image VariantはImage固有の派生物です。Media共通variant tableは設�
 
 `(status, updated_at)`をindex対象にします。失敗情報に署名付きURL、credential、個人情報を保存しません。
 
-### outbox_events・idempotency_requests
+### outbox_events
 
-`outbox_events`はevent ID、event type、aggregate ID、payload、送信状態、作成・送信日時を保持します。送信状態と作成日時にindexを設定し、Publisherが未送信eventを取得します。利用者向け操作traceである`media_events`とは目的が異なるためtableを分離します。
+Media domainで確定した変更を非同期Publisherへ引き渡す技術tableです。利用者向け操作traceである`media_events`とは分離します。
 
-`idempotency_requests`は操作主体、操作種別、idempotency key、request hash、処理状態、有効期限、必要なresponse情報を保持します。主体・操作・keyの組み合わせをUNIQUEとし、同じkeyで異なるpayloadを受け付けません。保存期間は再送要件と個人情報の保持方針に応じて決定します。
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | Outbox Event ID |
+| event_type | varchar(64) | NOT NULL | 配送するevent種別 |
+| aggregate_id | varchar(26) | NOT NULL | 対象Media等のaggregate ID |
+| payload | jsonb | NOT NULL | Workerへ配送するevent payload |
+| status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PUBLISHED`、`FAILED` |
+| attempt_count | integer | NOT NULL、CHECK 0以上 | Publisherの試行回数 |
+| last_error | text | NULL可 | 機密情報を除いた直近の失敗理由 |
+| created_at | timestamptz | NOT NULL | 作成時刻 |
+| published_at | timestamptz | NULL可 | 配送完了時刻 |
+| updated_at | timestamptz | NOT NULL | 最終更新時刻 |
+
+`(status, created_at, id)`をindex対象とし、Publisherが未送信eventを安定した順序で取得します。payloadへcredential、署名付きURLなどのsecretを保存しません。
+
+### idempotency_requests
+
+Mediaの再送可能なcommandについて、同じIdempotency Keyの重複実行を防止する技術tableです。
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | request管理ID |
+| actor_user_id | varchar(26) | FK users ON DELETE CASCADE | 操作主体 |
+| operation | varchar(64) | NOT NULL | 対象command種別 |
+| idempotency_key | varchar(255) | NOT NULL | clientが指定したIdempotency Key |
+| request_hash | varchar(128) | NOT NULL | payload同一性を確認するhash |
+| status | varchar(16) | NOT NULL、CHECK | `PROCESSING`、`COMPLETED`、`FAILED` |
+| response_data | jsonb | NULL可 | 再送時に必要な最小response情報 |
+| expires_at | timestamptz | NOT NULL | 再送保証の有効期限 |
+| created_at | timestamptz | NOT NULL | 初回受付時刻 |
+| updated_at | timestamptz | NOT NULL | 最終更新時刻 |
+
+`(actor_user_id, operation, idempotency_key)`へUNIQUE constraintを設定し、同じkeyで異なる`request_hash`を受け付けません。`(expires_at)`をcleanup用indexとします。response_dataへ不要な個人情報やsecretを保存しません。保存期間は再送要件と個人情報の保持方針に従います。
 
 ### media_community_accesses
 
@@ -206,29 +238,41 @@ Custodyと同じXOR CHECKで、UserまたはCommunityのどちらか一方をGro
 
 #### media_group_media
 
-PKは`(media_group_id, media_id)`です。GroupのscopeとMediaの操作権限が一致することをServiceで検証します。Group関連の削除はMediaを削除しません。
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| media_group_id | varchar(26) | FK media_groups ON DELETE CASCADE | 所属先Group |
+| media_id | varchar(26) | FK media ON DELETE CASCADE | 対象Media |
+| created_at | timestamptz | NOT NULL | Groupへ追加した時刻 |
+
+PKは`(media_group_id, media_id)`です。`(media_id, media_group_id)`をindex対象とします。GroupのscopeとMediaの操作権限が一致することをServiceで検証します。Group関連の削除はMediaを削除しません。
 
 #### media_group_relations
 
-PKは`(parent_group_id, child_group_id)`です。自己参照をCHECKで禁止し、多段循環は追加前にrecursive CTEまたはServiceのgraph探索で検出します。親子は同一scopeに限定します。
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| parent_group_id | varchar(26) | FK media_groups ON DELETE CASCADE | 親Group |
+| child_group_id | varchar(26) | FK media_groups ON DELETE CASCADE | 子Group |
+| created_at | timestamptz | NOT NULL | relation作成時刻 |
 
-### Storage operation
+PKは`(parent_group_id, child_group_id)`です。`parent_group_id <> child_group_id`をCHECKで保証し、`(child_group_id, parent_group_id)`を逆方向探索用indexとします。多段循環は追加前にrecursive CTEまたはServiceのgraph探索で検出します。親子は同一scopeに限定します。
+
+### media_storage_operations
 
 `media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | record ID |
-| media_id | varchar(26) | NOT NULL | 対象Media ID |
-| operation_type | varchar(16) | `DELETE` | Storage操作の種別 |
+| media_id | varchar(26) | NOT NULL | 対象Media ID。Media物理削除後もoperation完了記録を保持するためFKを設定しない |
+| operation_type | varchar(16) | NOT NULL、CHECK | `DELETE` |
 | object_key | text | NOT NULL | Object Storageのkey |
-| status | varchar(16) | `PENDING`、`COMPLETED`、`FAILED` | 処理状態 |
-| attempt_count | integer | NOT NULL | 処理の試行回数 |
+| status | varchar(16) | NOT NULL、CHECK | `PENDING`、`COMPLETED`、`FAILED` |
+| attempt_count | integer | NOT NULL、CHECK 0以上 | 処理の試行回数 |
 | next_attempt_at | timestamptz | NULL可 | 次回の再試行時刻 |
 | last_error | text | NULL可、機密情報を含めない | 機密情報を除いた失敗理由 |
 | created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
-uniqueは`(media_id, operation_type, object_key)`です。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。
+`(media_id, operation_type, object_key)`へUNIQUE constraintを設定し、`(status, next_attempt_at)`を再試行対象取得用indexとします。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。
 
 ## 削除規則
 
