@@ -8,7 +8,11 @@ Memoriaは静止画像と動画を管理・共有・継承するシステムで�
 
 [初回Release](/first-release)で提供するMediaは静止画像に限定します。動画はProduct全体の将来的な対象ですが、初回Releaseの必須機能には含めません。
 
-## 概念
+## 目的と対象範囲
+
+Media domainは静止画像・将来の動画、その管理主体、共有、分類、派生物、処理状態、削除ライフサイクルを扱います。CommunityそのもののMembership・InvitationやUserの認証・account lifecycleは所有しません。
+
+## 主要概念
 
 ```mermaid
 classDiagram
@@ -35,7 +39,7 @@ classDiagram
 - Media VariantはOriginalから生成する表示用の派生物です。画像一覧と詳細表示は同じ派生物を使用します。
 - Media Processing Jobは派生物の非同期生成を管理します。Uploader、Custodian、閲覧権限はそれぞれ独立した概念です。
 
-## 制約
+## 制約と責務境界
 
 1. Mediaには常に1つのCustodianが存在します。
 2. Custodianは1 Userまたは1 Communityのどちらか一方です。
@@ -47,5 +51,16 @@ classDiagram
 8. 削除したMediaは復元できません。
 9. 著作権者、利用許諾、権利移転は管理しません。
 
-詳細は[Community設計](/community)、[ユースケース](./use-cases)、[論理データモデル](./data-model)、[物理データモデル](./physical-data-model)、[レコードパターン](./record-patterns)、[整合性とTransaction](./consistency-transactions)、[Media処理と派生物](./processing)を参照してください。
+Community、Membership、Invitation、User起点Join Requestは[Community設計](/community)を正本とします。Userの認証主体とaccount lifecycleは[User設計](/user)を正本とします。
+
+## 設計書の読み取り順序
+
+詳細は[ユースケース](./use-cases)、[論理データモデル](./data-model)、[物理データモデル](./physical-data-model)、[レコードパターン](./record-patterns)、[整合性とTransaction](./consistency-transactions)、[Media処理と派生物](./processing)を参照してください。
+
+## 初回Release対象外
+
+- 動画の機能提供
+- Media管理主体の委譲（[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)）
+- 削除Mediaの復元
+- Word・PDF・音声単体などMedia境界外のfile管理
 
