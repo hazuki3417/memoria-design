@@ -12,16 +12,15 @@ Community作成、招待、参加承認、退会、削除の前後で作成・�
 | --- | --- | --- |
 | communities | C1 | name=家族 |
 | community_memberships | C1-U1 | U1が参加 |
-| community_administrators | C1-U1 | U1がAdministrator |
 | community_invitations | I1 | community_id=C1、token_hash=HASH1、expires_at=発行から7日後 |
 
-U2がI1から申請すると`community_join_requests(R1)`を`status=PENDING`で登録します。U1または他のAdministratorが承認すると、同じTransactionで`community_memberships(C1,U2)`を作成し、R1を`APPROVED`へ更新します。拒否や本人取消しの後は、同じCommunity・Userで新しい申請行を作成できます。
+U2がI1から申請すると`community_join_requests(R1)`を`status=PENDING`で登録します。U1は`community_memberships(C1,U1).role=admin`としてAdministrator権限を持ちます。U1または他のAdministratorが承認すると、同じTransactionで`community_memberships(C1,U2, role=member)`を作成し、R1を`APPROVED`へ更新します。拒否や本人取消しの後は、同じCommunity・Userで新しい申請行を作成できます。
 
 ## User退会時に共有とCommunity分類を解除する
 
 U1がM1をC1とC2へ共有し、C1のGroup G1とTag T1へ関連付けている場合、C1からの退会時に次を同じTransactionで処理します。
 
-- `community_administrators(C1,U1)`が存在すれば、別Administratorが残ることを確認して削除
+- `community_memberships(C1,U1).role=admin`の場合は、別の`admin` Membershipが残ることを確認する
 - `community_memberships(C1,U1)`を削除
 - `media_community_accesses(M1,C1)`を削除
 - M1とC1のG1・T1の関連だけを削除
@@ -39,11 +38,23 @@ C1にCommunity CustodyのMediaが残っている場合、Community削除を拒�
 
 ## 最後のAdministratorの保護
 
-C1にU1だけがAdministratorとして登録されている場合、`community_administrators(C1,U1)`の削除、U1の退会・除外・User削除を拒否します。U2をAdministratorへ追加した後は、U1のAdministrator権限を削除できます。
+C1で`community_memberships(C1,U1).role=admin`だけがAdministratorを表している場合、U1の降格・退会・除外・User削除を拒否します。`community_memberships(C1,U2).role=admin`へ変更して別Administratorを確保した後は、U1を`member`へ降格するかMembershipを削除できます。
 
 ## Uploaderの退会・User削除
 
 C1管理Media M1の`uploaded_by_user_id=U1`でU1のMembershipが存在する間、U1はM1の削除とOriginal downloadができます。Membershipを削除するとM1はC1へ残りますが権限は失効します。User削除で参照が`NULL`になった場合は「削除済みUser」と表示します。
+
+## 禁止・境界パターン
+
+- 同じCommunity・UserのMembershipを重複作成しない。
+- Administrator専用recordを作成せず、`community_memberships.role=admin`を正本とする。
+- 最後のAdministratorを失う降格・退会・除外・User削除を許可しない。
+- Community管理Mediaが残る通常のCommunity削除を許可しない。
+- 同じCommunity・Userの`PENDING`なUser起点Join Requestを重複作成しない。
+
+## 非影響範囲
+
+退会・共有解除・Community削除では、対象外のCommunity、User管理Media本体、他Communityへの共有・分類を変更しません。Uploaderが退会・User削除されてもCommunity管理Media本体は保持し、Membership喪失後の権限だけを失効させます。
 
 ## 他domainの正本
 
