@@ -29,7 +29,7 @@ flowchart TD
 
 管理と公開は別の概念です。Custodianであることは、他のCommunityへの公開を意味しません。
 
-Media本体はメディア情報だけを表し、管理主体は独立した`media_custodies`で関連付けます。個人領域へのuploadではUser、Communityへの直接uploadではCommunityが初期Custodianです。Communityへ投稿した事実だけで投稿者に特別な管理権限は付与しません。例外の要否は[Issue #36](https://github.com/hazuki3417/memoria-design/issues/36)で検討します。
+Media本体はメディア情報だけを表し、管理主体は独立した`media_custodies`で関連付けます。個人領域へのuploadではUser、Communityへの直接uploadではCommunityが初期Custodianです。Communityへ直接uploadしたUploader本人には、有効なMembershipを持つ間に限り、自分がUploadしたCommunity管理MediaのOriginal downloadと削除を許可します。この限定権限はCustodyそのものではなく、退会・除外・User削除で失効します。
 
 ## Uploader
 
