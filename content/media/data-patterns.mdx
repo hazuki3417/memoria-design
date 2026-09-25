@@ -45,7 +45,10 @@ flowchart TD
 
 Community管理Mediaを別Communityへ公開しません。
 
-## 4. 委譲時の公開解除
+## 4. 委譲時の公開解除（将来機能）
+
+
+管理主体の委譲は初回Release対象外であり、[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で管理します。以下は将来導入する場合の概念パターンです。
 
 ### UserからUser
 
@@ -110,14 +113,9 @@ flowchart TD
 
 ## 9. User削除
 
-```mermaid
-flowchart TD
-    User["削除対象User"] --> M1["Media 1: Userへ委譲"]
-    User --> M2["Media 2: Communityへ委譲"]
-    User --> M3["Media 3: 物理削除"]
-```
+Initial Releaseでは管理主体の委譲を提供しないため、User管理Mediaは削除対象として固定し、非同期cleanupで物理削除します。Community管理MediaはUploaderが削除対象Userでも保持し、Uploader参照だけを匿名化します。
 
-すべての管理Mediaを解決してからUserを削除します。
+将来Issue #48の委譲を導入した場合は、account削除前にUserまたはCommunityへの委譲を選択肢として再検討します。
 
 ## 禁止パターン
 
