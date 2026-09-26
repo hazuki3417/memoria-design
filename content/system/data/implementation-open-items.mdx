@@ -18,7 +18,7 @@
 | Outbox schema | PostgreSQLがtruth、PublisherがRedis Streamsへdelivery | event version、payload envelope、serialization、retention |
 | Idempotency persistence | actor + operation + keyを一意化しrequest hashを検証 | retention、response snapshot、cleanup interval、payload size limit |
 | Upload quota reservation | concurrent uploadの超過をreservationで防止 | reservation tableのfinal column、expiry、cleanup query、lock SQL |
-| Migration compatibility | versioned migrationとcompatible rolloutを基本とする | 変更ごとのrollout/rollback SQL、必要な場合のexpand/migrate/contract手順 |
+| Migration compatibility | gooseによるversioned SQL migrationをschema変更履歴の正本とし、`schema.sql`は生成snapshotとする | 変更ごとのrollout/rollback SQL、必要な場合のexpand/migrate/contract手順 |
 | HA-aware DB client | PostgreSQL HAをproduction baselineとする | failover endpoint確定後のconnection / retry / migration execution detail |
 
 ## 更新ルール
