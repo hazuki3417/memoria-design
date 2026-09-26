@@ -20,6 +20,16 @@ PostgreSQL schema、migration SQL、生成物はmemoria-apiが所有し、実行
 - 複数EC2や複数processが存在しても、各instanceから重複実行しない。
 - migrationが失敗した場合は後続Application deployを開始せず、既存dataと適用履歴を確認する。
 
+## Initial Release前のschema再構築
+
+Initial Release前でProduction dataとProductionへのmigration適用履歴が存在しない期間は、legacy PostgreSQL schemaとの互換性を要件としません。既存実装と確定した物理データモデルが大きく乖離している場合、legacy tableを段階的に変形するのではなく、設計書で確定した物理データモデルからInitial migrationを再構築します。
+
+この再構築では開発DBの既存data保持を保証せず、旧table・旧query・旧APIを動作させるためだけの互換relationや互換codeを追加しません。Applicationが一時的にbuildまたはruntime検証を満たさない期間を許容し、DB、persistence、domain/service、GraphQL/API、Webを確定した設計へ段階的に追従させます。
+
+ただし、物理データモデルの未決定事項を推測してInitial migrationへ固定しません。PostgreSQL Implementation Detailed Designで対象relationのcolumn、constraint、FK、index等を確定してから、実行可能DDLへ反映します。
+
+再構築期間中に新schema未対応を理由として成立しないQuality Gateは、復帰条件と追跡Issueを明示した上で一時停止できます。CI全体を`[skip ci]`等で恒常的に回避せず、引き続き有効な検証は実行します。特にmigration適用、fresh DB再現性、schema snapshot整合性など、新しいDB migration基盤自体を検証できるGateは原則として維持します。
+
 ## Deploy順序と互換性
 
 新しいApplication artifactを準備し、migrationを適用し、成功後にApplicationをdeployします。複数instanceを順に切り替える場合、移行期間中は旧versionと新versionの両方が同じschemaで動作できる状態を維持します。
