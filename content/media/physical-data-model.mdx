@@ -161,7 +161,9 @@ Image Variantは、フロントエンドが表示条件・解像度に応じて�
 
 Processing Jobは処理状態と試行結果のdurable truthですが、実行中messageのownership / crash recovery leaseはRedis Consumer Groupのpending stateを正本とします。Processing Jobへ`lease_expires_at`等の重複lease columnは追加しません。WorkerはRedis messageを取得・claimした後にJobをrow lockし、`PENDING`から`PROCESSING`への開始または`PROCESSING` Jobのretryを確定します。`attempts`はPipelineの実行開始ごとに増加させます。`COMPLETED` / `FAILED`へのduplicate deliveryは再実行しません。
 
-この責務分離により、Processing Jobの取得indexをDB Worker queueとして設計しません。Redis data喪失等のreconciliationではactive Jobを検索して再enqueueできるindexを別途最終化します。retry backoffの待機方式はStep 10で引き続き確定します。失敗情報に署名付きURL、credential、個人情報を保存しません。
+この責務分離により、Processing Jobの取得indexをDB Worker queueとして設計しません。一時failureはRedis Consumer Groupのpendingへ残し、固定backoff相当のidle時間経過後に`XAUTOCLAIM`で同じJobをretryします。Initial ReleaseではProcessing Jobへ`next_attempt_at`を追加せず、retry回数上限とreclaim idle時間はruntime parameterとしてIssue #44 / #61で確定します。
+
+Redis data喪失等のreconciliationではactive Jobを検索して再enqueueするため、`(status, updated_at, id)`をreconciliation用indexとします。通常のWorker実行順序をこのindexで管理しません。失敗情報に署名付きURL、credential、個人情報を保存しません。
 
 Processing Jobが残っている間はMediaの物理削除を`ON DELETE RESTRICT`で拒否します。Media削除flowでは実行中処理との競合を解消し、Processing Jobを停止・確定して明示削除した後にMediaを物理削除します。Media削除後までProcessing Job履歴を保持する要件は設けません。
 
