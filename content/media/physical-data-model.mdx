@@ -304,7 +304,7 @@ PKは`(media_id, tag_id)`です。MediaからTagを取得する方向はPKを使
 
 ### media_storage_operations
 
-`media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。
+`media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。通常のMedia削除だけでなく、Upload時にOriginal保存後のDB transactionが失敗し、即時の補償削除にも失敗した場合のDELETE retryにも使用します。
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
