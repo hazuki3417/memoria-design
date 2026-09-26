@@ -171,16 +171,18 @@ Media domainで確定した変更を非同期Publisherへ引き渡す技術table
 | last_error | text | NULL可 | 機密情報を除いた直近の失敗理由 |
 | created_at | timestamptz | NOT NULL | 作成時刻 |
 | published_at | timestamptz | NULL可 | 配送完了時刻 |
-| next_attempt_at | timestamptz | NULL可 | retry予定時刻。PROCESSINGではclaim lease期限 |
+| next_attempt_at | timestamptz | NULL可 | PENDINGでは実行可能時刻、PROCESSINGではclaim lease期限 |
 | updated_at | timestamptz | NOT NULL | 最終更新時刻 |
 
-`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `PROCESSING` / `FAILED`では`published_at`をNULLとします。`PROCESSING`では`next_attempt_at`をclaim lease期限として必須とし、期限到達後は別Publisherが回収できます。`FAILED`は自動retry上限到達後のterminal operational stateとし、自動取得対象から外します。運用再開時は`PENDING`へ戻してretry可能状態にします。
+`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `PROCESSING` / `FAILED`では`published_at`をNULLとします。`PENDING` / `PROCESSING`では`next_attempt_at`をNOT NULL相当のCHECKで必須とし、`PENDING`作成時は原則`next_attempt_at = created_at`として即時実行可能にします。`PROCESSING`では`next_attempt_at`をclaim lease期限として扱い、期限到達後は別Publisherが回収できます。`PUBLISHED` / `FAILED`では`next_attempt_at`をNULLとします。`FAILED`は自動retry上限到達後のterminal operational stateとし、自動取得対象から外します。運用再開時は`PENDING`へ戻し、新しい`next_attempt_at`を設定します。
 
 Publisherは短いDB transactionで実行可能な`PENDING`、またはlease期限切れの`PROCESSING`を`FOR UPDATE SKIP LOCKED`でbatch取得し、`PROCESSING`とlease期限を設定してcommitします。Redisへの`XADD`はDB transaction外で行います。`XADD`成功後は`PUBLISHED`と`published_at`を確定し、失敗時は`attempt_count`を増加して次回retry時刻を設定します。`XADD`成功後から`PUBLISHED`確定前の停止では重複配送を許容し、`event_id`による下流の冪等性で処理します。
 
-Publisher取得用indexはstatus、実行可能時刻、安定したtie-breakerを含む形をStep 9で最終確定します。
+Publisher取得用indexは`(status, next_attempt_at, created_at, id)`とします。取得対象は`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`とし、`created_at, id`を安定したtie-breakerに使用します。
 
-Outbox payload契約は`event_type + event_version`で識別します。Initial Releaseではversionを1から開始し、互換性のないpayload変更ではversionを増加させます。`payload`内へversionを重複保存しません。Redis Streamsへは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`をmessage envelopeとして配送します。未配送の旧version eventが残る状態でdeployできるよう、Publisherはpayloadを再解釈せず保存済みenvelopeを配送し、Workerは運用上残存し得るversionを処理できる期間を設けます。payloadへcredential、署名付きURLなどのsecretを保存しません。
+Outbox payload契約は`event_type + event_version`で識別します。Initial Releaseではversionを1から開始し、互換性のないpayload変更ではversionを増加させます。`payload`内へversionを重複保存しません。Redis Streamsへは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`をmessage envelopeとして配送します。未配送の旧version eventが残る状態でdeployできるよう、Publisherはpayloadを再解釈せず保存済みenvelopeを配送し、Workerは運用上残存し得るversionを処理できる期間を設けます。
+
+Outboxは配送用の技術dataであり監査履歴には使用しません。`PENDING` / `PROCESSING` / `FAILED`は自動cleanupせず、`PUBLISHED`だけを`published_at`から7日間保持した後にcleanup対象とします。cleanupはbatchで物理削除し、Media Event等の操作trace保持期間とは独立して扱います。payloadへcredential、署名付きURLなどのsecretを保存しません。
 
 ### idempotency_requests
 
