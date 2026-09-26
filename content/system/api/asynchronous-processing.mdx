@@ -59,8 +59,9 @@ WorkerはConsumer Groupで水平scaleできます。画像と動画の負荷差�
 - 成果物保存、必要なDB更新、Variant publicationとjob `COMPLETED`の確定後に`XACK`します。回復不能failureまたはretry上限到達時は`FAILED`を永続化してから`XACK`します。
 - Redis data喪失時はPostgreSQLのOutboxとProcessing Jobを照合し、active Jobを冪等に再enqueueします。
 - 専用DLQを初期必須にせず、恒久失敗はPostgreSQL上のJob状態で追跡します。
-- 一時的な失敗は上限付きbackoffでretryします。
-- 回復不能な失敗はjobを`FAILED`として運用から確認できるようにします。
+- 一時的な失敗ではmessageを`XACK`せずConsumer Groupのpendingへ残し、固定backoff相当のidle時間経過後に`XAUTOCLAIM`で再取得します。Initial Releaseではattemptごとの指数backoffや個別`next_attempt_at` schedulerを導入しません。
+- retry回数上限とreclaim idle時間はruntime parameterとし、DB schemaの固定値にはしません。具体値はIssue #44 / #61で運用・実装時に確定します。
+- `media_processing_jobs.attempts`はPipeline実行開始ごとに増加し、上限到達または回復不能な失敗ではjobを`FAILED`として永続化してmessageを`XACK`します。
 - 同じeventやjobが再配送されても成果物が重複しないようにします。
 
 ## Variant再処理とpublication
