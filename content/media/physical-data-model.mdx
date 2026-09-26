@@ -72,7 +72,7 @@ index:
 - `(media_type, created_at DESC, id DESC)`
 - `(status)`は削除処理の再開に使用
 
-### images・media_videos
+### images・videos
 
 ImageはMediaのsubtype detailとして`images`に分離します。Image VariantはMediaへ直接ぶら下げず、必ず`images`を親とします。
 
@@ -84,7 +84,7 @@ ImageはMediaのsubtype detailとして`images`に分離します。Image Varian
 | width | integer | NOT NULL、CHECK 1以上 | 画像の幅 |
 | height | integer | NOT NULL、CHECK 1以上 | 画像の高さ |
 
-#### media_videos
+#### videos
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
