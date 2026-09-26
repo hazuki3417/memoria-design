@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: PostgreSQL schemaと生成codeは既存実装があります。versioned migrationの開発環境導入を進めており、deploy工程での単一実行、互換性確認、復旧手順は引き続き詳細設計と実装が必要です。
+> 実装状況: memoria-apiのDevelopment環境ではgooseによるversioned migration、fresh PostgreSQLへの適用、`schema.sql` snapshot生成とGitHub Actionsによる整合性検証を導入済みです。Applicationのsqlc query / generated codeは新しいInitial schemaへ段階的に追従します。deploy工程での単一実行、Productionでの互換性確認、復旧手順は引き続き詳細設計と実装が必要です。
 
 PostgreSQL schema、migration SQL、生成物はmemoria-apiが所有し、実行環境、権限、deploy手順はmemoria-IaCが所有します。初回Releaseに必要な再現可能な初期化と安全な適用を優先し、高度な無停止移行は適用条件に応じて扱います。
 
@@ -11,7 +11,7 @@ PostgreSQL schema、migration SQL、生成物はmemoria-apiが所有し、実行
 - version管理されたSQL migrationを利用し、migration toolにはgooseを採用する。具体versionはmemoria-apiの開発環境定義で固定する。
 - migration fileをschema変更履歴の正本とし、一度Productionへ適用したmigrationは原則として変更・削除しない。
 - Initial Release前はProduction dataと適用履歴が存在しないため、開発中のmigrationを整理し、現在schemaをInitial migrationとしてbaseline化できる。
-- `schema.sql`はmigration履歴の代替ではなく、最新schema全体を表す生成snapshotとして扱う。DBから`pg_dump --schema-only`で生成し、sqlc入力やschema reviewに利用する。
+- `schema.sql`はmigration履歴の代替ではなく、最新Application schema全体を表す生成snapshotとして扱う。fresh DBへmigrationを適用した結果を`pg_dump --schema-only`で生成し、sqlc入力やschema reviewに利用する。goose自身のmigration管理relationはApplication schemaではないためsnapshotへ含めない。
 - table / column等のDB commentはmigration SQLに`COMMENT ON`として記録し、snapshotにも保持する。DB clientはER図確認やDDLの試行に利用できるが、確定した変更はmigrationへ反映し、client上の状態だけを正本にしない。
 - migration file、directory、command、goose設定はmemoria-apiの実行可能な定義を正本とする。
 - migration数の増加だけを理由に適用済み履歴をsquashしない。将来、fresh DB構築時間等が実際の問題になった場合はbaseline / snapshotから開始する方式を別途設計する。
@@ -42,4 +42,4 @@ Initial Release前でProduction dataとProductionへのmigration適用履歴が�
 
 rollbackはdown migrationを安易に実行せず、後方互換なschema上で以前のimmutable Application imageへ戻す方法を優先します。不可逆なschema変更ではbackup、restore、roll-forwardの条件を事前に確認します。
 
-schema、SQL、sqlc生成物、migrationの整合はGitHub Actionsで検証します。fresh DBではInitial migrationから最新まで適用できること、snapshotを再生成してRepository上の`schema.sql`と差分がないことを検証対象とします。Release後は、必要に応じて既存versionからlatestまでのupgrade pathも検証します。具体的な運用手順、既存data移行、停止許容、復旧判断は[DB schema migrationの詳細設計](https://github.com/hazuki3417/memoria-design/issues/28)と[EC2運用設計](https://github.com/hazuki3417/memoria-design/issues/45)で確定します。
+schema、SQL、sqlc生成物、migrationの整合はGitHub Actionsで検証します。fresh DBではInitial migrationから最新まで適用できること、gooseのmigration管理relationを除外してsnapshotを再生成し、Repository上の`schema.sql`と差分がないことを検証対象とします。Developmentでのsnapshot生成とGitHub Actionsはmemoria-apiが提供する同じ生成commandを使用し、手順差によるsnapshot差分を作りません。Release後は、必要に応じて既存versionからlatestまでのupgrade pathも検証します。具体的な運用手順、既存data移行、停止許容、復旧判断は[DB schema migrationの詳細設計](https://github.com/hazuki3417/memoria-design/issues/28)と[EC2運用設計](https://github.com/hazuki3417/memoria-design/issues/45)で確定します。
