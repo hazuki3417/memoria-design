@@ -47,7 +47,7 @@ erDiagram
 | role | varchar(16) | NOT NULL、CHECK | `member` / `admin` |
 | joined_at | timestamptz | NOT NULL | 参加時刻 |
 
-PKは`(community_id, user_id)`です。`(user_id, community_id)`へindexを追加します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、User参照は`ON DELETE RESTRICT`とします。User削除flowでは必要なCommunity / Media cleanupを完了してMembershipを明示削除した後にUserを物理削除します。
+PKは`(community_id, user_id)`です。Userが参加しているCommunityのlookup用に`(user_id, community_id)`へindexを追加します。Community内のMember一覧は最近参加したUserから表示し、安定したcursor paginationのため`joined_at DESC, user_id DESC`をsortとします。このaccess pattern用に`(community_id, joined_at DESC, user_id DESC)`へindexを追加します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、User参照は`ON DELETE RESTRICT`とします。User削除flowでは必要なCommunity / Media cleanupを完了してMembershipを明示削除した後にUserを物理削除します。
 
 ### community_invitations
 
@@ -92,7 +92,7 @@ statusとreview / resolve情報は次の整合条件を持ちます。
 
 DBではstatusに応じた`reviewed_at` / `resolved_at`のNULL整合をCHECK constraintで保証します。`reviewed_by_user_id`は履歴上のreviewerを表しますが、User物理削除時に`ON DELETE SET NULL`となるため、`APPROVED` / `REJECTED`の保存状態に対してNOT NULLを要求しません。承認・拒否transaction実行時にreviewer Userが存在することはServiceで保証します。
 
-`status = 'PENDING'`を条件に`(community_id, applicant_user_id)`へpartial unique indexを設定し、重複申請を防ぎます。申請User削除時は先に`INVALIDATED`へ更新して並行する承認を防止し、User物理削除時に`ON DELETE CASCADE`でJoin Request自体を削除します。User削除後まで申請履歴を保持する要件は設けません。`(community_id, status, requested_at)`のindexで承認待ち一覧を取得します。
+`status = 'PENDING'`を条件に`(community_id, applicant_user_id)`へpartial unique indexを設定し、重複申請を防ぎます。申請User削除時は先に`INVALIDATED`へ更新して並行する承認を防止し、User物理削除時に`ON DELETE CASCADE`でJoin Request自体を削除します。User削除後まで申請履歴を保持する要件は設けません。承認待ち一覧は新しい申請から表示し、`requested_at DESC, id DESC`を安定したsortとします。`(community_id, status, requested_at DESC, id DESC)`のindexで取得します。
 
 Media domainが所有する`media_custodies`と`media_community_accesses`は[Media物理データモデル](/media/physical-data-model)を参照します。
 
