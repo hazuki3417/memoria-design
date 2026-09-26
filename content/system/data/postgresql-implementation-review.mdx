@@ -21,6 +21,44 @@ Issue #59 における PostgreSQL Implementation Detailed Design の横断レビ
 
 途中段階の table 定義を final DDL と扱いません。
 
+## PostgreSQL schema割当
+
+全Relationは所有domainに従って次のschemaへ配置します。
+
+### identity
+
+- `identity.users`
+- `identity.user_deletion_jobs`
+
+### community
+
+- `community.communities`
+- `community.community_memberships`
+- `community.community_invitations`
+- `community.community_join_requests`
+
+### media
+
+- `media.media`
+- `media.images`
+- `media.media_videos`
+- `media.media_custodies`
+- `media.image_variants`
+- `media.media_processing_jobs`
+- `media.outbox_events`
+- `media.idempotency_requests`
+- `media.media_community_accesses`
+- `media.media_events`
+- `media.media_groups`
+- `media.media_group_media`
+- `media.media_group_relations`
+- `media.tags`とMedia-Tag join relation
+- `media.media_storage_operations`
+
+Classification、processing、Outbox、idempotency、storage operationは独立したProduct domainではなく、現在の設計ではMedia domainがlifecycleを所有するため`media`へ配置します。将来、複数domainから独立して利用する共通lifecycleが具体化した場合は、その時点で横断schemaを再検討します。
+
+cross-domain FKとJOINはschema-qualified nameで記述します。`search_path`はApplication queryの名前解決条件にしません。
+
 ## Relation inventory
 
 ### User / Authentication
