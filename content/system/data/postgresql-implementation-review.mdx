@@ -98,7 +98,7 @@ Image は Media から解釈された logical image とし、複数 page を持�
 
 Media Group は User または Community の分類空間に属するため Group 自身が XOR scope を保持します。Media Group relation は DAG を許容し、自己参照は禁止、多段 cycle は transaction 内の検証で防止します。
 
-Tag も User / Community scope を持つ独立 entity とし、Media とは join relation で関連付けます。表示名と uniqueness/search 用 `normalized_name` を分離します。正規化 algorithm の厳密値は未決定です。
+Tag も User / Community scope を持つ独立 entity とし、Media とは join relation で関連付けます。Tag名は入力時に前後のUnicode whitespaceを除去し、空文字を拒否します。内部空白や大文字小文字、全角半角等の異なる表記は自動統合せず、保存した`name`の完全一致を同一scope内の名称同一性判定に使用します。`normalized_name`は保持しません。
 
 ### Processing / Async
 
@@ -184,7 +184,6 @@ Index は次の access pattern が確認できる場合に限り追加します�
 - Processing publication の具体的 current/staged schema
 - Outbox event versioning と payload schema
 - Idempotency retention / cleanup policy
-- Tag normalization algorithm
 - migration rollout / rollback SQL
 
 未決定事項は資料にない値を推測して埋めず、Issue で追跡します。
