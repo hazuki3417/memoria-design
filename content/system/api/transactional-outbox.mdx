@@ -46,6 +46,9 @@ Publisherは短いDB transactionで実行可能な`PENDING` event、またはcla
 - PostgreSQLからRedisまでの送信保証はOutboxが担当します。
 - RedisからWorkerまでの配送管理はRedis StreamsとConsumer Groupが担当します。
 - `XADD`成功直後にPublisherが停止すると重複配送が発生し得るため、`event_id`で重複を判定します。
+- 配送messageは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`からなるenvelopeとし、payload契約は`event_type + event_version`で識別します。
+- `event_version`は1から開始し、互換性のないpayload変更時に増加させます。Publisherは保存済みpayloadを新versionへ変換せず、そのまま配送します。
+- deploy時に未配送の旧version eventが残り得るため、Workerは残存し得る旧versionを処理できる互換期間を持たせます。
 - APIからRedisへ直接publishする経路は設けません。
 - CDC、Debezium、即時publishと回復publishの二重経路は採用しません。
 
