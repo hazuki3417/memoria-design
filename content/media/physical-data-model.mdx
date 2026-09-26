@@ -140,7 +140,7 @@ Image VariantはImage固有の派生物です。Media共通variant tableは設�
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | Job ID |
-| media_id | varchar(26) | NOT NULL、FK media | 処理対象Media |
+| media_id | varchar(26) | NOT NULL、FK media ON DELETE RESTRICT | 処理対象Media |
 | job_type | varchar(32) | NOT NULL | 派生物生成などの処理種別 |
 | status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PROCESSING`、`COMPLETED`、`FAILED` |
 | attempts | integer | NOT NULL、CHECK 0以上 | 実行試行回数 |
@@ -148,6 +148,8 @@ Image VariantはImage固有の派生物です。Media共通variant tableは設�
 | created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
 `(status, updated_at)`をindex対象にします。失敗情報に署名付きURL、credential、個人情報を保存しません。
+
+Processing Jobが残っている間はMediaの物理削除を`ON DELETE RESTRICT`で拒否します。Media削除flowでは実行中処理との競合を解消し、Processing Jobを停止・確定して明示削除した後にMediaを物理削除します。Media削除後までProcessing Job履歴を保持する要件は設けません。
 
 ### outbox_events
 
