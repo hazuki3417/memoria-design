@@ -275,6 +275,14 @@ User lifecycleの排他点は`identity.users`行とします。account削除受�
 
 新規Upload、共有、分類、role変更等のACTIVE Userを前提とする操作も対象User行をlockして状態を再確認します。通常操作が先にlockを取得した場合はそのcommit後の状態を削除受付が再評価し、削除受付が先にDELETINGをcommitした場合は後続操作を拒否します。User lifecycleについてはconditional updateだけに依存せず、このrow lockを共通の直列化点とします。
 
+## Concurrency review: Community lifecycle
+
+Community lifecycleとAdministrator不変条件の直列化点は`community.communities`行とします。Role変更、退会、除外、User削除によるMembership削除、通常Community削除、Community Custodyへの直接UploadはCommunity行を`SELECT ... FOR UPDATE`でlockし、その後にMembership、Administrator数、Community存在、Custody等を再確認します。これによりlast-admin操作やCommunity削除と直接Uploadをfirst-commit-winsで直列化します。
+
+Invitation acceptは再利用可能なInvitationから複数Userが並行参加できるため、Community行を共通mutexにはしません。Invitation行を状態確認のlock対象とし、User lifecycle、Community存在、Membership不存在の再確認とMembership PK / UNIQUEで競合を処理します。
+
+User起点Join Requestの状態遷移は対象Request行を直列化点とします。lock後にPENDING等の状態を再確認し、承認時のAdministrator権限確認やMembership作成には必要なCommunity / Membership lockを共通順序で追加します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
