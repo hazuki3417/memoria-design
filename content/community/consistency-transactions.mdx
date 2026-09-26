@@ -45,6 +45,14 @@ User起点Join RequestはInvitation acceptとは独立した将来機能です�
 
 退会・除外・Community削除時は、共有関係と対象CommunityのGroup・Tag関連を同じTransactionで整理します。User管理Media本体、他Community共有、他Community分類を変更しません。
 
+## 退会・除外のatomic cleanup
+
+Initial Releaseでは、退会・除外に伴うMembership削除、対象Userが管理するMediaの当該Community Access削除、当該Community scopeのGroup・Tag関連削除を一つのDB transactionで確定します。cleanupだけを非同期化して、Membership消失後に共有・分類relationが残る中間状態は導入しません。
+
+処理ではCommunityをlockして最終Administrator条件とMembershipを再確認した後、共有・分類relationを削除し、最後にMembershipを削除してcommitします。途中で失敗した場合は全体をrollbackします。
+
+将来relation件数の増大によりtransaction規模が問題になる場合は、cleanupのみを単純に非同期化せず、論理的な離脱状態とdurable cleanup Jobを含むLifecycleとして別途設計します。Initial Releaseではその中間状態を導入しません。
+
 ## Community削除とUpload
 
 Community削除とCommunityへの直接Uploadは同じCommunity行をlockします。後続TransactionはCommunity存在とCommunity Custody件数を再評価し、管理Mediaを残した削除や削除済みCommunityへのUploadを防ぎます。
