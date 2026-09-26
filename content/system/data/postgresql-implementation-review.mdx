@@ -157,6 +157,14 @@ FK deletion actionはrelationのlifecycleとcleanup順序に合わせて選択�
 - Outboxは`PUBLISHED`の場合に限り`published_at`を保持することをCHECKで保証する。`last_error`、Idempotencyの`response_data`、Storage Operationの`next_attempt_at`はretry / response保持方針が未確定のため、statusとの追加CHECKを現時点では設けない。
 - history / trace を Media 本体削除後も保持する relation では、保持要件に反する CASCADE FK を設定しない。
 
+## Constraint review result
+
+Step 5のUNIQUE / CHECK / partial unique reviewは完了とします。各domainの物理データモデルに定義済みのstatus/type値域、数値範囲、scope XOR、複合PK / UNIQUE、partial unique、Join Requestのstatus/nullability整合、Outboxのstatus/published_at整合をInitial Releaseのconstraint baselineとします。
+
+DB単体で自然に表現できないlast-admin、Mediaとsubtype detail / Custody行の存在、cross-scope authorization、Groupの多段cycle等は、無理にcross-table CHECKへ変換せずtransaction / row lock / Service validation / integration testで保証します。
+
+Processing Jobのactive uniqueness、Idempotency response、Outbox error、Storage Operation retry時刻など、後続のretry / publication設計に依存するconstraintはStep 5完了のために推測して追加せず、Step 9 / 10とIssue #61で追跡します。
+
 ## Deletion review principles
 
 - aggregate ownership と保持要件に応じて `CASCADE` / `RESTRICT` / `SET NULL` を選択する。
