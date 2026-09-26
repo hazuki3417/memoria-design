@@ -35,6 +35,12 @@ PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時�
 - FK columnは原則として参照対象のentity名に_idを付ける。
 - 状態columnはstatus、登録・更新時刻はcreated_at、updated_atを基本とする。
 
+## 一覧の並び順
+
+利用者向け一覧は、特段のdomain上の順序要件がない場合、原則として作成日時の新しいものから表示し、安定したcursor paginationのため `created_at DESC, id DESC` を既定のsortとします。
+
+ただし、この既定sortをすべてのQueryへ機械的に適用しません。Membershipの参加順、Media Eventの発生順、upload完了順、retry対象時刻、Outbox配送順等、ユースケース上より適切な業務時刻・処理順序がある場合は、そのaccess patternに対応するsortとtie-breakerをdomain側で明示します。Worker / recovery queryは利用者向け表示順ではなく、処理の正しさと公平性に必要な順序を優先します。
+
 ## 制約とindex
 
 - PK、FK、UNIQUE、CHECKで表現できる不変条件はDBでも保証する。
