@@ -239,6 +239,12 @@ Initial Releaseの退会・除外はatomic cleanupとします。Community lock�
 
 relation件数増大により将来非同期化が必要になった場合は、単純な後処理ではなく、論理的離脱状態とdurable cleanup Jobを含むLifecycleとして再設計します。
 
+## Transaction boundary review: Media upload
+
+OriginalはDB transaction開始前にObject Storageへ保存し、Media / subtype / Custody / UPLOADED Event / Processing Job / Outboxは一つのDB transactionでcommitします。DB transactionが失敗した場合はOriginalを即時に補償削除します。
+
+補償削除にも失敗した場合は、別DB transactionで既存の`media_storage_operations`へDELETE operationをdurableに記録し、Workerがretryします。対象Media rowがcommitされていなくても、Upload開始時に生成済みのMedia IDをsnapshot IDとして使用します。補償削除とoperation記録の両方に失敗した場合はObject Storageの孤立object reconciliation / 運用cleanupで回収します。このfailure modeのためだけにUpload Reservation relationはInitial Releaseへ追加しません。
+
 ## Transaction boundary review: Media deletion completion
 
 Object Storage削除自体はDB transaction外で冪等に実行します。最後のObject削除成功後は、Storage Operationの完了確定、DELETED Media Event作成、domain関連relation削除、Processing Jobの明示削除、Media物理削除を一つのDB transactionで確定します。これによりStorageだけ削除済みでDB上の削除完了確定が部分的にcommitされる状態を増やしません。
