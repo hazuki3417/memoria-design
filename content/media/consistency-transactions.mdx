@@ -23,7 +23,7 @@ UserとCommunityが所有するTransactionは、それぞれ[Userの整合性と
 
 ### 委譲・共有・削除
 
-対象の`media_custodies`と`media`を`SELECT ... FOR UPDATE`でlockします。lock取得後に操作者がCustodianを変更できるか再確認します。
+Media lifecycleの直列化点は`media`行とし、Custodian変更・共有可否の現在状態は`media_custodies`行を正本とします。共有・解除・委譲・削除要求では対象`media`を`SELECT ... FOR UPDATE`でlockし、続いて`media_custodies`をlockします。lock取得後にMediaがACTIVEであること、現在Custodian、操作者権限を再確認します。
 
 - 委譲と共有が競合した場合、先にcommitした結果を後続処理が再検証
 - DELETING Mediaへの共有・委譲・Group追加を拒否
@@ -32,7 +32,7 @@ UserとCommunityが所有するTransactionは、それぞれ[Userの整合性と
 
 ### Group DAG
 
-relation追加前に、追加するchildからparentへ到達できるかをrecursive CTEで確認します。確認とinsertは同一transactionで行い、関連するGroup行を一定順序でlockします。
+Group DAG変更は同一scope単位で直列化します。User scopeでは対象User行、Community scopeでは対象Community行をscopeの排他点としてlockし、scopeと権限を再確認した後、追加するchildからparentへ到達できるかをrecursive CTEで確認してrelationを更新します。cycle確認とinsertは同一transactionで行います。これにより、互いの未commit relationを参照できない並行追加によってcycleが成立することを防ぎます。Initial Releaseでは同一scope内の独立したGroup階層変更も直列化し、複雑なgraph単位lockは導入しません。
 
 ## Upload
 
