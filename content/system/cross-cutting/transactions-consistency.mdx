@@ -15,6 +15,7 @@ User、Community、Mediaに共通するTransaction境界、lock順序、状態�
 ## lock順序と競合制御
 
 - 複数domainをまたぐ場合はCommunity、Membership、Media/Custodyの順序を基準にlockする。
+- User lifecycleの排他点は`identity.users`行とする。User削除受付と、ACTIVEを前提とする新規Upload・共有・分類・権限変更等は対象User行をlockし、lock取得後に状態を再確認する。
 - User削除ではUser行を先に確保し、以後の共有lock順序と矛盾しない順で対象を処理する。
 - lock取得後にUser状態、Membership、Administrator、Custody、対象recordの存在を再確認する。
 - 同時更新はrow lock、条件付き更新、UNIQUE・CHECK等のDB制約を組み合わせて保護する。
