@@ -307,6 +307,10 @@ Idempotency Requestは対象Commandの業務更新と同じPostgreSQL transactio
 
 Initial ReleaseのIdempotency Key保証期間は初回受付から24時間です。`expires_at = created_at + 24 hours`とし、期限後は保証終了・cleanup対象とします。長時間処理の継続性は各durable Jobを正本とします。
 
+## Persistence review: Outbox event contract
+
+Outbox payload契約は`event_type + event_version`で識別し、versionは1から開始します。Redis Streamsへのenvelopeは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`とします。Publisherは保存済みpayloadを再解釈・変換せず配送し、互換性のない変更ではversionを増加させます。未配送旧versionを考慮し、Workerはdeploy時に必要な互換期間を持たせます。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
