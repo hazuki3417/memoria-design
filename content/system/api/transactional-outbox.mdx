@@ -41,6 +41,10 @@ Publisherは短いDB transactionで実行可能な`PENDING` event、またはcla
 
 `XADD`成功後は別transactionで`PUBLISHED`と`published_at`を確定します。失敗時は`attempt_count`を増加し、retry可能な場合は次回実行時刻を`next_attempt_at`へ設定します。自動retry上限へ到達したeventは`FAILED`とし、自動取得対象から外します。運用者が再開する場合は`PENDING`へ戻します。Publisherがclaim後に停止した場合は、`PROCESSING`かつlease期限到達済みのeventを別Publisherが回収します。
 
+`next_attempt_at`は`PENDING`では実行可能時刻、`PROCESSING`ではclaim lease期限として統一して使用します。新規`PENDING` eventは原則`created_at`を設定します。Publisherは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`を対象にし、`created_at, id`で安定順序を付けます。
+
+`PUBLISHED` eventは障害調査のため`published_at`から7日間保持し、その後batchで物理削除します。未配送・処理中・運用対応待ちである`PENDING` / `PROCESSING` / `FAILED`は自動cleanupしません。Outbox retentionは利用者操作traceであるMedia Eventの保持方針とは独立です。
+
 ## 配送保証の境界
 
 - PostgreSQLからRedisまでの送信保証はOutboxが担当します。
