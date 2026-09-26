@@ -283,6 +283,12 @@ Invitation acceptは再利用可能なInvitationから複数Userが並行参加�
 
 User起点Join Requestの状態遷移は対象Request行を直列化点とします。lock後にPENDING等の状態を再確認し、承認時のAdministrator権限確認やMembership作成には必要なCommunity / Membership lockを共通順序で追加します。
 
+## Concurrency review: Media lifecycle / Group DAG
+
+Media lifecycleの直列化点は`media.media`行とし、Custodian変更・共有可否の現在状態は`media.media_custodies`行を正本とします。共有・解除・委譲・削除要求はMedia、Custodyの順にlockし、ACTIVE状態、現在Custodian、操作者権限を再確認してから更新します。削除要求が先にDELETINGをcommitした場合、後続の共有・委譲・分類追加を拒否します。
+
+Media Group DAG変更は同一scope単位で直列化します。User scopeでは対象User行、Community scopeでは対象Community行をscopeの排他点としてlockし、scope / 権限を再確認した後にrecursive CTEでcycleを再検証してrelationを更新します。cycle確認とinsertは同一transactionで行い、互いの未commit edgeを見られない並行追加によるcycle成立を防ぎます。Initial Releaseでは同一scope内の独立した階層変更も直列化し、graph単位の複雑なlock方式は導入しません。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
