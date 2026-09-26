@@ -20,7 +20,7 @@
 | 非同期処理 | 原本保存、Media/Custody登録、Processing Job、Transactional Outbox、Redis Streams、Worker | 冪等性、失敗、再試行、削除との競合を扱う |
 | Community | Community、参加者、Administrator、Invitationと参加状況に応じた閲覧 | Community外のUserは閲覧不可。Initial Releaseでは有効なInvitationのacceptでMembershipを直接成立させ、User起点Join Requestは将来機能とする |
 | 管理と共有 | User管理、Community管理、個人管理画像のCommunity共有、Communityへの直接Upload | UploaderとCustodianを分離し、参加中のUploader本人に削除・Original downloadを認める |
-| Group | Groupの作成・編集・削除と画像の整理 | 閲覧権限を制御しない。階層構造の要否は詳細設計で決定する |
+| Group | Groupの作成・編集・削除と画像の整理 | 閲覧権限を制御しない。Group関係はDAGとし、複数親を許可して自己参照・循環を禁止する |
 | Tag | Tagの作成・編集・削除、画像への付与・解除、Tagによる絞り込み | 管理範囲、編集権限、条件の詳細は要求・詳細設計で決定する |
 | アクセス制御 | User、Community参加者、Administrator、Custodian、Uploaderに応じた認可 | 原本アクセスはUser Custodian、Community Administrator、参加中の該当Uploaderに制限する |
 | 実行基盤 | EC2 + Docker、Deploy、秘密情報管理、Backup、復旧、監視 | 予算に応じて構成し、PostgreSQL/Redisの配置は運用設計で確定する |
