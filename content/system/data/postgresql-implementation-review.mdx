@@ -69,7 +69,7 @@ User identity、authentication mapping、account lifecycle、deletion operation 
 
 Community、Membership、Invitation、User起点Join RequestをCommunity domain正本から取り込みます。Administrator専用relationは設けず、`community_memberships.role = member | admin`で権限を表現します。Communityごとに1人以上のadminを維持する不変条件はCommunity row lockとtransactionで保証します。
 
-Initial ReleaseのInvitation acceptは有効なInvitationの検証・consumeと`member` Membership作成を同じtransactionで直接成立させます。User起点Join RequestはInvitation acceptとは独立した将来機能としてrelation/stateを維持し、Initial ReleaseでUI/APIを提供しないことを理由に論理設計から削除しません。
+Initial ReleaseのInvitation acceptは有効なInvitationを検証し、Invitation自体の状態を変更せずに`member` Membership作成を同じtransactionで直接成立させます。User起点Join RequestはInvitation acceptとは独立した将来機能としてrelation/stateを維持し、Initial ReleaseでUI/APIを提供しないことを理由に論理設計から削除しません。
 
 ### Media
 
@@ -88,18 +88,17 @@ Media 本体は custody / access / classification / processing から独立さ�
 - `media_group_media`
 - `media_group_relations`
 - Tag relation
-- upload / quota reservation relation
 - storage operation relation
 
 `media` に owner User / Community ID を直接保持しません。現在の管理主体は `media_custodies` の XOR relation で表現します。一方 `uploaded_by_user_id` は ownership ではなく provenance なので Media に保持し、User 物理削除時は `SET NULL` とします。
 
-Image は Media から解釈された logical image とし、複数 page を持つ source では `source_index` により識別します。Image Variant は Media ではなく Image に属する delivery artifact とします。Original Media は immutable です。
+Initial Releaseでは`media_type = IMAGE`の1 Mediaに対して`images`を1件だけ持つsubtype detailとします。Media typeに対応するdetailの存在と排他性は同一transactionの書き込みとintegration testで保証します。Image VariantはMediaではなくImageに属するdelivery artifactとします。Original Mediaはimmutableです。TIFF / PDF等のmulti-page sourceを複数Imageとして展開する要件はInitial Releaseへ含めず、必要になった時点でpage identityやrelationを別途設計します。
 
 ### Classification
 
 Media Group は User または Community の分類空間に属するため Group 自身が XOR scope を保持します。Media Group relation は DAG を許容し、自己参照は禁止、多段 cycle は transaction 内の検証で防止します。
 
-Tag も User / Community scope を持つ独立 entity とし、Media とは join relation で関連付けます。表示名と uniqueness/search 用 `normalized_name` を分離します。正規化 algorithm の厳密値は未決定です。
+Tag も User / Community scope を持つ独立 entity とし、Media とは join relation で関連付けます。Tag名は入力時に前後のUnicode whitespaceを除去し、空文字を拒否します。内部空白や大文字小文字、全角半角等の異なる表記は自動統合せず、保存した`name`の完全一致を同一scope内の名称同一性判定に使用します。`normalized_name`は保持しません。
 
 ### Processing / Async
 
@@ -111,17 +110,60 @@ Reprocess 中は既存 current artifact を提供し続け、新 artifact は st
 
 Outbox と利用者向け Media Event は別目的の record とします。Outbox は delivery reliability、Media Event は domain operation trace を担います。
 
-Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。保持期間、response snapshot、cleanup interval の具体値は未決定です。
+Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。Initial Releaseの保証期間は24時間とし、response snapshotは同一論理結果を再構成する最小識別情報に限定します。期限後はcleanup対象とし、cleanupの実行時刻自体は保証期限と分離します。
+
+## Common type / identifier
+
+共通identifierはApplication生成ULIDをPostgreSQLのvarchar(26)で保存し、業務日時はtimestamptzを使用します。外部認証identifier等のULIDではない値は所有domainの定義に従います。
+
+状態・種別等の有限な値集合はvarchar等の文字列型 + CHECK constraintをbaselineとします。PostgreSQL ENUMは全面禁止せず、十分に安定したdomain conceptを複数箇所で独立したDB typeとして共有する明確な利点がある場合だけ個別レビューで採用します。異なるlifecycleのstatusを共通ENUMへ統合しません。
+
+## Relation inventory確定
+
+Initial ReleaseのPostgreSQL relation inventoryは上記の所有relationを対象とします。旧checkpointに存在したupload / quota reservation relationは、現在のProduct / Domain正本に永続化要件とtable定義が存在しないためInitial Release inventoryへ含めません。将来、upload reservationまたはquota reservationをPostgreSQLでdurableに保持する要件が具体化した場合は、Media domainの新規relationとして別途設計します。
+
+Relation inventory確定後も、各relationのcolumn、constraint、index等は後続レビューで確定するまでfinal DDLとは扱いません。
+
+## Nullability review
+
+Columnは原則NOT NULLとし、NULLはlifecycle上の未発生、User物理削除による匿名化、XOR relation、event type依存情報など業務上の意味がある場合だけ使用します。
+
+Community Join Requestはstatusとreview / resolve時刻の整合をCHECK constraintで保証します。`PENDING`ではreview / resolve情報を持たず、`APPROVED` / `REJECTED`では`reviewed_at`と`resolved_at`を必須、`CANCELLED` / `INVALIDATED`では`resolved_at`を必須とします。reviewer Userは承認・拒否transaction時には必須ですが、後のUser物理削除で`reviewed_by_user_id`をNULLへ匿名化できるため、保存状態ではNULLを許容します。
+
+## FK / deletion strategy review
+
+FK deletion actionはrelationのlifecycleとcleanup順序に合わせて選択し、cleanupが必要な親relationをCASCADEだけで削除しません。
+
+- Community MembershipからUserへの参照はON DELETE RESTRICTとし、最終Administrator確認やMedia cleanup後にMembershipを明示削除する。
+- User Deletion JobからUserへの参照はON DELETE RESTRICTとし、cleanup完了後にJobを明示削除してからUserを物理削除する。
+- Community Join Requestのapplicant User参照はON DELETE CASCADEとする。User削除flow中は先にINVALIDATEDとして並行承認を防ぎ、User物理削除時に申請自体を削除する。
+- Media Processing JobからMediaへの参照はON DELETE RESTRICTとし、実行中処理との競合解消とJob削除後にMediaを物理削除する。
+- Media CustodyのUser / Community参照はON DELETE RESTRICTを維持し、Custody cleanupを親削除前に必須とする。
+- Uploader、Invitation発行者、Join Request reviewer、Community Access作成者、Media EventのUser履歴参照は、User物理削除時の匿名化が必要な箇所でON DELETE SET NULLを使用する。
+- Media Eventのmedia_idとCommunity履歴ID、およびStorage Operationのmedia_idは、親物理削除後も必要なtrace / operationを保持するsnapshot IDとしてFKを設定しない。
+- subtype、Variant、Access、Group join等、親と独立したlifecycleを持たない従属relationはON DELETE CASCADEを使用する。
 
 ## Constraint review principles
 
 - scope XOR は CHECK で保証する。
 - 同一 scope 内 uniqueness は composite UNIQUE または必要に応じて partial unique index で保証する。
 - Community Membership roleはCHECKで`member | admin`に限定し、last-admin invariantはtransactionで保証する。
+- Community Invitationは`token_hash`をUNIQUEとし、`revoked_at IS NULL`を条件とするCommunity単位のpartial unique indexで失効処理されていないInvitationを1件に制限する。期限切れInvitationは再発行transaction内で`revoked_at`を設定してから新規作成し、現在時刻に依存するpartial indexは使用しない。Invitation acceptではInvitation自体をconsumeしない。
 - 1 Media = 1 current custody は PK / UNIQUE と同一 transaction の作成で保証する。
 - cross-table authorization や scope compatibility を FK だけで表現しない。Application transaction で対象 row を lock して検証する。
 - retry される async write は natural/composite uniqueness または idempotency key により duplicate を防止する。
+- Media Processing Jobは`status`を`PENDING | PROCESSING | COMPLETED | FAILED`に限定し、`attempts >= 0`をCHECKで保証する。`media_id + job_type`等のactive Job uniquenessはこの段階では導入せず、Job identity、Redis Streamsへのdelivery、Worker retry、reprocess、publicationの関係をasync processing詳細設計で確定した後に必要なconstraintを決定する。
+- Idempotency Requestは`status`を`PROCESSING | COMPLETED | FAILED`に限定し、`(actor_user_id, operation, idempotency_key)`をUNIQUEとする。Storage Operationは`operation_type = DELETE`、`status`を`PENDING | COMPLETED | FAILED`、`attempt_count >= 0`とし、`(media_id, operation_type, object_key)`をUNIQUEとする。
+- Outboxは`PUBLISHED`の場合に限り`published_at`を保持し、`PENDING` / `PROCESSING`では`next_attempt_at`を必須、`PUBLISHED` / `FAILED`ではNULLとするCHECKを設定する。Idempotencyの`response_data`は`COMPLETED`時の最小識別情報に限定する。Storage Operationのretry時刻に関する追加CHECKはStep 10で取得・retry semanticsと合わせて確定する。
 - history / trace を Media 本体削除後も保持する relation では、保持要件に反する CASCADE FK を設定しない。
+
+## Constraint review result
+
+Step 5のUNIQUE / CHECK / partial unique reviewは完了とします。各domainの物理データモデルに定義済みのstatus/type値域、数値範囲、scope XOR、複合PK / UNIQUE、partial unique、Join Requestのstatus/nullability整合、Outboxのstatus/published_at整合をInitial Releaseのconstraint baselineとします。
+
+DB単体で自然に表現できないlast-admin、Mediaとsubtype detail / Custody行の存在、cross-scope authorization、Groupの多段cycle等は、無理にcross-table CHECKへ変換せずtransaction / row lock / Service validation / integration testで保証します。
+
+Processing Jobのactive uniqueness、Idempotency response、Outbox error、Storage Operation retry時刻など、後続のretry / publication設計に依存するconstraintはStep 5完了のために推測して追加せず、Step 9 / 10とIssue #61で追跡します。
 
 ## Deletion review principles
 
@@ -129,6 +171,12 @@ Idempotency record は actor / operation / key の組み合わせを一意にし
 - Object Storage 等の外部 cleanup は DB transaction 外で durable operation として追跡する。
 - `DELETING` は cleanup の processing state であり、trash / restore 用 soft delete ではない。
 - Query は通常 active/current state のみを返し、cleanup worker は processing state を明示的に取得する。
+
+## Access pattern / sort baseline
+
+Application全体の利用者向け一覧は、domain固有の順序要件がない場合、`created_at DESC, id DESC` を既定sortとします。これは「新しく作成されたものから見る」というUI上のbaselineであり、すべてのrelationへ同じindexを追加する規則ではありません。
+
+各Queryで、event発生時刻、参加時刻、upload完了時刻、retry予定時刻、Publisher / Workerの取得順等がユースケース上の基準になる場合は、その時刻と安定したtie-breakerを明示し、実際のfilter / JOIN / pagination形に合わせてindexを決定します。
 
 ## Index review principles
 
@@ -142,18 +190,195 @@ Index は次の access pattern が確認できる場合に限り追加します�
 
 単に FK が存在するという理由だけで index を追加しません。
 
+## Access pattern review: User / Community
+
+Userは認証時の`(auth_issuer, auth_subject)` lookupとUser Deletion Jobの`user_id`一意取得を主要access patternとし、利用者向けUser一覧を想定した追加indexは現時点で設けません。
+
+Community MembershipはUserから参加Communityをlookupする`(user_id, community_id)`に加え、Community内Member一覧を`joined_at DESC, user_id DESC`で取得するため`(community_id, joined_at DESC, user_id DESC)`を使用します。Community自体を表示する場合の既定sortは共通規約の`created_at DESC, id DESC`に従いますが、具体的な一覧Queryがない段階で全件一覧用indexを追加しません。
+
+Invitationはtoken検証の`token_hash` UNIQUEとCommunityごとの未revoked Invitation partial uniqueを主要lookupとし、表示一覧用indexは追加しません。Join Request承認待ち一覧は`community_id + status`でfilterし、`requested_at DESC, id DESC`で安定してpageするため`(community_id, status, requested_at DESC, id DESC)`を使用します。
+
+## Access pattern review: Media ownership / access
+
+User Custody、Community Custody、Community AccessからMedia一覧を取得する場合も、表示順の正本は`media.created_at DESC, media.id DESC`とします。Custody / Access relationは対象Mediaのfilter / JOINに使用し、Mediaの作成日時をrelation側へdenormalizeしません。
+
+Initial Releaseでは`media_custodies`のUser / Community partial indexと`media_community_accesses (community_id, media_id)`から対象MediaへJOINし、Media側の`created_at`でsort / cursor paginationします。JOIN越しのsortを避けるためだけの日時複製は行わず、実装後に代表Queryを実データ相当でEXPLAINし、必要な場合だけ追加indexまたはQuery形を見直します。
+
+Community画面でCommunity Custody MediaとCommunityへ共有されたUser Custody Mediaを単一一覧へ統合するか、別一覧とするかはUI / Query要件として別途確定し、現段階のindex設計から推測しません。
+
+## Access pattern review: Group / Tag
+
+Media GroupのMedia関連は`(media_group_id, media_id)` PKと`(media_id, media_group_id)` index、階層relationは`(parent_group_id, child_group_id)` PKと`(child_group_id, parent_group_id)` indexにより、現在要求される両方向lookupを満たします。
+
+TagはInitial ReleaseでMedia絞り込みに使用するため、`media_tags`の`(media_id, tag_id)` PKに加えて`(tag_id, media_id)` indexを持ちます。複数Tag filterのAND / OR、sort、cursor契約はIssue #43で未決定のため、それらを前提とした特殊なindexは現段階で追加しません。
+
+## Access pattern review: async / retry relation
+
+OutboxはPublisherが実行可能な`PENDING`またはlease期限切れ`PROCESSING`を取得するため、`(status, next_attempt_at, created_at, id)`を使用します。取得条件は`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`とし、`created_at, id`を安定したtie-breakerに使用します。
+
+Processing Jobの`(status, updated_at)`とStorage Operationの`(status, next_attempt_at)`はretry / recovery対象を絞り込む目的自体は確定していますが、batch取得で優先する時刻のsemantics、同時刻のtie-breaker、lock / retry方式がStep 9 / 10のasync詳細設計に依存します。Step 6では推測して最終composite順序を固定せず、Step 9 / 10で`id`等の安定tie-breakerを含めて確定します。
+
+## Access pattern / index review result
+
+Step 6のaccess pattern / index reviewは完了とします。Initial Releaseで現在具体化している認証lookup、Membership / Join Request一覧、Media Custody / Community Access、Group / Tag両方向lookup、Media Event、Variant、Outbox、Idempotency cleanup等について、既知のQueryに対応するindexとsort方針を確認しました。
+
+利用者向け一覧は原則`created_at DESC, id DESC`とし、Membershipの`joined_at`、Join Requestの`requested_at`、Media Eventの`occurred_at`等、domain上意味のある時刻がある場合は個別sortを使用します。Media一覧ではCustody / Access側へ作成日時を複製せず、`media.created_at`を正本としてJOIN後にsortします。
+
+Step 6完了後も、次のindex詳細は要件または後続async設計に依存するため意図的に保留します。
+
+- 複数Tag filterのAND / OR、sort、cursor契約に依存する追加index
+- Community Custody MediaとCommunity共有Mediaを単一一覧へ統合する場合の最終Query / index形
+- Processing Job / Storage Operationのretry・recovery取得順、tie-breaker、lock方式に依存する最終composite index
+- Actor単位Media Event一覧等、Initial Releaseの具体的Queryとして未確定な一覧用index
+
+これらはレビュー漏れとして仮のindexを追加せず、対応する要件またはStep 9 / 10でQuery semanticsを確定してから決定します。
+
+## Transaction boundary review: Community membership removal
+
+Initial Releaseの退会・除外はatomic cleanupとします。Community lockと最終Administrator確認の後、対象Userの当該Community Access、Community scopeのGroup / Tag関連、Membershipを同じDB transactionで削除します。Membershipだけを先に消してcleanupを非同期化する中間状態は導入しません。
+
+relation件数増大により将来非同期化が必要になった場合は、単純な後処理ではなく、論理的離脱状態とdurable cleanup Jobを含むLifecycleとして再設計します。
+
+## Transaction boundary review: User account deletion
+
+User account削除全体にはatomicityを要求せず、削除受付後はrollback不能な収束型cleanupとして扱います。Deletion Jobと固定済みtarget snapshotを基準に各cleanupを冪等に実行し、途中まで削除された状態を許容して、最終的にUserと削除対象dataが存在しない状態へ収束させます。retry時に対象が既に存在しない場合は完了済みとして扱います。
+
+Transactionはaccount削除全体を囲まず、削除受付、Media削除完了、Membership / Access / Community分類cleanup、Community削除など、各domain invariantを同時に確定する必要がある局所範囲だけに使用します。完了済みcleanupを後続failureによって復元しません。
+
+## Transaction boundary review: Community deletion
+
+Initial Releaseの通常Community削除は一つのDB transactionで確定します。Communityをlockして権限を再確認し、Community Custody Mediaが0件であることをgateとして確認した後、Communityを削除します。Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagと従属relationはON DELETE CASCADEで同じtransaction内に削除します。
+
+`media_custodies.community_id`はON DELETE RESTRICTを維持し、Community管理Mediaが残る通常削除をDBでも拒否できる構造とします。User管理Media本体、User scope分類、他Community共有は変更しません。Account削除時にCommunity管理Mediaまで削除する特例flowは通常Community削除とは別に扱います。
+
+## Transaction boundary review: Media upload
+
+OriginalはDB transaction開始前にObject Storageへ保存し、Media / subtype / Custody / UPLOADED Event / Processing Job / Outboxは一つのDB transactionでcommitします。DB transactionが失敗した場合はOriginalを即時に補償削除します。
+
+補償削除にも失敗した場合は、別DB transactionで既存の`media_storage_operations`へDELETE operationをdurableに記録し、Workerがretryします。対象Media rowがcommitされていなくても、Upload開始時に生成済みのMedia IDをsnapshot IDとして使用します。補償削除とoperation記録の両方に失敗した場合はObject Storageの孤立object reconciliation / 運用cleanupで回収します。このfailure modeのためだけにUpload Reservation relationはInitial Releaseへ追加しません。
+
+## Transaction boundary review: Media deletion completion
+
+Object Storage削除自体はDB transaction外で冪等に実行します。最後のObject削除成功後は、Storage Operationの完了確定、DELETED Media Event作成、domain関連relation削除、Processing Jobの明示削除、Media物理削除を一つのDB transactionで確定します。これによりStorageだけ削除済みでDB上の削除完了確定が部分的にcommitされる状態を増やしません。
+
+`media_storage_operations`はMedia物理削除後も運用・障害調査用履歴として一定期間保持します。このため`media_id`へFKを設定せず、Media削除transactionでもoperation recordを削除しません。具体的な保持期間とcleanup intervalは運用設計で確定します。
+
+## Transaction boundary review result
+
+Step 7のtransaction boundary reviewは完了とします。Initial Releaseで必要なCommunity Membership removal、Community deletion、User account deletion、Media upload、Media deletion completionの境界を確認し、その他のCommunity / Media操作はdomain consistency documentに定義済みのtransaction境界をbaselineとします。
+
+後続の競合時のlock対象・lock順序・lock後の再確認・conditional update・retry / reject semanticsはStep 8で確定します。async processingのJob acquisitionやpublication固有の競合制御はStep 9 / 10と合わせて具体化します。
+
+## Concurrency review: User lifecycle
+
+User lifecycleの排他点は`identity.users`行とします。account削除受付は対象Userを`SELECT ... FOR UPDATE`でlockしてACTIVEを再確認した後、Community / Membership / Media等を規定順で確認し、target snapshot固定、DELETING遷移、Deletion Job作成を確定します。
+
+新規Upload、共有、分類、role変更等のACTIVE Userを前提とする操作も対象User行をlockして状態を再確認します。通常操作が先にlockを取得した場合はそのcommit後の状態を削除受付が再評価し、削除受付が先にDELETINGをcommitした場合は後続操作を拒否します。User lifecycleについてはconditional updateだけに依存せず、このrow lockを共通の直列化点とします。
+
+## Concurrency review: Community lifecycle
+
+Community lifecycleとAdministrator不変条件の直列化点は`community.communities`行とします。Role変更、退会、除外、User削除によるMembership削除、通常Community削除、Community Custodyへの直接UploadはCommunity行を`SELECT ... FOR UPDATE`でlockし、その後にMembership、Administrator数、Community存在、Custody等を再確認します。これによりlast-admin操作やCommunity削除と直接Uploadをfirst-commit-winsで直列化します。
+
+Invitation acceptは再利用可能なInvitationから複数Userが並行参加できるため、Community行を共通mutexにはしません。Invitation行を状態確認のlock対象とし、User lifecycle、Community存在、Membership不存在の再確認とMembership PK / UNIQUEで競合を処理します。
+
+User起点Join Requestの状態遷移は対象Request行を直列化点とします。lock後にPENDING等の状態を再確認し、承認時のAdministrator権限確認やMembership作成には必要なCommunity / Membership lockを共通順序で追加します。
+
+## Concurrency review: Media lifecycle / Group DAG
+
+Media lifecycleの直列化点は`media.media`行とし、Custodian変更・共有可否の現在状態は`media.media_custodies`行を正本とします。共有・解除・委譲・削除要求はMedia、Custodyの順にlockし、ACTIVE状態、現在Custodian、操作者権限を再確認してから更新します。削除要求が先にDELETINGをcommitした場合、後続の共有・委譲・分類追加を拒否します。
+
+Media Group DAG変更は同一scope単位で直列化します。User scopeでは対象User行、Community scopeでは対象Community行をscopeの排他点としてlockし、scope / 権限を再確認した後にrecursive CTEでcycleを再検証してrelationを更新します。cycle確認とinsertは同一transactionで行い、互いの未commit edgeを見られない並行追加によるcycle成立を防ぎます。Initial Releaseでは同一scope内の独立した階層変更も直列化し、graph単位の複雑なlock方式は導入しません。
+
+## Concurrency review result
+
+Step 8のrow lock / conditional update / concurrency invariant reviewは完了とします。User lifecycle、Community lifecycle / last-admin、Invitation / Join Request、Media lifecycle / Custody、Media Group DAGについて直列化点、lock後の再確認、first-commit-wins / reject semanticsを確定しました。
+
+Processing Job、Outbox Publisher、Storage Operation、Idempotency Request、reprocess / publicationに固有の取得・retry・publication競合は同期domain操作のStep 8へ混在させず、Step 9 / 10で確定します。
+
+## Persistence review: Outbox claim
+
+Outbox Publisherは外部Redis I/O中にPostgreSQL row lockを保持しません。短いtransactionで`PENDING`またはlease期限切れ`PROCESSING` eventを`FOR UPDATE SKIP LOCKED`でbatch claimし、`PROCESSING`と`next_attempt_at`のlease期限を保存してcommitします。`XADD`後に別transactionで`PUBLISHED`を確定します。
+
+`FAILED`は自動retry上限到達後のterminal operational stateとして自動取得対象から外し、運用再開時は`PENDING`へ戻します。`XADD`成功後から`PUBLISHED`確定前のcrashによる重複配送は許容し、event_idを使う下流の冪等性で吸収します。claim owner列はInitial Releaseでは追加せず、lease期限でcrash recoveryします。
+
+## Persistence review: Idempotency Request
+
+Idempotency Requestは対象Commandの業務更新と同じPostgreSQL transactionで確定します。`PROCESSING`を外部I/Oを跨ぐleaseにはせず、予期しないerror / rollbackではrecordもrollbackします。`COMPLETED.response_data`は同一論理結果を再構成する最小識別情報に限定し、永続`FAILED`は再現可能な確定済み業務failureに限定します。
+
+Initial ReleaseのIdempotency Key保証期間は初回受付から24時間です。`expires_at = created_at + 24 hours`とし、期限後は保証終了・cleanup対象とします。長時間処理の継続性は各durable Jobを正本とします。
+
+## Persistence review: Outbox event contract
+
+Outbox payload契約は`event_type + event_version`で識別し、versionは1から開始します。Redis Streamsへのenvelopeは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`とします。Publisherは保存済みpayloadを再解釈・変換せず配送し、互換性のない変更ではversionを増加させます。未配送旧versionを考慮し、Workerはdeploy時に必要な互換期間を持たせます。
+
+## Persistence review: Outbox scheduling and retention
+
+`next_attempt_at`は`PENDING`の実行可能時刻と`PROCESSING`のclaim lease期限に統一して使用し、両statusで必須とします。Publisher取得indexは`(status, next_attempt_at, created_at, id)`、取得条件は`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`とします。`PUBLISHED` / `FAILED`では`next_attempt_at`をNULLにします。
+
+Outboxは配送用技術dataとして、`PUBLISHED`のみ`published_at`から7日保持後にbatch cleanupします。`PENDING` / `PROCESSING` / `FAILED`は自動cleanupせず、Media Event等の操作trace retentionとは分離します。
+
+## Persistence review result
+
+Step 9のOutbox / Idempotency persistence reviewは完了とします。Outboxについてclaim / crash recovery、retry terminal state、event versioning / Redis envelope、取得index、7日retentionを確定しました。Idempotencyについて同一transactionでの確定、request hash、response snapshot、24時間保証、cleanup境界を確定しました。
+
+Processing Job、Storage Operation、Redis Streams consumer、reprocess時のcurrent / staged artifact切替など、非同期処理そのものの取得・retry・publication invariantはStep 10で確定します。
+
+## Async processing publication invariant review result
+
+Step 10のasync processing publication invariant reviewは完了とします。
+
+- Processing Jobは`PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED`とし、`PENDING / PROCESSING`をactive stateとする。同一`(media_id, job_type)`のactive Jobはpartial unique indexで1件に制限する。
+- Redis Consumer Groupを実行messageのownership / crash recoveryの正本とし、Processing Jobへ重複するlease columnを追加しない。retryは同じJob IDを使用し、固定reclaim idleによるRedis pending recoveryをInitial Release baselineとする。
+- Processing JobのDB indexはWorker queue取得用ではなくRedis data喪失等のreconciliation用`(status, updated_at, id)`とする。
+- Variantはcurrent stateだけをDBへ保持する。新Variantは別storage keyへ生成し、全成果物成功後にMediaをlockして`ACTIVE`を再確認した短いtransactionでVariant metadataとJob `COMPLETED`をatomicにpublicationする。
+- Media削除が先行して`DELETING`になった場合はpublicationせずJobを`CANCELLED`とし、生成済み未公開Objectをcleanupする。publicationが先行した場合は削除側がcommit後の最新Variantを削除対象としてsnapshotする。
+- staging Object一覧はDBへ永続化せず、Media ID / Job IDから識別可能なObject key namespaceとする。cleanup operation記録前のWorker crashによる孤立Objectはorphan reconciliationで回収する。
+- Storage Operationは`PENDING | PROCESSING | COMPLETED | FAILED`とし、PostgreSQL自身をdurable queueとする。`next_attempt_at`をPENDINGの実行可能時刻 / PROCESSINGのclaim lease期限に使用し、`FOR UPDATE SKIP LOCKED`でclaimする。取得indexは`(status, next_attempt_at, created_at, id)`とする。
+- Storage DELETEはDB transaction外で冪等に実行し、retry可能failureは指数backoff、上限到達または回復不能failureは`FAILED`とする。Media削除に関連するdurable Storage Operationがすべて`COMPLETED`になるまでMediaを`DELETING`で保持する。
+- retry回数、Redis reclaim idle、Storage claim lease、Storage backoff値、orphan reconciliationの走査間隔 / grace period、COMPLETED Storage Operationの保持期間 / cleanup intervalはruntime / operations parameterであり、資料に根拠のない具体値をDB詳細設計では固定しない。Issue #44 / #45 / #61等の対応する運用・実装設計で追跡する。
+
+これによりStep 6で保留したProcessing Job / Storage Operationの最終index、Step 5で保留したactive Job uniquenessとStorage Operation retry状態をStep 10の確定値で上書きします。Step 10完了後の次工程はStep 11 migration / compatibility reviewです。
+
+## Migration / compatibility review result
+
+Step 11のmigration / compatibility reviewは完了とします。Initial Release前の現在はlegacy schema / dataとの互換migrationを作らず、確定した物理設計から新しいbaselineを再構築します。
+
+- 既存のlegacy table / dataを新設計へ変換しない。開発DBの既存dataはdisposableとし、baseline再構築時にDB / volumeをresetしてfresh PostgreSQLへ新しい`00001_initial.sql`を適用する。
+- 既存の`00001_initial.sql`は旧設計から新設計へ変換するmigrationとして残さず、Step 12で確定する最終DDLから置き換える。旧`00001`を適用済みのDBはgoose上version 1済みであるため、file差し替えだけで再適用できるとは扱わない。
+- migration履歴をschema変更の正本とし、`schema.sql`はfresh DBへmigrationを適用した結果から生成するcurrent-schema snapshotとする。`schema.sql`を手編集してmigrationへ逆輸入する運用は行わない。
+- sqlc query / generated code、API / GraphQL / Webが旧schemaへ依存して一時的に成立しなくても、legacy relationを残して互換性を維持しない。DB baseline確定後にpersistence/query、domain/service、GraphQL/API、Webの順で新設計へ追従させる。
+- Applicationの通常起動ではmigrationを自動実行しない。deploy migrationはApplication deployと分離し、migration成功をApplication deployの前提とする。Productionの具体的な実行container / environmentはoperations設計で確定する。
+- pre-release baselineの`Down`は開発・検証でschemaを空へ戻すための逆順DDLとし、legacy dataを保持して旧schemaへ復元するrollback契約とはしない。
+- Initial Release前でProductionへ未適用のbaselineは、設計確定に伴い`00001_initial.sql`を再構築できる。Productionへ一度でも適用したmigrationは原則immutableとし、それ以降の変更は新しいversioned forward migrationで行う。
+- Quality Gateはfresh PostgreSQLへのmigration適用、migrationから生成したschema snapshotとの一致、fresh環境での再現性を維持する。新schemaへの追従期間に成立しないsqlc / API / runtime gateは恒常的な失敗として放置せず、追跡Issue付きで一時停止し、実装追従後に復帰させる。
+
+Step 12では新しいbaselineのexecutable DDLを依存順に確定します。概念的なUp順序はschema、親entity、domain relation、cross-domain relation、async / technical relation、constraint / index / commentとし、Downは依存関係の逆順とします。実際のtable / constraint / index作成順序はFK依存を満たすよう最終DDLで確定します。
+
+## Final executable DDL review result
+
+Step 12のfinal executable DDL reviewは完了とします。Step 1〜11で確定した物理モデルをInitial Release baselineへ落とすためのRelation、column、FK action、CHECK / UNIQUE、partial unique、access-pattern index、作成依存順を横断確認しました。
+
+- Initial baselineは`identity`、`community`、`media`の3 schemaを作成し、Application relationを`public`へ作成しない。
+- Original Objectは`media.media.original_storage_key text NOT NULL UNIQUE`を正本として保持する。ApplicationがObject Storage保存前にkeyを生成し、実際に使用したkeyをDBへ保存する。key format自体はStorage実装設計へ分離する。
+- User起点Join Requestは将来設計をdocumentに保持するがInitial Release機能ではないため、`community.community_join_requests`を`00001_initial.sql`へ作成しない。実装時に要件を再確認してversioned migrationで追加する。
+- nickname、Community名、Tag名等のUnicode trim / canonicalizationはApplicationで実施する。DBはcanonicalな保存値に対する空文字拒否等、PostgreSQLで安定して同じ意味を表現できる最低限のCHECKを担当する。
+- FK action、Custody / scope XOR、status整合、active Processing Job partial unique、Outbox / Storage Operation scheduling整合、Idempotency unique、Variant current-state unique等は各physical modelで確定した規則をDDLへそのまま実装する。
+- constraint / index名は意味を識別できる一貫したsnake_case名称とし、product semanticsを追加しない実装詳細としてInitial migration作成時に確定する。
+- UpはFK依存を満たす順にschema、親relation、従属relation、technical relation、index / commentを構築し、Downは依存関係の逆順でApplication relationとschemaを除去する。
+- Initial ReleaseでQuery契約が未確定の複数Tag filter、Community統合Media一覧等について、DDL完成だけを目的とした推測indexを追加しない。具体Query確定後に必要なindexをversioned migrationで追加できる。
+- runtime / operations parameterはDDLへ固定しない。retry上限、lease / reclaim時間、cleanup interval / retention等は既存Issueで追跡する。
+
+このStepの完了は設計上のInitial executable DDL contractが確定したことを意味します。`memoria-api/schemas/postgres/migrations/00001_initial.sql`と生成`schema.sql`は本設計に基づいて置換済みであり、fresh PostgreSQLへのmigration適用と、goose管理relationを除外したschema snapshotの一致をQuality Gateで確認済みです。sqlc query / generated code以降のApplication実装追従は後続工程で行います。
+
 ## 未決定事項
 
-以下は Implementation Detailed Design で今後確定します。
+PostgreSQL Implementation Detailed Designとして、Initial Release baseline DDLを構成するための未決定事項はありません。
 
-- 全 Relation の最終 column inventory と executable DDL
-- final FK action と constraint name
-- cursor query ごとの composite index 順序
-- Invitation consume / idempotencyの最終物理表現
-- Processing publication の具体的 current/staged schema
-- Outbox event versioning と payload schema
-- Idempotency retention / cleanup policy
-- Tag normalization algorithm
-- migration rollout / rollback SQL
+以下はDDL設計から意図的に分離し、対応する機能・runtime / operations設計で追跡します。
 
-未決定事項は資料にない値を推測して埋めず、Issue で追跡します。
+- Initial ReleaseでQuery契約が未確定のaccess patternに対する追加index
+- retry回数、lease / reclaim時間、cleanup interval / retention等のruntime / operations parameter
+- Object Storage keyの具体的なnamespace / format
+- 将来のUser起点Join Requestを実装する時点の最終要件とmigration
+
+memoria-apiのlegacy Initial migration再構築とschema snapshot更新は完了しています。後続工程では新しいDB baselineを前提としてpersistence/query、domain/service、GraphQL/API、Webを段階的に追従させます。

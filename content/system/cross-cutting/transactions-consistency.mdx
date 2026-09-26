@@ -15,8 +15,12 @@ User、Community、Mediaに共通するTransaction境界、lock順序、状態�
 ## lock順序と競合制御
 
 - 複数domainをまたぐ場合はCommunity、Membership、Media/Custodyの順序を基準にlockする。
+- Community lifecycleとAdministrator不変条件を変更する操作は`community.communities`行を直列化点とする。Invitation acceptのようにCommunity lifecycle自体を変更せず並行実行を許容する操作までCommunity行へ集約しない。
+- User lifecycleの排他点は`identity.users`行とする。User削除受付と、ACTIVEを前提とする新規Upload・共有・分類・権限変更等は対象User行をlockし、lock取得後に状態を再確認する。
 - User削除ではUser行を先に確保し、以後の共有lock順序と矛盾しない順で対象を処理する。
-- lock取得後にUser状態、Membership、Administrator、Custody、対象recordの存在を再確認する。
+- Media lifecycleを変更する操作は`media.media`行を直列化点とし、Custodyに依存する操作では続けて`media.media_custodies`行をlockして現在状態を再確認する。
+- Media Group DAG変更はscope単位で直列化し、User scopeは対象User行、Community scopeは対象Community行をlockした後にcycleを再検証する。
+- lock取得後にUser状態、Membership、Administrator、Custody、対象recordの存在を再確認する.
 - 同時更新はrow lock、条件付き更新、UNIQUE・CHECK等のDB制約を組み合わせて保護する。
 - 先にcommitした操作を正とし、後続は最新状態を再評価して拒否または再試行する。
 - DELETING状態の対象には、新規Upload、共有、分類、権限変更などの追加操作を認めない。

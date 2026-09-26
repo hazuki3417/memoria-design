@@ -17,7 +17,7 @@ account削除時にMedia domainが受け持つ削除、共有解除、Uploader�
 - Community内Group・Tagとの関連だけを削除し、Group・Tag本体は保持する。
 - 必要なMedia Eventを記録し、不要な個人情報を保持しない。
 
-Storage削除や関連解除が一時的に失敗した場合は、UserをDELETINGのまま保持してsystemが再試行します。Userに削除の再申請を要求しません。
+Storage削除や関連解除が一時的に失敗した場合は、UserをDELETINGのまま保持してsystemが再試行します。Userに削除の再申請を要求しません。account削除全体を一つのTransactionとしてrollbackせず、完了済みcleanupは維持したまま未完了対象だけを冪等に再処理します。削除対象が既に存在しない場合は目標状態を満たしているため完了済みとして扱います。
 
 ## Community管理MediaとUploader
 

@@ -43,7 +43,7 @@ erDiagram
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | Job ID |
-| user_id | varchar(26) | UNIQUE、FK users | 削除対象 |
+| user_id | varchar(26) | UNIQUE、FK users ON DELETE RESTRICT | 削除対象 |
 | status | varchar(16) | NOT NULL、CHECK | PENDING / RUNNING / FAILED |
 | target_snapshot | jsonb | NOT NULL | 確定時のMedia・Community対象 |
 | attempt_count | integer | NOT NULL、0以上 | 試行回数 |
@@ -53,7 +53,7 @@ erDiagram
 
 ## 削除規則
 
-完了後はUser物理削除に伴ってJobも削除します。Community管理Mediaを保持する場合はMedia側のuploaded_by_user_idをNULLにし、「削除済みUser」と表示します。削除前nicknameやAuth0 identifierは退避しません。
+削除Jobが残っている間は`ON DELETE RESTRICT`でUser物理削除を拒否します。cleanup完了後、WorkerがDeletion Jobを明示削除してからUserを物理削除します。Community管理Mediaを保持する場合はMedia側のuploaded_by_user_idをNULLにし、「削除済みUser」と表示します。削除前nicknameやAuth0 identifierは退避しません。
 
 ## 他domainとの境界
 

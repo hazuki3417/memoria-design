@@ -53,12 +53,23 @@ WorkerはConsumer Groupで水平scaleできます。画像と動画の負荷差�
 ## 配送と失敗
 
 - 配送保証はAt-Least-Onceとし、Exactly Onceを前提にしません。
-- 成果物保存、必要なDB更新、job完了の後に`XACK`します。
-- Worker停止後のpending messageは`XAUTOCLAIM`などで回収します。
-- Redis data喪失時はPostgreSQLのOutboxとProcessing Jobを照合し、未処理対象を冪等に再enqueueします。
+- Redis Consumer Groupを実行中messageのownershipとWorker crash recoveryの正本とし、Worker停止後のpending messageは`XAUTOCLAIM`などで回収します。Processing JobへRedisと重複する実行leaseは保持しません。
+- Workerはmessage受信後、対象Mediaをlockして`ACTIVE`を再確認し、続いてProcessing Jobをrow lockします。Mediaが`ACTIVE`なら`PENDING`を`PROCESSING`へ遷移して`attempts`を増加させてcommitしてからPipelineを実行します。Mediaが既に`DELETING`ならJobを`CANCELLED`として確定し、Pipelineを開始しません。terminalな`COMPLETED` / `FAILED` / `CANCELLED`のduplicate deliveryはPipelineを再実行せず`XACK`します。
+- pending messageを正当にclaimして再実行する場合、`PROCESSING`の同一`job_id`をretryします。Redis messageのclaimなしに`PROCESSING` Jobだけを見て別Workerが並行実行しません。
+- 成果物保存、必要なDB更新、Variant publicationとjob `COMPLETED`の確定後に`XACK`します。回復不能failureまたはretry上限到達時は`FAILED`を永続化してから`XACK`します。
+- Redis data喪失時はPostgreSQLのOutboxとProcessing Jobを照合し、active Jobを冪等に再enqueueします。
 - 専用DLQを初期必須にせず、恒久失敗はPostgreSQL上のJob状態で追跡します。
-- 一時的な失敗は上限付きbackoffでretryします。
-- 回復不能な失敗はjobを`FAILED`として運用から確認できるようにします。
+- 一時的な失敗ではmessageを`XACK`せずConsumer Groupのpendingへ残し、固定backoff相当のidle時間経過後に`XAUTOCLAIM`で再取得します。Initial Releaseではattemptごとの指数backoffや個別`next_attempt_at` schedulerを導入しません。
+- retry回数上限とreclaim idle時間はruntime parameterとし、DB schemaの固定値にはしません。具体値はIssue #44 / #61で運用・実装時に確定します。
+- `media_processing_jobs.attempts`はPipeline実行開始ごとに増加し、上限到達または回復不能な失敗ではjobを`FAILED`として永続化してmessageを`XACK`します。
 - 同じeventやjobが再配送されても成果物が重複しないようにします。
+
+## Variant再処理とpublication
+
+Image Variantは履歴やgenerationをDBへ保持せず、`image_variants`をその時点で有効な状態の正本とします。再処理では既存Variantを提供し続け、新Variant群を別のObject Storage keyへ生成します。全必要Variantの生成成功後だけ、対象Mediaを`FOR UPDATE`でlockする短いPostgreSQL transactionで`ACTIVE`を再確認し、ACTIVEの場合だけVariant metadataを一括置換してProcessing Jobの完了を同時に確定します。削除要求が先に`DELETING`をcommitしていた場合はpublicationせずJobを`CANCELLED`とし、生成済み未公開ObjectをStorage OperationのDELETE対象にします。publicationが先にMedia lockを取得してcommitした場合、後続の削除要求は新しくpublicationされたVariantを含む最新状態から削除対象を確定します。
+
+Object Storageへの生成・削除はPostgreSQL transactionへ含めません。publication commit後の旧Object削除に失敗した場合はStorage Operationでretryし、publication前に失敗した新Objectは未公開objectとしてcleanupします。同じstorage keyへの逐次上書きは、途中失敗時に新旧Variantが混在するためpublication方式として使用しません。
+
+未公開Variantのstaging Object一覧をProcessing Jobや別relationへ永続化しません。staging Object keyはMedia IDとJob IDから対象を識別できるnamespace規約とし、Workerが`DELETING`を検出した場合は自身が生成済みの未公開keyについてStorage Operationをdurableに作成してからJobを`CANCELLED`へ確定します。Object生成後からcleanup operation記録前にWorkerが停止するfailure windowは、Object Storage orphan reconciliationを最終的な安全網として回収します。reconciliationはpublished VariantとしてDBから参照されず、かつactive Jobに対応しないstaging Objectをgrace period後のcleanup候補として扱います。走査間隔とgrace periodの具体値はruntime / operations設計で確定します。
 
 詳細は[Media処理と派生物](/media/processing)、[Transactional Outbox](./transactional-outbox)、[冪等性](./idempotency)を参照してください。
