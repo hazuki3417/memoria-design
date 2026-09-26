@@ -239,6 +239,12 @@ Initial Releaseの退会・除外はatomic cleanupとします。Community lock�
 
 relation件数増大により将来非同期化が必要になった場合は、単純な後処理ではなく、論理的離脱状態とdurable cleanup Jobを含むLifecycleとして再設計します。
 
+## Transaction boundary review: Community deletion
+
+Initial Releaseの通常Community削除は一つのDB transactionで確定します。Communityをlockして権限を再確認し、Community Custody Mediaが0件であることをgateとして確認した後、Communityを削除します。Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagと従属relationはON DELETE CASCADEで同じtransaction内に削除します。
+
+`media_custodies.community_id`はON DELETE RESTRICTを維持し、Community管理Mediaが残る通常削除をDBでも拒否できる構造とします。User管理Media本体、User scope分類、他Community共有は変更しません。Account削除時にCommunity管理Mediaまで削除する特例flowは通常Community削除とは別に扱います。
+
 ## Transaction boundary review: Media upload
 
 OriginalはDB transaction開始前にObject Storageへ保存し、Media / subtype / Custody / UPLOADED Event / Processing Job / Outboxは一つのDB transactionでcommitします。DB transactionが失敗した場合はOriginalを即時に補償削除します。
