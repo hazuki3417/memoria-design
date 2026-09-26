@@ -98,7 +98,7 @@ Media domainが所有する`media_custodies`と`media_community_accesses`は[Med
 
 ## 削除規則
 
-Community削除時は`communities`を起点としてMembership、Invitation、User起点Join Requestを削除または無効化します。ただし、Community管理Mediaが残る場合は通常のCommunity削除を拒否し、Media domainのcleanupをFK cascadeだけで代替しません。
+Community削除時は`communities`を起点としてMembership、Invitation、User起点Join Requestに加え、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationを同じtransaction内でCASCADE削除します。ただし、`media_custodies.community_id`はON DELETE RESTRICTとし、Community管理Mediaが残る場合は通常のCommunity削除を拒否します。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。Media domainのcleanupをFK cascadeだけで代替しません。
 
 Membershipの退会・除外・User削除では、最後のAdministrator確認とUser管理Mediaの共有解除が必要なため、`users`からの単純なFK cascadeだけに依存しません。Invitationの発行者やJoin Requestのreviewerなど履歴上のUser参照は、User削除後に不要な個人情報を保持しないよう`ON DELETE SET NULL`またはUser domainの削除規則に従います。
 
