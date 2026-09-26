@@ -61,4 +61,10 @@ WorkerはConsumer Groupで水平scaleできます。画像と動画の負荷差�
 - 回復不能な失敗はjobを`FAILED`として運用から確認できるようにします。
 - 同じeventやjobが再配送されても成果物が重複しないようにします。
 
+## Variant再処理とpublication
+
+Image Variantは履歴やgenerationをDBへ保持せず、`image_variants`をその時点で有効な状態の正本とします。再処理では既存Variantを提供し続け、新Variant群を別のObject Storage keyへ生成します。全必要Variantの生成成功後だけ、対象Mediaをlockする短いPostgreSQL transactionでVariant metadataを一括置換し、Processing Jobの完了を同時に確定します。
+
+Object Storageへの生成・削除はPostgreSQL transactionへ含めません。publication commit後の旧Object削除に失敗した場合はStorage Operationでretryし、publication前に失敗した新Objectは未公開objectとしてcleanupします。同じstorage keyへの逐次上書きは、途中失敗時に新旧Variantが混在するためpublication方式として使用しません。
+
 詳細は[Media処理と派生物](/media/processing)、[Transactional Outbox](./transactional-outbox)、[冪等性](./idempotency)を参照してください。
