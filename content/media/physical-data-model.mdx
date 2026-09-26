@@ -300,7 +300,7 @@ User scopeまたはCommunity scopeのどちらか一方だけを持つXOR CHECK�
 | tag_id | varchar(26) | FK tags ON DELETE CASCADE | 対象Tag |
 | created_at | timestamptz | NOT NULL | Tagを関連付けた時刻 |
 
-PKは`(media_id, tag_id)`です。Tag削除時は関連付けだけを削除し、Media本体を削除しません。TagのscopeとMediaの操作・共有状態が整合することはServiceで検証します。User管理MediaのCommunity共有解除時は、そのCommunity scopeのTag関連だけを削除します。
+PKは`(media_id, tag_id)`です。MediaからTagを取得する方向はPKを使用し、TagによるMedia絞り込みの逆方向lookup用に`(tag_id, media_id)`へindexを追加します。Tag削除時は関連付けだけを削除し、Media本体を削除しません。TagのscopeとMediaの操作・共有状態が整合することはServiceで検証します。User管理MediaのCommunity共有解除時は、そのCommunity scopeのTag関連だけを削除します。
 
 ### media_storage_operations
 
