@@ -61,6 +61,8 @@ erDiagram
 
 `status=DELETING`はObject Storage削除を完了させるための一時的な処理状態です。ごみ箱、復元、論理削除には使用しません。通常のQueryは`ACTIVE`だけを返します。
 
+利用者向けMedia一覧は原則として`created_at DESC, id DESC`で表示します。CustodyまたはCommunity Accessで対象Mediaを絞り込む場合も、作成日時の正本は`media.created_at`とし、index最適化だけを目的として`media_custodies`や`media_community_accesses`へMedia作成日時を複製しません。relationをJOINしてMedia側の作成日時でsort / cursor paginationし、実データ量と実行計画から追加最適化が必要になった場合にindexやQuery形を再検討します。
+
 index:
 
 - `(uploaded_by_user_id, uploaded_at DESC, id DESC)`
