@@ -354,14 +354,31 @@ Step 11のmigration / compatibility reviewは完了とします。Initial Releas
 
 Step 12では新しいbaselineのexecutable DDLを依存順に確定します。概念的なUp順序はschema、親entity、domain relation、cross-domain relation、async / technical relation、constraint / index / commentとし、Downは依存関係の逆順とします。実際のtable / constraint / index作成順序はFK依存を満たすよう最終DDLで確定します。
 
+## Final executable DDL review result
+
+Step 12のfinal executable DDL reviewは完了とします。Step 1〜11で確定した物理モデルをInitial Release baselineへ落とすためのRelation、column、FK action、CHECK / UNIQUE、partial unique、access-pattern index、作成依存順を横断確認しました。
+
+- Initial baselineは`identity`、`community`、`media`の3 schemaを作成し、Application relationを`public`へ作成しない。
+- Original Objectは`media.media.original_storage_key text NOT NULL UNIQUE`を正本として保持する。ApplicationがObject Storage保存前にkeyを生成し、実際に使用したkeyをDBへ保存する。key format自体はStorage実装設計へ分離する。
+- User起点Join Requestは将来設計をdocumentに保持するがInitial Release機能ではないため、`community.community_join_requests`を`00001_initial.sql`へ作成しない。実装時に要件を再確認してversioned migrationで追加する。
+- nickname、Community名、Tag名等のUnicode trim / canonicalizationはApplicationで実施する。DBはcanonicalな保存値に対する空文字拒否等、PostgreSQLで安定して同じ意味を表現できる最低限のCHECKを担当する。
+- FK action、Custody / scope XOR、status整合、active Processing Job partial unique、Outbox / Storage Operation scheduling整合、Idempotency unique、Variant current-state unique等は各physical modelで確定した規則をDDLへそのまま実装する。
+- constraint / index名は意味を識別できる一貫したsnake_case名称とし、product semanticsを追加しない実装詳細としてInitial migration作成時に確定する。
+- UpはFK依存を満たす順にschema、親relation、従属relation、technical relation、index / commentを構築し、Downは依存関係の逆順でApplication relationとschemaを除去する。
+- Initial ReleaseでQuery契約が未確定の複数Tag filter、Community統合Media一覧等について、DDL完成だけを目的とした推測indexを追加しない。具体Query確定後に必要なindexをversioned migrationで追加できる。
+- runtime / operations parameterはDDLへ固定しない。retry上限、lease / reclaim時間、cleanup interval / retention等は既存Issueで追跡する。
+
+このStepの完了は設計上のInitial executable DDL contractが確定したことを意味します。実際の`memoria-api/schemas/postgres/migrations/00001_initial.sql`と生成`schema.sql`の置換、Quality Gateによるfresh migration / snapshot一致確認は実装工程で行います。
+
 ## 未決定事項
 
-以下はStep 12または対応するruntime / operations設計で今後確定します。
+PostgreSQL Implementation Detailed Designとして、Initial Release baseline DDLを構成するための未決定事項はありません。
 
-- 全Relationの最終column inventoryとexecutable DDL
-- final constraint name / index name、およびDDL上の作成順序
-- 具体的なInitial migrationのUp / Down SQL
-- まだInitial Releaseの具体Query契約が確定していないaccess patternの追加composite index
-- runtime / operations parameterとして意図的にDB詳細設計から分離したretry回数、lease / reclaim時間、cleanup interval / retention等
+以下はDDL設計から意図的に分離し、対応する機能・runtime / operations設計で追跡します。
 
-Processing Job active uniqueness、Variant publication方式、Outbox event versioning、Idempotency 24時間保証、migration rollout / compatibility方針は前段Stepで確定済みであり、未決定事項として再掲しません。資料にない値はStep 12でもDDL完成のためだけに推測して埋めず、必要なものはIssueで追跡します。
+- Initial ReleaseでQuery契約が未確定のaccess patternに対する追加index
+- retry回数、lease / reclaim時間、cleanup interval / retention等のruntime / operations parameter
+- Object Storage keyの具体的なnamespace / format
+- 将来のUser起点Join Requestを実装する時点の最終要件とmigration
+
+次工程ではmemoria-apiのlegacy Initial migrationを本設計から再構築し、fresh PostgreSQLへの適用とschema snapshot一致をQuality Gateで検証します。
