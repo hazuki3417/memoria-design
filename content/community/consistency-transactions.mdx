@@ -53,6 +53,14 @@ Initial Releaseでは、退会・除外に伴うMembership削除、対象Userが
 
 将来relation件数の増大によりtransaction規模が問題になる場合は、cleanupのみを単純に非同期化せず、論理的な離脱状態とdurable cleanup Jobを含むLifecycleとして別途設計します。Initial Releaseではその中間状態を導入しません。
 
+## Community削除のatomic cleanup
+
+Initial Releaseの通常Community削除は一つのDB transactionで確定します。Community行をlockして削除権限を再確認し、Community Custody Mediaが0件であることを確認した後にCommunityを削除します。
+
+Community削除により、Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationをFKのON DELETE CASCADEで同じtransaction内に削除します。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。
+
+`media_custodies.community_id`はON DELETE RESTRICTとし、Community管理Mediaが残る場合は通常削除を拒否します。Account削除時に明示確認を伴ってCommunity管理Mediaまで削除する特例flowは通常Community削除とは分離して扱います。
+
 ## Community削除とUpload
 
 Community削除とCommunityへの直接Uploadは同じCommunity行をlockします。後続TransactionはCommunity存在とCommunity Custody件数を再評価し、管理Mediaを残した削除や削除済みCommunityへのUploadを防ぎます。
