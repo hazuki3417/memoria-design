@@ -12,7 +12,7 @@ Transaction境界、lock順序、認可の再評価、外部I/Oの扱いは[Tran
 | --- | --- |
 | upload | Media、subtype、Custody、UPLOADED event、Processing Job、Outbox Eventの作成 |
 | 共有・解除 | Custody確認、Access追加・削除、Event作成 |
-| 委譲 | Custody lock、全Access削除、Custody更新、Event作成 |
+| 委譲 | Media lock、Custody lock、全Access削除、Custody更新、Event作成 |
 | Group追加・解除 | scope・権限・循環確認、関連更新 |
 | 削除要求 | ACTIVE確認、DELETING更新、storage operation作成 |
 | 削除完了 | domain関連削除、Media削除、DELETED event作成 |
