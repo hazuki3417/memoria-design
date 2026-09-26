@@ -198,6 +198,14 @@ Community MembershipはUserから参加Communityをlookupする`(user_id, commun
 
 Invitationはtoken検証の`token_hash` UNIQUEとCommunityごとの未revoked Invitation partial uniqueを主要lookupとし、表示一覧用indexは追加しません。Join Request承認待ち一覧は`community_id + status`でfilterし、`requested_at DESC, id DESC`で安定してpageするため`(community_id, status, requested_at DESC, id DESC)`を使用します。
 
+## Access pattern review: Media ownership / access
+
+User Custody、Community Custody、Community AccessからMedia一覧を取得する場合も、表示順の正本は`media.created_at DESC, media.id DESC`とします。Custody / Access relationは対象Mediaのfilter / JOINに使用し、Mediaの作成日時をrelation側へdenormalizeしません。
+
+Initial Releaseでは`media_custodies`のUser / Community partial indexと`media_community_accesses (community_id, media_id)`から対象MediaへJOINし、Media側の`created_at`でsort / cursor paginationします。JOIN越しのsortを避けるためだけの日時複製は行わず、実装後に代表Queryを実データ相当でEXPLAINし、必要な場合だけ追加indexまたはQuery形を見直します。
+
+Community画面でCommunity Custody MediaとCommunityへ共有されたUser Custody Mediaを単一一覧へ統合するか、別一覧とするかはUI / Query要件として別途確定し、現段階のindex設計から推測しません。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
