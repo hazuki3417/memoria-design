@@ -233,6 +233,12 @@ Step 6完了後も、次のindex詳細は要件または後続async設計に依�
 
 これらはレビュー漏れとして仮のindexを追加せず、対応する要件またはStep 9 / 10でQuery semanticsを確定してから決定します。
 
+## Transaction boundary review: Community membership removal
+
+Initial Releaseの退会・除外はatomic cleanupとします。Community lockと最終Administrator確認の後、対象Userの当該Community Access、Community scopeのGroup / Tag関連、Membershipを同じDB transactionで削除します。Membershipだけを先に消してcleanupを非同期化する中間状態は導入しません。
+
+relation件数増大により将来非同期化が必要になった場合は、単純な後処理ではなく、論理的離脱状態とdurable cleanup Jobを含むLifecycleとして再設計します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
