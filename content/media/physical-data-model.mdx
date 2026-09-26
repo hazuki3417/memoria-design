@@ -163,6 +163,7 @@ Media domainで確定した変更を非同期Publisherへ引き渡す技術table
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | Outbox Event ID |
 | event_type | varchar(64) | NOT NULL | 配送するevent種別 |
+| event_version | integer | NOT NULL、CHECK 1以上 | event payload契約のversion |
 | aggregate_id | varchar(26) | NOT NULL | 対象Media等のaggregate ID |
 | payload | jsonb | NOT NULL | Workerへ配送するevent payload |
 | status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PROCESSING`、`PUBLISHED`、`FAILED` |
@@ -177,7 +178,9 @@ Media domainで確定した変更を非同期Publisherへ引き渡す技術table
 
 Publisherは短いDB transactionで実行可能な`PENDING`、またはlease期限切れの`PROCESSING`を`FOR UPDATE SKIP LOCKED`でbatch取得し、`PROCESSING`とlease期限を設定してcommitします。Redisへの`XADD`はDB transaction外で行います。`XADD`成功後は`PUBLISHED`と`published_at`を確定し、失敗時は`attempt_count`を増加して次回retry時刻を設定します。`XADD`成功後から`PUBLISHED`確定前の停止では重複配送を許容し、`event_id`による下流の冪等性で処理します。
 
-Publisher取得用indexはstatus、実行可能時刻、安定したtie-breakerを含む形をStep 9で最終確定します。payloadへcredential、署名付きURLなどのsecretを保存しません。
+Publisher取得用indexはstatus、実行可能時刻、安定したtie-breakerを含む形をStep 9で最終確定します。
+
+Outbox payload契約は`event_type + event_version`で識別します。Initial Releaseではversionを1から開始し、互換性のないpayload変更ではversionを増加させます。`payload`内へversionを重複保存しません。Redis Streamsへは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`をmessage envelopeとして配送します。未配送の旧version eventが残る状態でdeployできるよう、Publisherはpayloadを再解釈せず保存済みenvelopeを配送し、Workerは運用上残存し得るversionを処理できる期間を設けます。payloadへcredential、署名付きURLなどのsecretを保存しません。
 
 ### idempotency_requests
 
