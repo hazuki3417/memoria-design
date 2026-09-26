@@ -73,7 +73,8 @@ sequenceDiagram
 - Objectが存在しない場合も削除成功として扱います。
 - 一部objectの削除失敗は未完了operationだけをretryします。
 - DELETING中のMediaは閲覧・更新対象から除外します。
-- 最後のObject Storage削除成功後、Storage Operationの完了確定、DELETED Event作成、domain関連削除、Processing Jobの明示削除、Media物理削除を一つのDB transactionで確定します。
+- 削除要求transactionでは、その時点でDBから確定できるOriginalとpublished VariantのkeyをStorage Operationとしてsnapshotします。実行中Processing Workerが後から`DELETING`を検出した場合は、そのWorkerが生成済み未公開ObjectのStorage Operationを追加してJobを`CANCELLED`にします。
+- Media削除に関連してdurableに記録されたStorage Operationがすべて`COMPLETED`であることを確認した後、最後のOperation完了確定、DELETED Event作成、domain関連削除、Processing Jobの明示削除、Media物理削除を一つのDB transactionで確定します。`PENDING` / `PROCESSING` / `FAILED`が残る間はMediaを`DELETING`のまま保持し、特に`FAILED`は運用対応待ちとします。
 - 完了したStorage OperationはMedia物理削除後も運用・障害調査用に一定期間保持し、削除完了transactionでは削除しません。保持期間とcleanup intervalは運用設計で別途確定します。
 - backupは障害復旧用であり、個別Mediaの復元には使用しません。
 
