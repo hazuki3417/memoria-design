@@ -170,6 +170,8 @@ Media domainで確定した変更を非同期Publisherへ引き渡す技術table
 | published_at | timestamptz | NULL可 | 配送完了時刻 |
 | updated_at | timestamptz | NOT NULL | 最終更新時刻 |
 
+`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `FAILED`では`published_at`をNULLとします。`last_error`はretry policyの詳細確定前にstatusとの必須関係を設けません。
+
 `(status, created_at, id)`をindex対象とし、Publisherが未送信eventを安定した順序で取得します。payloadへcredential、署名付きURLなどのsecretを保存しません。
 
 ### idempotency_requests
