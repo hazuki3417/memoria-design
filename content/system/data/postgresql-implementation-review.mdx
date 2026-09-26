@@ -92,7 +92,7 @@ Media 本体は custody / access / classification / processing から独立さ�
 
 `media` に owner User / Community ID を直接保持しません。現在の管理主体は `media_custodies` の XOR relation で表現します。一方 `uploaded_by_user_id` は ownership ではなく provenance なので Media に保持し、User 物理削除時は `SET NULL` とします。
 
-Image は Media から解釈された logical image とし、複数 page を持つ source では `source_index` により識別します。Image Variant は Media ではなく Image に属する delivery artifact とします。Original Media は immutable です。
+Initial Releaseでは`media_type = IMAGE`の1 Mediaに対して`images`を1件だけ持つsubtype detailとします。Media typeに対応するdetailの存在と排他性は同一transactionの書き込みとintegration testで保証します。Image VariantはMediaではなくImageに属するdelivery artifactとします。Original Mediaはimmutableです。TIFF / PDF等のmulti-page sourceを複数Imageとして展開する要件はInitial Releaseへ含めず、必要になった時点でpage identityやrelationを別途設計します。
 
 ### Classification
 
