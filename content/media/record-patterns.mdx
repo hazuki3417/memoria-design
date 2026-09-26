@@ -172,15 +172,15 @@ Groupは「旅行」→「日本」→「東京・京都」と「旅行」→「
 
 ## User削除
 
-U1がM1・M2・M3を管理している場合:
+Initial ReleaseではUser削除に伴うCustody transferを提供しません。U1が管理するMediaは削除受付時に対象を固定し、すべて削除対象とします。
 
-| Media | 選択 | 結果 |
-| --- | --- | --- |
-| M1 | U2へ委譲 | CustodyをU2へ変更、Access解除 |
-| M2 | C1へ委譲 | CustodyをC1へ変更、Access解除 |
-| M3 | 削除 | DELETINGへ変更しstorage削除を開始 |
+| Media | Initial Releaseの結果 |
+| --- | --- |
+| M1 | DELETINGへ変更しstorage削除を開始 |
+| M2 | DELETINGへ変更しstorage削除を開始 |
+| M3 | DELETINGへ変更しstorage削除を開始 |
 
-U1 CustodyのMediaが0件になり、U1が管理するCommunityの委譲または削除も解決した後だけUserを削除します。UploaderとEvent actorのU1参照はON DELETE SET NULLになります。
+Community管理MediaはCommunityに残し、Uploader参照はUser物理削除時にNULLへして「削除済みUser」として扱います。User管理Mediaのcleanupと、最後のAdministratorであるCommunityの解決が完了した後にUserを物理削除します。Custody transferを伴う削除flowは将来機能としてIssue #48で検討します。
 
 ## Media削除
 
