@@ -110,7 +110,7 @@ Reprocess 中は既存 current artifact を提供し続け、新 artifact は st
 
 Outbox と利用者向け Media Event は別目的の record とします。Outbox は delivery reliability、Media Event は domain operation trace を担います。
 
-Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。保持期間、response snapshot、cleanup interval の具体値は未決定です。
+Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。Initial Releaseの保証期間は24時間とし、response snapshotは同一論理結果を再構成する最小識別情報に限定します。期限後はcleanup対象とし、cleanupの実行時刻自体は保証期限と分離します。
 
 ## Common type / identifier
 
@@ -154,7 +154,7 @@ FK deletion actionはrelationのlifecycleとcleanup順序に合わせて選択�
 - retry される async write は natural/composite uniqueness または idempotency key により duplicate を防止する。
 - Media Processing Jobは`status`を`PENDING | PROCESSING | COMPLETED | FAILED`に限定し、`attempts >= 0`をCHECKで保証する。`media_id + job_type`等のactive Job uniquenessはこの段階では導入せず、Job identity、Redis Streamsへのdelivery、Worker retry、reprocess、publicationの関係をasync processing詳細設計で確定した後に必要なconstraintを決定する。
 - Idempotency Requestは`status`を`PROCESSING | COMPLETED | FAILED`に限定し、`(actor_user_id, operation, idempotency_key)`をUNIQUEとする。Storage Operationは`operation_type = DELETE`、`status`を`PENDING | COMPLETED | FAILED`、`attempt_count >= 0`とし、`(media_id, operation_type, object_key)`をUNIQUEとする。
-- Outboxは`PUBLISHED`の場合に限り`published_at`を保持することをCHECKで保証する。`last_error`、Idempotencyの`response_data`、Storage Operationの`next_attempt_at`はretry / response保持方針が未確定のため、statusとの追加CHECKを現時点では設けない。
+- Outboxは`PUBLISHED`の場合に限り`published_at`を保持し、`PENDING` / `PROCESSING`では`next_attempt_at`を必須、`PUBLISHED` / `FAILED`ではNULLとするCHECKを設定する。Idempotencyの`response_data`は`COMPLETED`時の最小識別情報に限定する。Storage Operationのretry時刻に関する追加CHECKはStep 10で取得・retry semanticsと合わせて確定する。
 - history / trace を Media 本体削除後も保持する relation では、保持要件に反する CASCADE FK を設定しない。
 
 ## Constraint review result
@@ -214,7 +214,7 @@ TagはInitial ReleaseでMedia絞り込みに使用するため、`media_tags`の
 
 ## Access pattern review: async / retry relation
 
-OutboxはPublisherが`status`で未配送対象を絞り、`created_at, id`の安定順序で取得するため、`(status, created_at, id)`を使用します。
+OutboxはPublisherが実行可能な`PENDING`またはlease期限切れ`PROCESSING`を取得するため、`(status, next_attempt_at, created_at, id)`を使用します。取得条件は`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`とし、`created_at, id`を安定したtie-breakerに使用します。
 
 Processing Jobの`(status, updated_at)`とStorage Operationの`(status, next_attempt_at)`はretry / recovery対象を絞り込む目的自体は確定していますが、batch取得で優先する時刻のsemantics、同時刻のtie-breaker、lock / retry方式がStep 9 / 10のasync詳細設計に依存します。Step 6では推測して最終composite順序を固定せず、Step 9 / 10で`id`等の安定tie-breakerを含めて確定します。
 
@@ -316,6 +316,12 @@ Outbox payload契約は`event_type + event_version`で識別し、versionは1か
 `next_attempt_at`は`PENDING`の実行可能時刻と`PROCESSING`のclaim lease期限に統一して使用し、両statusで必須とします。Publisher取得indexは`(status, next_attempt_at, created_at, id)`、取得条件は`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`とします。`PUBLISHED` / `FAILED`では`next_attempt_at`をNULLにします。
 
 Outboxは配送用技術dataとして、`PUBLISHED`のみ`published_at`から7日保持後にbatch cleanupします。`PENDING` / `PROCESSING` / `FAILED`は自動cleanupせず、Media Event等の操作trace retentionとは分離します。
+
+## Persistence review result
+
+Step 9のOutbox / Idempotency persistence reviewは完了とします。Outboxについてclaim / crash recovery、retry terminal state、event versioning / Redis envelope、取得index、7日retentionを確定しました。Idempotencyについて同一transactionでの確定、request hash、response snapshot、24時間保証、cleanup境界を確定しました。
+
+Processing Job、Storage Operation、Redis Streams consumer、reprocess時のcurrent / staged artifact切替など、非同期処理そのものの取得・retry・publication invariantはStep 10で確定します。
 
 ## 未決定事項
 
