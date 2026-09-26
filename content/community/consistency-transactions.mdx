@@ -23,9 +23,11 @@ Community作成、招待、参加、Membership role、退会・除外、削除�
 
 ## 競合制御
 
-Community、Membership、Media/Custodyのlock順序とlock後の認可・存在確認は共通方針に従います。Role変更、退会、除外、User削除ではCommunity行を`SELECT ... FOR UPDATE`でlockし、変更後の`admin` Membership数を再確認します。
+Community lifecycleとAdministrator不変条件の直列化点は`community.communities`行とします。Role変更、退会、除外、User削除によるMembership削除、通常Community削除、Community Custodyへの直接UploadはCommunity行を`SELECT ... FOR UPDATE`でlockし、その後にMembership、Administrator数、Community存在、Custody等を最新状態で再確認します。
 
-Community削除と直接Uploadは同じCommunity行をlockします。Invitation accept、User起点Join Requestの状態変更も対象recordをlockし、lock後に有効性・現在状態・Membershipを再確認します。
+Invitation acceptは再利用可能なInvitationによる複数Userの同時参加を不必要に直列化しないため、Community行を共通mutexとしてlockしません。Invitation行をlockして有効性を再確認し、User lifecycle、Community存在、Membership不存在を確認した上でMembership PK / UNIQUEと組み合わせて重複参加を防ぎます。
+
+User起点Join Requestの状態遷移は対象Request行を直列化点としてlockし、PENDING等の現在状態を再確認します。承認のようにAdministrator権限やMembership作成を伴う操作では、必要なCommunity / Membership lockを共通順序で追加します。
 
 ## Administrator不在の防止
 
