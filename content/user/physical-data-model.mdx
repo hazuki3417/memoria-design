@@ -6,6 +6,10 @@
 
 User domainが所有するPostgreSQL table、column、constraint、index、削除規則を定義します。
 
+## PostgreSQL schema
+
+本domainが所有するrelationは`identity` schemaへ配置します。schema名と共通の参照規約は[物理データモデル共通規約](/system/data/physical-model-conventions)を正本とします。
+
 ## 共通規約
 
 ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。Auth0のissuer・subjectは外部認証identifierのためULIDではありません。
