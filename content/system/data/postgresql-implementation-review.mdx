@@ -112,6 +112,12 @@ Outbox と利用者向け Media Event は別目的の record とします。Outb
 
 Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。保持期間、response snapshot、cleanup interval の具体値は未決定です。
 
+## Common type / identifier
+
+共通identifierはApplication生成ULIDをPostgreSQLのvarchar(26)で保存し、業務日時はtimestamptzを使用します。外部認証identifier等のULIDではない値は所有domainの定義に従います。
+
+状態・種別等の有限な値集合はvarchar等の文字列型 + CHECK constraintをbaselineとします。PostgreSQL ENUMは全面禁止せず、十分に安定したdomain conceptを複数箇所で独立したDB typeとして共有する明確な利点がある場合だけ個別レビューで採用します。異なるlifecycleのstatusを共通ENUMへ統合しません。
+
 ## Relation inventory確定
 
 Initial ReleaseのPostgreSQL relation inventoryは上記の所有relationを対象とします。旧checkpointに存在したupload / quota reservation relationは、現在のProduct / Domain正本に永続化要件とtable定義が存在しないためInitial Release inventoryへ含めません。将来、upload reservationまたはquota reservationをPostgreSQLでdurableに保持する要件が具体化した場合は、Media domainの新規relationとして別途設計します。
