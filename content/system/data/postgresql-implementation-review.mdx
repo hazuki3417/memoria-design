@@ -239,6 +239,12 @@ Initial Releaseの退会・除外はatomic cleanupとします。Community lock�
 
 relation件数増大により将来非同期化が必要になった場合は、単純な後処理ではなく、論理的離脱状態とdurable cleanup Jobを含むLifecycleとして再設計します。
 
+## Transaction boundary review: Media deletion completion
+
+Object Storage削除自体はDB transaction外で冪等に実行します。最後のObject削除成功後は、Storage Operationの完了確定、DELETED Media Event作成、domain関連relation削除、Processing Jobの明示削除、Media物理削除を一つのDB transactionで確定します。これによりStorageだけ削除済みでDB上の削除完了確定が部分的にcommitされる状態を増やしません。
+
+`media_storage_operations`はMedia物理削除後も運用・障害調査用履歴として一定期間保持します。このため`media_id`へFKを設定せず、Media削除transactionでもoperation recordを削除しません。具体的な保持期間とcleanup intervalは運用設計で確定します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
