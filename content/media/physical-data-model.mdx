@@ -240,7 +240,12 @@ index:
 | scope_community_id | varchar(26) | FK communities ON DELETE CASCADE、NULL可 | Community scopeのID |
 | created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
-Custodyと同じXOR CHECKで、UserまたはCommunityのどちらか一方をGroupのscopeにします。同一scope内で`name`を一意にします。
+Custodyと同じXOR CHECKで、UserまたはCommunityのどちらか一方をGroupのscopeにします。
+
+Group名は正規化せず、保存された`name`の完全一致を一意性判定に使用します。大文字小文字や前後空白等が異なる値は別名として扱います。User scopeとCommunity scopeを分け、NULL semanticsに依存しないpartial unique indexで同一scope内の重複を防ぎます。
+
+- `UNIQUE (scope_user_id, name) WHERE scope_user_id IS NOT NULL`
+- `UNIQUE (scope_community_id, name) WHERE scope_community_id IS NOT NULL`
 
 #### media_group_media
 
