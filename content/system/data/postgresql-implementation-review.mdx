@@ -263,6 +263,12 @@ Object Storage削除自体はDB transaction外で冪等に実行します。最�
 
 `media_storage_operations`はMedia物理削除後も運用・障害調査用履歴として一定期間保持します。このため`media_id`へFKを設定せず、Media削除transactionでもoperation recordを削除しません。具体的な保持期間とcleanup intervalは運用設計で確定します。
 
+## Transaction boundary review result
+
+Step 7のtransaction boundary reviewは完了とします。Initial Releaseで必要なCommunity Membership removal、Community deletion、User account deletion、Media upload、Media deletion completionの境界を確認し、その他のCommunity / Media操作はdomain consistency documentに定義済みのtransaction境界をbaselineとします。
+
+後続の競合時のlock対象・lock順序・lock後の再確認・conditional update・retry / reject semanticsはStep 8で確定します。async processingのJob acquisitionやpublication固有の競合制御はStep 9 / 10と合わせて具体化します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
