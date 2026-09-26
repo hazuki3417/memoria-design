@@ -70,4 +70,6 @@ Image Variantは履歴やgenerationをDBへ保持せず、`image_variants`をそ
 
 Object Storageへの生成・削除はPostgreSQL transactionへ含めません。publication commit後の旧Object削除に失敗した場合はStorage Operationでretryし、publication前に失敗した新Objectは未公開objectとしてcleanupします。同じstorage keyへの逐次上書きは、途中失敗時に新旧Variantが混在するためpublication方式として使用しません。
 
+未公開Variantのstaging Object一覧をProcessing Jobや別relationへ永続化しません。staging Object keyはMedia IDとJob IDから対象を識別できるnamespace規約とし、Workerが`DELETING`を検出した場合は自身が生成済みの未公開keyについてStorage Operationをdurableに作成してからJobを`CANCELLED`へ確定します。Object生成後からcleanup operation記録前にWorkerが停止するfailure windowは、Object Storage orphan reconciliationを最終的な安全網として回収します。reconciliationはpublished VariantとしてDBから参照されず、かつactive Jobに対応しないstaging Objectをgrace period後のcleanup候補として扱います。走査間隔とgrace periodの具体値はruntime / operations設計で確定します。
+
 詳細は[Media処理と派生物](/media/processing)、[Transactional Outbox](./transactional-outbox)、[冪等性](./idempotency)を参照してください。
