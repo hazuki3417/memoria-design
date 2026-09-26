@@ -239,6 +239,12 @@ Initial Releaseの退会・除外はatomic cleanupとします。Community lock�
 
 relation件数増大により将来非同期化が必要になった場合は、単純な後処理ではなく、論理的離脱状態とdurable cleanup Jobを含むLifecycleとして再設計します。
 
+## Transaction boundary review: User account deletion
+
+User account削除全体にはatomicityを要求せず、削除受付後はrollback不能な収束型cleanupとして扱います。Deletion Jobと固定済みtarget snapshotを基準に各cleanupを冪等に実行し、途中まで削除された状態を許容して、最終的にUserと削除対象dataが存在しない状態へ収束させます。retry時に対象が既に存在しない場合は完了済みとして扱います。
+
+Transactionはaccount削除全体を囲まず、削除受付、Media削除完了、Membership / Access / Community分類cleanup、Community削除など、各domain invariantを同時に確定する必要がある局所範囲だけに使用します。完了済みcleanupを後続failureによって復元しません。
+
 ## Transaction boundary review: Community deletion
 
 Initial Releaseの通常Community削除は一つのDB transactionで確定します。Communityをlockして権限を再確認し、Community Custody Mediaが0件であることをgateとして確認した後、Communityを削除します。Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagと従属relationはON DELETE CASCADEで同じtransaction内に削除します。
