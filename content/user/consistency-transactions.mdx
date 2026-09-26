@@ -20,7 +20,9 @@ Transactionは削除全体を一括rollbackするためには使用せず、削�
 
 ## 競合制御
 
-同時登録ではissuer・subjectのUNIQUE制約により1件だけ成功させます。各requestでACTIVEを確認し、DELETING変更後に新しい操作がcommitされないようUser行lockまたは条件付き更新を使用します。
+同時登録ではissuer・subjectのUNIQUE制約により1件だけ成功させます。User lifecycleの排他点は`identity.users`行とし、account削除受付では対象Userを`SELECT ... FOR UPDATE`でlockしてからACTIVEを再確認します。その後、Community / Membership / Media等を共通のlock順序で確認して削除対象snapshotを確定し、UserをDELETINGへ更新してDeletion Jobを作成します。
+
+新規Upload、共有、分類、role変更などUserがACTIVEであることを必要とする操作も、対象User行をlockした後にACTIVEを再確認します。通常操作が先にUser lockを取得した場合はそのcommit後の状態を削除受付が再評価し、削除受付が先にDELETINGをcommitした場合は後続操作を拒否します。
 
 account削除の重複requestは既存Jobを返します。削除対象は受付後に変更できません。Community、Membership、Media/Custodyのlock順序を各domainと揃え、同時Upload・権限変更・削除との競合を拒否します。
 
