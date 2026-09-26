@@ -368,7 +368,7 @@ Step 12のfinal executable DDL reviewは完了とします。Step 1〜11で確�
 - Initial ReleaseでQuery契約が未確定の複数Tag filter、Community統合Media一覧等について、DDL完成だけを目的とした推測indexを追加しない。具体Query確定後に必要なindexをversioned migrationで追加できる。
 - runtime / operations parameterはDDLへ固定しない。retry上限、lease / reclaim時間、cleanup interval / retention等は既存Issueで追跡する。
 
-このStepの完了は設計上のInitial executable DDL contractが確定したことを意味します。実際の`memoria-api/schemas/postgres/migrations/00001_initial.sql`と生成`schema.sql`の置換、Quality Gateによるfresh migration / snapshot一致確認は実装工程で行います。
+このStepの完了は設計上のInitial executable DDL contractが確定したことを意味します。`memoria-api/schemas/postgres/migrations/00001_initial.sql`と生成`schema.sql`は本設計に基づいて置換済みであり、fresh PostgreSQLへのmigration適用と、goose管理relationを除外したschema snapshotの一致をQuality Gateで確認済みです。sqlc query / generated code以降のApplication実装追従は後続工程で行います。
 
 ## 未決定事項
 
@@ -381,4 +381,4 @@ PostgreSQL Implementation Detailed Designとして、Initial Release baseline DD
 - Object Storage keyの具体的なnamespace / format
 - 将来のUser起点Join Requestを実装する時点の最終要件とmigration
 
-次工程ではmemoria-apiのlegacy Initial migrationを本設計から再構築し、fresh PostgreSQLへの適用とschema snapshot一致をQuality Gateで検証します。
+memoria-apiのlegacy Initial migration再構築とschema snapshot更新は完了しています。後続工程では新しいDB baselineを前提としてpersistence/query、domain/service、GraphQL/API、Webを段階的に追従させます。
