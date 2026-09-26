@@ -152,14 +152,14 @@ Image Variantは、フロントエンドが表示条件・解像度に応じて�
 | id | varchar(26) | PK | Job ID |
 | media_id | varchar(26) | NOT NULL、FK media ON DELETE RESTRICT | 処理対象Media |
 | job_type | varchar(32) | NOT NULL | 派生物生成などの処理種別 |
-| status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PROCESSING`、`COMPLETED`、`FAILED` |
+| status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PROCESSING`、`COMPLETED`、`FAILED`、`CANCELLED` |
 | attempts | integer | NOT NULL、CHECK 0以上 | 実行試行回数 |
 | last_error | text | NULL可 | 内部向けの失敗理由 |
 | created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
-`PENDING` / `PROCESSING`をactive Jobとし、同一`(media_id, job_type)`ではactive Jobを1件だけ許可します。これは`WHERE status IN ('PENDING', 'PROCESSING')`のpartial unique indexでDB上も保証します。同じ処理のretryは新Jobを作らず同じ`job_id`を使用し、明示的なreprocessは既存Jobが`COMPLETED`または`FAILED`のterminal stateになった後に新しいJobを作成します。並行したreprocess要求がactive Job作成で競合した場合は、unique constraintを境界として既存active Jobを採用し、同一処理を重複開始しません。
+`PENDING` / `PROCESSING`をactive Jobとし、同一`(media_id, job_type)`ではactive Jobを1件だけ許可します。これは`WHERE status IN ('PENDING', 'PROCESSING')`のpartial unique indexでDB上も保証します。同じ処理のretryは新Jobを作らず同じ`job_id`を使用し、明示的なreprocessは既存Jobが`COMPLETED`、`FAILED`または`CANCELLED`のterminal stateになった後に新しいJobを作成します。`CANCELLED`はMedia削除により処理が意図的に不要になった状態であり、処理障害を表す`FAILED`とは区別します。並行したreprocess要求がactive Job作成で競合した場合は、unique constraintを境界として既存active Jobを採用し、同一処理を重複開始しません。
 
-Processing Jobは処理状態と試行結果のdurable truthですが、実行中messageのownership / crash recovery leaseはRedis Consumer Groupのpending stateを正本とします。Processing Jobへ`lease_expires_at`等の重複lease columnは追加しません。WorkerはRedis messageを取得・claimした後にJobをrow lockし、`PENDING`から`PROCESSING`への開始または`PROCESSING` Jobのretryを確定します。`attempts`はPipelineの実行開始ごとに増加させます。`COMPLETED` / `FAILED`へのduplicate deliveryは再実行しません。
+Processing Jobは処理状態と試行結果のdurable truthですが、実行中messageのownership / crash recovery leaseはRedis Consumer Groupのpending stateを正本とします。Processing Jobへ`lease_expires_at`等の重複lease columnは追加しません。WorkerはRedis messageを取得・claimした後にJobをrow lockし、`PENDING`から`PROCESSING`への開始または`PROCESSING` Jobのretryを確定します。`attempts`はPipelineの実行開始ごとに増加させます。`COMPLETED` / `FAILED` / `CANCELLED`へのduplicate deliveryは再実行しません。Processing開始時とVariant publication時には対象Mediaをlockして`ACTIVE`を再確認し、`DELETING`ならpublicationせずJobを`CANCELLED`として確定します。
 
 この責務分離により、Processing Jobの取得indexをDB Worker queueとして設計しません。一時failureはRedis Consumer Groupのpendingへ残し、固定backoff相当のidle時間経過後に`XAUTOCLAIM`で同じJobをretryします。Initial ReleaseではProcessing Jobへ`next_attempt_at`を追加せず、retry回数上限とreclaim idle時間はruntime parameterとしてIssue #44 / #61で確定します。
 
