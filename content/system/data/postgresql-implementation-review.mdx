@@ -212,6 +212,12 @@ Media GroupのMedia関連は`(media_group_id, media_id)` PKと`(media_id, media_
 
 TagはInitial ReleaseでMedia絞り込みに使用するため、`media_tags`の`(media_id, tag_id)` PKに加えて`(tag_id, media_id)` indexを持ちます。複数Tag filterのAND / OR、sort、cursor契約はIssue #43で未決定のため、それらを前提とした特殊なindexは現段階で追加しません。
 
+## Access pattern review: async / retry relation
+
+OutboxはPublisherが`status`で未配送対象を絞り、`created_at, id`の安定順序で取得するため、`(status, created_at, id)`を使用します。
+
+Processing Jobの`(status, updated_at)`とStorage Operationの`(status, next_attempt_at)`はretry / recovery対象を絞り込む目的自体は確定していますが、batch取得で優先する時刻のsemantics、同時刻のtie-breaker、lock / retry方式がStep 9 / 10のasync詳細設計に依存します。Step 6では推測して最終composite順序を固定せず、Step 9 / 10で`id`等の安定tie-breakerを含めて確定します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
