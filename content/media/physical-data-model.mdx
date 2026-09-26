@@ -318,7 +318,7 @@ PKは`(media_id, tag_id)`です。MediaからTagを取得する方向はPKを使
 | last_error | text | NULL可、機密情報を含めない | 機密情報を除いた失敗理由 |
 | created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
-`(media_id, operation_type, object_key)`へUNIQUE constraintを設定し、`(status, next_attempt_at)`を再試行対象取得用indexとします。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。
+`(media_id, operation_type, object_key)`へUNIQUE constraintを設定し、`(status, next_attempt_at)`を再試行対象取得用indexとします。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。完了したoperationはMedia物理削除と同時には削除せず、運用・障害調査用の履歴として一定期間保持した後にcleanupします。具体的な保持期間とcleanup intervalは運用設計で確定します。
 
 ## 削除規則
 
