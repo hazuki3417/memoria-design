@@ -13,6 +13,12 @@ PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時�
 - 複合PKや外部serviceのsubjectなど、ULIDでない識別子は所有domainで明示する。
 - 内部IDと外部認証identifierを公開用account identifierとして扱わない。
 
+## 列挙値と状態値
+
+状態・種別等の有限な値集合は、原則として文字列型とCHECK constraintで表現します。PostgreSQL ENUMを一律に禁止はしませんが、値集合が十分に安定したdomain conceptであり、独立したDB typeとして複数箇所で共有する明確な利点がある場合に限って個別に採用を検討します。
+
+異なるlifecycleやstate transitionを持つstatusを、値名が似ていることだけを理由に共通typeへ統合しません。Application側のdomain typeとDB constraintの対応は各domainの詳細設計で明示します。
+
 ## 日時
 
 - 時刻はPostgreSQLのtimestamptzを使用する。
