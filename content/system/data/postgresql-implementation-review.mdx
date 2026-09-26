@@ -190,6 +190,14 @@ Index は次の access pattern が確認できる場合に限り追加します�
 
 単に FK が存在するという理由だけで index を追加しません。
 
+## Access pattern review: User / Community
+
+Userは認証時の`(auth_issuer, auth_subject)` lookupとUser Deletion Jobの`user_id`一意取得を主要access patternとし、利用者向けUser一覧を想定した追加indexは現時点で設けません。
+
+Community MembershipはUserから参加Communityをlookupする`(user_id, community_id)`に加え、Community内Member一覧を`joined_at DESC, user_id DESC`で取得するため`(community_id, joined_at DESC, user_id DESC)`を使用します。Community自体を表示する場合の既定sortは共通規約の`created_at DESC, id DESC`に従いますが、具体的な一覧Queryがない段階で全件一覧用indexを追加しません。
+
+Invitationはtoken検証の`token_hash` UNIQUEとCommunityごとの未revoked Invitation partial uniqueを主要lookupとし、表示一覧用indexは追加しません。Join Request承認待ち一覧は`community_id + status`でfilterし、`requested_at DESC, id DESC`で安定してpageするため`(community_id, status, requested_at DESC, id DESC)`を使用します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
