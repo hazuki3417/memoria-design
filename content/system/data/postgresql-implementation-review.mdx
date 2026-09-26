@@ -295,6 +295,12 @@ Step 8のrow lock / conditional update / concurrency invariant reviewは完了�
 
 Processing Job、Outbox Publisher、Storage Operation、Idempotency Request、reprocess / publicationに固有の取得・retry・publication競合は同期domain操作のStep 8へ混在させず、Step 9 / 10で確定します。
 
+## Persistence review: Outbox claim
+
+Outbox Publisherは外部Redis I/O中にPostgreSQL row lockを保持しません。短いtransactionで`PENDING`またはlease期限切れ`PROCESSING` eventを`FOR UPDATE SKIP LOCKED`でbatch claimし、`PROCESSING`と`next_attempt_at`のlease期限を保存してcommitします。`XADD`後に別transactionで`PUBLISHED`を確定します。
+
+`FAILED`は自動retry上限到達後のterminal operational stateとして自動取得対象から外し、運用再開時は`PENDING`へ戻します。`XADD`成功後から`PUBLISHED`確定前のcrashによる重複配送は許容し、event_idを使う下流の冪等性で吸収します。claim owner列はInitial Releaseでは追加せず、lease期限でcrash recoveryします。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
