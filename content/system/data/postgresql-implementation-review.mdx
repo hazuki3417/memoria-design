@@ -130,6 +130,19 @@ Columnは原則NOT NULLとし、NULLはlifecycle上の未発生、User物理削�
 
 Community Join Requestはstatusとreview / resolve時刻の整合をCHECK constraintで保証します。`PENDING`ではreview / resolve情報を持たず、`APPROVED` / `REJECTED`では`reviewed_at`と`resolved_at`を必須、`CANCELLED` / `INVALIDATED`では`resolved_at`を必須とします。reviewer Userは承認・拒否transaction時には必須ですが、後のUser物理削除で`reviewed_by_user_id`をNULLへ匿名化できるため、保存状態ではNULLを許容します。
 
+## FK / deletion strategy review
+
+FK deletion actionはrelationのlifecycleとcleanup順序に合わせて選択し、cleanupが必要な親relationをCASCADEだけで削除しません。
+
+- Community MembershipからUserへの参照はON DELETE RESTRICTとし、最終Administrator確認やMedia cleanup後にMembershipを明示削除する。
+- User Deletion JobからUserへの参照はON DELETE RESTRICTとし、cleanup完了後にJobを明示削除してからUserを物理削除する。
+- Community Join Requestのapplicant User参照はON DELETE CASCADEとする。User削除flow中は先にINVALIDATEDとして並行承認を防ぎ、User物理削除時に申請自体を削除する。
+- Media Processing JobからMediaへの参照はON DELETE RESTRICTとし、実行中処理との競合解消とJob削除後にMediaを物理削除する。
+- Media CustodyのUser / Community参照はON DELETE RESTRICTを維持し、Custody cleanupを親削除前に必須とする。
+- Uploader、Invitation発行者、Join Request reviewer、Community Access作成者、Media EventのUser履歴参照は、User物理削除時の匿名化が必要な箇所でON DELETE SET NULLを使用する。
+- Media Eventのmedia_idとCommunity履歴ID、およびStorage Operationのmedia_idは、親物理削除後も必要なtrace / operationを保持するsnapshot IDとしてFKを設定しない。
+- subtype、Variant、Access、Group join等、親と独立したlifecycleを持たない従属relationはON DELETE CASCADEを使用する。
+
 ## Constraint review principles
 
 - scope XOR は CHECK で保証する。
