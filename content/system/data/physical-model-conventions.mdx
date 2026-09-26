@@ -45,6 +45,26 @@ PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時�
 - 削除済みUserの参照を保持する必要があるMediaではFKをNULLにし、個人情報や認証identifierを退避しない。
 - 外部I/OをPostgreSQL Transactionへ含めず、durable Jobまたはoperation tableで追跡する。
 
+## PostgreSQL schema境界
+
+Application relationは`public`へ集約せず、relationのlifecycleを所有するProduct domainに対応するPostgreSQL schemaへ配置します。
+
+| Product domain | PostgreSQL schema | 主なrelation |
+| --- | --- | --- |
+| User | `identity` | `users`、`user_deletion_jobs` |
+| Community | `community` | `communities`、`community_memberships`、`community_invitations`、`community_join_requests` |
+| Media | `media` | Media、Image、processing、classification、Outbox、idempotency、storage operationを含むMedia domain所有relation |
+
+User domainのschema名を`user`ではなく`identity`とするのは、PostgreSQL / SQLの`USER`との衝突や不要なquoted identifier依存を避けるためです。これはDB上のnamespace名であり、Product domain名やユビキタス言語のUserをIdentityへ変更するものではありません。
+
+SQL、migration、constraint、queryでは`identity.users`、`community.community_memberships`、`media.media`のようにschema-qualified nameを明示し、Applicationの正しさを`search_path`へ依存させません。
+
+domainをまたぐ参照にはcross-schema FKを使用します。例えばCommunity MembershipのUser参照は`community.community_memberships.user_id -> identity.users.id`、MediaのUploader参照は`media.media.uploaded_by_user_id -> identity.users.id`です。schema境界はFK、Transaction、JOINを禁止するservice境界ではありません。
+
+技術的な用途だけを理由に`system`等の横断schemaへrelationを移しません。Outbox、idempotency、processing、storage operationのようなrelationも、lifecycleを所有するdomainが明確な場合はそのdomain schemaへ配置します。複数domainから独立したlifecycleを持つrelationが具体化した場合にのみ、横断schemaの追加を別途設計します。
+
+`public` schemaはApplication relationの配置先として使用しません。extension等が`public`を必要とする場合は、その導入時に配置先と権限を個別に定義します。
+
 ## Domain固有の例外
 
 共通規約から外れる型、命名、NULL条件、削除動作は、対象domainの物理データモデルで理由と適用範囲を明示します。domain間で共通になった例外は本ページへ昇格させます。
