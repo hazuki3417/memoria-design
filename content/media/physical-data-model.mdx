@@ -165,16 +165,19 @@ Media domainで確定した変更を非同期Publisherへ引き渡す技術table
 | event_type | varchar(64) | NOT NULL | 配送するevent種別 |
 | aggregate_id | varchar(26) | NOT NULL | 対象Media等のaggregate ID |
 | payload | jsonb | NOT NULL | Workerへ配送するevent payload |
-| status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PUBLISHED`、`FAILED` |
+| status | varchar(16) | NOT NULL、CHECK | `PENDING`、`PROCESSING`、`PUBLISHED`、`FAILED` |
 | attempt_count | integer | NOT NULL、CHECK 0以上 | Publisherの試行回数 |
 | last_error | text | NULL可 | 機密情報を除いた直近の失敗理由 |
 | created_at | timestamptz | NOT NULL | 作成時刻 |
 | published_at | timestamptz | NULL可 | 配送完了時刻 |
+| next_attempt_at | timestamptz | NULL可 | retry予定時刻。PROCESSINGではclaim lease期限 |
 | updated_at | timestamptz | NOT NULL | 最終更新時刻 |
 
-`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `FAILED`では`published_at`をNULLとします。`last_error`はretry policyの詳細確定前にstatusとの必須関係を設けません。
+`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `PROCESSING` / `FAILED`では`published_at`をNULLとします。`PROCESSING`では`next_attempt_at`をclaim lease期限として必須とし、期限到達後は別Publisherが回収できます。`FAILED`は自動retry上限到達後のterminal operational stateとし、自動取得対象から外します。運用再開時は`PENDING`へ戻してretry可能状態にします。
 
-`(status, created_at, id)`をindex対象とし、Publisherが未送信eventを安定した順序で取得します。payloadへcredential、署名付きURLなどのsecretを保存しません。
+Publisherは短いDB transactionで実行可能な`PENDING`、またはlease期限切れの`PROCESSING`を`FOR UPDATE SKIP LOCKED`でbatch取得し、`PROCESSING`とlease期限を設定してcommitします。Redisへの`XADD`はDB transaction外で行います。`XADD`成功後は`PUBLISHED`と`published_at`を確定し、失敗時は`attempt_count`を増加して次回retry時刻を設定します。`XADD`成功後から`PUBLISHED`確定前の停止では重複配送を許容し、`event_id`による下流の冪等性で処理します。
+
+Publisher取得用indexはstatus、実行可能時刻、安定したtie-breakerを含む形をStep 9で最終確定します。payloadへcredential、署名付きURLなどのsecretを保存しません。
 
 ### idempotency_requests
 
