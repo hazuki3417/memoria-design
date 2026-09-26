@@ -73,7 +73,7 @@ Initial ReleaseのInvitation acceptは有効なInvitationを検証し、`communi
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | 申請ID |
 | community_id | varchar(26) | FK communities ON DELETE CASCADE | 参加申請先 |
-| applicant_user_id | varchar(26) | FK users | 申請者 |
+| applicant_user_id | varchar(26) | FK users ON DELETE CASCADE | 申請者 |
 | status | varchar(16) | NOT NULL、CHECK | `PENDING`、`APPROVED`、`REJECTED`、`CANCELLED`、`INVALIDATED` |
 | requested_at | timestamptz | NOT NULL | 申請時刻 |
 | reviewed_by_user_id | varchar(26) | FK users ON DELETE SET NULL | 承認・拒否Administrator |
@@ -92,7 +92,7 @@ statusとreview / resolve情報は次の整合条件を持ちます。
 
 DBではstatusに応じた`reviewed_at` / `resolved_at`のNULL整合をCHECK constraintで保証します。`reviewed_by_user_id`は履歴上のreviewerを表しますが、User物理削除時に`ON DELETE SET NULL`となるため、`APPROVED` / `REJECTED`の保存状態に対してNOT NULLを要求しません。承認・拒否transaction実行時にreviewer Userが存在することはServiceで保証します。
 
-`status = 'PENDING'`を条件に`(community_id, applicant_user_id)`へpartial unique indexを設定し、重複申請を防ぎます。申請User削除時は先に`INVALIDATED`へ更新し、Userの削除・匿名化方式とFK動作は[User物理データモデル](/user/physical-data-model)に従います。`(community_id, status, requested_at)`のindexで承認待ち一覧を取得します。
+`status = 'PENDING'`を条件に`(community_id, applicant_user_id)`へpartial unique indexを設定し、重複申請を防ぎます。申請User削除時は先に`INVALIDATED`へ更新して並行する承認を防止し、User物理削除時に`ON DELETE CASCADE`でJoin Request自体を削除します。User削除後まで申請履歴を保持する要件は設けません。`(community_id, status, requested_at)`のindexで承認待ち一覧を取得します。
 
 Media domainが所有する`media_custodies`と`media_community_accesses`は[Media物理データモデル](/media/physical-data-model)を参照します。
 
