@@ -43,11 +43,11 @@ erDiagram
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | community_id | varchar(26) | FK communities ON DELETE CASCADE | 所属先 |
-| user_id | varchar(26) | FK users | 参加User |
+| user_id | varchar(26) | FK users ON DELETE RESTRICT | 参加User |
 | role | varchar(16) | NOT NULL、CHECK | `member` / `admin` |
 | joined_at | timestamptz | NOT NULL | 参加時刻 |
 
-PKは`(community_id, user_id)`です。`(user_id, community_id)`へindexを追加します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、単純なFK cascadeだけに依存しません。
+PKは`(community_id, user_id)`です。`(user_id, community_id)`へindexを追加します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、User参照は`ON DELETE RESTRICT`とします。User削除flowでは必要なCommunity / Media cleanupを完了してMembershipを明示削除した後にUserを物理削除します。
 
 ### community_invitations
 
