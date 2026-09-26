@@ -311,6 +311,12 @@ Initial ReleaseのIdempotency Key保証期間は初回受付から24時間です
 
 Outbox payload契約は`event_type + event_version`で識別し、versionは1から開始します。Redis Streamsへのenvelopeは`event_id`、`event_type`、`event_version`、`aggregate_id`、`payload`とします。Publisherは保存済みpayloadを再解釈・変換せず配送し、互換性のない変更ではversionを増加させます。未配送旧versionを考慮し、Workerはdeploy時に必要な互換期間を持たせます。
 
+## Persistence review: Outbox scheduling and retention
+
+`next_attempt_at`は`PENDING`の実行可能時刻と`PROCESSING`のclaim lease期限に統一して使用し、両statusで必須とします。Publisher取得indexは`(status, next_attempt_at, created_at, id)`、取得条件は`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`とします。`PUBLISHED` / `FAILED`では`next_attempt_at`をNULLにします。
+
+Outboxは配送用技術dataとして、`PUBLISHED`のみ`published_at`から7日保持後にbatch cleanupします。`PENDING` / `PROCESSING` / `FAILED`は自動cleanupせず、Media Event等の操作trace retentionとは分離します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
