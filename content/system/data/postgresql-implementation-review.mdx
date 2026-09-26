@@ -88,7 +88,6 @@ Media 本体は custody / access / classification / processing から独立さ�
 - `media_group_media`
 - `media_group_relations`
 - Tag relation
-- upload / quota reservation relation
 - storage operation relation
 
 `media` に owner User / Community ID を直接保持しません。現在の管理主体は `media_custodies` の XOR relation で表現します。一方 `uploaded_by_user_id` は ownership ではなく provenance なので Media に保持し、User 物理削除時は `SET NULL` とします。
@@ -112,6 +111,12 @@ Reprocess 中は既存 current artifact を提供し続け、新 artifact は st
 Outbox と利用者向け Media Event は別目的の record とします。Outbox は delivery reliability、Media Event は domain operation trace を担います。
 
 Idempotency record は actor / operation / key の組み合わせを一意にし、request hash により同一 key の異なる payload を拒否できる構造とします。保持期間、response snapshot、cleanup interval の具体値は未決定です。
+
+## Relation inventory確定
+
+Initial ReleaseのPostgreSQL relation inventoryは上記の所有relationを対象とします。旧checkpointに存在したupload / quota reservation relationは、現在のProduct / Domain正本に永続化要件とtable定義が存在しないためInitial Release inventoryへ含めません。将来、upload reservationまたはquota reservationをPostgreSQLでdurableに保持する要件が具体化した場合は、Media domainの新規relationとして別途設計します。
+
+Relation inventory確定後も、各relationのcolumn、constraint、index等は後続レビューで確定するまでfinal DDLとは扱いません。
 
 ## Constraint review principles
 
