@@ -37,7 +37,9 @@ Outboxは記録するだけでは再送されません。常駐するOutbox Publ
 | Publisherが停止 | 再起動後に未送信eventを回収する |
 | 最大retryを超過 | `FAILED`として運用から確認できるようにする |
 
-retryには`attempt_count`、`next_retry_at`、`last_error`を使用できます。複数Publisherが稼働する場合は`FOR UPDATE SKIP LOCKED`などで同じeventの競合取得を抑えます。
+Publisherは短いDB transactionで実行可能な`PENDING` event、またはclaim lease期限が切れた`PROCESSING` eventを`FOR UPDATE SKIP LOCKED`でbatch取得し、`PROCESSING`へ遷移させて`next_attempt_at`へlease期限を保存してcommitします。Redisへの`XADD`中はPostgreSQL row lockを保持しません。
+
+`XADD`成功後は別transactionで`PUBLISHED`と`published_at`を確定します。失敗時は`attempt_count`を増加し、retry可能な場合は次回実行時刻を`next_attempt_at`へ設定します。自動retry上限へ到達したeventは`FAILED`とし、自動取得対象から外します。運用者が再開する場合は`PENDING`へ戻します。Publisherがclaim後に停止した場合は、`PROCESSING`かつlease期限到達済みのeventを別Publisherが回収します。
 
 ## 配送保証の境界
 
