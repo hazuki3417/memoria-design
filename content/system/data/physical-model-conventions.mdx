@@ -28,6 +28,10 @@ PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時�
 - GraphQL DateTimeの通信形式はRFC3339 UTCを基本とし、日付だけのDateはYYYY-MM-DD、時刻だけのTimeはHH:mm:ssとして意味を分離する。
 - 日付だけの値へtimezone変換を適用しない。DB精度やscalarの厳密な定義は既存schemaとGraphQL詳細設計で確定する。
 
+## 文字列のcanonicalization
+
+前後空白除去などUnicode文字列のcanonicalizationを業務規則として要求する場合、その変換はApplication側で実施してcanonicalな保存値をDBへ渡します。PostgreSQL固有の`btrim`や正規表現をUnicode whitespace規則の代替正本にはしません。DBではdomainごとの長さ・一意性制約に加え、canonicalization後の保存値が空文字でないこと等、DBで同じ意味を安定して表現できる最低限のCHECKを設定します。
+
 ## 命名
 
 - table名とcolumn名は英小文字のsnake_caseを使用する。
