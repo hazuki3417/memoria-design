@@ -214,14 +214,14 @@ Mediaに対する重要操作を追跡します。汎用監査ログや著作権
 | media_id | varchar(26) | NOT NULL、FKを設定しない | 対象Media ID |
 | event_type | varchar(32) | NOT NULL、CHECK | 操作の種別 |
 | actor_user_id | varchar(26) | FK users ON DELETE SET NULL | 操作したUser ID |
-| from_user_id・to_user_id | varchar(26) | NULL可 | 委譲元・委譲先のUser ID |
-| from_community_id・to_community_id | varchar(26) | NULL可 | 委譲元・委譲先のCommunity ID |
-| target_community_id | varchar(26) | NULL可 | 対象Community ID |
+| from_user_id・to_user_id | varchar(26) | NULL可、FK users ON DELETE SET NULL | 委譲元・委譲先のUser ID |
+| from_community_id・to_community_id | varchar(26) | NULL可、FKを設定しない | 委譲元・委譲先Communityのsnapshot ID |
+| target_community_id | varchar(26) | NULL可、FKを設定しない | Access操作対象Communityのsnapshot ID |
 | occurred_at | timestamptz | NOT NULL | 発生時刻 |
 
 event typeは`UPLOADED`、`CUSTODIAN_CHANGED`、`ACCESS_ADDED`、`ACCESS_REMOVED`、`DELETED`です。event typeごとの必須列はServiceで検証します。
 
-`media_id`へFKを設定しないのは、Mediaを物理削除した後も操作のtraceを保持するためです。eventにfile名、object key、Media本体、著作権情報は保存しません。保存期間到達後はevent単位で物理削除します。
+`media_id`へFKを設定しないのは、Mediaを物理削除した後も操作のtraceを保持するためです。 Userを参照する`actor_user_id`、`from_user_id`、`to_user_id`はUser物理削除時に`ON DELETE SET NULL`で匿名化します。一方、Communityに関する`from_community_id`、`to_community_id`、`target_community_id`はCommunity物理削除後もeventの意味を保持するsnapshot IDとしてFKを設定しません。eventにfile名、object key、Media本体、著作権情報は保存しません。保存期間到達後はevent単位で物理削除します。
 
 index:
 
