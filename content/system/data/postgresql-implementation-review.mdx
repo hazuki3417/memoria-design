@@ -206,6 +206,12 @@ Initial Releaseでは`media_custodies`のUser / Community partial indexと`media
 
 Community画面でCommunity Custody MediaとCommunityへ共有されたUser Custody Mediaを単一一覧へ統合するか、別一覧とするかはUI / Query要件として別途確定し、現段階のindex設計から推測しません。
 
+## Access pattern review: Group / Tag
+
+Media GroupのMedia関連は`(media_group_id, media_id)` PKと`(media_id, media_group_id)` index、階層relationは`(parent_group_id, child_group_id)` PKと`(child_group_id, parent_group_id)` indexにより、現在要求される両方向lookupを満たします。
+
+TagはInitial ReleaseでMedia絞り込みに使用するため、`media_tags`の`(media_id, tag_id)` PKに加えて`(tag_id, media_id)` indexを持ちます。複数Tag filterのAND / OR、sort、cursor契約はIssue #43で未決定のため、それらを前提とした特殊なindexは現段階で追加しません。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
