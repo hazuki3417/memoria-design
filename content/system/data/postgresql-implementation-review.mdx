@@ -339,18 +339,29 @@ Step 10のasync processing publication invariant reviewは完了とします。
 
 これによりStep 6で保留したProcessing Job / Storage Operationの最終index、Step 5で保留したactive Job uniquenessとStorage Operation retry状態をStep 10の確定値で上書きします。Step 10完了後の次工程はStep 11 migration / compatibility reviewです。
 
+## Migration / compatibility review result
+
+Step 11のmigration / compatibility reviewは完了とします。Initial Release前の現在はlegacy schema / dataとの互換migrationを作らず、確定した物理設計から新しいbaselineを再構築します。
+
+- 既存のlegacy table / dataを新設計へ変換しない。開発DBの既存dataはdisposableとし、baseline再構築時にDB / volumeをresetしてfresh PostgreSQLへ新しい`00001_initial.sql`を適用する。
+- 既存の`00001_initial.sql`は旧設計から新設計へ変換するmigrationとして残さず、Step 12で確定する最終DDLから置き換える。旧`00001`を適用済みのDBはgoose上version 1済みであるため、file差し替えだけで再適用できるとは扱わない。
+- migration履歴をschema変更の正本とし、`schema.sql`はfresh DBへmigrationを適用した結果から生成するcurrent-schema snapshotとする。`schema.sql`を手編集してmigrationへ逆輸入する運用は行わない。
+- sqlc query / generated code、API / GraphQL / Webが旧schemaへ依存して一時的に成立しなくても、legacy relationを残して互換性を維持しない。DB baseline確定後にpersistence/query、domain/service、GraphQL/API、Webの順で新設計へ追従させる。
+- Applicationの通常起動ではmigrationを自動実行しない。deploy migrationはApplication deployと分離し、migration成功をApplication deployの前提とする。Productionの具体的な実行container / environmentはoperations設計で確定する。
+- pre-release baselineの`Down`は開発・検証でschemaを空へ戻すための逆順DDLとし、legacy dataを保持して旧schemaへ復元するrollback契約とはしない。
+- Initial Release前でProductionへ未適用のbaselineは、設計確定に伴い`00001_initial.sql`を再構築できる。Productionへ一度でも適用したmigrationは原則immutableとし、それ以降の変更は新しいversioned forward migrationで行う。
+- Quality Gateはfresh PostgreSQLへのmigration適用、migrationから生成したschema snapshotとの一致、fresh環境での再現性を維持する。新schemaへの追従期間に成立しないsqlc / API / runtime gateは恒常的な失敗として放置せず、追跡Issue付きで一時停止し、実装追従後に復帰させる。
+
+Step 12では新しいbaselineのexecutable DDLを依存順に確定します。概念的なUp順序はschema、親entity、domain relation、cross-domain relation、async / technical relation、constraint / index / commentとし、Downは依存関係の逆順とします。実際のtable / constraint / index作成順序はFK依存を満たすよう最終DDLで確定します。
+
 ## 未決定事項
 
-以下は Implementation Detailed Design で今後確定します。
+以下はStep 12または対応するruntime / operations設計で今後確定します。
 
-- 全 Relation の最終 column inventory と executable DDL
-- final FK action と constraint name
-- 後続要件・async設計に依存する未確定Queryのcomposite index順序
-- Invitation acceptのidempotency最終物理表現
-- Processing Jobのidentity / active Job uniquenessと、Redis Streams delivery・Worker retry・reprocessの関係
-- Processing publication の具体的 current/staged schema
-- Outbox event versioning と payload schema
-- Idempotency retention / cleanup policy
-- migration rollout / rollback SQL
+- 全Relationの最終column inventoryとexecutable DDL
+- final constraint name / index name、およびDDL上の作成順序
+- 具体的なInitial migrationのUp / Down SQL
+- まだInitial Releaseの具体Query契約が確定していないaccess patternの追加composite index
+- runtime / operations parameterとして意図的にDB詳細設計から分離したretry回数、lease / reclaim時間、cleanup interval / retention等
 
-未決定事項は資料にない値を推測して埋めず、Issue で追跡します。
+Processing Job active uniqueness、Variant publication方式、Outbox event versioning、Idempotency 24時間保証、migration rollout / compatibility方針は前段Stepで確定済みであり、未決定事項として再掲しません。資料にない値はStep 12でもDDL完成のためだけに推測して埋めず、必要なものはIssueで追跡します。
