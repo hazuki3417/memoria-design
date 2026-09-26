@@ -67,7 +67,7 @@ Initial ReleaseのInvitation acceptは有効なInvitationを検証し、`communi
 
 ### community_join_requests
 
-`community_join_requests`はInvitation acceptとは独立したUser起点Join Requestの将来機能です。Initial ReleaseではUI/APIを提供しませんが、将来設計としてrelationを維持します。
+`community_join_requests`はInvitation acceptとは独立したUser起点Join Requestの将来機能です。以下の論理・物理設計は将来実装時のbaselineとして保持しますが、Initial ReleaseではUI/APIを提供せず、`00001_initial.sql`にもtableを作成しません。機能実装時に要件を再確認し、その時点のversioned migrationで追加します。
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
