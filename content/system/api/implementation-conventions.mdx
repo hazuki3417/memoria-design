@@ -52,6 +52,44 @@ Go標準のerror、errors.Is、errors.As、error wrappingを基本とし、Domai
 
 GraphQLで公開するcode、Operation固有のerrorと存在秘匿の扱いは[GraphQL契約](./graphql)で具体化します。想定済みの入力Errorや認可拒否を一律にERROR logへ出力せず、予期しない障害は適切なBoundaryで一度だけ記録します。Error、Log level、retry、metric、alert、GraphQL codeを単一の万能型へ集約しません。
 
+## sqlc Queryの管理
+
+PostgreSQL Queryはsqlcの生成元として`memoria-api/schemas/postgres/query/`で管理します。Query sourceの構成はDB table単位ではなく、Product domainと永続化上の責務を基準とします。
+
+- 最上位directoryは`user/`、`community/`、`media/`のProduct domain単位とする。PostgreSQL schema名が`identity`であっても、Product上のUser domainは`user/`へ配置する。
+- Domain内は1 table 1 fileを強制せず、`membership.sql`、`custody.sql`、`group.sql`のような永続化上の責務・概念で分割する。
+- 複数tableをJOINまたは更新するQueryは、そのQueryの主目的を所有するfileへ配置する。同じtableを複数fileから参照してよい。
+- Query名は単純なtable CRUDへ機械的に合わせず、呼び出し側から目的が分かる名称にする。
+- SQL内のrelationは`media.media`、`identity.users`のようにschema-qualified nameで参照し、`search_path`へ正しさを依存させない。
+- Outbox、Idempotency、Processing Job、Storage Operationなど特定domainの処理を成立させる技術tableのQueryは、利用domainの配下へ置く。複数domainで共通利用する要件が生じるまでは先回りして`common/`や`system/`へ分離しない。
+- 物理モデルに存在することだけを理由に全tableのCRUD Queryを作らない。Use Case、Worker、Publisherなど実際の永続化操作に必要なQueryを定義する。
+
+初期のdirectory構成は次をbaselineとし、責務の増減に応じてfileを追加・分割します。file一覧自体を固定contractとはしません。
+
+~~~text
+schemas/postgres/query/
+├── user/
+│   ├── user.sql
+│   └── deletion.sql
+├── community/
+│   ├── community.sql
+│   ├── membership.sql
+│   └── invitation.sql
+└── media/
+    ├── media.sql
+    ├── custody.sql
+    ├── image.sql
+    ├── processing.sql
+    ├── access.sql
+    ├── group.sql
+    ├── tag.sql
+    └── storage_operation.sql
+~~~
+
+sqlcの生成先は当面`internal/db`の単一packageを維持します。Query sourceのdomain分割を理由に生成packageを分割せず、生成codeはInfrastructure詳細として扱います。`internal/db`の型をDomainやUse CaseのContractとして公開せず、PostgreSQL InfrastructureでDomainまたは境界専用型へ変換します。
+
+既存schemaと互換性のないDB再構築では、旧Queryや旧生成codeを互換層として維持しません。確定した物理モデルと必要な永続化操作からQueryを新規設計し、生成物を再作成します。生成元・生成command・generator version・生成差分検査の実行可能な設定は`memoria-api`を正本とします。
+
 ## SQL、並行処理、context
 
 - SQLはparameterized queryを使い、必要なcolumnを明示し、原則としてSELECT *を避ける。
