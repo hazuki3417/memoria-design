@@ -172,6 +172,12 @@ Processing Jobのactive uniqueness、Idempotency response、Outbox error、Stora
 - `DELETING` は cleanup の processing state であり、trash / restore 用 soft delete ではない。
 - Query は通常 active/current state のみを返し、cleanup worker は processing state を明示的に取得する。
 
+## Access pattern / sort baseline
+
+Application全体の利用者向け一覧は、domain固有の順序要件がない場合、`created_at DESC, id DESC` を既定sortとします。これは「新しく作成されたものから見る」というUI上のbaselineであり、すべてのrelationへ同じindexを追加する規則ではありません。
+
+各Queryで、event発生時刻、参加時刻、upload完了時刻、retry予定時刻、Publisher / Workerの取得順等がユースケース上の基準になる場合は、その時刻と安定したtie-breakerを明示し、実際のfilter / JOIN / pagination形に合わせてindexを決定します。
+
 ## Index review principles
 
 Index は次の access pattern が確認できる場合に限り追加します。
