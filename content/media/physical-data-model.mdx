@@ -157,7 +157,9 @@ Image Variantは、フロントエンドが表示条件・解像度に応じて�
 | last_error | text | NULL可 | 内部向けの失敗理由 |
 | created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
 
-`(status, updated_at)`をindex対象にします。失敗情報に署名付きURL、credential、個人情報を保存しません。
+`PENDING` / `PROCESSING`をactive Jobとし、同一`(media_id, job_type)`ではactive Jobを1件だけ許可します。これは`WHERE status IN ('PENDING', 'PROCESSING')`のpartial unique indexでDB上も保証します。同じ処理のretryは新Jobを作らず同じ`job_id`を使用し、明示的なreprocessは既存Jobが`COMPLETED`または`FAILED`のterminal stateになった後に新しいJobを作成します。並行したreprocess要求がactive Job作成で競合した場合は、unique constraintを境界として既存active Jobを採用し、同一処理を重複開始しません。
+
+Worker取得・crash recoveryに使用する最終indexと時刻columnはStep 10のretry semanticsで確定します。失敗情報に署名付きURL、credential、個人情報を保存しません。
 
 Processing Jobが残っている間はMediaの物理削除を`ON DELETE RESTRICT`で拒否します。Media削除flowでは実行中処理との競合を解消し、Processing Jobを停止・確定して明示削除した後にMediaを物理削除します。Media削除後までProcessing Job履歴を保持する要件は設けません。
 
