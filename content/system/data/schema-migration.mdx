@@ -20,6 +20,20 @@ PostgreSQL schema、migration SQL、生成物はmemoria-apiが所有し、実行
 - 複数EC2や複数processが存在しても、各instanceから重複実行しない。
 - migrationが失敗した場合は後続Application deployを開始せず、既存dataと適用履歴を確認する。
 
+## DevelopmentでのDB定義更新手順
+
+人間がローカル開発でDB定義を更新する場合も、AI支援時と同じくmigrationを起点とします。実際のfile path、Make target、Docker Compose service名はmemoria-apiの`docs/COMMANDS.md`と実行可能な設定を正本とし、本ページでは変更順序と判断基準を定義します。
+
+1. 変更対象の物理データモデルと既存migrationを確認し、DBへ追加するcolumn、constraint、index、comment等を確定する。
+2. Productionへ適用済みのmigrationは編集せず、新しいversioned migrationへ`Up` / `Down`を記述する。Production未適用のpre-release baselineを再構築する場合だけ、合意した範囲でInitial migrationを置き換えられる。
+3. ローカルPostgreSQLへmigrationを適用する。既存のInitial migrationを再構築した場合は、Gooseの適用済みversionを持つ既存DBを使い回さず、破棄可能な開発dataであることを確認してvolumeをresetし、fresh DBへInitial migrationから適用する。
+4. Gooseのmigration適用状況を確認し、期待するversionまで適用されていることを確認する。
+5. migration適用済みDBから共通のsnapshot生成commandで`schema.sql`を再生成する。Gooseのmigration管理relationはsnapshotへ含めない。`schema.sql`を直接編集してmigrationとの差分を解消しない。
+6. schema変更がqueryへ影響する場合はSQL queryを更新し、`schema.sql`を入力としてsqlc生成codeを更新する。DB定義だけを先行して確定する作業では、追従範囲をIssue等で明示して後続工程へ分離できる。
+7. migration、生成snapshot、必要なquery / generated codeを同じ変更単位で確認し、GitHub Actionsでfresh DBへのmigration適用とsnapshot一致を検証する。新schemaへ未追従のGateを一時停止している場合は、追跡Issueと復帰条件を維持する。
+
+DB clientでDDLを試行した場合も、client上の変更をそのまま成果物とはせず、確定したDDLをmigrationへ移して上記手順を最初から確認します。共有環境やProduction DBをDevelopment用snapshot生成元として使用しません。
+
 ## Initial Release前のschema再構築
 
 Initial Release前でProduction dataとProductionへのmigration適用履歴が存在しない期間は、legacy PostgreSQL schemaとの互換性を要件としません。既存実装と確定した物理データモデルが大きく乖離している場合、legacy tableを段階的に変形するのではなく、設計書で確定した物理データモデルからInitial migrationを再構築します。
