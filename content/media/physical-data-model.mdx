@@ -137,7 +137,13 @@ Image VariantはImage固有の派生物です。Media共通variant tableは設�
 
 Image Variantは、フロントエンドが表示条件・解像度に応じて適切な派生画像を選択するため、同一Image・formatについて複数のwidthを保持します。`width`はVariantの要求サイズとしてidentityに含め、`height`は元Imageのaspect ratioを維持して生成された結果属性として扱います。
 
-`(image_media_id, format, width)`にUNIQUE constraintを設定し、同じ要求サイズ・formatのVariantを重複作成しません。同じJobの再実行でもこのconstraintによって重複を防止します。動画派生物は要件が具体化した時点で別設計として追加し、Image Variantへ混在させません。
+`(image_media_id, format, width)`にUNIQUE constraintを設定し、DBにはその時点で有効なVariantだけを保持します。Variantのgeneration / revision履歴は永続化しません。
+
+再処理では既存Variantを提供したまま、新Variant群を既存keyとは異なる一時的なObject Storage keyへ生成します。必要なVariantがすべて成功した後、対象Mediaをlockする短いPostgreSQL transactionで`image_variants`を新しい`storage_key`、寸法、容量等へ一括更新し、Job完了を同時に確定します。これによりDBから観測されるVariant集合を旧状態または新状態のどちらかに限定し、一部だけ新Variantへ切り替わる状態をcommitしません。
+
+旧Objectの削除はDB commit後にtransaction外で行います。削除失敗は`media_storage_operations`へdurableなDELETE operationとして記録してretryします。新Variant生成またはpublication前に失敗した場合は既存Variantを変更せず、新しく生成した未公開Objectをcleanup対象とします。Object StorageとPostgreSQLを同一transactionとして扱わず、同じstorage keyへの逐次上書きによるpartial publicationも行いません。
+
+動画派生物は要件が具体化した時点で別設計として追加し、Image Variantへ混在させません。
 
 ### media_processing_jobs
 
