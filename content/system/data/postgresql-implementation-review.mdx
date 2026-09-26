@@ -289,6 +289,12 @@ Media lifecycleの直列化点は`media.media`行とし、Custodian変更・共�
 
 Media Group DAG変更は同一scope単位で直列化します。User scopeでは対象User行、Community scopeでは対象Community行をscopeの排他点としてlockし、scope / 権限を再確認した後にrecursive CTEでcycleを再検証してrelationを更新します。cycle確認とinsertは同一transactionで行い、互いの未commit edgeを見られない並行追加によるcycle成立を防ぎます。Initial Releaseでは同一scope内の独立した階層変更も直列化し、graph単位の複雑なlock方式は導入しません。
 
+## Concurrency review result
+
+Step 8のrow lock / conditional update / concurrency invariant reviewは完了とします。User lifecycle、Community lifecycle / last-admin、Invitation / Join Request、Media lifecycle / Custody、Media Group DAGについて直列化点、lock後の再確認、first-commit-wins / reject semanticsを確定しました。
+
+Processing Job、Outbox Publisher、Storage Operation、Idempotency Request、reprocess / publicationに固有の取得・retry・publication競合は同期domain操作のStep 8へ混在させず、Step 9 / 10で確定します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
