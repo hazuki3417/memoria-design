@@ -17,7 +17,11 @@ Network timeout、Client retry、Outboxの再配送、Worker再起動により�
 
 Clientは操作ごとに一意なIdempotency Keyを生成し、同じ操作をretryするときは同じkeyを再送します。request payloadのhashだけを操作識別子として使用しません。
 
-同じkeyを受け取った場合は、実行済みの結果または処理中の状態を返します。必要に応じて`request_hash`を保存し、同じkeyで異なるpayloadが送信された場合は拒否します。
+同じkeyを受け取った場合は、同じ`request_hash`であれば確定済みの同一論理結果を返し、異なるpayloadは拒否します。`idempotency_requests`は対象Commandの業務更新と同じPostgreSQL transactionで確定し、`COMPLETED`では再送時に結果を再構成するためのMedia ID、Job ID、Deletion Job ID等の最小識別情報だけを`response_data`へ保存します。GraphQL response全体や不要な個人情報・secretはsnapshotしません。
+
+`PROCESSING`は外部I/Oを跨ぐ長時間leaseとして使用せず、同一DB transaction内で同時requestを直列化する内部状態として扱います。予期しないerrorやtransaction rollbackは永続的な`FAILED`へ変換せず、Idempotency recordを含めてrollbackします。`FAILED`を使用する場合は、同じkeyのretryへ再現可能な確定済み業務failureに限定します。
+
+Initial ReleaseのIdempotency Key保証期間は初回受付から24時間とし、`expires_at = created_at + 24 hours`とします。期限内のretryは同じkeyを使用し、新しい論理操作には常に新しいkeyを生成します。期限到達後は冪等性保証を終了し、recordをcleanup対象とします。cleanupの実行時刻は保証期限そのものではありません。account削除等の長時間処理の継続性はIdempotency recordではなく各durable Jobを正本とします。
 
 適用対象は、再送で副作用が重複するCommandに限定します。
 
