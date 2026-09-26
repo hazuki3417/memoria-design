@@ -323,6 +323,22 @@ Step 9のOutbox / Idempotency persistence reviewは完了とします。Outbox�
 
 Processing Job、Storage Operation、Redis Streams consumer、reprocess時のcurrent / staged artifact切替など、非同期処理そのものの取得・retry・publication invariantはStep 10で確定します。
 
+## Async processing publication invariant review result
+
+Step 10のasync processing publication invariant reviewは完了とします。
+
+- Processing Jobは`PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED`とし、`PENDING / PROCESSING`をactive stateとする。同一`(media_id, job_type)`のactive Jobはpartial unique indexで1件に制限する。
+- Redis Consumer Groupを実行messageのownership / crash recoveryの正本とし、Processing Jobへ重複するlease columnを追加しない。retryは同じJob IDを使用し、固定reclaim idleによるRedis pending recoveryをInitial Release baselineとする。
+- Processing JobのDB indexはWorker queue取得用ではなくRedis data喪失等のreconciliation用`(status, updated_at, id)`とする。
+- Variantはcurrent stateだけをDBへ保持する。新Variantは別storage keyへ生成し、全成果物成功後にMediaをlockして`ACTIVE`を再確認した短いtransactionでVariant metadataとJob `COMPLETED`をatomicにpublicationする。
+- Media削除が先行して`DELETING`になった場合はpublicationせずJobを`CANCELLED`とし、生成済み未公開Objectをcleanupする。publicationが先行した場合は削除側がcommit後の最新Variantを削除対象としてsnapshotする。
+- staging Object一覧はDBへ永続化せず、Media ID / Job IDから識別可能なObject key namespaceとする。cleanup operation記録前のWorker crashによる孤立Objectはorphan reconciliationで回収する。
+- Storage Operationは`PENDING | PROCESSING | COMPLETED | FAILED`とし、PostgreSQL自身をdurable queueとする。`next_attempt_at`をPENDINGの実行可能時刻 / PROCESSINGのclaim lease期限に使用し、`FOR UPDATE SKIP LOCKED`でclaimする。取得indexは`(status, next_attempt_at, created_at, id)`とする。
+- Storage DELETEはDB transaction外で冪等に実行し、retry可能failureは指数backoff、上限到達または回復不能failureは`FAILED`とする。Media削除に関連するdurable Storage Operationがすべて`COMPLETED`になるまでMediaを`DELETING`で保持する。
+- retry回数、Redis reclaim idle、Storage claim lease、Storage backoff値、orphan reconciliationの走査間隔 / grace period、COMPLETED Storage Operationの保持期間 / cleanup intervalはruntime / operations parameterであり、資料に根拠のない具体値をDB詳細設計では固定しない。Issue #44 / #45 / #61等の対応する運用・実装設計で追跡する。
+
+これによりStep 6で保留したProcessing Job / Storage Operationの最終index、Step 5で保留したactive Job uniquenessとStorage Operation retry状態をStep 10の確定値で上書きします。Step 10完了後の次工程はStep 11 migration / compatibility reviewです。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
