@@ -301,6 +301,12 @@ Outbox Publisherは外部Redis I/O中にPostgreSQL row lockを保持しません
 
 `FAILED`は自動retry上限到達後のterminal operational stateとして自動取得対象から外し、運用再開時は`PENDING`へ戻します。`XADD`成功後から`PUBLISHED`確定前のcrashによる重複配送は許容し、event_idを使う下流の冪等性で吸収します。claim owner列はInitial Releaseでは追加せず、lease期限でcrash recoveryします。
 
+## Persistence review: Idempotency Request
+
+Idempotency Requestは対象Commandの業務更新と同じPostgreSQL transactionで確定します。`PROCESSING`を外部I/Oを跨ぐleaseにはせず、予期しないerror / rollbackではrecordもrollbackします。`COMPLETED.response_data`は同一論理結果を再構成する最小識別情報に限定し、永続`FAILED`は再現可能な確定済み業務failureに限定します。
+
+Initial ReleaseのIdempotency Key保証期間は初回受付から24時間です。`expires_at = created_at + 24 hours`とし、期限後は保証終了・cleanup対象とします。長時間処理の継続性は各durable Jobを正本とします。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
