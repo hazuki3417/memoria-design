@@ -4,6 +4,12 @@
 
 PostgreSQLへ保存するProduct domain共通の型、命名、制約、日時、削除方針を定義します。本ページを共通規約の正本とし、Media・Community・Userの物理データモデルではdomain固有のtable構造と例外を定義します。実行可能なSQL schemaの正本はmemoria-apiです。
 
+## テーブル定義の記述形式
+
+物理データモデルのtable定義表では、1つのcolumnを必ず1行で記載します。型、constraint、意味が同一であっても、`created_at・updated_at`や`width・height`のように複数columnを1行へまとめません。
+
+この形式は、実行可能schemaとの対応関係を明確にし、column単位のconstraintや説明を変更した際の記述漏れ・表記揺れを防ぐため、すべてのdomainで統一して適用します。
+
 ## 識別子
 
 - entityの識別子はapplicationが生成するULIDとする。
