@@ -218,13 +218,28 @@ OutboxはPublisherが`status`で未配送対象を絞り、`created_at, id`の�
 
 Processing Jobの`(status, updated_at)`とStorage Operationの`(status, next_attempt_at)`はretry / recovery対象を絞り込む目的自体は確定していますが、batch取得で優先する時刻のsemantics、同時刻のtie-breaker、lock / retry方式がStep 9 / 10のasync詳細設計に依存します。Step 6では推測して最終composite順序を固定せず、Step 9 / 10で`id`等の安定tie-breakerを含めて確定します。
 
+## Access pattern / index review result
+
+Step 6のaccess pattern / index reviewは完了とします。Initial Releaseで現在具体化している認証lookup、Membership / Join Request一覧、Media Custody / Community Access、Group / Tag両方向lookup、Media Event、Variant、Outbox、Idempotency cleanup等について、既知のQueryに対応するindexとsort方針を確認しました。
+
+利用者向け一覧は原則`created_at DESC, id DESC`とし、Membershipの`joined_at`、Join Requestの`requested_at`、Media Eventの`occurred_at`等、domain上意味のある時刻がある場合は個別sortを使用します。Media一覧ではCustody / Access側へ作成日時を複製せず、`media.created_at`を正本としてJOIN後にsortします。
+
+Step 6完了後も、次のindex詳細は要件または後続async設計に依存するため意図的に保留します。
+
+- 複数Tag filterのAND / OR、sort、cursor契約に依存する追加index
+- Community Custody MediaとCommunity共有Mediaを単一一覧へ統合する場合の最終Query / index形
+- Processing Job / Storage Operationのretry・recovery取得順、tie-breaker、lock方式に依存する最終composite index
+- Actor単位Media Event一覧等、Initial Releaseの具体的Queryとして未確定な一覧用index
+
+これらはレビュー漏れとして仮のindexを追加せず、対応する要件またはStep 9 / 10でQuery semanticsを確定してから決定します。
+
 ## 未決定事項
 
 以下は Implementation Detailed Design で今後確定します。
 
 - 全 Relation の最終 column inventory と executable DDL
 - final FK action と constraint name
-- cursor query ごとの composite index 順序
+- 後続要件・async設計に依存する未確定Queryのcomposite index順序
 - Invitation acceptのidempotency最終物理表現
 - Processing Jobのidentity / active Job uniquenessと、Redis Streams delivery・Worker retry・reprocessの関係
 - Processing publication の具体的 current/staged schema
