@@ -271,6 +271,35 @@ PKは`(media_group_id, media_id)`です。`(media_id, media_group_id)`をindex�
 
 PKは`(parent_group_id, child_group_id)`です。`parent_group_id <> child_group_id`をCHECKで保証し、`(child_group_id, parent_group_id)`を逆方向探索用indexとします。多段循環は追加前にrecursive CTEまたはServiceのgraph探索で検出します。親子は同一scopeに限定します。
 
+### Media Tag
+
+#### tags
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | Tag ID |
+| name | varchar(255) | NOT NULL | 表示・同一性判定に使用するTag名 |
+| scope_user_id | varchar(26) | FK users ON DELETE CASCADE、NULL可 | 個人scopeのUser ID |
+| scope_community_id | varchar(26) | FK communities ON DELETE CASCADE、NULL可 | Community scopeのID |
+| created_at・updated_at | timestamptz | NOT NULL | 登録・更新時刻 |
+
+Tag名は入力時に前後のUnicode whitespaceを除去し、除去後が空文字の場合は拒否します。内部の空白は正式名称等の一部として許可し、連続空白、全角・半角、大文字・小文字等を別表記として自動統合しません。保存した`name`の完全一致をTagの名称同一性判定に使用し、`normalized_name`は保持しません。
+
+User scopeまたはCommunity scopeのどちらか一方だけを持つXOR CHECKを設定します。同一scope内の重複はpartial unique indexで防止します。
+
+- `UNIQUE (scope_user_id, name) WHERE scope_user_id IS NOT NULL`
+- `UNIQUE (scope_community_id, name) WHERE scope_community_id IS NOT NULL`
+
+#### media_tags
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| media_id | varchar(26) | FK media ON DELETE CASCADE | 対象Media |
+| tag_id | varchar(26) | FK tags ON DELETE CASCADE | 対象Tag |
+| created_at | timestamptz | NOT NULL | Tagを関連付けた時刻 |
+
+PKは`(media_id, tag_id)`です。Tag削除時は関連付けだけを削除し、Media本体を削除しません。TagのscopeとMediaの操作・共有状態が整合することはServiceで検証します。User管理MediaのCommunity共有解除時は、そのCommunity scopeのTag関連だけを削除します。
+
 ### media_storage_operations
 
 `media_storage_operations`はDBとObject Storage間の削除を再試行する技術tableです。
