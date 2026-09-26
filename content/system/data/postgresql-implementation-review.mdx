@@ -124,6 +124,12 @@ Initial ReleaseのPostgreSQL relation inventoryは上記の所有relationを対�
 
 Relation inventory確定後も、各relationのcolumn、constraint、index等は後続レビューで確定するまでfinal DDLとは扱いません。
 
+## Nullability review
+
+Columnは原則NOT NULLとし、NULLはlifecycle上の未発生、User物理削除による匿名化、XOR relation、event type依存情報など業務上の意味がある場合だけ使用します。
+
+Community Join Requestはstatusとreview / resolve時刻の整合をCHECK constraintで保証します。`PENDING`ではreview / resolve情報を持たず、`APPROVED` / `REJECTED`では`reviewed_at`と`resolved_at`を必須、`CANCELLED` / `INVALIDATED`では`resolved_at`を必須とします。reviewer Userは承認・拒否transaction時には必須ですが、後のUser物理削除で`reviewed_by_user_id`をNULLへ匿名化できるため、保存状態ではNULLを許容します。
+
 ## Constraint review principles
 
 - scope XOR は CHECK で保証する。
