@@ -196,7 +196,9 @@ Mediaの再送可能なcommandについて、同じIdempotency Keyの重複実�
 | created_at | timestamptz | NOT NULL | 初回受付時刻 |
 | updated_at | timestamptz | NOT NULL | 最終更新時刻 |
 
-`(actor_user_id, operation, idempotency_key)`へUNIQUE constraintを設定し、同じkeyで異なる`request_hash`を受け付けません。`(expires_at)`をcleanup用indexとします。response_dataへ不要な個人情報やsecretを保存しません。保存期間は再送要件と個人情報の保持方針に従います。
+`(actor_user_id, operation, idempotency_key)`へUNIQUE constraintを設定し、同じkeyで異なる`request_hash`を受け付けません。対象Commandの業務更新とIdempotency Requestの状態確定は同じPostgreSQL transactionで行います。`PROCESSING`は外部I/Oを跨ぐleaseには使用しません。`COMPLETED`の`response_data`には同一論理結果を再構成するための最小識別情報だけを保存し、GraphQL response全体、不要な個人情報、secretは保存しません。予期しないerrorやtransaction rollbackはIdempotency Requestもrollbackし、永続`FAILED`は再現可能な確定済み業務failureに限定します。
+
+Initial Releaseの保証期間は初回受付から24時間とし、`expires_at = created_at + 24 hours`とします。`(expires_at)`をcleanup用indexとし、期限到達後は冪等性保証を終了してcleanup対象とします。cleanupが期限と同時に実行されることは要求しません。長時間非同期処理の継続性はProcessing JobやDeletion Job等のdurable Jobを正本とします。
 
 ### media_community_accesses
 
