@@ -33,9 +33,30 @@ Application log、trace、Media Event、Outbox Eventは目的と保持期間を�
 
 EC2上でCollectorを運用する場合は、API、Worker、Publisherが同一hostのCollectorを共有し、OTLPで送信します。Collectorの停止をApplicationの必須readiness条件にはしません。
 
-Applicationが手動で作成するspanはUse Caseを基本単位とし、resolver、Domain、Repository、Pipeline stepごとに機械的なspanを追加しません。HTTP、PostgreSQL、Redis、外部HTTPは標準instrumentationを優先します。
+### APIのinstrumentation境界
 
-span attributeは必要な項目だけをallowlistで設定し、inputやoutput全体をJSONで記録しません。SQLはparameterized queryの構造を必要に応じて扱い、parameter値を記録しません。Zap logにはtrace_idとspan_idを必要に応じて関連付け、logとtraceの責務は分離します。
+APIではFrameworkやdriverが提供する標準的なinstrumentation pointを優先し、OpenTelemetryのためだけの独自Architectureや機械的なspan階層を作りません。
+
+- HTTP serverはOpenTelemetry公式contribの `otelhttp` を利用し、受信requestのserver spanとtrace context propagationを担当させます。
+- GraphQLはgqlgenの `AroundOperations` を利用し、operation単位のspanを作成します。raw query、GraphQL variables、resolver field単位の値は記録しません。
+- PostgreSQLはpgx v5のtrace hookを利用する `otelpgx` を利用し、query実行をGraphQL operation配下へ関連付けます。SQL parameter値は記録しません。
+- Resolver、Service、Domain、Repositoryごとに機械的な手動spanを追加しません。
+- Application/DomainはOpenTelemetry API/SDKへの依存を必須にしません。
+- GraphQL operationと標準client/driver spanだけでは処理内訳を判断できない複雑なUse Caseが現れた場合に限り、意味のある業務処理境界へ手動spanを追加します。
+
+同期処理の基本的なtraceは `HTTP server -> GraphQL operation -> PostgreSQL query` とします。将来、外部HTTP、Redis、Object Storageなどを呼び出す場合も、それぞれの標準instrumentationを優先します。
+
+OpenTelemetryは `context.Context` にspan contextを保持・伝播する標準機構を使用します。root contextやspanをApplication独自のcontext keyへ格納して受け渡す実装は行いません。
+
+### span名・attribute・error
+
+span名は低cardinalityで処理境界を識別できる値にします。HTTPはinstrumentationのHTTP semantic conventions、GraphQLはoperation種別とoperation nameを基礎にし、User IDや入力値などrequestごとに変化する値をspan名へ含めません。匿名operationについてもraw queryをspan名の代替にしません。
+
+span attributeは必要な項目だけをallowlistで設定し、inputやoutput全体をJSONで記録しません。password、token、credential、nickname、Auth0 issuer・subject、GraphQL variables、raw queryなどPrivacy/Security対象をattributeへ記録しません。SQLはparameterized queryの構造をinstrumentationが扱う場合でもparameter値を記録しません。
+
+標準instrumentationが設定するstatusとerror recordingを基本とします。Applicationが期待するvalidation、authentication、conflict、not-found等のGraphQL errorを、存在するという理由だけで一律にinfrastructure failureとして扱いません。手動spanを追加する場合は、そのspanが表す処理自体の予期しない失敗を `RecordError` / Error statusの対象とし、同じerrorを複数階層で機械的に重複記録しません。
+
+Zap logにはtrace_idとspan_idを必要に応じて関連付け、logとtraceの責務は分離します。
 
 ## Metricのcardinality
 
