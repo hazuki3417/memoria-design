@@ -26,8 +26,6 @@ Go実装ではgqlgen標準の `graphql.Time` mappingを利用し、Domain / Appl
 
 ## User
 
-## User
-
 初回ReleaseのUser契約は、認証済み主体の登録状態確認、User登録、User Profile更新を提供します。実行可能なSDLは`memoria-api`を正本とします。
 
 - `me: User`はUser自体をnullableとし、Access Tokenが有効でMemoria Userが未登録の場合は`null`を返します。
@@ -39,6 +37,44 @@ Go実装ではgqlgen標準の `graphql.Time` mappingを利用し、Domain / Appl
 - User登録済み主体による再登録は`CONFLICT`、Profile入力不正は`VALIDATION`として扱います。
 
 account削除はUser domainの初回Release要件ですが、Communityの最後のAdministrator解決とMedia削除対象の固定が必要なため、この最初のUser実装sliceには含めません。Community・Media境界の実装後に独立した契約として追加します。
+
+## Community
+
+Community契約は初回Releaseに必要な操作からvertical slice単位で確定します。最初のsliceではCommunity作成を提供します。
+
+### Community作成
+
+`createCommunity(input: CreateCommunityInput!): CreateCommunityPayload!`で、認証済みのACTIVE UserがCommunityを作成します。
+
+```graphql
+type Community {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input CreateCommunityInput {
+  name: String!
+}
+
+type CreateCommunityPayload {
+  community: Community!
+}
+
+extend type Mutation {
+  createCommunity(input: CreateCommunityInput!): CreateCommunityPayload!
+}
+```
+
+- ClientはCommunity名だけを指定します。作成User ID、Membership role、作成日時などServerが確定する値は受け取りません。
+- `name`は前後の空白を除去した値を保存し、除去後に空文字となる入力は`VALIDATION`として拒否します。
+- 名称の最大長はSecurity設計で未確定のため、このsliceでは独自の上限値をGraphQL契約へ追加しません。
+- 認証主体からACTIVE Userを解決し、そのUserを作成者として扱います。未登録UserまたはDELETING Userには通常のProduct操作を許可しません。
+- Community作成と、作成Userの`role=admin` Membership作成は同じDB transactionで確定します。一方だけが保存された状態を成功として返しません。
+- Community名はCommunity間で重複可能なため、同名Communityの存在を`CONFLICT`として扱いません。
+- 成功時は作成したCommunityを`payload.community`で返します。
+- このsliceではCommunity取得・一覧、Invitation、Membership管理、Community改名・削除を追加しません。それぞれの契約を確定したsliceで追加します。
 
 ## Pagination
 
