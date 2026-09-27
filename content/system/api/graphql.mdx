@@ -18,6 +18,18 @@ APIはschema、Webはoperation・fragment・生成型を所有します。resolv
 - request size、Query depth、取得件数、rate limitに用途に応じた上限を設けます。
 - 破壊的変更には移行期間を設けます。
 
+## DateTime scalar
+
+GraphQLの `DateTime` はClientとの通信境界で次の形式に統一します。
+
+- RFC3339形式を使用する。
+- 出力はUTCへ正規化し、timezone表現は `Z` とする。
+- 精度は秒までとし、小数秒は扱わない。
+- 入力も小数秒を含まないRFC3339を受け付ける。timezone offsetを含む入力は同一時刻として解釈し、Application内部では `time.Time` 相当の日時型として扱う。
+- Domain / Application / GraphQL model間では文字列へ変換せず日時型を維持し、通信形式へのserialize / parseはGraphQL scalar境界の責務とする。
+
+例: `2026-09-27T02:41:45Z`
+
 ## User
 
 初回ReleaseのUser契約は、認証済み主体の登録状態確認、User登録、User Profile更新を提供します。実行可能なSDLは`memoria-api`を正本とします。
