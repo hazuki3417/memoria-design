@@ -20,15 +20,11 @@ APIはschema、Webはoperation・fragment・生成型を所有します。resolv
 
 ## DateTime scalar
 
-GraphQLの `DateTime` はClientとの通信境界で次の形式に統一します。
+GraphQLの `DateTime` はRFC3339互換の日時文字列として通信します。timezone offsetと小数秒を許容し、Application内部では日時型として扱います。保存・比較はUTCなど同じ基準へ揃え、利用者向けのtimezone変換や表示形式はClient側で扱います。
 
-- RFC3339形式を使用する。
-- 出力はUTCへ正規化し、timezone表現は `Z` とする。
-- 精度は秒までとし、小数秒は扱わない。
-- 入力も小数秒を含まないRFC3339を受け付ける。timezone offsetを含む入力は同一時刻として解釈し、Application内部では `time.Time` 相当の日時型として扱う。
-- Domain / Application / GraphQL model間では文字列へ変換せず日時型を維持し、通信形式へのserialize / parseはGraphQL scalar境界の責務とする。
+Go実装ではgqlgen標準の `graphql.Time` mappingを利用し、Domain / Application / GraphQL model間で個別に日時文字列へ変換しません。
 
-例: `2026-09-27T02:41:45Z`
+## User
 
 ## User
 
