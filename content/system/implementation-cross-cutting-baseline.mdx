@@ -84,6 +84,14 @@ Dependency directionはDelivery/Infrastructure -> Application -> Domainを守り
 
 Validationをtransport/domain/infrastructureで重複させず、各layerの責務に応じて分離します。SQL detailやgqlgen typeをDomainへ漏らしません。`context.Context`はrequest cancellation/deadline等のtechnical contextとして扱い、business parameter carrierにしません。
 
+## Backend Composition Root / Dependency Initialization
+
+Backend processのcomposition rootは各entrypoint側に置き、そのprocessが実際に必要とする依存を明示的に組み立てます。全layer・全外部clientを保持する汎用ContainerをDIの中心にせず、configuration、logger / observability、PostgreSQL等のInfrastructure初期化は責務ごとの小さいconstructorへ分離します。
+
+Resolver、middleware、Service等は実際に利用する依存だけを受け取ります。未使用のAuth0 Management、Object Storage client等をprocess起動時に先行初期化せず、その機能を必要とするvertical slice / processを実装した時点で依存として追加します。外部resourceが未使用であることを理由にApplication全体の起動可否を不要に結び付けません。
+
+曖昧なHelperや巨大Containerでlogger、tracer、DB pool、validator等を横断的に配布しません。共通化は同じ初期化・policyを共有する具体的責務に限定します。Integration testも可能な範囲でProductionと同じInfrastructure constructorとApplication wiringを利用し、test専用の汎用DI構造を別途維持しません。
+
 ## Testing
 
 Domain invariantはfast unit test、UseCase workflowはmock/fakeを適切に用いたtest、DB constraint/transaction/concurrencyはPostgreSQL integration test、GraphQL mappingはAPI integration test、Outbox/Redis/Workerはdelivery/retry/idempotency integration test、critical user flowはE2Eで検証します。
