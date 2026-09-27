@@ -108,6 +108,16 @@ npmパッケージは`package.json`と`package-lock.json`へ記録します。De
 - Windowsブラウザからの`localhost`到達と、WebからAPIへの通信を分けて確認します。
 - バージョン、ポート、環境変数、起動コマンドは、各実装リポジトリのREADMEと実行可能な設定を正本とします。
 
+## Docker利用の判断基準
+
+開発環境の再現性だけでなく、日常のfeedback速度も維持します。通常のbuild、test、code生成などでproject固有のDocker image buildが必要になる場合は、Docker経由へ一律に寄せず、DevboxやCI runnerへ固定versionのtoolchainを導入して直接実行する方法を優先します。
+
+一方、PostgreSQL、Redis、k6など、公開済みの既製container imageを追加buildなしでそのまま利用できるserviceやtoolはDocker Composeで利用できます。hostへの個別installを減らし、image tagやdigestをRepositoryで管理して再現性を確保します。
+
+production imageや開発用imageそのもののbuild可否、runtime、Dockerfileの整合性を検証する場合は例外です。この場合はimage build自体が検証対象なのでDocker buildを実行します。
+
+この判断は「Dockerを使うかどうか」ではなく、環境差を十分に抑えられるか、project固有imageのbuild costを通常のfeedback loopへ持ち込む必要があるか、既製imageで依存を再現できるかを基準にします。具体的なtoolchain、image、command、versionは各Repositoryの実行可能な設定を正本とします。
+
 ## Backend依存serviceと再現可能な入口
 
 PostgreSQLとRedisはDocker Composeで起動し、共通構成と開発・CI差分を必要に応じて分離します。Go、Node.js、PostgreSQL major、Redis major、Docker base image、Devbox packageのversionはRepositoryから再現できるよう固定し、latestへの依存を避けます。
