@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
+> 実装状況: Access Token検証の基盤は存在します。User登録・Profile更新・削除は再実装中です。
 
 User登録、Login、nickname変更、session失効、account削除、Auth0不整合時の操作と結果を定義します。
 
@@ -22,11 +22,11 @@ Userがnicknameを確認・変更して登録を確定した時点でだけMemor
 
 同じissuer・subjectに対応するUserがすでに存在する場合は重複登録せず、認証主体を一意に解決できない場合は登録を拒否します。
 
-## nicknameを登録・変更する
+## User Profileを登録・変更する
 
-登録時またはACTIVE User本人が実行します。nicknameは必須で重複を許可し、前後空白を除去した空文字を拒否します。
+登録時またはACTIVE User本人が実行します。初回ReleaseのUser Profileはnicknameを持ち、将来Profile項目を追加できる境界として扱います。nicknameは必須で重複を許可し、前後空白を除去した空文字を拒否します。
 
-登録後はMemoria nicknameを正本とし、Auth0から同期しません。変更に成功した場合は現在値を置き換え、過去値は保存しません。DELETING Userによる変更は許可しません。
+Profile更新は特定field専用のProduct操作ではなくUser Profileの更新として提供します。初回Releaseではnicknameだけを更新し、Memoria nicknameを正本としてAuth0から同期しません。変更に成功した場合は現在値を置き換え、過去値は保存しません。DELETING Userによる変更は許可しません。
 
 ## Login・Logout・session失効
 

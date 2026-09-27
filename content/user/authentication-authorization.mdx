@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
+> 実装状況: Access Token検証の基盤は存在します。Memoria User解決、User登録・Profile更新・削除は再実装中です。
 
 Auth0とMemoriaの責務、User固有の認証主体解決、再認証、復帰先を定義します。全domain共通の認証、認可、個人情報、秘密情報の扱いは[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を参照します。
 
@@ -24,7 +24,7 @@ Auth0とMemoriaの責務、User固有の認証主体解決、再認証、復帰�
 | nickname変更 | ACTIVE User本人 | 他Userのnickname変更 |
 | account削除確定 | ACTIVE User本人。最終確定前にAuth0で再認証する | 再認証失敗・取消し・期限切れ時の削除開始 |
 
-token検証と権限の再評価は共通方針に従います。User domainではissuer・subjectに対応するUserがACTIVEであることを確認します。
+Access Tokenの検証とMemoria Userの解決は分離します。APIの認証境界はAccess Tokenを検証してissuer・subjectから認証主体を確定し、各Use Caseが必要なUser状態を解決します。User登録はUserが未登録であることを要求し、通常操作は対応するUserがACTIVEであることを要求します。Clientからissuer・subjectを受け取って操作主体を指定させません。
 
 ## 権限失効
 
@@ -35,6 +35,12 @@ Login・登録後の復帰先はallowlistに一致する内部相対URLだけを
 ## 取得する認証情報
 
 Auth0からはissuer、subjectと登録画面のnickname初期値に使う表示名だけを利用します。emailとprofile画像は要求・保存せず、issuer・subjectを画面や通常logへ出力しません。
+
+## GraphQLでの登録状態の解決
+
+認証済み主体の現在Userを取得する`me` QueryはUser自体をnullableとします。Access Tokenが有効でissuer・subjectに対応するUserが存在しない場合は`null`を返し、登録前の正常状態として扱います。ACTIVE Userが存在する場合はUserを返し、DELETING Userは通常操作と同様に拒否します。
+
+Userのfieldを登録状態のためにnullableにはせず、Userが存在する場合のProfileや識別子は各fieldの業務上のnullabilityに従います。
 
 ## 認証主体の解決
 

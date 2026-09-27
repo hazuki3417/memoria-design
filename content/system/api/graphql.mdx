@@ -18,6 +18,28 @@ APIはschema、Webはoperation・fragment・生成型を所有します。resolv
 - request size、Query depth、取得件数、rate limitに用途に応じた上限を設けます。
 - 破壊的変更には移行期間を設けます。
 
+## DateTime scalar
+
+GraphQLの `DateTime` はRFC3339互換の日時文字列として通信します。timezone offsetと小数秒を許容し、Application内部では日時型として扱います。保存・比較はUTCなど同じ基準へ揃え、利用者向けのtimezone変換や表示形式はClient側で扱います。
+
+Go実装ではgqlgen標準の `graphql.Time` mappingを利用し、Domain / Application / GraphQL model間で個別に日時文字列へ変換しません。
+
+## User
+
+## User
+
+初回ReleaseのUser契約は、認証済み主体の登録状態確認、User登録、User Profile更新を提供します。実行可能なSDLは`memoria-api`を正本とします。
+
+- `me: User`はUser自体をnullableとし、Access Tokenが有効でMemoria Userが未登録の場合は`null`を返します。
+- `User`は内部のauth issuer・subject、email、User状態を公開せず、`id`、`profile`、作成・更新日時を公開します。
+- `UserProfile`は初回Releaseでは`nickname`を持ちます。Profile項目追加を想定し、nickname専用MutationではなくProfile更新として扱います。
+- `registerUser`はAccess Tokenから確定した未登録の認証主体を登録します。Clientからissuer・subjectを受け取りません。
+- `updateUserProfile`はACTIVE User本人のProfileを更新します。
+- 未登録は`me`では正常状態として扱いますが、通常のProduct操作はACTIVE Userを要求します。DELETING Userは利用を拒否します。
+- User登録済み主体による再登録は`CONFLICT`、Profile入力不正は`VALIDATION`として扱います。
+
+account削除はUser domainの初回Release要件ですが、Communityの最後のAdministrator解決とMedia削除対象の固定が必要なため、この最初のUser実装sliceには含めません。Community・Media境界の実装後に独立した契約として追加します。
+
 ## Pagination
 
 一覧はRelay Cursor Connections Specificationに沿います。
