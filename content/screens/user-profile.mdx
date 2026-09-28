@@ -1,4 +1,4 @@
-# User Profile
+# Userプロフィール
 
 ## 概要
 
@@ -6,23 +6,23 @@ ACTIVE User本人が、Memoriaで利用するUser Profileを確認・変更す�
 
 > 実装状況: User Profile更新は再実装中です。既存実装のProfile画面は本仕様の正本とはみなしません。
 
-## Purpose
+## 目的
 
 UserがMemoriaで利用する自身のProfileを確認し、必要に応じて変更できるようにします。
 
 この画面は特定field専用のProduct操作ではなくUser Profileを管理する設定画面として扱います。初回Releaseではnicknameだけを編集対象とします。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Userユースケース - User Profileを登録・変更する](/user/use-cases#user-profileを登録変更する)
 
-## Information
+## 表示情報
 
 - 現在のUser Profileを提示します。
 - 初回Releaseでは現在のnicknameを提示します。
 - Userが編集可能なProfile項目と現在値を理解できるようにします。
 
-## Actions
+## 操作
 
 ### Profileを変更する
 
@@ -34,7 +34,7 @@ Profileに現在値からの変更が存在し、nicknameが有効な場合にPr
 
 入力条件を満たさない場合は更新を実行せず、Userが修正できる状態を維持します。
 
-## States
+## 状態
 
 ### 表示・編集可能
 
@@ -66,7 +66,7 @@ Profile更新のために別の画面へ遷移することは前提とせず、�
 
 意味のある未保存変更が存在する状態で、その編集内容を失うNavigationを行う場合は[Editable Form Pattern](/design-system/patterns/editable-form)に従って破棄確認を行います。
 
-## Constraints
+## 制約
 
 - ACTIVE User本人のProfileだけを確認・変更できます。
 - 初回Releaseの編集対象はnicknameだけです。
@@ -81,7 +81,7 @@ Profile更新のために別の画面へ遷移することは前提とせず、�
 - 既存Profileの編集と変更確定には[Editable Form Pattern](/design-system/patterns/editable-form)を適用します。
 - Profile更新に関する成功、入力error、処理errorの提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、現在のProfileの確認と編集可能なProfile項目の変更というCapabilityは維持します。
 
