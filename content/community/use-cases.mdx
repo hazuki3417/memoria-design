@@ -17,7 +17,7 @@ User、Administrator、Memberの操作、前提条件、結果、対象外を定
 
 ## Communityを作成・変更する
 
-- ログイン済みUserはCommunityを作成できる。
+- ACTIVE UserはCommunityを作成できる。未登録・DELETING Userは作成できない。
 - `name`は必須とし、前後の空白を除去して空文字・空白だけの値を拒否する。名称の長さは入力・Security設計で決定する。
 - 異なるCommunity間で同名を許可する。
 - 説明、Community画像、公開profile、Community検索、作成者専用属性を持たない。
