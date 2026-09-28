@@ -47,6 +47,10 @@ Initial Releaseでは1 Originalあたりのfile size上限を128 MiBとします
 
 1 request・1 Processing Jobは1 Mediaを扱います。画面で複数選択できてもAPI requestとJobはMedia単位に分離し、失敗とretryの影響を限定します。Upload Batchが必要になった場合も画面の集約概念として扱い、個別Jobの独立性を維持します。
 
+Processing Jobのretryはfailure種別で分けます。一時的なI/Oや実行基盤の障害等、同じ入力で回復可能なfailureはSystemが同じJobを自動retryします。decode不能・破損等、同じOriginalでは回復しないfailureは自動retryしません。retry可能なfailureもruntimeで定めた上限へ到達した場合はterminalなFAILEDとして確定します。
+
+Initial ReleaseではterminalなProcessing failureに対するUser向け手動retryを提供しません。運用上のreprocessではterminal Jobの完了後に新しいProcessing Jobを作成し、同じOriginalから派生物を再生成します。Media登録済みである以上、Processing failureだけを理由にMediaをMedia Browserから除外せず、表示用Variantを利用できない状態として扱います。
+
 ## 動画と容量情報
 
 Video Variantの形式・生成条件は動画ユースケースの具体化後に決定します。画像専用の前提をMedia全体へ固定しません。
