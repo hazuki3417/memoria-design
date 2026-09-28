@@ -95,6 +95,18 @@ Design Systemは概ね次の関係で扱います。
 
 画面固有の判断は画面実装に留め、再利用可能な判断だけを共通Patternへ昇格させます。
 
+### FoundationとPatternの境界
+
+FoundationはMantineが提供するtheme scale、primitive、Accessibility、基本的なinteraction behaviorを中心とします。Memoria独自のtokenやprimitiveは、実際の画面設計から必要性が確認された場合に追加します。既存の `memoria-web/src/components` に存在するComponentは、存在していることだけを理由にFoundationやPatternとはみなしません。
+
+PatternはComponent catalogではなく、複数の画面で繰り返し発生するUI/UX上の問題に対するMemoriaとしての標準的な解決方法です。画面固有の判断を先回りしてPattern化せず、Screen Specification、実装、Visual Reviewを通して再利用性が確認されたものを昇格させます。ただし、明らかに複数画面へ適用される横断要件について、機械的に2つ目の利用例を待つ必要はありません。
+
+Patternの目的、適用条件、振る舞い、Variation、制約等の意味的な仕様は `memoria-design` をSource of Truthとし、具体的なReact / Mantine Component、Story、testは `memoria-web` をSource of Truthとします。
+
+Patternを追加する場合は、少なくともPurpose、When to Use、Behavior、Variations、Constraintsを記述します。必要に応じてResponsive BehaviorやAccessibility上の固有要件を追加します。Component API、CSS、pixel値等の実装詳細は原則としてPattern仕様へ含めません。
+
+既存Componentを一括してDesign Systemへ登録する棚卸しは行いません。各Screenを設計・実装する際に、既存Componentが現在のScreen SpecificationとUX Principlesへ適合するかを確認し、適合するものは再利用し、適合しないものは変更または廃止します。
+
 ## UI/UXの方向性
 
 Memoriaは、機能を減らすことで単純に見せるのではなく、利用者が現在必要としている情報と操作を適切に提示することで、知覚する複雑さを抑えることを目指します。
@@ -161,8 +173,3 @@ UI品質の検証は、それぞれの検査手段が適した責務を担当し
 
 具体的な変更検知方法、GitHub Actions構成、代表viewport、Browser matrixは `memoria-web` のtest infrastructure設計で決定します。
 
-## 未決定事項
-
-次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
-
-- Design Systemの具体的なFoundation / Pattern
