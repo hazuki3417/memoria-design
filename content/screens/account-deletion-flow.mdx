@@ -43,15 +43,25 @@ Community削除を選択した対象がある場合、削除対象Communityを�
 
 Community削除を選択していない場合、この段階はskipします。
 
-### 4. 再認証・最終確認
+### 4. 最終Review
 
-必要なCommunity上の判断と確認をすべて完了した後、Auth0で再認証します。
+必要なCommunity上の判断と確認をすべて完了した後、削除計画全体をReviewします。User account、User管理Media、削除するCommunity、Administratorを引き継いで保持するCommunity等、account削除によって実行される主要な変更をまとめて確認します。
 
-再認証後、User account、User管理Media、削除対象Community等、確定時点で失われる対象を最終確認し、account削除を明示的に確定します。
+Userが削除計画を変更する場合は前段階へ戻り、最新の選択結果に基づいてReviewを再構成します。
 
-再認証または必要な確認が完了しない場合は削除を開始しません。
+### 5. Auth0再認証
 
-### 5. 削除開始
+最終Reviewの内容を確認してaccount削除を継続する場合、Auth0で再認証します。再認証の失敗、取消し、期限切れ時は削除を開始しません。
+
+再認証を強制する具体的なAuth0方式と再認証結果の有効期限はAuthentication / Security設計で定義し、このFlowでは規定しません。
+
+### 6. 最終確定
+
+再認証成功後、Memoriaへ戻り、再認証済みであることと、ここで確定するとaccount削除が開始されることを明確にした状態で、Userに明示的な最終削除Actionを要求します。
+
+Auth0は本人確認、Memoriaは削除内容への最終同意を担当します。再認証後に削除計画を変更した場合は再認証済み状態を引き継がず、最新の削除計画について最終Reviewと再認証を再度完了する必要があります。
+
+### 7. 削除開始
 
 削除確定後、UserをDELETINGとして即時利用不可にします。削除対象を確定時点で固定し、非同期Jobでcleanupします。
 
