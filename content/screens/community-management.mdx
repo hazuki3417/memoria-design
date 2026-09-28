@@ -1,4 +1,4 @@
-# Community Management
+# Community管理
 
 ## 概要
 
@@ -8,20 +8,20 @@ Community AdministratorがCommunity自体の設定を管理する画面です。
 
 > 実装状況: 本仕様に対応するCommunity Management UIは未実装です。
 
-## Purpose
+## 目的
 
 AdministratorがCommunity自体に対する管理操作を一か所から理解・実行できるようにします。
 
 日常的なMedia利用や参加者管理とは分離し、Administratorだけが必要とするCommunity設定をまとめます。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
 - [Communityユースケース - 招待URLを発行・共有する](/community/use-cases#招待urlを発行共有する)
 - [Communityユースケース - Communityを削除する](/community/use-cases#communityを削除する)
 - [Community権限 - MembershipとAdministrator](/community/authorization#membershipとadministrator)
 
-## Information
+## 表示情報
 
 ### General
 
@@ -42,7 +42,7 @@ Invitation tokenそのものを必要以上の場所へ露出させず、log、�
 
 Community削除が不可逆な管理操作であることを示し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。
 
-## Actions
+## 操作
 
 ### Community名を変更する
 
@@ -78,7 +78,7 @@ AdministratorはCommunity Deletion Confirmationへ進めます。
 
 Management画面上の単純な確認だけでCommunity削除を確定しません。
 
-## States
+## 状態
 
 ### 通常
 
@@ -116,7 +116,7 @@ Community削除は[Community Deletion Confirmation](/screens/community-deletion-
 
 Context全体のNavigation責務は[Application Information Architecture](/system/application-information-architecture)に従います。
 
-## Constraints
+## 制約
 
 - 有効なAdministrator Membershipを持つUserだけが利用できます。
 - Community名、Invitation、Community削除以外の設定項目をInitial Releaseの必要性なしに追加しません。
@@ -127,7 +127,7 @@ Context全体のNavigation責務は[Application Information Architecture](/syste
 - Community削除の成立条件と影響確認は専用Screenで扱います。
 - domain ruleは[Communityユースケース](/community/use-cases)と[Community権限](/community/authorization)を正本とします。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、Community名変更、Invitation状態確認・管理、Community削除Flowへの到達というCapabilityを維持します。
 
