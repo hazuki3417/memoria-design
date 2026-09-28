@@ -1,4 +1,4 @@
-# Group Browser
+# Group一覧・詳細
 
 ## 概要
 
@@ -6,18 +6,18 @@ PersonalまたはCommunity contextで、現在scopeのMedia Groupを検索・閲
 
 > 実装状況: 既存のmemoria-webにはGroup名検索、flatなGroup一覧、選択したGroupのMedia表示があります。本仕様で定義するPersonal / Community scope、DAG relation、Community roleによる管理権限には差分があります。
 
-## Purpose
+## 目的
 
 Userがfolder treeやDAG全体を理解することを要求されず、現在scopeのGroupを名前から発見し、選択したGroupを中心として関連Groupと分類されたMediaを確認できるようにします。
 
 PersonalとCommunityで同じGroup interaction modelを利用し、Application contextによって対象scopeと管理権限だけを切り替えます。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
 - [Media Group](/media/group)
 
-## Information
+## 表示情報
 
 ### Group discovery
 
@@ -40,7 +40,7 @@ Groupを選択した状態では、少なくとも次を確認できるように
 
 Groupには一意なrootやpathが存在しないため、folder breadcrumbを現在位置やGroup identityとして表示することを前提にしません。
 
-## Actions
+## 操作
 
 ### Groupを検索する
 
@@ -94,7 +94,7 @@ Initial Releaseでは[Media Browser / Detail](/screens/media-browser-detail)のM
 
 Group Browserでは選択したGroupへ分類済みのMediaを確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類も必須Capabilityとしません。
 
-## States
+## 状態
 
 ### Groupあり
 
@@ -140,7 +140,7 @@ Group間relationを辿って別Groupを選択する場合も同じscopeを維持
 
 Groupをどのrouteやsplit view / dedicated viewで表現するかは固定しません。既存実装のsplit viewは実装上の参考例として扱い、Compact / Medium / Wideに適したpresentationを選択できます。
 
-## Constraints
+## 制約
 
 - GroupはfolderではなくDAGとしてrelationを持つ分類概念です。
 - Group discoveryはflatな一覧を基本とし、DAG全体のgraph visualizationを主要Interactionにしません。
@@ -152,7 +152,7 @@ Groupをどのrouteやsplit view / dedicated viewで表現するかは固定し�
 - Groupのdomain semanticsは[Media Group](/media/group)、Community固有の認可は[Community権限](/community/authorization)を正本とします。
 - TagはInitial Release対象ですが、本Screen SpecificationでGroupと同一Interactionを仮定しません。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、Groupの一覧、名前検索、Group選択、relationの確認、および権限のあるGroup管理Capabilityを維持します。
 
