@@ -35,7 +35,11 @@ Mediaは画像と動画を共通に表す概念です。Image・Videoが種別�
 | 800px | 320px、640px、800px |
 | 2400px | 320px、640px、960px、1280px、1920px |
 
-Originalの向き、透過情報、decode可能性、許可形式、file signature、画素数などは静止画像処理の詳細設計で検証します。変換できない形式を正常完了として扱わず、Jobの失敗として記録します。
+Initial ReleaseでUploadを受け付けるOriginal形式はJPEG、PNG、WebP、HEIC / HEIFとします。AVIFはInitial Releaseの入力形式には含めません。
+
+拡張子やClient申告MIMEだけを信頼せず、Server側でfile signature / containerを検証し、許可形式としてdecode可能であることを確認します。HEIC / HEIFを含めOriginalは無加工で保持し、表示用には他形式と同じWebP Variant集合を生成します。
+
+Originalの向き、透過情報、decode可能性、file signature、画素数などを静止画像処理で検証します。変換できない形式を正常完了として扱いません。Upload受付時に確定できる不正入力と、受付後の非同期処理でのみ判明する処理失敗は区別します。
 
 ## 処理単位
 
