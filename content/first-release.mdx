@@ -77,21 +77,24 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 
 性能、容量、可用性、RPO/RTO、Backup保持期間、観測項目は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。Security・Privacyの詳細は専用の要求Issueで確定します。
 
-## 確定が必要な設計事項
+## 設計状況と残る設計事項
 
-| 領域 | 判断する内容 | 管理Issue |
+Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域について確定済みです。Application UIについても、[Application Information Architecture](/system/application-information-architecture)と[Screen Specification](/screens)で、Media / Group / Tagの横断設計を除く主要Flowを定義しています。
+
+今後の設計では、確定済み領域を再度一括設計するのではなく、残る未確定事項と実装契約を必要な順に具体化します。
+
+| 領域 | 現在の状態・残る判断 | 管理Issue |
 | --- | --- | --- |
-| Community | [Community設計](/community)：参加者、Administrator、認可、管理関係 | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
-| Uploader権限 | Community参加中のUploader本人による削除・Original download | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
-| User・認証 | [User設計](/user)：認証、登録、nickname、session、account削除 | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
-| Group | 所属、操作権限、階層、関連、削除 | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
-| Tag要求 | 分類目的、所属、操作主体、検索要求 | [#23](https://github.com/hazuki3417/memoria-design/issues/23) |
-| Tag詳細設計 | 物理モデル、認可、関連、絞り込み | [#43](https://github.com/hazuki3417/memoria-design/issues/43) |
-| 静止画像処理 | 対応形式、Upload、Variant、状態、再試行 | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
-| GraphQL | Query、Mutation、型、エラー、認可 | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
-| 画面 | 画面遷移、操作、対応Browser・Device・画面幅 | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
-| Security・Privacy | 公開前に満たす認証、認可、保護要件 | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
-| 初期運用 | EC2構成、DB配置、Deploy、Backup、復旧 | [#45](https://github.com/hazuki3417/memoria-design/issues/45) |
+| Community | 主要なdomain rule、認可、Invitation、Membership、削除、主要Screenは設計済み | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
+| Uploader権限 | Community参加中のUploader本人による削除・Original downloadは設計済み | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
+| User・認証 | 登録、nickname、session、account削除、主要Screenは設計済み。account削除時のAuth0強制再認証方式と有効期限は実装前に確定する | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
+| Application UI | Application IA、User / Communityの主要Screen、共通Interaction Patternは設計済み。Media / Group / TagはPersonal / Communityを横断してまとめて設計する | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
+| Group | scopeとDAGの基本ruleは設計済み。Media / Tagと合わせて操作・編集・削除等の詳細を横断設計する | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
+| Tag | 分類目的と基本境界を前提に、Media / Groupと合わせて操作、認可、絞り込みを横断設計する | [#23](https://github.com/hazuki3417/memoria-design/issues/23)・[#43](https://github.com/hazuki3417/memoria-design/issues/43) |
+| 静止画像処理 | Variantと非同期処理の基本設計を前提に、対応形式、Upload interaction、状態・再試行等の詳細を確定する | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
+| GraphQL | Product / Domain / Screen仕様を入力としてQuery、Mutation、型、error、認可の実装契約を具体化する | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
+| Security・Privacy | 公開前に満たす認証、認可、保護要件と、強制再認証等の実装方式を確定する | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
+| 初期運用 | EC2構成、DB配置、Deploy、Backup、復旧を確定する | [#45](https://github.com/hazuki3417/memoria-design/issues/45) |
 
 動画の詳細設計は[#20](https://github.com/hazuki3417/memoria-design/issues/20)として初回Release後の候補に残します。高度な段階的DB移行は[#28](https://github.com/hazuki3417/memoria-design/issues/28)として、既存dataや互換性の必要性に応じて判断します。
 
@@ -99,12 +102,14 @@ WebおよびIaCの既知のquality gate問題は、それぞれ[memoria-web#11](
 
 ## 設計と実装の優先順位
 
-1. Security・Privacy要求、Community、Uploader権限、User・認証の前提を整理する。
-2. Groupの詳細設計と、Tagの要求・詳細設計を確定する。
-3. 静止画像のUpload、派生画像、非同期処理を具体化する。
-4. GraphQL契約を定義し、画面・操作フローへ反映する。
-5. EC2 + Dockerの運用、Deploy、Backup、復旧を確定する。
-6. Repositoryごとの実装Issueへ分割し、quality gateと結合確認を正常化する。
+1. Media / Group / TagをPersonal / Communityで分断せず、共通するMedia Management体験とscope・認可差分を横断的に設計する。
+2. 静止画像Upload、Variant、非同期処理、失敗・再試行をMedia UIと整合する形で具体化する。
+3. 確定したProduct / Domain / Screen仕様を入力として、GraphQL等のAPI実装契約を具体化する。
+4. account削除等で必要なSecurity詳細とAuth0強制再認証方式を、関連実装へ着手する前に確定する。
+5. memoria-webではApplication IAとDesign System PatternをStorybook上の実行可能UIへ落とし込み、Visual Reviewを経てApplicationへ実装する。
+6. EC2 + Dockerの運用、Deploy、Backup、復旧を確定し、Repositoryごとの実装Issueとquality gate・結合確認へ接続する。
+
+Product / Domain設計ではUserが達成する目的、Systemが保証する結果、不変条件を定義し、Screen SpecificationではそれをUserが理解・操作するInformation / Action / State / Navigationへ具体化します。GraphQL等のAPI契約はこれらの確定仕様を実装へ接続する契約として定義し、画面都合だけでProduct / Domain ruleを決定しません。
 
 すべての要求を一括で確定してから実装することは前提にしません。依存する判断が確定した領域から、[アジャイル開発とイテレーション運用](/development-process)に従って小さな単位で進めます。
 
