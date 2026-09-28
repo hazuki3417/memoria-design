@@ -79,7 +79,7 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 
 ## 設計状況と残る設計事項
 
-Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域について確定済みです。Application UIについても、[Application Information Architecture](/system/application-information-architecture)と[Screen Specification](/screens)で、Media / Group / Tagの横断設計を除く主要Flowを定義しています。
+Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域について確定済みです。Application UIについても、[Application Information Architecture](/system/application-information-architecture)と[Screen Specification](/screens)で主要Flowを定義し、Media Browser / Detail、Media Sharing、Group BrowserとMedia ↔ Group分類Interactionまで横断設計済みです。Media Uploadの詳細InteractionとTagの基礎設計・具体的Interactionは未確定です。
 
 今後の設計では、確定済み領域を再度一括設計するのではなく、残る未確定事項と実装契約を必要な順に具体化します。
 
@@ -88,8 +88,8 @@ Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域に
 | Community | 主要なdomain rule、認可、Invitation、Membership、削除、主要Screenは設計済み | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
 | Uploader権限 | Community参加中のUploader本人による削除・Original downloadは設計済み | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
 | User・認証 | 登録、nickname、session、account削除、主要Screenは設計済み。account削除時のAuth0強制再認証方式と有効期限は実装前に確定する | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
-| Application UI | Application IA、User / Communityの主要Screen、共通Interaction Patternは設計済み。Media / Group / TagはPersonal / Communityを横断してまとめて設計する | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
-| Group | scopeとDAGの基本ruleは設計済み。Media / Tagと合わせて操作・編集・削除等の詳細を横断設計する | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
+| Application UI | Application IA、User / Communityの主要Screen、Media Browser / Detail、Media Sharing、Group Browser、Media ↔ Group分類Interactionは設計済み。Media Upload詳細とTag Interactionは後続設計で具体化する | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
+| Group | scope、DAG、権限、Lifecycle、一覧・検索、Group-centered UI、Media Detailからの分類Interactionまで設計済み。残るGraphQL/API契約と具体的入力上限等を実装契約として確定する | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
 | Tag | 分類目的と基本境界を前提に、Media / Groupと合わせて操作、認可、絞り込みを横断設計する | [#23](https://github.com/hazuki3417/memoria-design/issues/23)・[#43](https://github.com/hazuki3417/memoria-design/issues/43) |
 | 静止画像処理 | Variantと非同期処理の基本設計を前提に、対応形式、Upload interaction、状態・再試行等の詳細を確定する | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
 | GraphQL | Product / Domain / Screen仕様を入力としてQuery、Mutation、型、error、認可の実装契約を具体化する | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
@@ -102,9 +102,9 @@ WebおよびIaCの既知のquality gate問題は、それぞれ[memoria-web#11](
 
 ## 設計と実装の優先順位
 
-1. Media / Group / TagをPersonal / Communityで分断せず、共通するMedia Management体験とscope・認可差分を横断的に設計する。
+1. Tagの基礎設計とPersonal / Communityにおける権限・分類・絞り込みInteractionを具体化する。
 2. 静止画像Upload、Variant、非同期処理、失敗・再試行をMedia UIと整合する形で具体化する。
-3. 確定したProduct / Domain / Screen仕様を入力として、GraphQL等のAPI実装契約を具体化する。
+3. 確定したProduct / Domain / Screen仕様を入力として、GraphQL等のAPI実装契約を具体化する.
 4. account削除等で必要なSecurity詳細とAuth0強制再認証方式を、関連実装へ着手する前に確定する。
 5. memoria-webではApplication IAとDesign System PatternをStorybook上の実行可能UIへ落とし込み、Visual Reviewを経てApplicationへ実装する。
 6. EC2 + Dockerの運用、Deploy、Backup、復旧を確定し、Repositoryごとの実装Issueとquality gate・結合確認へ接続する。
