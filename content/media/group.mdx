@@ -61,7 +61,7 @@ flowchart TD
 - Groupを削除してもMedia本体は削除しない
 - Media削除時はすべてのGroup関連を削除する
 
-Mediaをどの画面からGroupへ追加・除外するか、複数Mediaをどう選択するか等の具体的な分類InteractionはMedia UI設計で決定します。Group設計ではrelation semanticsと権限だけを定義します。
+Media分類のrelation semanticsと権限は本設計を正本とします。Initial Releaseの具体的Interactionは[Media Browser / Detail](/screens/media-browser-detail)を正本とし、1 Media単位のMedia Detailを主要な分類入口とします。
 
 ## Group同士の関係
 
@@ -160,9 +160,9 @@ TagとGroupは併用でき、どちらもアクセス制御には使用しませ
 次はGroupのdomain semanticsを変更せず、関連設計を進める段階で確定します。
 
 - Group名の最大文字数等、具体的な入力上限
-- Group一覧のsort、filter、search、cursor pagination
-- Media側からのGroup分類、Group側からのMedia分類、一括分類等の具体的Interaction
+- Group一覧queryのcursor paginationと検索matchingの具体的なAPI契約
 - Group作成時に所属先Groupを同時指定できるか等の操作上のshortcut
+- Initial Release後に一括分類やGroup側からの分類操作が必要になった場合の追加Interaction
 - GraphQL Operation名、Input / Payload、error表現
 - DAG規模に実運用上の制限が必要になった場合の上限値
 
