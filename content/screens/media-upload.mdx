@@ -157,7 +157,7 @@ Processing失敗を解消するために同じOriginalを新しいMediaとして
 
 Upload中のTag付与はMedia Tagのdomain semanticsに従います。
 
-複数選択したMediaへ同じTagをまとめて設定するInteractionをInitial Releaseへ含めるかは、Uploadそのものの複数選択とは分離してbulk classificationの横断設計で確定します。
+UploadによってMedia登録が成立した後は、Media Browserのbulk classificationと同じcontractに従い、明示選択した複数Mediaへ同じ既存Tagを付与・解除できます。Uploadのfile選択集合を、そのまま暗黙のTag一括適用対象にはしません。
 
 Uploadを成立させるためにTagを必須にしません。
 
