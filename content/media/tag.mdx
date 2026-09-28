@@ -113,7 +113,7 @@ Personal contextではPersonal Tagだけ、Community contextでは現在Communit
 
 CommunityではAdministratorとMemberがTagを利用でき、必要なTagが存在しない場合は新しいCommunity Tagを作成できます。Tag作成とMediaへの付与を一つのpresentationで連続して行えるかは実装上のInteractionとして選択できますが、作成とrelation追加はdomain上別の結果として扱います。
 
-複数Mediaへの一括Tag付与・解除はInitial Release必須Capabilityとしません。
+Initial ReleaseではMedia Detailの1 Media操作に加え、Media Browserで明示選択した複数Mediaへ同じ既存Tagを一括付与・解除できます。bulk操作でもMediaごとに現在scope・可視性・Membership / roleを再検証し、部分成功を許容します。Tag新規作成とbulk付与は一つのdomain operationへ結合しません。
 
 ## TagによるMedia絞り込み
 
@@ -165,6 +165,6 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 - Tag一覧のsort、検索、pagination契約
 - GraphQL Operation名、Input / Payload、error表現
 - Tag作成とMedia付与を連続操作する場合の具体的presentation
-- Initial Release後に一括Tag操作が必要になった場合の追加Interaction
+- filter結果全件を暗黙対象にするquery-based bulk Tag操作や、複数Tagを同時に複数Mediaへ適用する高度なmatrix操作
 
 自動Tag付け、AI分類、Custody transfer時のTag移行はInitial Release対象外です。
