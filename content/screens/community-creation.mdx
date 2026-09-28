@@ -52,7 +52,7 @@ Community名が必須条件を満たさない場合は、[Feedback Pattern](/des
 
 Community作成が完了した場合はDialogを閉じ、作成したCommunityの標準entryへ進みます。
 
-具体的なCommunity標準entryとApplication Navigation構造は、Application全体およびCommunity内のInformation Architectureを設計する段階で定義します。
+Communityの標準entryはMediaです。Application Navigationの構造は[Application Information Architecture](/system/application-information-architecture)に従います。
 
 ### 作成失敗
 
@@ -64,7 +64,7 @@ User状態の変化等によりCommunity作成を継続できない場合はBloc
 
 Community Creationは、ACTIVE Userが通常のApplication利用中に起動するDialogとして提供します。
 
-具体的な起動位置、Application ShellのHeader、Sidebar、Navigation構造等はApplication全体のInformation Architectureを設計する段階で定義します。
+Application Navigationは[Application Information Architecture](/system/application-information-architecture)に従い、Context SwitcherからCommunity作成を開始できるようにします。Header、Sidebar等の具体的なpresentationは固定しません。
 
 作成成功後は作成したCommunityの標準entryへ進みます。Cancelでは作成開始前のApplication contextを維持します。
 
