@@ -6,13 +6,13 @@ Community参加者がCommunity contextで、そのCommunityに共有または直
 
 > 実装状況: 既存Media UIは本仕様を前提としておらず、Personal / Community context、Media Custody、Community共有を含む本仕様との差分があります。
 
-## Purpose
+## 目的
 
 Community参加者が、そのCommunityで閲覧可能なMediaを一つのMedia領域で確認し、Communityへ新しいMediaを直接Uploadするか、自身のPersonal Mediaを共有してCommunityへ追加できるようにします。
 
 Community Mediaは[Application Information Architecture](/system/application-information-architecture)で定義する各Community contextの標準entryです。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Media関連ユースケース - Mediaをアップロードする](/media/use-cases#mediaをアップロードする)
 - [Media関連ユースケース - Mediaを閲覧・downloadする](/media/use-cases#mediaを閲覧downloadする)
@@ -21,7 +21,7 @@ Community Mediaは[Application Information Architecture](/system/application-inf
 - [Media関連ユースケース - Mediaを削除する](/media/use-cases#mediaを削除する)
 - [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
 
-## Information
+## 表示情報
 
 現在Communityで閲覧可能な次のMediaを同じCommunity Media領域に提示します。
 
@@ -32,7 +32,7 @@ Community Mediaは[Application Information Architecture](/system/application-inf
 
 Userが操作結果を誤認する可能性がある場合は、MediaのCustodian種別やUploader等、利用可能なActionを理解するために必要な情報をDetailから確認できるようにします。User管理MediaとCommunity管理Mediaを一覧でどのvisual treatmentにより区別するかは実装とVisual Reviewで決定します。
 
-## Actions
+## 操作
 
 ### Mediaを閲覧する
 
@@ -78,7 +78,7 @@ Memberは他Userが共有したMediaの共有を解除できません。User Cus
 
 共有解除ではMedia本体や他Communityへの共有を削除せず、このCommunityの共有関係とCommunity側Group / Tag関連だけを削除します。
 
-## States
+## 状態
 
 ### Mediaあり
 
@@ -123,7 +123,7 @@ Context SwitcherでCommunityを選択した場合、Community作成成功後、�
 
 Context Switcher、Context Navigation、Account Menuの責務は[Application Information Architecture](/system/application-information-architecture)に従います。
 
-## Constraints
+## 制約
 
 - 有効なMembershipを持つAdministrator / MemberだけがCommunity Mediaを利用できます。
 - Community内ではUser管理MediaとCommunity管理Mediaの両方を閲覧対象にできますが、Custodianと権限を同一視しません。
@@ -134,7 +134,7 @@ Context Switcher、Context Navigation、Account Menuの責務は[Application Inf
 - Mediaのdomain ruleは[Media関連ユースケース](/media/use-cases)、Community固有の認可は[Community権限](/community/authorization)を正本とします。
 - Mediaの委譲はInitial Release対象外です。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、Mediaの閲覧、直接Upload、Personal Mediaからの共有、分類、および権限のあるdownload・削除・共有解除というCapabilityを維持します。
 
