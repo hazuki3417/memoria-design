@@ -13,6 +13,7 @@ export default {
   "personal-media": "Personal Media",
   "community-media": "Community Media",
   "media-browser-detail": "Media Browser / Detail",
+  "media-sharing": "Media Sharing",
   "group-browser": "Group Browser",
   "community-members": "Community Members",
   "community-management": "Community Management",
