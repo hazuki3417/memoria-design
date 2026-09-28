@@ -203,3 +203,33 @@ Responsive BehaviorはDesktop layoutを縮小する手順ではなく、異な�
 - 特定のlayout、pixel値、React / Mantine Component、CSS、GraphQL operation、Story一覧、test implementationは原則として記載しません。
 - Storybookは仕様の正本ではなく、Screen Specificationを現在の実装がどう表現しているかを観察・検証する実行可能なExampleとして扱います。
 - 実装との差分がある場合は共通書式に従って明示し、現在の実装を理由に仕様を暗黙に変更しません。
+
+
+## Design System Pattern
+
+Design System Patternは、複数の画面で繰り返し発生するUI/UX上の問題に対するMemoriaとしての標準的な解決方法を定義します。Patternの配置は、最初のPatternを追加する際にDesign System全体のnavigationと合わせて決定します。
+
+### 必須情報
+
+1. Purpose: Patternが解決する利用者またはUI設計上の問題。
+2. When to Use: 適用する状況と、適用しない状況を判断できる条件。
+3. Behavior: 利用者から見た基本的な振る舞い、状態変化、feedback。
+4. Variations: 同じPattern内で許容する意味のあるVariationと、その選択条件。
+5. Constraints: 一貫性を保つために守る制約と、禁止する利用方法。
+
+### 記載粒度
+
+PatternはComponent catalogや実装APIの説明ではなく、複数のScreenで一貫して適用する意味と振る舞いを記述します。特定の画面で一度だけ必要な判断はScreen Specificationまたは実装に留め、再利用性が確認されていないものを先回りしてPattern化しません。
+
+明らかな横断要件は複数の実装例が揃うまで機械的に待つ必要はありませんが、Patternとして共通化する理由と適用範囲を説明できる状態にします。
+
+### 任意追加項目
+
+Responsive Behavior、Accessibility、状態遷移、関連するScreen Specification、外部Design Systemから参考にした考え方、Pattern間の関係等を必要に応じて追加できます。
+
+### 表記と正本境界
+
+- Patternの目的、適用条件、振る舞い、Variation、制約は `memoria-design` を正本とします。
+- React / Mantine Component、props、CSS、Story、test implementationは `memoria-web` を正本とします。
+- Mantineや外部Design Systemの仕様を複製せず、Memoriaとして採用する意味・差分・制約だけを記載します。
+- 既存Componentは存在していることだけを理由にPatternとはみなしません。Screen SpecificationとUX Principlesへの適合を確認してから再利用・変更・廃止を判断します。
