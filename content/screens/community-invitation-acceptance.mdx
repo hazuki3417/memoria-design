@@ -37,6 +37,22 @@ Invitationを発行したAdministrator個人の情報を、参加判断のため
 
 ## 操作
 
+```mermaid
+flowchart TD
+    Open["Invitation URLを開く"] --> Auth{"認証済み"}
+    Auth -- "いいえ" --> Login["Login"] --> Return1["同じInvitationへ復帰"]
+    Auth -- "はい" --> Registered{"Memoria User登録済み"}
+    Return1 --> Registered
+    Registered -- "いいえ" --> Registration["User Registration"] --> Return2["同じInvitationへ復帰"]
+    Registered -- "はい" --> Review["Community名を確認"]
+    Return2 --> Review
+    Review --> Accept{"参加を確定する"}
+    Accept -- "はい" --> Validate["Invitation / User / Membershipを再検証"] --> Membership["Membership成立"] --> Media["Community Media"]
+    Accept -- "いいえ" --> Exit["Membershipを作らず離脱"]
+```
+
+LoginやRegistrationは参加を自動確定しません。必ずInvitationへ復帰し、ACTIVE User本人による明示的な参加確定を経ます。
+
 ### Loginする
 
 未認証UserはMemoriaの認証Flowへ進みます。
