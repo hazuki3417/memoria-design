@@ -28,11 +28,15 @@ Community Mediaは[Application Information Architecture](/system/application-inf
 - User CustodianからこのCommunityへ共有されているMedia
 - このCommunityへ直接Uploadされ、CommunityがCustodianであるMedia
 
-Userが操作結果を誤認する可能性がある場合は、MediaのCustodian種別やUploader等、利用可能なActionを理解するために必要な情報を確認できるようにします。
+一覧からのMedia discovery、標準の並び順、1件のDetail閲覧、前後Mediaへの移動、補助情報の提示は[Media Browser / Detail](/screens/media-browser-detail)を共通仕様とします。
 
-Mediaごとのvisual metadataを常時どの粒度で表示するか、User管理MediaとCommunity管理Mediaをどのvisual treatmentで区別するかは実装とVisual Reviewで決定します。
+Userが操作結果を誤認する可能性がある場合は、MediaのCustodian種別やUploader等、利用可能なActionを理解するために必要な情報をDetailから確認できるようにします。User管理MediaとCommunity管理Mediaを一覧でどのvisual treatmentにより区別するかは実装とVisual Reviewで決定します。
 
 ## Actions
+
+### Mediaを閲覧する
+
+Userは一覧からMediaを選択し、[Media Browser / Detail](/screens/media-browser-detail)に従ってMedia本体と必要な補助情報を閲覧できます。
 
 ### Communityへ直接Uploadする
 
