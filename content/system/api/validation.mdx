@@ -1,30 +1,136 @@
 # 入力検証
 
-
 ## 概要
 
-> 実装状況: GraphQL型、ULID、validator、DB constraintによる検証は一部実装されています。Media file検査と設計ルールの網羅には差分があります。
+> 実装状況: GraphQL型、ULID、validator、DB constraintによる検証は一部実装されています。現在の実装配置は本ページの責務設計と一致しない箇所があり、段階的に是正します。
 
-| 層 | 責務 |
-| --- | --- |
-| GraphQL | 型、必須、列挙値、scalar形式 |
-| resolver・入力変換 | API固有の形式と正規化 |
-| Service・domain | 業務ルールと認可 |
-| Repository・DB | 一意性、参照整合性、競合 |
-| Storage | size、media type、key境界 |
+MemoriaではValidationを独立した万能Layerとして扱いません。制約は、その制約の意味を所有する責務で定義・保証します。GraphQL、Use Case、Domain、Infrastructure、PostgreSQL等は、それぞれ異なる目的で同じ条件を確認する場合があります。
 
-## 全domain共通の入力検証
+Validationの配置を「最初に検出できる場所」や実装上の共通化しやすさだけで決定しません。各ruleについて、何を守るか、なぜ必要か、誰が意味を所有するか、実行時に何が最終保証するかを確認します。
 
-- Web側の検証は利用者支援であり、API側の検証を省略する根拠にしない。
-- 必須の表示名は前後空白を除去し、空文字や空白だけの値を拒否する。
-- 文字数、禁止文字、用途別rate limitの具体値は各domainの詳細設計で確定し、共通の保護対象と制限方針は[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)に従う。
-- ULID、列挙値、状態、参照先の存在を、責務に応じた層で検証する。
-- 業務ルールと認可はService・domainを正本とする。
-- DB error、token、credential、内部identifierをそのまま利用者へ返さない。
-- 拡張子だけを信用せず、申告されたContent-Type、file signature、実data、decode可能性、file size、画素数を検査する。
-- 許可形式以外のfile、文書、PDF、実行file、動画、SVGは初回Releaseで受け付けない。
-- MongoDB JSON SchemaをAPI全体の入力検証規約にはしない。
+## Ruleの所有者と保証機構
 
-nickname、Community名、Group名、Tag名などのdomain固有の制約は、それぞれのdomain設計を正本とします。[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)も参照してください。
+Ruleの**意味上の所有者**と、並行実行や永続化を含めてそのRuleを守るための**保証機構**を分けて考えます。
 
+例えば「Communityには1人以上のAdministratorが必要」という条件はCommunity domainの不変条件です。一方、並行するRole変更、退会、除外の中で実際に守るには、Use CaseがTransactionを構成し、Community行をlockして最新Membershipを再確認する必要があります。単一のDomain objectやDB CHECKだけへ責務を押し込みません。
 
+逆に、PK、FK、UNIQUE、NOT NULL、有限な状態値、column間の安定した整合条件などPostgreSQLで確実に表現できる不変条件はDBでも保証します。Domainで意味を定義することと、DBで永続化状態を防御することは排他的ではありません。
+
+## 責務分類
+
+| 分類 | 主な所有者 | 主な対象 |
+| --- | --- | --- |
+| Transport contract | GraphQL / Interface Adapter | GraphQL型、必須、enum、scalar、Input Objectの構造 |
+| Boundary protection | API / Interface Adapter | request size、Query depth・complexity、pagination上限、rate limit等 |
+| Domain invariant | Domain | Value Object、Entity、状態、状態遷移、domain上成立しない値・関係 |
+| Use Case precondition | Use Case | 現在状態で操作を実行できるか、対象存在、複数Port・Domainをまたぐ条件 |
+| Authorization | Use Case | Actor、Membership、role、Custody、Uploader等に基づく操作可否 |
+| Persistence integrity | PostgreSQL | PK、FK、UNIQUE、NOT NULL、CHECK等で表現できる永続化整合性 |
+
+Repository Portを入力検証Layerとして扱いません。PortはUse Caseが必要とする外部I/Oの契約を定義し、InfrastructureはPostgreSQL、Object Storage、認証Provider等の技術固有の結果を内側のContractへ翻訳します。
+
+## GraphQLとInterface Adapter
+
+GraphQL schemaは外部API contractを表現します。GraphQL型、required、enum、scalar等、requestがAPI contractとして成立するための条件はGraphQL境界で保証します。
+
+Securityや安定運用のためのrequest size、Query depth・complexity、pagination上限、rate limit等も外部境界の責務です。これらはDomain invariantとは区別します。Web側の検証は利用者支援であり、API側の保証を省略する根拠にしません。
+
+ResolverやMapperはGraphQL表現とUse Case / Domainの境界を担当します。Business rule、認可rule、TransactionをResolverへ実装しません。
+
+validator、gqlgen directive、custom scalar等は責務を実現するための実装手段です。特定LibraryやannotationへDomain ruleを集約することを設計上の前提にしません。
+
+## Domain
+
+Domainは、Memoriaの概念として値、Entity、状態、関係が成立してよいかを所有します。不変条件がある場合は、生成・更新方法によって不正な状態を作りにくくします。
+
+Value Objectは、不変条件や値の意味を型として保護する実益がある場合に使用します。単なるdata containerや、すべての入力項目へ機械的に導入しません。
+
+Domain ruleをGraphQL schema、validator tag、DB固有表現だけへ置き、Domainからその意味が失われる構造にはしません。
+
+## Use Case
+
+Use Caseは「現在のSystem状態で、この操作を実行できるか」を判断します。
+
+対象Entityの存在、現在状態、Actor、Membership、role、Custody等をRepository Portから取得し、必要なDomain ruleと組み合わせます。複数Repositoryの協調、認可、Transaction、冪等性、競合制御は[APIクリーンアーキテクチャ](./clean-architecture)と[Backend実装規約](./implementation-conventions)に従います。
+
+Domain上の不変条件でも、複数recordや並行実行に依存する場合はUse CaseがTransaction、row lock、条件付き更新、再確認等の保証機構を構成します。
+
+## Repository PortとInfrastructure
+
+Repository PortはUse Caseが必要とする永続化・外部I/O操作を表現し、required、文字数、format等を一律に再検証する場所にはしません。
+
+InfrastructureはDB、Storage、外部service固有のErrorや結果を内側のContractへ翻訳します。例えばPostgreSQLのUNIQUE violationをconstraintの意味に応じた競合Errorへ変換し、Use CaseがSQLSTATEやdriver固有Errorを直接解釈しないようにします。
+
+防御的なnil checkや技術的なpreconditionは入力Validationとは区別します。
+
+## PostgreSQL
+
+PostgreSQLは永続化された状態として許容できない構造を防ぐ最終保証を担います。[物理データモデル共通規約](/system/data/physical-model-conventions)に従い、PK、FK、UNIQUE、NOT NULL、CHECKで安定して表現できる不変条件はDBでも保証します。
+
+複数tableの現在状態、外部service、現在時刻、複雑な状態遷移等に依存するruleを、無理にDB constraintへ集約しません。複数tableにまたがる不変条件はUse CaseのTransaction、lock、条件付き更新等と組み合わせます。
+
+DB constraintはDomain ruleの代替ではありません。同じ条件をDomainとDBの双方で扱う場合も、DomainはProduct上の意味、DBは永続化整合性という異なる責務を持ちます。
+
+## Canonicalization
+
+trim、case変換等のcanonicalizationは一律にGraphQL、Use Case、共通helperへ配置しません。
+
+canonicalizationによってDomain上の値の同一性や成立条件が決まる場合、そのruleは対象Domainが所有します。Use CaseはDomainの生成・更新操作を通してcanonicalな値を扱い、Infrastructureへ渡します。
+
+一方、transport固有の表現変換はInterface Adapterが所有します。canonicalizationを行わないこと自体がdomain ruleである場合もあります。例えばMedia Group名のように、前後空白や大文字小文字の違いを別名として扱う設計では、共通のtrim処理を適用しません。
+
+PostgreSQL固有の文字列関数や正規表現をUnicode canonicalization ruleの正本にはしません。DBではcanonicalization済みの保存値に対し、DBで同じ意味を安定して表現できる最低限のCHECKを設定できます。
+
+## 重複した検査
+
+同じように見える条件を複数の境界で検査すること自体は禁止しません。ただし、それぞれの目的を明確にします。
+
+例えばAPI境界の入力size制限は過大requestからSystemを保護し、Media処理のfile検査は実dataが許可されたMediaとして処理可能かを判断し、DB constraintは保存metadataの構造的整合性を保証します。
+
+外側で早期に拒否できることを理由に、Domainや永続化側の最終保証を削除しません。逆に、内側で保証されることだけを理由に、Security・Resource保護のための境界検査を省略しません。
+
+共通化は条件式の見た目ではなく、意味と変更理由が同じかで判断します。
+
+## Media fileの検査
+
+Media uploadでは、拡張子や申告されたContent-Typeだけを信用しません。file signature、実data、decode可能性、file size、画素数等を組み合わせ、Security・Privacy要求、非機能要件、Media処理設計に従って検査します。
+
+Original requestのsize等、受信境界でなければ保護できない条件はAPI境界で確認します。decode可能性や実dataの形式等、Media内容を処理して初めて確定できる条件はMedia処理境界で確認します。
+
+対応形式、size、画素数等の具体値は各正本文書を参照し、本ページへ重複定義しません。
+
+## Error
+
+Validationの検出場所と公開Error分類を同一視しません。
+
+Domain / Use CaseはGraphQL固有Errorへ依存せず、InfrastructureはPostgreSQLや外部SDK固有Errorを内側のContractへ翻訳し、Interface Adapterが公開可能なGraphQL Errorへ変換します。
+
+`VALIDATION`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`等の公開分類は[Backend実装規約](./implementation-conventions)と[GraphQL契約](./graphql)を正本とします。同じ入力に起因する失敗でも、Domain invariant違反、認可拒否、一意性競合を同じErrorとして扱う必要はありません。
+
+## Test
+
+責務ごとに保証をtestします。
+
+- Domain testではValue Object、Entity、不変条件、状態遷移を外部I/Oなしで確認する。
+- Use Case testでは対象存在、操作条件、認可、競合、Transaction、Port協調を確認する。
+- Infrastructure integration testではDB constraint、Error翻訳、Query、Storage等の外部境界を確認する。
+- GraphQL / Interface Adapter testではschema、scalar、境界値、mapping、公開Error contractを確認する。
+- SecurityやMedia処理等、複数境界をまたぐ重要条件は必要に応じて結合testでも確認する。
+
+同じ条件に複数levelのtestが存在しても、それぞれ異なる保証を確認しているなら重複とはみなしません。
+
+## Ruleを追加・変更するときの判断手順
+
+新しいValidation ruleを追加・変更するときは、次を順に確認します。
+
+1. 何を防ぎ、何を保証するruleか。
+2. Product要件、Security、Resource保護、永続化整合性等、なぜ必要か。
+3. ruleの意味を知るべき責務・Domainはどこか。
+4. 並行実行や外部I/Oを含め、実行時に何が最終保証するか。
+5. 外側の境界で早期検出・Resource保護を追加する必要があるか。
+6. DBで安定して表現できる不変条件か。
+7. Errorをどの境界でどのContractへ翻訳するか。
+8. どのlevelのtestで保証を確認するか。
+9. 共通化する場合、見た目ではなく意味と変更理由が本当に同じか。
+
+nickname、Community名、Group名、Tag名、状態遷移等のdomain固有ruleは各domain設計を正本とします。認証・認可は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)、API保護は[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)と[非機能要件](/system/cross-cutting/non-functional-requirements)を参照してください。
