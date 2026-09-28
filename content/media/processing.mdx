@@ -22,7 +22,7 @@ Mediaは画像と動画を共通に表す概念です。Image・Videoが種別�
 - Originalのアスペクト比を維持したWebPを生成します。
 - Originalは変更せず、VariantからEXIF、GPS、撮影日時、撮影端末などのmetadataを除去します。
 - 画像の向きは表示に必要な範囲で補正し、metadata自体を業務dataとして抽出・保存しません。
-- 幅の候補は320、640、960、1280、1920pxです。画質・候補幅は設定値として調整できます。
+- Initial ReleaseのVariant width baselineは320、640、960、1280、1920pxです。候補幅は表示contractの一部として扱い、単なるruntime tuningで暗黙変更しません。将来変更する場合はMedia配信・Frontendの`srcset` / `sizes`との整合を確認します。encode品質等の処理parameterは実装・運用計測に基づき調整できます。
 - Originalを超える幅への拡大は行いません。候補幅の間に収まるOriginalには、Originalと同じ幅のVariantを追加できます。
 - 一覧用thumbnailと詳細用previewを別々の保存資源として定義しません。画面の表示目的に応じて同じVariant集合から選択します。
 - 一覧では`object-fit: cover`、詳細表示では`object-fit: contain`など、切り抜きの違いは表示側で表現します。
