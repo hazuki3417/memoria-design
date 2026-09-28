@@ -92,14 +92,27 @@ Memoriaは、原則として端末によって提供するユーザー目的やC
 
 端末によってCapabilityを制限する必要が生じた場合は、実装都合で暗黙に制限せず、個別の製品設計判断として明示します。
 
-Responsive対応は完成後に追加する補助対応ではなく、Screen SpecificationとUI実装の時点から考慮します。具体的なbreakpoint、代表viewport、入力方式ごとのInteraction等は、後続の設計で必要性を確認して決定します。
+Responsive対応は完成後に追加する補助対応ではなく、Screen SpecificationとUI実装の時点から考慮します。
+
+breakpointはMantineの標準設定を基本とし、製品上の必要性が確認されない限りMemoria独自のbreakpointを追加しません。特定のdevice modelを設計上の境界にはせず、利用可能な表示領域に応じてUIを適応させます。
+
+VRTやE2Eでは、すべての画面幅を網羅するのではなく、smartphone、tablet、desktop相当の代表viewportを利用します。具体的な代表viewport値はtest policyを定める際に決定します。
+
+## Browser Support
+
+Memoria Webは特殊な互換性要件を持たないため、modern evergreen browserをsupport対象とします。
+
+対象はChrome、Edge、Firefox、Safariの現行安定版を基本とし、mobile環境ではiOS SafariとAndroid Chromeを対象とします。古いBrowser versionや特定versionの長期supportは原則として行いません。
+
+support対象であることと、CIで常に全Browser・全viewportの組み合わせを検証することは分離して考えます。自動テストでは代表的なBrowserとviewportを選択し、cross-browser固有のriskや不具合が確認された場合に必要な検証を追加します。
+
+製品上または利用者環境上の要件が生じた場合は、このsupport policyを見直します。
 
 ## 未決定事項
 
 次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
 
-- Responsive Designの具体的なbreakpoint / viewport / 入力方式
-- 対象Browserとsupport policy
+- Responsive Designの代表viewportと入力方式ごとのInteraction
 - Accessibilityの保証水準
 - VRT / E2Eを含むUI quality gate
 - UX Principlesの具体的な一覧
