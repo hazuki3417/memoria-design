@@ -67,6 +67,22 @@ ServerはClient validationを信頼せず、file内容、許可形式、size等�
 
 ## Upload実行
 
+```mermaid
+flowchart TD
+    Select["1〜100 filesを選択"] --> ClientValidation["Client事前Validation"]
+    ClientValidation --> Queue["有効fileをbounded concurrencyで実行"]
+    Queue --> Request["1 file = 1 Media request"]
+    Request --> UploadResult{"Media登録"}
+    UploadResult -- "失敗" --> UploadFailed["Upload失敗<br/>retry可能なら個別再試行"]
+    UploadResult -- "成功" --> Processing["Media登録済み / 画像処理中"]
+    Processing --> ProcessResult{"Processing結果"}
+    ProcessResult -- "成功" --> Available["Variant利用可能"]
+    ProcessResult -- "retryable" --> AutoRetry["Systemが自動retry"] --> Processing
+    ProcessResult -- "terminal failure" --> Failed["Mediaは保持<br/>画像処理失敗として表示"]
+```
+
+複数fileはUI上では一つの作業として集約しますが、図中のMedia登録以降はMediaごとに独立して進みます。1件の失敗によって他Mediaをrollbackしません。
+
 Upload開始時、Upload対象の各fileについて独立したMedia upload requestを実行します。
 
 - 1 requestは1 Mediaを登録する
