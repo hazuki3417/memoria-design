@@ -1,0 +1,84 @@
+# Account Deletion Community Resolution
+
+## 概要
+
+Account削除にあたり、Userが最後のAdministratorとなっているCommunityへの影響をまとめて確認し、各Communityの継続または削除に必要な判断を完了するための画面です。
+
+## Purpose
+
+複数のCommunityへの影響を一つの作業面で把握しながら、Communityごとに適切な解決方法を独立して選択し、account削除を安全に継続できるようにします。
+
+## Related Use Cases
+
+- [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
+- [Communityユースケース - Userを削除する](/community/use-cases#userを削除する)
+- [Account Deletion Flow](/screens/account-deletion-flow)
+
+## Information
+
+- Userが最後のAdministratorであり、account削除前に解決が必要なCommunityをまとめて提示します。
+- 各Communityを識別できる名称を提示します。
+- 各Communityについて、別MemberをAdministratorへ昇格してCommunityを保持するか、Communityを削除する必要があることを提示します。
+- 各Communityの選択状態が未解決か解決済みかをUserが把握できるようにします。
+- Administratorへ昇格できるMemberを選択する場合、対象Community内で選択可能なMemberを識別できる情報を提示します。
+
+## Actions
+
+### Communityを保持する
+
+対象Communityについて、別MemberをAdministratorへ昇格することでCommunityを保持できます。
+
+Userは対象Community内の昇格先Memberを選択します。昇格先が有効に選択されるまで、そのCommunityは解決済みとして扱いません。
+
+### Communityを削除する
+
+対象Communityをaccount削除に伴って削除する選択ができます。
+
+この選択だけではCommunityを削除せず、[Account Deletion Flow](/screens/account-deletion-flow)の後続段階で削除影響の追加確認とCommunity名入力を要求します。
+
+### Account削除Flowを継続する
+
+すべての対象Communityについて有効な解決方法が選択されている場合だけ後続段階へ進めます。
+
+Community削除を選択した対象がある場合は追加確認へ進み、ない場合は不要な段階をskipします。
+
+### 削除を中止する
+
+Account削除を開始せずにFlowを終了できます。この画面上の選択だけではMembership、Administrator、Community等を変更しません。
+
+## States
+
+### 未解決Communityあり
+
+一つ以上のCommunityで解決方法または必要な昇格先Memberが未選択です。対象を識別できるようにし、後続段階へは進めません。
+
+### すべて解決済み
+
+すべてのCommunityについて有効な解決方法が選択され、後続段階へ進めます。
+
+### 必要情報取得失敗
+
+Communityまたは選択可能なMember等、判断に必要な情報を取得できない場合は後続段階へ進めません。
+
+[Feedback Pattern](/design-system/patterns/feedback)に従って問題を提示し、再試行または安全にFlowを終了できるようにします。
+
+## Navigation
+
+[Account Deletion Flow](/screens/account-deletion-flow)の影響把握後、解決が必要なCommunityが存在する場合に到達します。対象Communityが存在しない場合はこの段階をskipします。
+
+後続段階は各Communityの選択結果によって決まります。具体的なrouteや画面構成は規定しません。
+
+## Constraints
+
+- 対象はUserが最後のAdministratorであるCommunityです。
+- 複数Communityを一つの作業面で扱いますが、解決方法はCommunityごとに独立して選択できます。
+- すべての対象Communityが解決済みになるまで後続段階へ進めません。
+- Communityを保持する場合は、対象Communityの別MemberをAdministratorとして選択する必要があります。
+- Community削除の追加確認とCommunity名入力はこの画面では完了させず、後続段階で扱います。
+- この画面上の選択だけではAdministrator昇格、Membership変更、Community削除等を確定しません。Account削除の最終確定前に破壊的変更を行いません。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、対象Community全体の解決状況を把握し、Communityごとに解決方法を選択できるCapabilityを維持します。
+
+対象Communityが多い場合でも、未解決のCommunityを見失わず、すべての必要な判断を完了できるようにします。具体的な一覧表現やlayoutは実装で決定します。
