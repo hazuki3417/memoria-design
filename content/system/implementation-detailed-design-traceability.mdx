@@ -39,6 +39,9 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - Mediaは独立entityとし、管理主体はMedia本体のUser/Community列ではなくCustody relationで表現する。
 - Community shareとCustody transferを別概念とする。
 - 静止画像は `Media -> Image -> Image Variant` を正本とし、Media直結の汎用`media_variants`を使用しない。
+- Initial Releaseの画像入力はJPEG / PNG / WebP / HEIC / HEIF、Original上限128 MiB、100 MP、各辺32,768px、1 Upload操作100 filesとする。
+- Image Variant width baselineは320 / 640 / 960 / 1280 / 1920pxとし、Originalを超えてupscaleしない。
+- Processing Jobは最大3 attempts、reclaim idle 5分を初期runtime値とし、terminal failureでもMediaは残して失敗状態を観測可能にする。
 - Group / Tagは分類・検索のための機能であり認可境界ではない。
 - Group / TagはUser scopeまたはCommunity scopeを持つ。
 - 動画は初回Releaseで機能提供しないが、Media共通層と将来拡張可能な境界は維持する。
@@ -121,8 +124,8 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 
 - Redis stream / consumer group名
 - event / job payloadのversioned schema
-- retry回数、backoff、reclaim idle time等の具体値
-- orphan object cleanupと部分失敗補償の具体手順
+- Processing Job retry初期値は最大3 attempts・reclaim idle 5分で確定。残るWorker runtime tuningと正常な長時間処理のownership維持実装
+- Upload Originalの部分失敗補償は即時DELETE、失敗時はStorage Operationへ引き渡すことで確定。残るStorage Operationのretry / lease / retention parameter
 
 ### Frontend
 
@@ -154,7 +157,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 | Application全体 | #21 | baseline整理済み、詳細化継続 |
 | Group | #42 | semantics確定、Implementation Detail待ち |
 | Tag | #23 / #43 | 要求確定、正規化等のDetail待ち |
-| 静止画像 | #44 | pipeline baseline確定、具体値待ち |
+| 静止画像 | #44 | Product / pipeline semantics確定、実装parameter・GraphQL handoff待ち |
 | GraphQL | #17 | baseline反映済み、SDL / Operation具体化待ち |
 | Frontend | #18 | baseline反映済み、route / flow具体化待ち |
 | Migration | #28 | execution baseline確定、tool / SQL等待ち |
