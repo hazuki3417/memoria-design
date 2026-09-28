@@ -1,0 +1,128 @@
+# Media Sharing
+
+## 概要
+
+Userが自身のUser管理Mediaを、参加中Communityへ共有するInteractionです。
+
+Personal MediaとCommunity Mediaのどちらから開始しても、成立するdomain operationは同じMediaとCommunityの共有relation追加です。入口に応じて既知の対象を固定し、Userに不要な再選択を要求しません。
+
+> 実装状況: 現在のmemoria-webには、本仕様で定義するMedia CustodyとCommunity Accessに基づく共有UIは実装されていません。
+
+## Purpose
+
+Userが「Media本体をCommunityへ移す」「Communityへ複製する」と誤認せず、自分が管理するMediaを必要なCommunityの参加者へ安全に閲覧可能にできるようにします。
+
+Personal起点とCommunity起点で別の共有概念を作らず、同じdomain semanticsを異なるcontextから利用します。
+
+## Related Use Cases
+
+- [Media関連ユースケース - User管理MediaをCommunityへ共有する](/media/use-cases#user管理mediaをcommunityへ共有する)
+- [CommunityとMediaの共有](/media/community-access)
+- [Personal Media](/screens/personal-media)
+- [Community Media](/screens/community-media)
+
+## Information
+
+共有対象について、少なくとも次をUserが識別できるようにします。
+
+- 共有するMedia
+- 共有先Community
+- 共有後もMediaのCustodianはUser本人のままであること
+- 共有すると現在のCommunity参加者がそのMediaを閲覧できること
+
+共有によってMediaの複製、Custody transfer、Original download権限の付与が発生するような表現をしません。
+
+## Actions
+
+### Personal Mediaから共有する
+
+Personal MediaまたはそのMedia Detailから共有を開始した場合、共有するMediaを固定し、Userが現在参加しているCommunityから共有先を選択します。
+
+既に対象Mediaを共有しているCommunityは、新しい共有先として重複選択させません。既存の共有状態は確認できるようにします。
+
+Initial Releaseでは1 Media単位の共有を標準Interactionとします。複数Mediaを選択して一括共有することは必須Capabilityとしません。
+
+### Community Mediaから共有する
+
+Community Mediaの「自分のMediaから共有する」から開始した場合、現在Communityを共有先として固定し、User本人がCustodianであるPersonal Mediaから共有対象を選択します。
+
+既に現在Communityへ共有済みのMediaは、新しい共有対象として重複選択させません。
+
+Initial Releaseでは1 Media単位で共有を成立させます。複数Mediaの一括共有は必須Capabilityとしません。
+
+### 共有を確定する
+
+UserがMediaとCommunityの組み合わせを確認したうえで共有を実行します。
+
+Systemは実行時に次を再検証します。
+
+- MediaがACTIVEである
+- 操作者本人が現在のUser Custodianである
+- 共有先Communityへの有効なMembershipがある
+- 同じMediaとCommunityの共有relationがまだ存在しない
+
+成立した場合は対象CommunityへのAccessだけを追加し、Media本体、Custodian、他Communityへの共有、Personal側Group / Tag分類を変更しません。
+
+共有成功後は開始元contextを維持します。Personal起点ではPersonal Media、Community起点では現在Community Mediaを継続し、共有成功だけを理由にApplication contextを切り替えません。
+
+## States
+
+### 選択可能
+
+Personal起点では共有可能なCommunity、Community起点では共有可能なPersonal Mediaを選択できます。
+
+### 共有先Communityがない
+
+Personal起点でUserが参加している共有可能なCommunityがない場合、その状態を明示します。
+
+Community作成を共有成立の必須stepとして組み込みません。Community作成はApplication IAで定義する独立したFlowとして扱います。
+
+### 共有可能なPersonal Mediaがない
+
+Community起点で共有可能なUser管理Mediaがない場合、その状態を明示します。
+
+Personal Mediaが0件の場合と、Personal Mediaは存在するがすべて現在Communityへ共有済みの場合を、必要に応じて区別できるようにします。
+
+### 処理中
+
+共有結果が確定するまで同じ操作の意図しない重複実行を防ぎます。
+
+### 競合・権限変更
+
+選択後にMedia削除、Custody変更、Membership喪失、既存共有の追加等で要求を成立できなくなった場合、現在状態を再評価します。
+
+既に共有済みになっていた場合は重複relationを作成しません。現在状態を反映し、同じMediaが二重に共有されたような成功表現をしません。
+
+Membershipを失って現在Community context自体を利用できない場合は、Application IAに従って安全なdestinationへ移動します。
+
+### 一時的な失敗
+
+共有relationが成立していない失敗を成功として表示しません。再試行可能な場合は、可能な限り選択済みのMedia / Communityを維持して再試行できるようにします。
+
+## Navigation
+
+Media Sharingは独立したApplication contextを作りません。
+
+Personal起点ではPersonal context、Community起点では現在Community contextを維持します。選択UIをdialog、drawer、dedicated route等のどのpresentationで実装するかは固定しません。
+
+共有成功後に共有先Communityへ自動遷移することは要求しません。
+
+## Constraints
+
+- 共有できるのは操作者本人がCustodianであるUser管理Mediaだけです。
+- 共有先は操作者本人が現在参加しているCommunityだけです。
+- Community管理Mediaを別Communityへ共有しません。
+- 共有先Communityの全参加者が対象Mediaを閲覧できます。参加者単位の共有設定は提供しません。
+- 共有してもCustodianはUser本人のままです。
+- 共有はOriginal download権限をCommunity参加者へ付与しません。
+- 同じMediaとCommunityの共有relationを重複作成しません。
+- 複数Communityへの共有は許可しますが、Initial Releaseの標準Interactionでは1回の操作で1 Communityへの共有を成立させます。
+- 複数Mediaの一括共有はInitial Release必須Capabilityとしません。
+- Custody transferは別概念でありInitial Release対象外です。
+- UI上の選択可否をAPI側の認可・現在状態再検証の代替にしません。
+
+## Responsive Behavior
+
+Compact / Medium / Wideで、共有するMediaと共有先Communityを識別し、共有結果を理解できるCapabilityを維持します。
+
+選択UIのpresentationは表示領域に応じて変更できます。共有の確定やcancel等の重要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。
