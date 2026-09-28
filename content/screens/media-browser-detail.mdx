@@ -88,7 +88,7 @@ Detailから利用できるActionは現在contextとdomain上の権限に従い�
 
 Personalでは共有・共有解除、Original download、削除等、Communityでは権限のあるOriginal download・削除・共有解除等へ到達できます。
 
-具体的な共有、Tag分類、削除確認等は対応するScreen / PatternのBehaviorに従います。
+具体的な共有、削除確認等は対応するScreen / PatternのBehaviorに従います。Tag分類とTag filterのsemanticsは[Media Tag](/media/tag)に従います。
 
 ## States
 
@@ -138,7 +138,7 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - Media ↔ Group分類は1 Media単位を標準Interactionとし、複数Mediaへの一括分類はInitial Release必須Capabilityとしません。
 - Group作成とMedia分類を一つの必須操作として結合しません。
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
-- Tagの具体的InteractionはTag設計で定義します。
+- Tagは[Media Tag](/media/tag)に従い、1 Media単位のMedia Detailを付与・解除の主要入口とし、Media Browserでは現在scopeのTagによる絞り込みを提供します。
 
 ## Responsive Behavior
 
