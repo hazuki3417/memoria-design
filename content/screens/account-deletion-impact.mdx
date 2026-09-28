@@ -1,0 +1,68 @@
+# Account Deletion Impact
+
+## 概要
+
+ACTIVE User本人がaccount削除を開始する際に、削除によって自身のdataへ生じる主要な影響を理解し、Account Deletion Flowを継続するか判断するための画面です。
+
+> 実装状況: Account削除は再実装中です。既存実装が存在する場合も本仕様の正本とはみなしません。
+
+## Purpose
+
+Userがaccount削除によって失われる自身のdataを削除開始前に理解し、意図した場合だけ削除Flowを継続できるようにします。
+
+## Related Use Cases
+
+- [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
+- [Account Deletion Flow](/screens/account-deletion-flow)
+
+## Information
+
+- Memoria accountの削除が復元不能な操作であることを提示します。
+- User管理Mediaの件数を提示します。
+- User管理Mediaがaccount削除によって復元不能に削除されることを提示します。
+- User管理Mediaが0件の場合も、その状態をUserが理解できるようにします。
+- Communityへの影響は後続Flowで必要に応じて解決するため、この段階でCommunityごとの判断を要求しません。
+
+## Actions
+
+### 削除Flowを継続する
+
+Userは提示された自身のdataへの影響を確認し、account削除Flowを継続できます。
+
+継続後は[Account Deletion Flow](/screens/account-deletion-flow)に従い、必要なCommunity上の判断がある場合はその段階へ進み、ない場合は不要な段階をskipします。
+
+### 削除を中止する
+
+Userはaccount削除を開始せずにFlowを終了できます。中止によってUser、Media、Community等のdataを変更しません。
+
+## States
+
+### 影響確認可能
+
+削除の不可逆性とUser管理Media件数を確認し、継続または中止を選択できます。
+
+### 影響情報取得失敗
+
+削除判断に必要なUser管理Media件数等を確認できない場合は削除Flowを継続させません。
+
+[Feedback Pattern](/design-system/patterns/feedback)に従って問題を提示し、再試行または安全にFlowを終了できるようにします。
+
+## Navigation
+
+ACTIVE UserがApplication内からaccount削除を開始した場合に到達します。具体的な入口とApplication NavigationはInformation Architectureを設計する段階で定義します。
+
+継続時の遷移は[Account Deletion Flow](/screens/account-deletion-flow)に従います。中止時は削除開始前のApplication利用へ戻れるようにしますが、具体的な遷移先はApplication Navigationと合わせて定義します。
+
+## Constraints
+
+- ACTIVE User本人だけが自身のaccount削除Flowを開始できます。
+- この段階ではaccount削除、Media削除、Membership変更等の破壊的変更を実行しません。
+- User管理Mediaが0件でもFlowを省略せず、account削除の不可逆性を確認します。
+- 削除判断に必要な影響情報を取得できない状態では後続Flowへ進めません。
+- Communityに関する選択やCommunity名入力、Auth0再認証、最終削除確定は後続段階の責務です。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、削除の不可逆性と自身のdataへの影響を理解し、継続または中止を選択できるCapabilityを維持します。
+
+現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なlayoutは実装で決定します。
