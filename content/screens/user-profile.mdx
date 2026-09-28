@@ -28,7 +28,9 @@ UserがMemoriaで利用する自身のProfileを確認し、必要に応じて�
 
 Userは編集可能なProfile項目を変更し、保存できます。
 
-初回Releaseではnicknameだけを変更できます。nicknameが有効な場合にProfileを更新し、成功した場合は現在値を新しい値へ置き換えます。
+初回Releaseではnicknameだけを変更できます。変更確定の共通挙動は[Editable Form Pattern](/design-system/patterns/editable-form)に従います。
+
+Profileに現在値からの変更が存在し、nicknameが有効な場合にProfileを更新できます。成功した場合は更新後のProfileを新しい基準値として扱います。
 
 入力条件を満たさない場合は更新を実行せず、Userが修正できる状態を維持します。
 
@@ -36,7 +38,7 @@ Userは編集可能なProfile項目を変更し、保存できます。
 
 ### 表示・編集可能
 
-現在のProfileを確認し、編集可能な項目を変更できます。
+現在のProfileを確認し、編集可能な項目を変更できます。現在値から有効な変更が存在しない間は、変更確定Actionを実行できません。
 
 ### 入力不正
 
@@ -71,6 +73,7 @@ Profile更新のために別の画面へ遷移することは前提とせず、�
 - Profile更新成功時は現在値を置き換え、過去値を保存しません。
 - DELETING UserはProfileを変更できません。
 - 将来Profile項目を追加できる境界として扱い、nickname専用画面として設計しません。
+- 既存Profileの編集と変更確定には[Editable Form Pattern](/design-system/patterns/editable-form)を適用します。
 
 ## Responsive Behavior
 
