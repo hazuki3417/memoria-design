@@ -12,6 +12,7 @@ export default {
   "community-invitation-acceptance": "Community Invitation Acceptance",
   "personal-media": "Personal Media",
   "community-media": "Community Media",
+  "group-browser": "Group Browser",
   "community-members": "Community Members",
   "community-management": "Community Management",
   "community-deletion-confirmation": "Community Deletion Confirmation"
