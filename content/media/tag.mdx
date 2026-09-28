@@ -125,7 +125,7 @@ Media Browserでは、現在scopeのTagを条件として現在contextで閲覧�
 - filter中もMedia Browserの標準的なMedia orderingを維持する
 - filter解除によって現在contextの通常Media一覧へ戻れるようにする
 
-複数Tagを指定した場合のAND / OR semanticsは、Userが結果を予測できる一貫した契約として別途確定します。具体的なquery、cursor、index契約と合わせて決定し、UI実装から逆算してdomain semanticsを決めません。
+複数Tagを指定した場合はAND条件とし、選択したすべてのTagが付与されているMediaだけを表示します。Tagを追加するほど結果集合は同じか狭くなり、すべてのTag filterを解除すると現在contextの通常Media一覧へ戻ります。OR切替や複雑な検索式はInitial Releaseでは提供しません。具体的なquery、cursor、index契約はこのsemanticsを満たす形でAPI contractとして決定します。
 
 ## Tag管理
 
@@ -162,7 +162,6 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 
 - Tag名の最大文字数等の具体的入力上限
 - scope内Tag数、MediaあたりTag数の具体的上限
-- 複数Tag filterのAND / OR semantics
 - Tag一覧のsort、検索、pagination契約
 - GraphQL Operation名、Input / Payload、error表現
 - Tag作成とMedia付与を連続操作する場合の具体的presentation
