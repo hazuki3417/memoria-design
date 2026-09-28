@@ -142,6 +142,12 @@ Personalでは共有・共有解除、Original download、削除等、Community�
 
 Emptyと混同せず、一覧取得に失敗したことを示して再試行できるようにします。
 
+### Browser / Detail: 画像処理失敗
+
+Media登録後に画像処理がterminal failureとなったMediaも通常のMedia Browserから除外しません。表示用Variantが利用できないことと画像処理に失敗した状態を識別できるようにし、正常なthumbnailが存在するように見せません。
+
+Initial ReleaseではUser向けのProcessing手動retry Actionを提供しません。Media自体は有効な登録済みMediaとして残るため、現在の認可に従って削除等の利用可能なActionへ到達できます。内部attempt数、Redis状態、Processing Job等の運用情報は表示しません。
+
 ### Detail: 表示可能
 
 選択したMediaを表示し、現在Userが利用できるActionだけを提供します。
