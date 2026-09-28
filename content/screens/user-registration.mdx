@@ -61,7 +61,9 @@ nicknameが必須条件を満たさない場合は、問題のある入力と修
 
 ### 登録済み
 
-登録要求時点で同じissuer・subjectに対応するMemoria Userがすでに存在する場合は、重複したUserを作成しません。この場合の画面遷移はNavigationの未決定事項と合わせて確定します。
+登録要求時点で同じissuer・subjectに対応するMemoria Userがすでに存在する場合は、重複したUserを作成しません。
+
+既存UserがACTIVEで利用可能であることを確認できた場合は登録済みとして扱い、登録成功時と同じNavigation規則で遷移します。DELETING等の利用可能でない状態では登録成功として扱わず、UserユースケースのLogin制約に従って利用を拒否します。
 
 ## Navigation
 
@@ -70,6 +72,8 @@ Auth0認証後、issuer・subjectに対応するMemoria Userが存在しない�
 登録開始前に安全な内部復帰先が保持されている場合は、登録完了後にその復帰先へ戻り、元のUser flowを継続します。Invitation URLを起点として認証・登録へ進んだ場合は、この原則に従って許可された元の内部URLへ戻します。
 
 復帰先がない通常のLoginから登録した場合は、登録完了後にApplicationの標準入口へ遷移します。標準入口そのものはこの画面の責務とはせず、Application Navigationの設計で定義します。
+
+登録要求時点ですでに対応するACTIVE Userが存在した場合も、登録成功時と同じ復帰先またはApplicationの標準入口へ遷移します。
 
 利用者が明示的に登録せず終了した場合はLogoutして公開側へ戻ります。ブラウザを閉じる等の暗黙的な離脱では、復帰先や登録状態を変更するための特別な処理を行いません。次回アクセス時に未登録であれば再びこの画面へ誘導します。
 
@@ -90,6 +94,3 @@ Auth0認証後、issuer・subjectに対応するMemoria Userが存在しない�
 
 現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なlayoutは実装で決定します。
 
-## 未決定事項
-
-- 登録要求時点ですでに対応するMemoria Userが存在した場合の遷移先。
