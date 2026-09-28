@@ -14,6 +14,7 @@ export default {
   "community-media": "Community Media",
   "media-browser-detail": "Media Browser / Detail",
   "media-sharing": "Media Sharing",
+  "media-upload": "Media Upload",
   "group-browser": "Group Browser",
   "community-members": "Community Members",
   "community-management": "Community Management",
