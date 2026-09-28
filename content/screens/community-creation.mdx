@@ -2,7 +2,7 @@
 
 ## 概要
 
-ログイン済みUserが、Application利用中のcontextを維持したまま新しいCommunityを作成するDialogです。
+ACTIVE Userが、Application利用中のcontextを維持したまま新しいCommunityを作成するDialogです。
 
 > 実装状況: Community作成機能は未実装です。本仕様はInitial ReleaseのCommunity作成UIを定義します。
 
@@ -62,7 +62,7 @@ User状態の変化等によりCommunity作成を継続できない場合はBloc
 
 ## Navigation
 
-Community Creationは、ログイン済みUserが通常のApplication利用中に起動するDialogとして提供します。
+Community Creationは、ACTIVE Userが通常のApplication利用中に起動するDialogとして提供します。
 
 具体的な起動位置、Application ShellのHeader、Sidebar、Navigation構造等はApplication全体のInformation Architectureを設計する段階で定義します。
 
@@ -70,6 +70,7 @@ Community Creationは、ログイン済みUserが通常のApplication利用中�
 
 ## Constraints
 
+- ACTIVE UserだけがCommunityを作成できます。未登録・DELETING Userは作成できません。
 - Community名は必須です。
 - Community名は前後空白を除去した結果が空文字になる値を許可しません。
 - 異なるCommunity間で同名を許可します。
