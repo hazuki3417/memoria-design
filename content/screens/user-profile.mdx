@@ -42,7 +42,7 @@ Profileに現在値からの変更が存在し、nicknameが有効な場合にPr
 
 ### 入力不正
 
-nicknameが必須条件を満たさない場合は、問題のある入力と修正方法をUserが理解できるようにします。Profileは更新しません。
+nicknameが必須条件を満たさない場合は、[Feedback Pattern](/design-system/patterns/feedback)のField Errorとして、問題のある入力と修正方法をUserが理解できるようにします。Profileは更新しません。
 
 ### 更新処理中
 
@@ -50,11 +50,13 @@ nicknameが必須条件を満たさない場合は、問題のある入力と修
 
 ### 更新成功
 
-Profileの更新が完了したことをUserへ伝え、画面上の現在値を更新後の値として扱います。
+Profileの更新が完了したことを[Feedback Pattern](/design-system/patterns/feedback)のOperation FeedbackとしてUserへ伝え、画面上の現在値を更新後の値として扱います。
 
 ### 更新失敗
 
-一時的な失敗等、Userによる再試行が可能な場合は、Profileが更新されていないことを明示し、編集内容を失わずに再試行できるようにします。
+一時的な失敗等、Userによる再試行が可能な場合は、[Feedback Pattern](/design-system/patterns/feedback)のOperation FeedbackとしてProfileが更新されていないことを伝え、編集内容を失わずに再試行できるようにします。
+
+User状態の変化等によりProfileの変更を継続できない場合はBlocking Errorとして扱い、短時間で消えるNotificationだけに依存せず、現在の状態と次に取れる行動を伝えます。
 
 ## Navigation
 
@@ -74,6 +76,7 @@ Profile更新のために別の画面へ遷移することは前提とせず、�
 - DELETING UserはProfileを変更できません。
 - 将来Profile項目を追加できる境界として扱い、nickname専用画面として設計しません。
 - 既存Profileの編集と変更確定には[Editable Form Pattern](/design-system/patterns/editable-form)を適用します。
+- Profile更新に関する成功、入力error、処理errorの提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
 
 ## Responsive Behavior
 
