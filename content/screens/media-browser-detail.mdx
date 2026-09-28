@@ -52,6 +52,8 @@ MIME type、Object Storage key、Variant record、Processing Job、内部status�
 
 BrowserからMediaを選択すると、そのMediaをDetailとして閲覧できます。
 
+Initial Releaseでは、整理・共有・削除を複数Mediaへ適用するための複数選択も提供します。bulk対象はUserがBrowser上で明示的に選択したMedia ID集合だけとし、現在のfilter結果全件、未読込page、将来追加されるMedia等を暗黙に含めません。「条件に一致するすべてを選択」のようなquery-based bulk operationはInitial Releaseでは提供しません。
+
 Detailのpresentationをmodal、overlay、split view、dedicated routeのいずれかへ固定しません。表示領域と入力方式に適したpresentationを選択できます。
 
 ### 前後のMediaへ移動する
@@ -81,6 +83,25 @@ Groupの新規作成をMedia分類の成立条件にしません。Group作成�
 分類操作中にGroup削除、Membership / role変更、Mediaの利用不能化等が発生した場合は現在状態を再検証し、成立しなかった変更を成功として表示しません。
 
 Initial Releaseでは1 Media単位の分類を標準Interactionとします。複数Mediaを選択して既存Groupへ一括分類する操作や、Media選択とGroup新規作成を一体化したshortcutは必須Capabilityとしません。
+
+### 複数MediaへActionを適用する
+
+複数選択中は、選択集合のすべてに意味があり、現在Userが実行可能なbulk Actionだけを提示します。Initial Releaseでは次をbulk対象に含めます。
+
+- 既存Groupへの追加・除外
+- 既存Tagへの付与・解除
+- User管理Mediaの1 Communityへの共有
+- Media削除
+
+bulk操作はUI上では一つの意図として開始できますが、domain上はMediaごとの独立した結果として扱います。1件の競合・認可変更・validation failureを理由に、既に成立した他Mediaの変更をrollbackしません。API実装は複数IDを受ける単一MutationまたはMedia単位Mutationの集約を選択できますが、Product contractとして全件atomic transactionを要求しません。
+
+実行時には各MediaについてACTIVE状態、現在scopeでの可視性、Custody、Membership / role、対象Group / Tag / Community等を再検証します。成功・失敗はMedia単位で識別でき、部分成功時は成功済み変更を維持したまま失敗対象と理由を確認・再試行できるようにします。
+
+Group / Tag bulk classificationでは1回のActionにつき1つの既存GroupまたはTagを対象にし、選択Mediaへ同じrelation変更を適用します。Group / Tagの新規作成とbulk分類を一つのdomain operationへ結合しません。
+
+bulk sharingでは共有先Communityを1つ固定し、選択集合のうち操作者本人がCustodianであるUser管理Mediaだけを対象にします。Community管理Mediaや既にそのCommunityへ共有済みのMediaを新しい共有relationとして成立させません。
+
+bulk deleteは不可逆操作なので、実行前に選択件数と削除が復元不能であることを明示して確認します。Community contextではMediaごとの削除権限が異なり得るため、権限のないMediaを削除対象として成立させません。削除受付後は各Mediaが独立してDELETINGへ遷移し、Storage cleanupもMedia単位で完了します。
 
 ### Contextに応じたその他のActionを実行する
 
@@ -135,7 +156,7 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - UI上のAction availabilityをAPI側認可の代替にしません。
 - Browser / Detailの基本InteractionはPersonal / Communityで共通化し、scopeと認可差分を各Screen Specificationで定義します。
 - Grid / List、thumbnail size、modal / route等の具体的presentationをProduct仕様として固定しません。
-- Media ↔ Group分類は1 Media単位を標準Interactionとし、複数Mediaへの一括分類はInitial Release必須Capabilityとしません。
+- Media Detailの1 Media分類に加え、Browserで明示選択した複数Mediaへ既存Group / Tagを一括適用できます。query結果全件を暗黙対象にしません。
 - Group作成とMedia分類を一つの必須操作として結合しません。
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
 - Tagは[Media Tag](/media/tag)に従い、1 Media単位のMedia Detailを付与・解除の主要入口とし、Media Browserでは現在scopeのTagによる絞り込みを提供します。
