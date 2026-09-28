@@ -351,7 +351,7 @@ PKは`(media_id, tag_id)`です。MediaからTagを取得する方向はPKを使
 | created_at | timestamptz | NOT NULL | 登録時刻 |
 | updated_at | timestamptz | NOT NULL | 更新時刻 |
 
-`(media_id, operation_type, object_key)`へUNIQUE constraintを設定します。`PENDING` / `PROCESSING`では`next_attempt_at`を必須とし、`COMPLETED` / `FAILED`ではNULLとします。新規`PENDING`は原則即時実行可能とし、`PROCESSING`では`next_attempt_at`をclaim lease期限として使用します。
+`(media_id, operation_type, object_key)`へUNIQUE constraintを設定します。`media_id`はMedia FKではなく相関IDであり、Upload時にDB transactionが成立しなかった場合は事前生成済みMedia IDを記録できます。これによりOriginal保存後の補償DELETE失敗も通常のStorage Operationと同じdurable retryへ引き渡します。`PENDING` / `PROCESSING`では`next_attempt_at`を必須とし、`COMPLETED` / `FAILED`ではNULLとします。新規`PENDING`は原則即時実行可能とし、`PROCESSING`では`next_attempt_at`をclaim lease期限として使用します。
 
 Storage Workerは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`を`FOR UPDATE SKIP LOCKED`でbatch取得し、短いtransactionで`PROCESSING`とlease期限を設定してcommitした後にObject Storage DELETEを実行します。Objectが既に存在しない場合も成功として扱います。成功後は別transactionで`COMPLETED`へ遷移します。retry可能failureでは`attempt_count`を増加し、指数backoffと最大間隔から算出した次回実行時刻を設定して`PENDING`へ戻します。retry上限到達または回復不能failureでは`FAILED`とし、自動取得対象から外します。運用再開時は`PENDING`へ戻して新しい`next_attempt_at`を設定します。claim後のWorker停止はlease期限切れ`PROCESSING`の再取得で回復します。
 
