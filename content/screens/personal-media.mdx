@@ -1,0 +1,109 @@
+# Personal Media
+
+## 概要
+
+ACTIVE UserがPersonal contextで、自身がCustodianであるMediaを閲覧・追加・管理する画面です。
+
+> 実装状況: 既存Media UIは本仕様を前提としておらず、Personal / Community context、Media Custody、Community共有を含む本仕様との差分があります。
+
+## Purpose
+
+Userが自分のMediaを一つのPersonal contextで確認し、新しいMediaを追加し、必要に応じて参加中Communityへ共有・分類・管理できるようにします。
+
+Personal Mediaは[Application Information Architecture](/system/application-information-architecture)で定義するPersonal contextの標準entryです。
+
+## Related Use Cases
+
+- [Media関連ユースケース - Mediaをアップロードする](/media/use-cases#mediaをアップロードする)
+- [Media関連ユースケース - Mediaを閲覧・downloadする](/media/use-cases#mediaを閲覧downloadする)
+- [Media関連ユースケース - User管理MediaをCommunityへ共有する](/media/use-cases#user管理mediaをcommunityへ共有する)
+- [Media関連ユースケース - User管理Mediaの共有を解除する](/media/use-cases#user管理mediaの共有を解除する)
+- [Media関連ユースケース - Mediaを削除する](/media/use-cases#mediaを削除する)
+- [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
+
+## Information
+
+User本人がCustodianであるMediaを提示します。
+
+Mediaごとの詳細情報やvisual metadataを常時どの粒度で表示するかは固定しません。Userが閲覧対象を識別し、主要Actionの対象を誤認しないために必要な情報を提示します。
+
+Communityへ共有済みのMediaでは、Userが共有状態を確認・管理する必要がある場合に共有先Communityを確認できるようにします。Community側のGroup / Tag分類はPersonal側の分類として表示・編集しません。
+
+## Actions
+
+### MediaをUploadする
+
+UserはPersonal contextへMediaをUploadできます。成立したMediaのCustodianはUser本人です。
+
+Upload処理のfile選択、進捗、非同期Variant生成等の詳細InteractionはMedia UploadのScreen / Pattern設計で定義します。
+
+### Communityへ共有する
+
+Userは自身がCustodianであるMediaを、本人が参加しているCommunityへ共有できます。
+
+共有してもMedia本体を複製せずCustodianはUserのままです。同じMediaを複数Communityへ共有できます。
+
+共有先選択の具体的Interactionは別途Screen / Pattern設計で定義します。
+
+### Community共有を解除する
+
+Userは対象Communityとの共有関係を解除できます。解除してもMedia本体、他Communityへの共有、Personal側のGroup / Tag分類は維持します。
+
+### Personal Group / Tagで分類する
+
+UserはPersonal contextのGroup / Tagを使ってMediaを分類できます。Community側の分類とは独立します。
+
+### Originalをdownloadする
+
+User Custodian本人はOriginalをdownloadできます。
+
+### Mediaを削除する
+
+Userは自身がCustodianであるMediaを削除できます。
+
+削除は復元できず、Media本体、派生file、Group関連、Community共有関係を削除します。破壊的操作として、実行前に対象と不可逆性を理解できる確認を提供します。
+
+## States
+
+### Mediaあり
+
+UserのMediaを閲覧し、対象Mediaに対して権限のあるActionを実行できます。
+
+### Empty
+
+Personal Mediaが存在しない場合、空であることを明示し、MediaをUploadして利用を開始できるようにします。
+
+Community作成や共有をPersonal Media利用開始の必須Actionとして扱いません。
+
+### 読み込み失敗
+
+Media一覧を取得できない場合は、Mediaが存在しない状態と混同させず、取得に失敗したことと再試行できるActionを提示します。
+
+### 操作処理中・失敗
+
+Upload、共有、共有解除、分類、download準備、削除等の結果が確定するまで、同じ操作の意図しない重複実行を防ぎます。
+
+再試行可能な失敗では、対象と失敗した操作をUserが理解でき、必要に応じて再試行できる状態を維持します。
+
+## Navigation
+
+Personal MediaはApplicationの標準entryであり、Context SwitcherでPersonalを選択した場合の標準entryでもあります。
+
+Communityへの共有を開始した場合も、共有元MediaがPersonal contextに属することを失わないようにします。共有成功だけを理由に自動的に共有先Communityへcontextを切り替えることは前提としません。
+
+Context Switcher、Context Navigation、Account Menuの責務は[Application Information Architecture](/system/application-information-architecture)に従います。
+
+## Constraints
+
+- ACTIVE User本人がCustodianであるMediaだけをPersonal Mediaとして管理します。
+- Community管理MediaをPersonal Mediaへ混在させません。
+- User管理MediaのCommunity共有はCustodianを変更しません。
+- Personal Group / TagとCommunity Group / Tagは独立します。
+- Mediaのdomain ruleと権限は[Media関連ユースケース](/media/use-cases)を正本とします。
+- Mediaの委譲はInitial Release対象外です。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、Mediaの閲覧、Upload、共有、分類、権限のあるdownload・削除というCapabilityを維持します。
+
+Grid / List、thumbnail size、Actionのpresentation等は固定せず、Compact / Medium / WideでMediaを識別し主要Actionへ到達できることを優先します。重要なActionをhoverだけに依存させません。
