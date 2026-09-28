@@ -1,0 +1,19 @@
+# Screen Specifications
+
+## 概要
+
+このdirectoryはMemoriaの画面単位のUI仕様を管理します。Screen Specificationは、画面が満たすべき意味と振る舞いを定義し、具体的なReact / Mantine実装やpixel単位のlayoutは定義しません。
+
+UI設計全体の方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)、設計書セットの構成と正本境界は[ドキュメント管理方針](/documentation-policy)、各Screen Specificationの章立て・必須情報・記載粒度は[設計書テンプレート](/design-document-templates#screen-specification)を正本とします。
+
+## 配置
+
+画面ごとに `content/screens/<screen-name>.mdx` を作成します。画面数が少ない間はflatに配置し、分類が必要になった時点でsubdirectoryを検討します。
+
+各Screen Specificationは対応するProduct domainのUse Caseを明示的に参照します。Use Case、domain rule、共通Design System ruleをこのdirectoryへ複製しません。
+
+## 読み取り方
+
+画面仕様を確認するときは、Related Use CasesからProduct上の目的と制約を確認したうえで、Screen Specificationに記載されたInformation、Actions、States、Navigation、Constraints、Responsive Behaviorを読みます。
+
+StorybookはScreen Specificationを実装したUIを観察・検証するための実行可能なExampleです。Story一覧はこのdirectoryへ複製せず、実装側から対応するScreen Specificationを参照できる関係を基本とします。

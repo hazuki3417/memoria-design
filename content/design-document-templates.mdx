@@ -162,3 +162,74 @@ column表は「列 / 型 / 制約 / 意味」の4列に統一します。共通�
 ### 任意追加項目
 
 複数判断に共通する目的、設計変更時の原則、将来再検討する条件、関連Issueを追加できます。
+
+
+## Screen Specification
+
+推奨fileは `content/screens/<screen-name>.mdx` です。Screen Specificationは画面が満たすべき意味と振る舞いを定義します。具体的なReact / Mantine実装やpixel単位のlayoutは定義しません。
+
+### 必須情報
+
+1. Purpose: 画面が存在する目的と、利用者がこの画面で達成すること。
+2. Related Use Cases: この画面が実現する既存Use Caseへの明示的な参照。
+3. Information: 利用者が目的を達成するために必要な主要情報と、それを提示する条件。
+4. Actions: 利用者が実行できる主要操作、操作可能条件、結果、重要な拒否・制約。
+5. States: UIとして区別する必要がある状態と、各状態で伝える情報、可能な操作、必要な復帰方法。
+6. Navigation: 主要な遷移元・遷移先と、画面間で維持する必要があるcontext。
+7. Constraints: 権限、件数、選択数、処理中の制限等、画面固有の制約。
+8. Responsive Behavior: 表示領域や入力環境が変化しても維持するCapabilityと、適応が必要な情報・操作。
+
+### 記載粒度
+
+Purposeは機能名の言い換えではなく、利用者が達成する目的を説明します。Related Use CasesではUse Case本文を複製せず、Product domainの正本へlinkします。
+
+Informationはfield一覧を機械的に列挙するのではなく、利用者の判断や操作に必要な情報と表示条件を記載します。表示順や強調に意味がある場合はその意味を記載できますが、実装上の座標やpixel値では指定しません。
+
+ActionsはButtonやMenu等のWidget名ではなく利用者が実行できる操作として記載し、実装者が操作可能条件、結果、拒否条件を推測しなくてよい粒度にします。確認、取消不能性、複数選択等が利用者の判断へ影響する場合は明記します。
+
+StatesはLoading / Empty / Content / Error等の見出しを機械的に作成せず、その画面で利用者体験や可能な操作が変わる状態だけを記載します。Errorを記載する場合は、単に「errorを表示する」で終えず、利用者へ伝える内容と再試行・遷移等の復帰方法を必要に応じて示します。
+
+Navigationはroute pathそのものより、利用者がどの文脈から入り、操作後にどこへ進み、どのcontextを維持するかを優先して記載します。route名がProduct仕様として意味を持つ場合を除き、具体的なrouting実装は `memoria-web` 側で管理します。
+
+Responsive BehaviorはDesktop layoutを縮小する手順ではなく、異なる表示領域・入力環境でも維持すべきCapabilityと、表現を変更してよい部分を記載します。Compact / Medium / Wideやpointer / touch / keyboardについて機械的に同じ項目を埋めず、表示領域や入力方式によってInformation、Action、Navigation等の表現・優先順位が変化する場合にだけ、その差を明記します。
+
+### 任意追加項目
+
+複雑な画面では、主要なUser Flow、状態遷移図、権限差による表示・操作差、重要な確認・破壊的操作、関連するDesign System Pattern、Accessibility上の画面固有要件等を追加できます。
+
+### 表記と正本境界
+
+- Screen Specification内へUse Case、domain rule、Design Systemの共通規則を複製せず、正本へlinkします。
+- 特定のlayout、pixel値、React / Mantine Component、CSS、GraphQL operation、Story一覧、test implementationは原則として記載しません。
+- Storybookは仕様の正本ではなく、Screen Specificationを現在の実装がどう表現しているかを観察・検証する実行可能なExampleとして扱います。
+- 実装との差分がある場合は共通書式に従って明示し、現在の実装を理由に仕様を暗黙に変更しません。
+
+
+## Design System Pattern
+
+Design System Patternは、複数の画面で繰り返し発生するUI/UX上の問題に対するMemoriaとしての標準的な解決方法を定義します。Patternの配置は、最初のPatternを追加する際にDesign System全体のnavigationと合わせて決定します。
+
+### 必須情報
+
+1. Purpose: Patternが解決する利用者またはUI設計上の問題。
+2. When to Use: 適用する状況と、適用しない状況を判断できる条件。
+3. Behavior: 利用者から見た基本的な振る舞い、状態変化、feedback。
+4. Variations: 同じPattern内で許容する意味のあるVariationと、その選択条件。
+5. Constraints: 一貫性を保つために守る制約と、禁止する利用方法。
+
+### 記載粒度
+
+PatternはComponent catalogや実装APIの説明ではなく、複数のScreenで一貫して適用する意味と振る舞いを記述します。特定の画面で一度だけ必要な判断はScreen Specificationまたは実装に留め、再利用性が確認されていないものを先回りしてPattern化しません。
+
+明らかな横断要件は複数の実装例が揃うまで機械的に待つ必要はありませんが、Patternとして共通化する理由と適用範囲を説明できる状態にします。
+
+### 任意追加項目
+
+Responsive Behavior、Accessibility、状態遷移、関連するScreen Specification、外部Design Systemから参考にした考え方、Pattern間の関係等を必要に応じて追加できます。
+
+### 表記と正本境界
+
+- Patternの目的、適用条件、振る舞い、Variation、制約は `memoria-design` を正本とします。
+- React / Mantine Component、props、CSS、Story、test implementationは `memoria-web` を正本とします。
+- Mantineや外部Design Systemの仕様を複製せず、Memoriaとして採用する意味・差分・制約だけを記載します。
+- 既存Componentは存在していることだけを理由にPatternとはみなしません。Screen SpecificationとUX Principlesへの適合を確認してから再利用・変更・廃止を判断します。

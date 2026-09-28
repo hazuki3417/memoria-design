@@ -5,6 +5,7 @@ export default {
   "media": "Media",
   "community": "Community",
   "user": "User",
+  "screens": "Screen Specifications",
   "ubiquitous": "ユビキタス言語",
   "technology-stack": "技術スタック",
   "-- System Design": {"type":"separator","title":"システム設計"},
