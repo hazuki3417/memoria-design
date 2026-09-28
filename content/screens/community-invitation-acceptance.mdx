@@ -1,4 +1,4 @@
-# Community Invitation Acceptance
+# Community招待の受諾
 
 ## 概要
 
@@ -8,20 +8,20 @@ Membership成立前のCommunity外Userも到達するため、通常のCommunity
 
 > 実装状況: Invitation accept UIは未実装です。本仕様はInitial ReleaseのInvitation参加Flowを定義します。
 
-## Purpose
+## 目的
 
 Invitationを受け取ったUserが、参加成立前に許可された範囲で招待先を確認し、自分の意思でCommunity参加を確定できるようにします。
 
 LoginやUser Registrationが必要な場合もInvitationの意図を失わず、認証・登録完了後に同じFlowへ復帰できるようにします。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Communityユースケース - InvitationからCommunityへ参加する](/community/use-cases#invitationからcommunityへ参加する)
 - [Communityユースケース - 招待URLを発行・共有する](/community/use-cases#招待urlを発行共有する)
 - [Userユースケース - 新規登録](/user/use-cases#新規登録)
 - [Userユースケース - Login・Logout・session失効](/user/use-cases#loginlogoutsession失効)
 
-## Information
+## 表示情報
 
 参加成立前に表示するCommunity情報は、現在のCommunity名だけとします。
 
@@ -35,7 +35,7 @@ Membership成立前に次の情報を表示しません。
 
 Invitationを発行したAdministrator個人の情報を、参加判断のための必須情報として追加しません。
 
-## Actions
+## 操作
 
 ### Loginする
 
@@ -67,7 +67,7 @@ Invitationを開いたこと自体を参加意思とはみなさず、Membership
 
 具体的な戻り先presentationは固定しません。ACTIVE UserがApplicationへ戻る場合はApplication IAの利用可能なdestinationへ遷移できます。
 
-## States
+## 状態
 
 ### 未認証
 
@@ -141,7 +141,7 @@ Invitationをacceptしない場合はMembershipを作成せずFlowを終了で�
 
 認証・Registrationからの安全な復帰とoperationを自動再開しない共通behaviorは[Authentication Return / Session Recovery](/design-system/patterns/authentication-return-session-recovery)に従います。
 
-## Constraints
+## 制約
 
 - Invitation URLを開いただけではMembershipを作成しません。
 - 参加成立にはACTIVEなMemoria Userが必要です。
@@ -156,7 +156,7 @@ Invitationをacceptしない場合はMembershipを作成せずFlowを終了で�
 - Community外UserへMember、Media、Group、Tag等の内部情報を開示しません。
 - Invitationの有効性とMembership作成のTransaction / 競合制御は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、招待先Community名の確認、認証・登録への継続、参加確定、参加しない選択というCapabilityを維持します。
 
