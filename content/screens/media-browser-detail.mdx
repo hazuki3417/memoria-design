@@ -86,6 +86,23 @@ Initial Releaseでは1 Media単位の分類を標準Interactionとします。�
 
 ### 複数MediaへActionを適用する
 
+```mermaid
+flowchart TD
+    Select["BrowserでMediaを明示選択"] --> Action["Group / Tag / 共有 / 削除を選択"]
+    Action --> Validate["Mediaごとに現在状態・認可を再検証"]
+    Validate --> M1["Media A"]
+    Validate --> M2["Media B"]
+    Validate --> M3["Media C ..."]
+    M1 --> R1["成功または失敗"]
+    M2 --> R2["成功または失敗"]
+    M3 --> R3["成功または失敗"]
+    R1 --> Summary["個別結果を集約"]
+    R2 --> Summary
+    R3 --> Summary
+```
+
+bulk Actionは一つのUser意図として開始しますが、各Mediaの結果は独立します。成功済み変更を他Mediaの失敗でrollbackしません。
+
 複数選択中は、選択集合のすべてに意味があり、現在Userが実行可能なbulk Actionだけを提示します。Initial Releaseでは次をbulk対象に含めます。
 
 - 既存Groupへの追加・除外
