@@ -1,0 +1,97 @@
+# Frontend UI設計・開発方針
+
+## 目的
+
+Memoria WebのUI設計・実装を、AIを中心に効率よく進めながら、利用者にとってシンプルで質の高いUI/UXを継続的に提供するための基本方針を定義します。
+
+この文書は画面ごとの詳細仕様を定義するものではありません。画面設計、Design System、実装、Visual Reviewの責務と開発方法を定義します。
+
+## 基本方針
+
+- Figma等による静的モック作成を標準工程とはしません。
+- UIの意味、要求、状態、操作、Navigation、Memoria固有のDesign Systemは `memoria-design` をSource of Truthとします。
+- React/Mantineによる具体的な実装は `memoria-web` が所有します。
+- Storybookは設計のSource of Truthではなく、UI実装を独立して観察・検証・Visual Reviewするための実行可能なExampleとして扱います。
+- 既存の画面・Componentは仕様そのものとはみなしません。新しい設計に適合するものは再利用し、適合しないものは再設計できます。
+
+## Screen SpecificationとStorybook
+
+Screen Specificationでは、UIが満たすべき意味と振る舞いを定義します。主に次の情報を対象とします。
+
+- 画面の目的
+- 提示する主要な情報
+- 利用者が実行できる主要な操作
+- Loading、Empty、Error等を含む重要な状態
+- Navigationと画面間の関係
+- その画面固有の制約
+
+pixel単位の配置や、特定のReact/Mantine API等の実装詳細は原則としてScreen Specificationへ含めません。
+
+Storybookは、Screen SpecificationとDesign Systemに基づいて実装されたComponentや画面状態を確認するために利用します。Storyは仕様そのものではなく、仕様を検証するための実行可能なExampleです。
+
+## AIを利用したUI開発
+
+UIデザインと実装を完全に分離した工程にはせず、実際のReact Componentをinteractive prototypeとして利用します。
+
+基本的な流れは次のとおりです。
+
+1. Screen Specificationを定義する。
+2. AIがDesign Systemと既存Componentを確認する。
+3. 設計上の判断が必要な場合は、AIが選択肢とtrade-offを提示し、人間と合意する。
+4. AIがStorybook上で実際のUIを実装する。
+5. AIが仕様との整合、表示崩れ、情報階層等を一次Reviewする。
+6. 人間が実際の表示をVisual Reviewする。
+7. AIがfeedbackを反映する。
+8. 承認したUIをApplicationへ統合する。
+9. 必要なVRT、interaction test、E2E等で回帰を保証する。
+
+最終的なVisual Approvalは人間が行います。
+
+Visual Reviewで得られた判断をすべてDesign Systemへ追加するのではなく、複数の画面で再利用する価値がある原則・PatternだけをDesign Systemへ昇格させます。
+
+## Design System
+
+Memoria Design Systemは、最初から完成したComponent catalogとして設計しません。実際の画面設計・実装とともに段階的に成熟させます。
+
+### 実装Foundation
+
+`memoria-web` ではMantineをUI実装のFoundationとして継続利用します。
+
+Mantineが既に提供するComponent、theme scale、interaction等を理由なく再実装しません。Memoria固有の要求を実現できない場合に限り、拡張または独自実装を検討します。
+
+### 外部Design System
+
+GitHub Primer、Shopify Polaris、Atlassian Design System、Material Design等の成熟したDesign SystemをReferenceとして積極的に利用できます。
+
+ただし、特定の外部Design SystemをMemoriaの仕様としてそのまま採用しません。外部のPatternや原則は、Memoriaのユースケースに適する理由がある場合にMemoria自身のルールとして採用します。
+
+### Memoria Design Systemの成長
+
+Design Systemは概ね次の関係で扱います。
+
+- Foundation: Mantineを中心とした実装基盤
+- UX Principles: Memoriaとして一貫して守るUI/UX原則
+- Patterns: 実際の画面から見つかった再利用可能な設計
+- Components: `memoria-web` における具体的な実装
+
+画面固有の判断は画面実装に留め、再利用可能な判断だけを共通Patternへ昇格させます。
+
+## UI/UXの方向性
+
+Memoriaは、機能を減らすことで単純に見せるのではなく、利用者が現在必要としている情報と操作を適切に提示することで、知覚する複雑さを抑えることを目指します。
+
+Visual Designはシンプルかつコンテンツ中心とし、UI自体がMediaより過度に主張しないことを重視します。一方で、操作性、feedback、interaction quality等はUI/UX上の重要な品質として扱います。
+
+具体的なUX Principlesは、実際の画面設計を通して検証しながら策定します。
+
+## 未決定事項
+
+次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
+
+- Responsive Designと端末ごとの利用方針
+- 対象Browserとsupport policy
+- Accessibilityの保証水準
+- VRT / E2Eを含むUI quality gate
+- UX Principlesの具体的な一覧
+- Design Systemの具体的なFoundation / Pattern
+- Screen Specificationの標準templateと配置
