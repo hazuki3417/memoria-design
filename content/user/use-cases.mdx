@@ -28,6 +28,8 @@ Userがnicknameを確認・変更して登録を確定した時点でだけMemor
 
 Profile更新は特定field専用のProduct操作ではなくUser Profileの更新として提供します。初回Releaseではnicknameだけを更新し、Memoria nicknameを正本としてAuth0から同期しません。変更に成功した場合は現在値を置き換え、過去値は保存しません。DELETING Userによる変更は許可しません。
 
+Initial ReleaseではProfile更新にversion競合解決や自動mergeを導入しません。同じUser Profileに対する複数の有効な更新が競合した場合は、成立した更新によって現在値を置き換え、後から成立した更新結果を最終的な現在値として扱います。
+
 ## Login・Logout・session失効
 
 Auth0で認証し、issuer・subjectに一致するACTIVE UserだけがMemoriaを利用できます。DELETING UserはAuth0認証に成功しても利用できません。
