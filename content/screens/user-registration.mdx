@@ -77,6 +77,8 @@ Auth0認証後、issuer・subjectに対応するMemoria Userが存在しない�
 
 利用者が明示的に登録せず終了した場合はLogoutして公開側へ戻ります。ブラウザを閉じる等の暗黙的な離脱では、復帰先や登録状態を変更するための特別な処理を行いません。次回アクセス時に未登録であれば再びこの画面へ誘導します。
 
+Login / Registration前後のreturn destinationと認証後のoperation再開に関する共通behaviorは[Authentication Return / Session Recovery](/design-system/patterns/authentication-return-session-recovery)に従います。
+
 ## Constraints
 
 - nicknameは必須です。
