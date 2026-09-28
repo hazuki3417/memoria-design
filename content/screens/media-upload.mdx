@@ -1,0 +1,195 @@
+# Media Upload
+
+## 概要
+
+Initial Releaseで静止画像をPersonalまたはCommunityへUploadするInteractionです。
+
+Userは複数画像を一度に選択できますが、複数Mediaを1つのdomain transactionやProcessing Jobとして扱いません。UIは複数MediaのUploadを一つの作業単位として集約して表示し、API request、Media登録、Processing Job、成功・失敗・retryはMedia単位で独立させます。
+
+## Purpose
+
+写真を複数枚まとめて選択できる日常的な操作性を提供しながら、一部の失敗によって成功済みMediaを巻き戻したり、全件を最初からやり直したりしなくてよいUpload体験を提供します。
+
+Personal / Communityで共通するUpload Interactionを使用し、違いは初期Custodianと現在contextの認可として扱います。
+
+## Related Use Cases
+
+- [Media関連ユースケース](/media/use-cases)
+- [Media処理と派生物](/media/processing)
+- [Personal Media](/screens/personal-media)
+- [Community Media](/screens/community-media)
+- [Media Browser / Detail](/screens/media-browser-detail)
+
+## Entry / Scope
+
+### Personal
+
+Personal MediaからUploadを開始します。
+
+登録された各Mediaの初期CustodianはUser本人です。
+
+### Community
+
+現在CommunityのCommunity Mediaから直接Uploadを開始します。
+
+登録された各Mediaの初期Custodianは現在Communityです。Uploaderは操作Userとして記録します。
+
+Communityへの直接Uploadが許可されないUser状態やMembershipではUploadを開始・継続できません。
+
+Personal MediaをCommunityへ共有する操作とは別です。Community direct uploadによってUser管理Mediaを作成してから共有する二段階flowにはしません。
+
+## File Selection
+
+Userは1件または複数の静止画像fileを選択できます。
+
+file picker、drag and drop等の具体的な入力presentationは固定しません。Compact / touch環境ではOS標準の画像選択やcamera roll等、利用可能な入力方法を使用できます。
+
+選択したfileごとに少なくとも次を識別できるようにします。
+
+- preview可能な場合の画像
+- file名
+- validation結果
+- Upload / Processingの現在状態
+
+選択後、Upload開始前に個別fileを対象から外せます。
+
+複数選択はUI上の集約であり、選択件数全体を1 Mediaや1 API requestとして扱いません。
+
+## Pre-upload Validation
+
+Clientで明らかに判定できる不正なfileはUpload開始前に識別し、他の有効fileまで一律に失敗させません。
+
+ServerはClient validationを信頼せず、file内容、許可形式、size等を再検証します。
+
+許可する画像形式、MIME / file signature validation、file size、pixel count、width / height等の具体的上限は静止画像処理contractで確定します。UI都合や既存実装値からProduct制約を逆算しません。
+
+不正なfileが選択集合に含まれていても、他の有効fileはUpload可能です。Userは問題のあるfileを識別し、対象から外すか、可能な場合は別fileへ置き換えられます。
+
+## Upload Execution
+
+Upload開始時、Upload対象の各fileについて独立したMedia upload requestを実行します。
+
+- 1 requestは1 Mediaを登録する
+- 1 Mediaごとに独立して成功・失敗を確定する
+- 複数requestはUI / clientで並行または制御された並列度で実行できる
+- client側の具体的な同時実行数はProduct仕様として固定しない
+- 1件の失敗を理由に他Mediaの成功をrollbackしない
+- 成功済みMediaを同じUpload操作のretry対象へ戻さない
+
+Userが同じ操作を誤って再実行して重複Mediaを作らないよう、APIのidempotency contractに従います。具体的なidempotency keyの生成・保持方法はGraphQL/API contractで確定します。
+
+## Upload Success and Processing
+
+Original保存とMedia登録の同期成功条件、およびVariant生成完了は分離します。
+
+Media登録が成功した時点で、そのMediaのUpload requestは成功として扱えます。表示用Variantは非同期Processing Jobで生成されます。
+
+UIは少なくとも次を区別できるようにします。
+
+- Upload待ち
+- Upload中
+- Upload失敗
+- Media登録済み・画像処理中
+- 表示用Variant利用可能
+- 画像処理失敗
+
+「Media登録済み・画像処理中」をUpload失敗として扱いません。また、Variant生成がまだ完了していないMediaを、通常の表示用Variantが利用可能であるかのように表示しません。
+
+Processing Jobの内部status名、attempts、Redis / Outbox状態等を利用者へそのまま露出しません。
+
+## Multiple Upload Summary
+
+複数fileを選択した場合、Userは全体の進行状況と各Mediaの結果を把握できるようにします。
+
+全体状態は個別結果の集約として表現し、少なくとも次を区別します。
+
+- すべて未開始 / 実行中
+- すべて成功
+- 一部成功・一部失敗
+- すべて失敗
+
+一部成功では成功済みMediaを維持し、失敗したMediaを明確に識別します。
+
+「全件成功しなければ0件」というatomic batch semanticsは導入しません。
+
+## Retry
+
+### Upload失敗
+
+Media登録が成立していないfileは、失敗理由がretry可能な場合にそのfileだけ再試行できます。
+
+retryによって成功済みMediaを再Uploadしません。
+
+認可喪失、file自体のvalidation failure等、同じ入力の再送では成立しない場合は、単純なretryを提示せず必要な状態変更を案内できるようにします。
+
+### Processing失敗
+
+Media登録後のVariant生成失敗はUpload request失敗と区別します。
+
+Processing retryは同一MediaのProcessing Job / reprocess contractに従い、同じOriginalから派生物生成を再試行します。Userへretry操作を提供するか、Systemの自動retryと運用復旧だけで扱うかは、静止画像処理のretry contractと合わせて確定します。
+
+Processing失敗を解消するために同じOriginalを新しいMediaとして再Uploadすることを標準復旧手段にしません。
+
+## Tag Classification During Upload
+
+Upload中のTag付与はMedia Tagのdomain semanticsに従います。
+
+複数選択したMediaへ同じTagをまとめて設定するInteractionをInitial Releaseへ含めるかは、Uploadそのものの複数選択とは分離してbulk classificationの横断設計で確定します。
+
+Uploadを成立させるためにTagを必須にしません。
+
+Group分類もUpload成立の必須条件にしません。
+
+## Cancellation / Navigation
+
+Upload開始前は選択したfileを削除して作業を中止できます。
+
+Upload開始後、既にServer側でMedia登録が成立したMediaを「cancel」によって暗黙削除しません。Upload requestの通信cancelと、成立済みMediaの削除は別操作です。
+
+複数Uploadの実行中に画面遷移・reload・network切断が発生した場合の再接続・状態復元は、idempotencyとserver-side observable stateを前提にGraphQL / Frontend contractで具体化します。client memoryだけを正本にしません。
+
+## States / Concurrency
+
+実行時にUser、Membership、Community、Media作成条件をMedia requestごとに再検証します。
+
+Communityへの複数Upload中にMembershipを失った場合、それ以降の成立しないrequestを成功として扱いません。既にcommit済みのCommunity管理Mediaは、後続requestの失敗を理由にrollbackしません。
+
+同じfileを複数回選択したことだけを根拠に内容重複Mediaを自動統合しません。内容hash等によるdeduplicationは別Product要件が合意されるまで導入しません。
+
+## Feedback
+
+個別fileのvalidation error、Upload failure、Processing failureを区別します。
+
+複数Uploadでは、全体summaryだけで個別失敗理由を隠しません。一方で、各requestの内部errorをそのまま大量表示して主要な状態把握を妨げないよう、概要と個別詳細を段階的に確認できるpresentationを選択できます。
+
+成功・一部成功・失敗のFeedbackは[Feedback Pattern](/design-system/patterns/feedback)の原則に従います。
+
+## Navigation
+
+Media Uploadは現在のPersonal / Community contextを維持します。
+
+Upload完了を理由にApplication contextを切り替えません。Upload後にMedia Browserへ戻る、Upload結果を同じ画面で確認する等の具体的presentationは固定しませんが、成功したMediaへ到達できるようにします。
+
+## Constraints
+
+- Initial Releaseでは静止画像だけを受け付ける
+- Originalを無加工で保持する
+- 1 request = 1 Media
+- 1 Processing Jobは1 Mediaを扱う
+- UIでは複数Mediaを一度に選択・実行できる
+- 複数Uploadはatomic batchではない
+- Personal uploadの初期CustodianはUser本人
+- Community direct uploadの初期Custodianは現在Community
+- UploaderとCustodianを同一概念として扱わない
+- Variant生成完了を同期Upload requestの成功条件にしない
+- 直接Object Storage UploadはInitial Release対象外
+- file形式・size等の具体値は静止画像処理contractを正本とする
+- Client validationをServer validation / authorizationの代替にしない
+
+## Responsive Behavior
+
+Compact / Medium / Wideで複数fileの選択、問題fileの識別、Upload開始、個別結果、部分失敗の把握へ到達できるCapabilityを維持します。
+
+Wideでは複数fileのpreviewや状態を同時に一覧表示できます。Compactでは1件ずつ詳細を展開する等、presentationを変更できます。
+
+drag and dropだけを唯一のfile入力方法にせず、touch / keyboardを含む利用環境からUploadを開始できるようにします。
