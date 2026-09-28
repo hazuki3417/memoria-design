@@ -1,21 +1,21 @@
-# Account Deletion Final Review
+# アカウント削除：最終レビュー
 
 ## 概要
 
 Account削除の最終確定前に、これまでの選択から構成された削除計画全体をまとめて確認し、Auth0再認証へ進むか判断するための画面です。
 
-## Purpose
+## 目的
 
 Userが本人確認を行う前にaccount削除による主要な変更を一度に把握し、意図した削除計画であることを確認できるようにします。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
 - [Account Deletion Flow](/screens/account-deletion-flow)
 - [Account Deletion Community Resolution](/screens/account-deletion-community-resolution)
 - [Account Deletion Community Review](/screens/account-deletion-community-review)
 
-## Information
+## 表示情報
 
 削除計画に応じて、少なくとも次の内容をまとめて提示します。
 
@@ -28,7 +28,7 @@ Userが本人確認を行う前にaccount削除による主要な変更を一度
 
 対象が存在しない項目について不要な詳細を要求せず、実際の削除計画を理解するために必要な内容を提示します。
 
-## Actions
+## 操作
 
 ### 再認証へ進む
 
@@ -46,7 +46,7 @@ Userが本人確認を行う前にaccount削除による主要な変更を一度
 
 Account削除を開始せずにFlowを終了できます。
 
-## States
+## 状態
 
 ### Review可能
 
@@ -68,7 +68,7 @@ Account Deletion Flowで必要なCommunity ResolutionおよびCommunity Review�
 
 Review後に継続する場合はAuth0再認証へ遷移し、削除計画を変更する場合は該当する前段階へ戻ります。
 
-## Constraints
+## 制約
 
 - Final Reviewでは削除を実行しません。
 - 再認証前に削除計画全体を確認できるようにします。
@@ -76,6 +76,6 @@ Review後に継続する場合はAuth0再認証へ遷移し、削除計画を変
 - 削除計画を変更した場合は最新状態でReviewをやり直します。
 - Auth0の具体的な再認証方式や有効期限はこのScreen Specificationでは規定しません。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、削除計画全体と主要な影響を理解し、再認証へ進むか、計画を見直すか、中止するかを判断できるCapabilityを維持します。
