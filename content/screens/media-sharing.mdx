@@ -1,4 +1,4 @@
-# Media Sharing
+# Media共有
 
 ## 概要
 
@@ -8,20 +8,20 @@ Personal MediaとCommunity Mediaのどちらから開始しても、成立する
 
 > 実装状況: 現在のmemoria-webには、本仕様で定義するMedia CustodyとCommunity Accessに基づく共有UIは実装されていません。
 
-## Purpose
+## 目的
 
 Userが「Media本体をCommunityへ移す」「Communityへ複製する」と誤認せず、自分が管理するMediaを必要なCommunityの参加者へ安全に閲覧可能にできるようにします。
 
 Personal起点とCommunity起点で別の共有概念を作らず、同じdomain semanticsを異なるcontextから利用します。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Media関連ユースケース - User管理MediaをCommunityへ共有する](/media/use-cases#user管理mediaをcommunityへ共有する)
 - [CommunityとMediaの共有](/media/community-access)
 - [Personal Media](/screens/personal-media)
 - [Community Media](/screens/community-media)
 
-## Information
+## 表示情報
 
 共有対象について、少なくとも次をUserが識別できるようにします。
 
@@ -32,7 +32,7 @@ Personal起点とCommunity起点で別の共有概念を作らず、同じdomain
 
 共有によってMediaの複製、Custody transfer、Original download権限の付与が発生するような表現をしません。
 
-## Actions
+## 操作
 
 ### Personal Mediaから共有する
 
@@ -65,7 +65,7 @@ Systemは実行時に次を再検証します。
 
 共有成功後は開始元contextを維持します。Personal起点ではPersonal Media、Community起点では現在Community Mediaを継続し、共有成功だけを理由にApplication contextを切り替えません。
 
-## States
+## 状態
 
 ### 選択可能
 
@@ -113,7 +113,7 @@ Personal起点ではPersonal context、Community起点では現在Community cont
 
 共有成功後に共有先Communityへ自動遷移することは要求しません。
 
-## Constraints
+## 制約
 
 - 共有できるのは操作者本人がCustodianであるUser管理Mediaだけです。
 - 共有先は操作者本人が現在参加しているCommunityだけです。
@@ -127,7 +127,7 @@ Personal起点ではPersonal context、Community起点では現在Community cont
 - Custody transferは別概念でありInitial Release対象外です。
 - UI上の選択可否をAPI側の認可・現在状態再検証の代替にしません。
 
-## Responsive Behavior
+## Responsive対応
 
 Compact / Medium / Wideで、共有するMediaと共有先Communityを識別し、共有結果を理解できるCapabilityを維持します。
 
