@@ -33,7 +33,10 @@ Communityは少なくとも1人のAdministratorを持ちます。Administrator�
 | Member・Administratorの除外 | 可能 | 不可 | 不可 |
 | CommunityへのMedia Upload | 可能 | 可能 | 不可 |
 | User管理MediaのCommunity共有 | 自分のMediaのみ可能 | 自分のMediaのみ可能 | 不可 |
-| Community内のGroup・Tagの作成とMedia分類 | 可能 | 可能 | 不可 |
+| Community Groupの作成・rename・削除・Group間relation管理 | 可能 | 不可 | 不可 |
+| 既存Community Groupを使ったMedia分類 | 可能 | 可能 | 不可 |
+| Community Tagの作成・Media分類 | 可能 | 可能 | 不可 |
+| Community Tagのrename・削除 | 可能 | 不可 | 不可 |
 | 自分の退会 | 最後のAdministrator以外は可能 | 可能 | 不可 |
 | Community削除 | 条件を満たせば可能 | 不可 | 不可 |
 
@@ -75,13 +78,17 @@ Media情報の編集機能は、初回Releaseで必要な編集項目がない�
 
 ## GroupとTag
 
-AdministratorとMemberはCommunity内のGroup・Tagを作成し、閲覧できるMediaを分類できます。User管理MediaをCommunityへ共有した場合も、そのCommunity内だけで有効なGroup・Tagを設定できます。
+Community Groupの分類体系はAdministratorが管理し、AdministratorとMemberは既存Groupを使って閲覧できるMediaを分類できます。User管理MediaをCommunityへ共有した場合も、そのCommunity内だけで有効なGroup関連を設定できます。
 
-- Group・TagはMediaの管理主体や閲覧権限を変更しない。
+- AdministratorはCommunity Groupの作成・rename・削除・Group間relationの追加と解除を行える。
+- MemberはCommunity Group構造を変更せず、既存Groupを使ったMedia分類だけを行える。
+- GroupはMediaの管理主体や閲覧権限を変更しない。
 - Community側の分類は、共有元Userの個人領域の分類とは独立する。
-- 共有解除時は対象MediaのCommunity側Group・Tag関連だけを削除する。
-- Group・Tag本体と、他Mediaの分類は保持する。
-- Group・Tag自体の編集・削除権限、名称、階層構造はそれぞれの詳細設計で確定する。
+- 共有解除時は対象MediaのCommunity側Group関連だけを削除する。
+- Group本体と、他Mediaの分類は保持する。
+- Groupの詳細なsemanticsは[Media Group](/media/group)を正本とする。
+
+Community TagはAdministratorとMemberが作成し、既存Tagを使って閲覧可能なMediaを分類できます。既存Tagのrename・削除はAdministratorだけが行えます。Tag作成者ownershipは導入しません。詳細なsemanticsは[Media Tag](/media/tag)を正本とします。
 
 ## エラーと境界条件
 

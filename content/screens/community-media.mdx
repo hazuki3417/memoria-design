@@ -1,0 +1,143 @@
+# Community Media
+
+## 概要
+
+Community参加者がCommunity contextで、そのCommunityに共有または直接UploadされたMediaを閲覧・追加・分類し、権限に応じて管理する画面です。
+
+> 実装状況: 既存Media UIは本仕様を前提としておらず、Personal / Community context、Media Custody、Community共有を含む本仕様との差分があります。
+
+## 目的
+
+Community参加者が、そのCommunityで閲覧可能なMediaを一つのMedia領域で確認し、Communityへ新しいMediaを直接Uploadするか、自身のPersonal Mediaを共有してCommunityへ追加できるようにします。
+
+Community Mediaは[Application Information Architecture](/system/application-information-architecture)で定義する各Community contextの標準entryです。
+
+## 関連Use Case
+
+- [Media関連ユースケース - Mediaをアップロードする](/media/use-cases#mediaをアップロードする)
+- [Media関連ユースケース - Mediaを閲覧・downloadする](/media/use-cases#mediaを閲覧downloadする)
+- [Media関連ユースケース - User管理MediaをCommunityへ共有する](/media/use-cases#user管理mediaをcommunityへ共有する)
+- [Media関連ユースケース - User管理Mediaの共有を解除する](/media/use-cases#user管理mediaの共有を解除する)
+- [Media関連ユースケース - Mediaを削除する](/media/use-cases#mediaを削除する)
+- [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
+
+## 表示情報
+
+現在Communityで閲覧可能な次のMediaを同じCommunity Media領域に提示します。
+
+- User CustodianからこのCommunityへ共有されているMedia
+- このCommunityへ直接Uploadされ、CommunityがCustodianであるMedia
+
+一覧からのMedia discovery、標準の並び順、1件のDetail閲覧、前後Mediaへの移動、補助情報の提示は[Media Browser / Detail](/screens/media-browser-detail)を共通仕様とします。
+
+Userが操作結果を誤認する可能性がある場合は、MediaのCustodian種別やUploader等、利用可能なActionを理解するために必要な情報をDetailから確認できるようにします。User管理MediaとCommunity管理Mediaを一覧でどのvisual treatmentにより区別するかは実装とVisual Reviewで決定します。
+
+## 操作
+
+### Mediaを閲覧する
+
+Userは一覧からMediaを選択し、[Media Browser / Detail](/screens/media-browser-detail)に従ってMedia本体と必要な補助情報を閲覧できます。
+
+Browserで明示選択した複数Mediaには、共通仕様に従ってCommunity Group / Tag分類、および現在Userが削除権限を持つMediaの削除をbulk Actionとして適用できます。Community起点の「自分のMediaから共有する」では現在Communityを固定し、明示選択した複数のPersonal Mediaを共有できます。各Mediaの認可と結果は独立して扱います。
+
+### Communityへ直接Uploadする
+
+AdministratorとMemberはCommunityへMediaを直接Uploadできます。
+
+成立したMediaのCustodianはCommunityです。UploadしたUserはUploaderとして記録され、Membershipが有効な間はdomain ruleに従うUploader本人向け権限を持ちます。複数file選択、個別Upload、部分成功・失敗、非同期Variant生成等は[Media Upload](/screens/media-upload)に従います。
+
+### 自分のMediaから共有する
+
+AdministratorとMemberは、自身がCustodianであるPersonal Mediaを現在Communityへ共有するFlowをCommunity Mediaから開始できます。
+
+共有するMediaを選択して成立すると、そのMediaはCommunity参加者から閲覧可能になります。Media本体を複製せず、CustodianはUser本人のままです。
+
+同じUse CaseはPersonal Mediaからも開始できます。どちらの入口から開始してもdomain上の共有結果は同じです。具体的な選択と共有成立時のBehaviorは[Media Sharing](/screens/media-sharing)に従い、Community起点では現在Communityを固定して自身のPersonal Mediaから対象を選択します。
+
+### Community Group / Tagで分類する
+
+AdministratorとMemberは、現在Communityで閲覧可能なMediaをCommunity固有のGroup / Tagで分類できます。Community Tagは両roleが作成・利用でき、既存Tagのrename・削除はAdministratorだけが行います。具体的なTag semanticsと絞り込みは[Media Tag](/media/tag)に従います。
+
+User管理Mediaを分類してもPersonal側のGroup / Tagには影響しません。
+
+### Originalをdownloadする
+
+Community管理MediaではAdministratorと参加中のUploader本人がOriginalをdownloadできます。
+
+User管理MediaがCommunityへ共有されている場合、共有先CommunityのAdministrator / Memberであることだけを理由にOriginalをdownloadできません。
+
+### Mediaを削除する
+
+Community管理MediaはAdministratorと参加中のUploader本人が削除できます。
+
+Communityへ共有されたUser管理MediaはCommunity側からMedia本体を削除できません。
+
+### User管理Mediaの共有を解除する
+
+Community Administratorは、このCommunityへ共有されているUser管理Mediaについて、このCommunityとの共有関係を解除できます。
+
+Memberは他Userが共有したMediaの共有を解除できません。User Custodian本人による共有解除はPersonal Media側からも実行できます。
+
+共有解除ではMedia本体や他Communityへの共有を削除せず、このCommunityの共有関係とCommunity側Group / Tag関連だけを削除します。
+
+## 状態
+
+### Mediaあり
+
+現在Communityで閲覧可能なMediaを提示し、各Mediaについて現在Userが実行可能なActionだけを利用できるようにします。
+
+User管理MediaとCommunity管理Mediaで権限が異なるため、UI上のAction availabilityだけをdomain認可の代替にはしません。
+
+### Empty
+
+Communityで閲覧可能なMediaが存在しない場合、空であることを明示します。
+
+AdministratorとMemberには、CommunityへMediaを追加する異なる方法として次を提示します。
+
+- Communityへ直接Uploadする
+- 自分のMediaから共有する
+
+2つのActionでCustodianが異なるため、Userが結果の違いを理解できる表現にします。
+
+### 読み込み失敗
+
+Media一覧を取得できない場合はEmptyと混同させず、取得に失敗したことと再試行できるActionを提示します。
+
+### Membership / 権限失効
+
+現在CommunityのMembershipを失った場合はCommunity Mediaを継続表示せず、[Application Information Architecture](/system/application-information-architecture)に従って利用可能な安全なApplication destinationへ移動します。
+
+role変更等で一部Actionの権限だけを失った場合は現在の権限を再評価し、利用できないActionを継続実行させません。
+
+### 操作処理中・失敗
+
+Upload、共有、分類、download準備、削除、共有解除等の結果が確定するまで、同じ操作の意図しない重複実行を防ぎます。
+
+再試行可能な失敗では、対象と失敗した操作をUserが理解でき、必要に応じて再試行できる状態を維持します。
+
+## Navigation
+
+Community MediaはCommunity contextの標準entryです。
+
+Context SwitcherでCommunityを選択した場合、Community作成成功後、そのCommunityへの参加完了後等、Community利用を開始する標準destinationとして扱います。ただしInvitation accept等の個別Flowで別の明示的destinationが定義される場合は、そのFlowの仕様を優先します。
+
+「自分のMediaから共有する」Flowでは現在Communityを共有先contextとして維持し、Userに別Communityを再選択させません。
+
+Context Switcher、Context Navigation、Account Menuの責務は[Application Information Architecture](/system/application-information-architecture)に従います。
+
+## 制約
+
+- 有効なMembershipを持つAdministrator / MemberだけがCommunity Mediaを利用できます。
+- Community内ではUser管理MediaとCommunity管理Mediaの両方を閲覧対象にできますが、Custodianと権限を同一視しません。
+- Communityへの直接UploadではCommunityがCustodianになります。
+- Personal Mediaからの共有ではUserがCustodianのままです。
+- Community Group / TagはPersonal側および他Communityの分類から独立します。
+- Community間でMediaを直接共有しません。
+- Mediaのdomain ruleは[Media関連ユースケース](/media/use-cases)、Community固有の認可は[Community権限](/community/authorization)を正本とします。
+- Mediaの委譲はInitial Release対象外です。
+
+## Responsive対応
+
+表示領域や入力方式が変わっても、Mediaの閲覧、直接Upload、Personal Mediaからの共有、分類、および権限のあるdownload・削除・共有解除というCapabilityを維持します。
+
+Grid / List、thumbnail size、Actionのpresentation等は固定せず、Compact / Medium / Wideで現在Communityと対象Mediaを識別し、主要Actionへ到達できることを優先します。重要なActionをhoverだけに依存させません。

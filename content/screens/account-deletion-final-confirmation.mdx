@@ -1,28 +1,28 @@
-# Account Deletion Final Confirmation
+# アカウント削除：最終確認
 
 ## 概要
 
 Auth0再認証に成功したUserがMemoriaへ戻った後、account削除を実際に開始する最後の明示的な確定を行う画面です。
 
-## Purpose
+## 目的
 
 本人確認と削除内容への同意を分離し、再認証済みのUserが意図的な最終Actionを行った場合だけaccount削除を開始できるようにします。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
 - [Userの認証と認可](/user/authentication-authorization)
 - [Account Deletion Flow](/screens/account-deletion-flow)
 - [Account Deletion Final Review](/screens/account-deletion-final-review)
 
-## Information
+## 表示情報
 
 - Auth0再認証が完了していることをUserが理解できるようにします。
 - 次の確定Actionによってaccount削除が開始され、UserがMemoriaを利用できなくなることを明確にします。
 - 詳細な削除計画はFinal Reviewで確認済みであるため、同じ長いReviewをそのまま繰り返すことは要求しません。
 - 最終確定対象がFinal Review後に変更されていないことを前提とします。
 
-## Actions
+## 操作
 
 ### Account削除を確定する
 
@@ -38,7 +38,7 @@ Userが明示的に最終削除Actionを実行した場合だけ削除受付を�
 
 削除計画を変更する場合はFinal Review以前へ戻ります。この場合、現在の再認証済み状態を最終確定に利用せず、変更後の計画についてFinal ReviewとAuth0再認証を再度完了します。
 
-## States
+## 状態
 
 ### 最終確定可能
 
@@ -68,7 +68,9 @@ Auth0再認証成功後にMemoriaへ安全に復帰した場合に到達しま�
 
 再認証からの復帰先は許可された内部URLだけを使用し、復帰しただけで削除を自動実行しません。
 
-## Constraints
+Auth0からの安全な復帰と、再認証成功だけでは削除operationを実行しない共通behaviorは[Authentication Return / Session Recovery](/design-system/patterns/authentication-return-session-recovery)に従います。強制再認証固有の成立条件は[Userの認証と認可](/user/authentication-authorization)を正本とします。
+
+## 制約
 
 - Auth0再認証成功だけではaccount削除を開始しません。
 - Memoria上の明示的な最終削除Actionを必須とします。
@@ -78,6 +80,6 @@ Auth0再認証成功後にMemoriaへ安全に復帰した場合に到達しま�
 - 削除受付成功後はUserを即時DELETINGとして扱い、cleanup完了までACTIVEへ戻しません。
 - Auth0の具体的な強制再認証方式と有効期限はAuthentication / Security設計で定義します。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、これがaccount削除を開始する最後のActionであることを理解し、確定または中止できるCapabilityを維持します。

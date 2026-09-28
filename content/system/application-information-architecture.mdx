@@ -1,0 +1,167 @@
+# Application Information Architecture
+
+## 概要
+
+Memoriaの認証後ApplicationにおけるInformation ArchitectureとNavigationの意味的な構造を定義します。
+
+この文書はHeader、Sidebar、Tab、Drawer等の具体的なlayoutやMantine Componentを固定しません。Application内で何をcontextとして扱い、どのNavigationがどの責務を持つかを定義します。
+
+## 基本構造
+
+Application Shellは、次の3つのNavigation責務を分離します。
+
+1. **Context Switcher**: Userが現在操作するPersonalまたはCommunity contextを切り替える。
+2. **Context Navigation**: 現在contextのMedia、分類、参加者、管理等へ移動する。
+3. **Account Menu**: 現在contextに依存しないUser本人のProfile、account lifecycle、logout等へ移動する。
+
+具体的な表示位置やvisual representationは実装とVisual Reviewで決定します。
+
+```mermaid
+flowchart LR
+    Entry["Application entry"] --> Personal["Personal context"]
+    Personal --> PMedia["Media"]
+    Personal --> PClass["Groups / Tags"]
+    Switcher["Context Switcher"] --> Personal
+    Switcher --> Community["Community context"]
+    Community --> CMedia["Media"]
+    Community --> CClass["Groups / Tags"]
+    Community --> Members["Members"]
+    Community --> Management["Management<br/>Administratorのみ"]
+    Account["Account Menu"] --> Profile["User Profile"]
+    Account --> Deletion["account削除Flow"]
+    Account --> Logout["logout"]
+```
+
+この図はNavigationの意味的な責務を示すもので、Header / Sidebar等の配置や具体的なroute構造を規定しません。
+
+## Application Context
+
+### Personal context
+
+Personal contextは、User本人がCustodianであるMediaと、そのUser専用の分類を扱う空間です。
+
+Initial Releaseでは次を主要領域とします。
+
+- **Media**: Personal contextの標準entry。User管理Mediaを閲覧・Upload・管理・Community共有する。
+- **Groups / Tags**: User管理MediaをUser専用の分類で整理する。
+
+Profile、account削除、logout等はPersonal contextの機能として扱わず、Account Menuから利用するUser account操作として分離します。
+
+### Community context
+
+各Communityは独立したcontextとして扱います。Community同士でNavigation state、参加者、Media、権限、分類を共有しません。
+
+Initial Releaseでは次を主要領域とします。
+
+- **Media**: Community contextの標準entry。Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
+- **Groups / Tags**: Community内で閲覧可能なMediaをCommunity専用の分類で整理する。
+- **Members**: 現在の参加者とAdministrator roleを確認する。Administratorは同じ領域でrole変更・参加者除外を行う。
+- **Management**: Administrator向けのCommunity自体の設定を提供する。
+
+ManagementにはCommunity名変更、Invitation管理、Community削除等を含めます。参加者の確認と管理はMembersへ集約し、人を確認する場所と管理する場所を分離しません。Memberが利用できないCommunity設定を日常利用の主要領域と同格に見せることは避けます。
+
+Community内の具体的なScreen構成は各Screen Specificationで定義します。
+
+## Context Switcher
+
+Context Switcherは、現在のApplication contextを明示し、Personalと参加中のCommunityの間を移動するNavigationです。
+
+### 表示するcontext
+
+- Personal
+- Userが現在参加しているCommunity
+
+PersonalとCommunityはNavigation上のpeer contextとして切り替え可能ですが、同一種類のdomain objectとして表現しません。Switcher内でもPersonalとCommunityの意味的な違いを理解できるようにします。
+
+Communityの検索、pin、recent、手動並べ替え等はInitial Releaseの必須機能としません。Community数や利用状況から必要性が確認された場合に追加します。
+
+### Community作成
+
+ACTIVE UserはContext SwitcherからCommunity作成を開始できます。
+
+Community作成には[Community Creation](/screens/community-creation)と[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。作成成功後は作成したCommunityを現在contextとして、そのCommunityのMediaへ移動します。
+
+### Navigation state
+
+Context SwitcherはApplication固有のhidden session stateを切り替える機構にはしません。
+
+Navigation先から現在contextを判定できることを基本とし、reload、deep link、browser historyからCommunity固有の画面へ直接到達した場合も、そのNavigation先に対応するCommunityを現在contextとして表現します。
+
+具体的なURL path形式はWeb実装設計で決定しますが、Community固有のNavigationでは対象Communityを識別可能にします。
+
+## Context Navigation
+
+Context Navigationは、現在contextの中でUserが何を行うかを選択するNavigationです。
+
+Personal contextではMediaとGroups / Tagsを提供します。
+
+Community contextではMedia、Groups / Tags、Membersを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。
+
+Contextを切り替えた場合、移動先contextの標準entryへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
+
+## Account Menu
+
+Account Menuは現在contextから独立したUser本人の操作を提供します。
+
+Initial Releaseでは少なくとも次への入口を持ちます。
+
+- User Profile
+- account削除Flow
+- logout
+
+Account Menuを利用するためにPersonal contextへ切り替える必要はありません。Community contextを利用中でもUser Profile等へ直接移動できます。
+
+Profileの具体的な仕様は[User Profile](/screens/user-profile)、account削除は[Account Deletion Flow](/screens/account-deletion-flow)を参照します。
+
+## 標準entry
+
+### Application
+
+認証・User登録完了後に通常のApplicationへ入る場合、Initial ReleaseではPersonal Mediaを標準entryとします。
+
+最後に利用したcontextを自動復元するrecent-context behaviorはInitial Releaseの必須要件としません。将来必要性が確認された場合に独立したNavigation behaviorとして検討します。
+
+### Personal
+
+Personal contextの標準entryはMediaです。
+
+### Community
+
+Community contextの標準entryはMediaです。
+
+専用のCommunity Overview / DashboardはInitial Releaseでは設けません。Communityの目的であるMediaの共有・閲覧を直接提示し、Communityが空の場合もMedia領域で必要なEmpty Stateとcontextual actionを提供します。
+
+## Navigationと権限
+
+Navigation上で操作を提示することと、domain上の認可は分離します。Web UIで非表示または無効化してもAPI側の認可を代替しません。
+
+CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったManagement等を継続利用させません。Community Membershipを失った場合は、そのCommunity contextを継続して表示せず、安全に利用可能なApplication destinationへ移動します。
+
+具体的な認可規則は[Community権限](/community/authorization)および[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を正本とします。
+
+## Responsive Behavior
+
+Compact / Medium / Wideのいずれでも、次のCapabilityを維持します。
+
+- 現在contextを理解できる
+- Personalと参加中Communityを切り替えられる
+- 現在contextの主要領域へ移動できる
+- Account MenuのUser操作へ到達できる
+
+Header、Sidebar、Menu、Drawer等の具体的なpresentationをviewport間で同一にする必要はありません。Context Switcher、Context Navigation、Account Menuという意味的な責務を維持しながら、利用可能な表示領域とinput modalityへ適応させます。
+
+重要なNavigationをhoverだけに依存させず、keyboardおよびtouchでも利用可能にします。
+
+## 設計上の境界
+
+この文書では次を固定しません。
+
+- Header / Sidebar等の具体的layout
+- Context Switcherの具体的Componentとvisual design
+- URL pathの具体的な文字列
+- Groups / Tagsの詳細なNavigation表現
+- Community Management内部の画面分割
+- Community数増加時の検索・pin・recent等の拡張
+- viewportごとのpixel値
+
+これらはScreen Specification、domain詳細設計、実装、Visual Reviewの適切な責務で決定します。

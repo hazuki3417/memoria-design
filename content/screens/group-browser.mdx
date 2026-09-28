@@ -1,0 +1,163 @@
+# Group一覧・詳細
+
+## 概要
+
+PersonalまたはCommunity contextで、現在scopeのMedia Groupを検索・閲覧し、Groupを中心に分類関係とMediaを確認する画面です。
+
+> 実装状況: 既存のmemoria-webにはGroup名検索、flatなGroup一覧、選択したGroupのMedia表示があります。本仕様で定義するPersonal / Community scope、DAG relation、Community roleによる管理権限には差分があります。
+
+## 目的
+
+Userがfolder treeやDAG全体を理解することを要求されず、現在scopeのGroupを名前から発見し、選択したGroupを中心として関連Groupと分類されたMediaを確認できるようにします。
+
+PersonalとCommunityで同じGroup interaction modelを利用し、Application contextによって対象scopeと管理権限だけを切り替えます。
+
+## 関連Use Case
+
+- [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
+- [Media Group](/media/group)
+
+## 表示情報
+
+### Group discovery
+
+現在scopeに存在するGroupをflatな一覧として提示します。
+
+Groupごとに名称を識別できるようにします。Media件数や代表thumbnail等はGroupを識別する補助情報として提示できますが、特定の件数・枚数・layoutをProduct仕様として固定しません。
+
+一覧はDAG上のroot Groupだけに限定しません。所属先Groupの有無にかかわらず、現在scopeに存在するすべてのGroupを検索・発見できるようにします。
+
+検索していない通常状態ではGroup名順を標準の並び順とします。
+
+### 選択したGroup
+
+Groupを選択した状態では、少なくとも次を確認できるようにします。
+
+- Group名
+- このGroupが所属するGroup
+- このGroupに所属するGroup
+- このGroupへ分類されているMedia
+
+Groupには一意なrootやpathが存在しないため、folder breadcrumbを現在位置やGroup identityとして表示することを前提にしません。
+
+Group間relationのDAG構造例は[Media Group - Group同士の関係](/media/group#group同士の関係)を参照します。このScreenではDAG全体をgraphとして表示することを要求せず、選択Groupを中心に直接relationを確認します。
+
+## 操作
+
+### Groupを検索する
+
+Userは現在scopeのGroupをGroup名のfree textで検索できます。
+
+検索はGroup DAGの特定階層やrootだけを対象にせず、現在scopeのGroup全体を対象とします。検索結果からGroupを選択し、そのGroupを中心とした情報へ進めます。
+
+検索のmatching algorithmやAPI pagination方式等の実装契約は本Screen Specificationでは固定しません。
+
+### Groupを選択する
+
+一覧または検索結果からGroupを選択し、そのGroupの所属関係とMediaを確認できます。
+
+Groupを開いた経路によって正規pathが変わることはなく、選択したGroup自体を現在の対象として扱います。
+
+### Groupを作成する
+
+Personal contextではUser本人がGroupを作成できます。
+
+Community contextではAdministratorだけがGroupを作成できます。Memberには分類体系を変更する作成Actionを提供しません。
+
+Groupは名称だけで成立でき、Mediaや所属先Groupがない状態でも作成できます。
+
+### Group名を変更する
+
+Personal contextではUser本人、Community contextではAdministratorがGroup名を変更できます。
+
+renameしてもGroup identity、Media relation、Group間relationを維持します。
+
+### 所属先Groupを管理する
+
+Personal contextではUser本人、Community contextではAdministratorが、選択中Groupの所属先Groupを追加・解除できます。
+
+追加候補は同一scopeに限定します。自己参照、既存relationの重複、循環を成立させるrelationは作成できません。
+
+Groupに複数の所属先を設定できます。所属先が0件になることも正常な状態として扱います。
+
+### Groupを削除する
+
+Personal contextではUser本人、Community contextではAdministratorがGroupを削除できます。
+
+削除前に、対象GroupによるMedia分類と他Groupとのrelationが削除される一方、Media本体と他Group本体は削除されないことを理解できる確認を提供します。Group名の再入力は要求しません。
+
+削除によってDAGが途切れても、Systemは他Group間のrelationを自動生成して再接続しません。
+
+### Media分類
+
+AdministratorとMemberを含む現在scopeで分類権限を持つUserは、既存Groupを使ってMediaを分類できます。
+
+Initial Releaseでは[Media Browser / Detail](/screens/media-browser-detail)のMedia Detailを、Mediaを既存Groupへ追加・除外する主要な入口とします。
+
+Group Browserでは選択したGroupへ分類済みのMediaを確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類はMedia Browserで明示選択したMedia集合から実行し、同じ既存Groupへの追加・除外を適用します。
+
+## 状態
+
+### Groupあり
+
+現在scopeのGroupを発見・選択できます。Groupを選択すると、そのGroupを中心としたrelationとMediaを確認できます。
+
+管理権限を持つUserだけがGroup構造を変更するActionを利用できます。
+
+### Empty
+
+現在scopeにGroupが存在しないことを明示します。
+
+Group作成権限がある場合は分類体系を作り始められるActionへ到達できるようにします。Community Memberには作成権限がないため、Groupがないことを伝えつつ管理Actionを提示しません。
+
+Mediaが0件のGroupも正常なGroupとして一覧・検索対象に含めます。
+
+### 検索結果なし
+
+Group自体が存在しないEmpty状態と区別し、現在の検索条件に一致するGroupがないことを示します。検索条件を変更または解除してGroup一覧へ戻れるようにします。
+
+### 読み込み失敗
+
+Group一覧または選択したGroupの情報を取得できない場合、Emptyや検索結果なしと混同させず、取得に失敗した対象を伝えて再試行できるようにします。
+
+### 権限変更
+
+CommunityでAdministratorからMemberへroleが変更された場合、Group閲覧と既存Groupを使ったMedia分類Capabilityは維持し、Group作成・rename・削除・Group間relation管理を継続実行させません。
+
+Membership自体を失った場合はCommunity Groupを継続表示せず、[Application Information Architecture](/system/application-information-architecture)に従って利用可能な安全なApplication destinationへ移動します。
+
+### 操作処理中・競合
+
+作成、rename、relation変更、削除の結果が確定するまで、同じ操作の意図しない重複実行を防ぎます。
+
+操作直前からGroup名、relation、role等が変更されて要求を成立できなくなった場合は現在状態を再評価し、成立しなかった操作と理由をUserが理解できるようにします。
+
+## Navigation
+
+Group Browserは[Application Information Architecture](/system/application-information-architecture)で定義するPersonal / Community contextのGroups領域です。
+
+Personalから開いた場合はPersonal Groupだけ、Communityから開いた場合は現在CommunityのGroupだけを扱います。Groupを選択してもApplication contextは変更しません。
+
+Group間relationを辿って別Groupを選択する場合も同じscopeを維持します。
+
+Groupをどのrouteやsplit view / dedicated viewで表現するかは固定しません。既存実装のsplit viewは実装上の参考例として扱い、Compact / Medium / Wideに適したpresentationを選択できます。
+
+## 制約
+
+- GroupはfolderではなくDAGとしてrelationを持つ分類概念です。
+- Group discoveryはflatな一覧を基本とし、DAG全体のgraph visualizationを主要Interactionにしません。
+- Groupに一意なrootやbreadcrumb pathを仮定しません。
+- Group名は同一scope内で重複できません。
+- Personal Groupと各Community Groupは独立したscopeです。
+- CommunityではAdministratorだけがGroup構造を管理し、Memberは既存Groupを利用したMedia分類だけを行えます。
+- UI上のAction availabilityをAPI側の認可・DAG constraint検証の代替にしません。
+- Groupのdomain semanticsは[Media Group](/media/group)、Community固有の認可は[Community権限](/community/authorization)を正本とします。
+- TagはInitial Release対象ですが、本Screen SpecificationでGroupと同一Interactionを仮定しません。
+
+## Responsive対応
+
+表示領域や入力方式が変わっても、Groupの一覧、名前検索、Group選択、relationの確認、および権限のあるGroup管理Capabilityを維持します。
+
+Wideでは一覧と選択Groupの情報を同時に提示することもできますが、split viewを必須にしません。Compactでは段階的なnavigation等へpresentationを変更できます。
+
+Group名検索、Group選択、管理Action、relation navigationをhoverだけに依存させず、touchとkeyboardでも主要Capabilityへ到達できるようにします。

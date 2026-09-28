@@ -1,0 +1,134 @@
+# Community管理
+
+## 概要
+
+Community AdministratorがCommunity自体の設定を管理する画面です。
+
+参加者の確認、role変更、除外は[Community Members](/screens/community-members)で扱い、本画面ではCommunity名、Invitation、Community削除への入口を扱います。
+
+> 実装状況: 本仕様に対応するCommunity Management UIは未実装です。
+
+## 目的
+
+AdministratorがCommunity自体に対する管理操作を一か所から理解・実行できるようにします。
+
+日常的なMedia利用や参加者管理とは分離し、Administratorだけが必要とするCommunity設定をまとめます。
+
+## 関連Use Case
+
+- [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
+- [Communityユースケース - 招待URLを発行・共有する](/community/use-cases#招待urlを発行共有する)
+- [Communityユースケース - Communityを削除する](/community/use-cases#communityを削除する)
+- [Community権限 - MembershipとAdministrator](/community/authorization#membershipとadministrator)
+
+## 表示情報
+
+### General
+
+現在のCommunity名を表示し、Administratorが変更できるようにします。
+
+### Invitation
+
+現在CommunityのInvitationについて、少なくとも次を理解できる状態を提示します。
+
+- 現在利用可能なInvitation URLが存在するか
+- 有効な場合のURL
+- 有効期限
+- 無効化済みまたは期限切れ等、現在利用できない状態
+
+Invitation tokenそのものを必要以上の場所へ露出させず、log、外部解析、第三者Serviceへ送信しません。
+
+### Delete Community
+
+Community削除が不可逆な管理操作であることを示し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。
+
+## 操作
+
+### Community名を変更する
+
+AdministratorはCommunity名を変更できます。
+
+nameは必須で、前後の空白を除去して空文字・空白だけの値を拒否します。異なるCommunity間で同名を許可します。
+
+名称変更後も既存Invitationは有効性を維持し、Invitationから表示する名称は最新値になります。
+
+入力と保存の基本Interactionには[Editable Form](/design-system/patterns/editable-form)を適用します。
+
+### Invitationを発行する
+
+現在利用可能なInvitationが存在しない場合、Administratorは新しいInvitationを発行できます。
+
+Invitationは発行時刻から7日間有効で、有効期間中は複数Userが利用できます。
+
+### Invitationを無効化する
+
+Administratorは現在のInvitationを無効化できます。
+
+無効化後、そのURLによる新しいInvitation acceptは成立しません。
+
+### Invitationを再発行する
+
+AdministratorはInvitationを再発行できます。
+
+再発行では既存Invitationを無効化し、新しいInvitationを同じ操作として成立させます。旧URLは利用できなくなるため、実行前にその影響を理解できるようにします。
+
+### Community削除へ進む
+
+AdministratorはCommunity Deletion Confirmationへ進めます。
+
+Management画面上の単純な確認だけでCommunity削除を確定しません。
+
+## 状態
+
+### 通常
+
+現在のCommunity名、Invitation状態、Community削除への入口を確認できます。
+
+### Invitationなし / 利用不可
+
+有効なInvitationが存在しない場合、現在共有可能なURLがないことを明示し、発行Actionを提供します。
+
+期限切れと明示的な無効化を内部状態として区別しても、Userに必要のない履歴情報を常時表示することは要求しません。
+
+### 保存・Invitation操作処理中
+
+操作結果が確定するまで、同じ意図の重複実行を防ぎます。
+
+Invitation再発行等で状態が同時変更された場合は、最新状態を再取得して表示します。
+
+### 操作失敗
+
+Community名の入力に起因する問題はField Error / Form Errorとして修正可能な場所に提示します。
+
+Invitation等の再試行可能な操作失敗は[Feedback](/design-system/patterns/feedback)に従い、現在状態を失わず再試行できるようにします。
+
+### 権限失効
+
+role変更等により現在UserがAdministratorではなくなった場合、本画面を継続利用させません。現在のCommunity Membershipが有効なら利用可能なCommunity destinationへ移動し、Membership自体を失った場合はApplication IAに従って安全なdestinationへ移動します。
+
+## Navigation
+
+Community ManagementはAdministratorだけがCommunity Context Navigationから到達できます。
+
+参加者一覧・role変更・除外は[Community Members](/screens/community-members)へ集約します。
+
+Community削除は[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ遷移します。
+
+Context全体のNavigation責務は[Application Information Architecture](/system/application-information-architecture)に従います。
+
+## 制約
+
+- 有効なAdministrator Membershipを持つUserだけが利用できます。
+- Community名、Invitation、Community削除以外の設定項目をInitial Releaseの必要性なしに追加しません。
+- Community説明、画像、公開profile、Community検索設定はInitial Release対象外です。
+- Communityごとに同時に利用可能なInvitationは1件です。
+- Invitationの発行・無効化・再発行・状態確認はAdministratorだけが実行できます。
+- Invitation URLはsecretとして扱い、不要な送信・記録を行いません。
+- Community削除の成立条件と影響確認は専用Screenで扱います。
+- domain ruleは[Communityユースケース](/community/use-cases)と[Community権限](/community/authorization)を正本とします。
+
+## Responsive対応
+
+表示領域や入力方式が変わっても、Community名変更、Invitation状態確認・管理、Community削除Flowへの到達というCapabilityを維持します。
+
+sectionの具体的なlayoutやAction配置は固定せず、異なる管理対象と破壊的操作の境界を理解できることを優先します。重要なActionをhoverだけに依存させません。

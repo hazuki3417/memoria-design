@@ -26,6 +26,8 @@
 | 実行基盤 | EC2 + Docker、Deploy、秘密情報管理、Backup、復旧、監視 | 予算に応じて構成し、PostgreSQL/Redisの配置は運用設計で確定する |
 | 品質管理 | 各RepositoryのGitHub Actions quality gateと人間によるReview | ChatGPTの実行環境ではbuild、test、静的解析、構文検証を行わない |
 
+Initial ReleaseのMedia bulk操作は、BrowserでUserが明示選択したMedia集合だけを対象とします。Group / Tag分類、User管理Mediaの1 Communityへの共有、Media削除を含め、Mediaごとの認可・現在状態を実行時に再検証し、全件atomic transactionを要求せず部分成功を許容します。filter結果全件や未読込Mediaを暗黙対象にする「すべて選択」はInitial Releaseでは提供しません。
+
 Media削除とUser account削除は初回Releaseの必須機能です。管理主体の委譲と独立した原本download画面は初回Releaseの必須機能とはしません。それらを提供する場合は既存の不変条件と認可設計に従います。
 
 ## 初回Releaseに含めない機能
@@ -35,7 +37,7 @@ Media削除とUser account削除は初回Releaseの必須機能です。管理�
 - profile画像、複数認証方法のaccount統合、公開用account ID：[#51](https://github.com/hazuki3417/memoria-design/issues/51)・[#52](https://github.com/hazuki3417/memoria-design/issues/52)・[#53](https://github.com/hazuki3417/memoria-design/issues/53)
 - メール通知・push通知：[通知機能 #47](https://github.com/hazuki3417/memoria-design/issues/47)
 - Media管理主体の委譲：[委譲機能 #48](https://github.com/hazuki3417/memoria-design/issues/48)
-- 利用価値を実現するために必須ではない一括操作や高度な検索
+- query/filter結果全件を暗黙対象にするbulk操作、高度な検索、および未採用の高度なmulti-target操作。複数画像Uploadに加え、Browserで明示選択したMediaへのGroup分類、Tag付与・解除、1 Communityへの共有、削除はInitial Releaseに含める
 - ごみ箱、削除済み画像の復元、アーカイブ
 - BrowserからS3への直接Upload
 - ECS/Fargateへの移行、Multi-Region構成、24時間の常時対応体制。ProductionのPostgreSQL / Redis HAはBaselineとし、可能なら複数Failure Domain / 3 AZへ分散する
@@ -77,21 +79,24 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 
 性能、容量、可用性、RPO/RTO、Backup保持期間、観測項目は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。Security・Privacyの詳細は専用の要求Issueで確定します。
 
-## 確定が必要な設計事項
+## 設計状況と残る設計事項
 
-| 領域 | 判断する内容 | 管理Issue |
+Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域について確定済みです。Application UIについても、[Application Information Architecture](/system/application-information-architecture)と[Screen Specification](/screens)で主要Flowを定義し、Media Browser / Detail、Media Sharing、Group BrowserとMedia ↔ Group分類Interactionまで横断設計済みです。Media Upload、Tag Interaction、および主要なMedia bulk操作のProduct / Screen semanticsまで確定済みです。
+
+今後の設計では、確定済み領域を再度一括設計するのではなく、残る未確定事項と実装契約を必要な順に具体化します。
+
+| 領域 | 現在の状態・残る判断 | 管理Issue |
 | --- | --- | --- |
-| Community | [Community設計](/community)：参加者、Administrator、認可、管理関係 | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
-| Uploader権限 | Community参加中のUploader本人による削除・Original download | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
-| User・認証 | [User設計](/user)：認証、登録、nickname、session、account削除 | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
-| Group | 所属、操作権限、階層、関連、削除 | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
-| Tag要求 | 分類目的、所属、操作主体、検索要求 | [#23](https://github.com/hazuki3417/memoria-design/issues/23) |
-| Tag詳細設計 | 物理モデル、認可、関連、絞り込み | [#43](https://github.com/hazuki3417/memoria-design/issues/43) |
-| 静止画像処理 | 対応形式、Upload、Variant、状態、再試行 | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
-| GraphQL | Query、Mutation、型、エラー、認可 | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
-| 画面 | 画面遷移、操作、対応Browser・Device・画面幅 | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
-| Security・Privacy | 公開前に満たす認証、認可、保護要件 | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
-| 初期運用 | EC2構成、DB配置、Deploy、Backup、復旧 | [#45](https://github.com/hazuki3417/memoria-design/issues/45) |
+| Community | 主要なdomain rule、認可、Invitation、Membership、削除、主要Screenは設計済み | [#15](https://github.com/hazuki3417/memoria-design/issues/15) |
+| Uploader権限 | Community参加中のUploader本人による削除・Original downloadは設計済み | [#36](https://github.com/hazuki3417/memoria-design/issues/36) |
+| User・認証 | 登録、nickname、session、account削除、主要Screenは設計済み。account削除時のAuth0強制再認証方式と有効期限は実装前に確定する | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
+| Application UI | Application IA、主要Screen、Media Upload、Media Browser / Detail、Media Sharing、Group / Tag Interaction、明示選択Mediaへの主要bulk操作まで設計済み。残るroute / GraphQL対応等を実装契約として具体化する | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
+| Group | scope、DAG、権限、Lifecycle、一覧・検索、Group-centered UI、Media Detailからの分類Interactionまで設計済み。残るGraphQL/API契約と具体的入力上限等を実装契約として確定する | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
+| Tag | scope、命名、権限、Lifecycle、Media Detailでの付与・解除、Media BrowserでのAND filterまで設計済み。残る具体的上限とGraphQL/API contractを実装契約として確定する | [#23](https://github.com/hazuki3417/memoria-design/issues/23)・[#43](https://github.com/hazuki3417/memoria-design/issues/43) |
+| 静止画像処理 | 対応形式、入力上限、Variant baseline、Upload、非同期処理、retry / failure semanticsまで確定済み。残るruntime parameterとAPI handoffを具体化する | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
+| GraphQL | Product / Domain / Screen仕様を入力としてQuery、Mutation、型、error、認可の実装契約を具体化する | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
+| Security・Privacy | 公開前に満たす認証、認可、保護要件と、強制再認証等の実装方式を確定する | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
+| 初期運用 | EC2構成、DB配置、Deploy、Backup、復旧を確定する | [#45](https://github.com/hazuki3417/memoria-design/issues/45) |
 
 動画の詳細設計は[#20](https://github.com/hazuki3417/memoria-design/issues/20)として初回Release後の候補に残します。高度な段階的DB移行は[#28](https://github.com/hazuki3417/memoria-design/issues/28)として、既存dataや互換性の必要性に応じて判断します。
 
@@ -99,12 +104,14 @@ WebおよびIaCの既知のquality gate問題は、それぞれ[memoria-web#11](
 
 ## 設計と実装の優先順位
 
-1. Security・Privacy要求、Community、Uploader権限、User・認証の前提を整理する。
-2. Groupの詳細設計と、Tagの要求・詳細設計を確定する。
-3. 静止画像のUpload、派生画像、非同期処理を具体化する。
-4. GraphQL契約を定義し、画面・操作フローへ反映する。
-5. EC2 + Dockerの運用、Deploy、Backup、復旧を確定する。
-6. Repositoryごとの実装Issueへ分割し、quality gateと結合確認を正常化する。
+1. Tagの基礎設計とPersonal / Communityにおける権限・分類・絞り込みInteractionを具体化する。
+2. 静止画像Upload、Variant、非同期処理、失敗・再試行をMedia UIと整合する形で具体化する。
+3. 確定したProduct / Domain / Screen仕様を入力として、GraphQL等のAPI実装契約を具体化する.
+4. account削除等で必要なSecurity詳細とAuth0強制再認証方式を、関連実装へ着手する前に確定する。
+5. memoria-webではApplication IAとDesign System PatternをStorybook上の実行可能UIへ落とし込み、Visual Reviewを経てApplicationへ実装する。
+6. EC2 + Dockerの運用、Deploy、Backup、復旧を確定し、Repositoryごとの実装Issueとquality gate・結合確認へ接続する。
+
+Product / Domain設計ではUserが達成する目的、Systemが保証する結果、不変条件を定義し、Screen SpecificationではそれをUserが理解・操作するInformation / Action / State / Navigationへ具体化します。GraphQL等のAPI契約はこれらの確定仕様を実装へ接続する契約として定義し、画面都合だけでProduct / Domain ruleを決定しません。
 
 すべての要求を一括で確定してから実装することは前提にしません。依存する判断が確定した領域から、[アジャイル開発とイテレーション運用](/development-process)に従って小さな単位で進めます。
 

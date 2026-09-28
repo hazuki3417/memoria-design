@@ -1,20 +1,20 @@
-# Account Deletion Community Resolution
+# アカウント削除：Community管理状態の解消
 
 ## 概要
 
 Account削除にあたり、Userが最後のAdministratorとなっているCommunityへの影響をまとめて確認し、各Communityの継続または削除に必要な判断を完了するための画面です。
 
-## Purpose
+## 目的
 
 複数のCommunityへの影響を一つの作業面で把握しながら、Communityごとに適切な解決方法を独立して選択し、account削除を安全に継続できるようにします。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
 - [Communityユースケース - Userを削除する](/community/use-cases#userを削除する)
 - [Account Deletion Flow](/screens/account-deletion-flow)
 
-## Information
+## 表示情報
 
 - Userが最後のAdministratorであり、account削除前に解決が必要なCommunityをまとめて提示します。
 - 各Communityを識別できる名称を提示します。
@@ -24,7 +24,7 @@ Account削除にあたり、Userが最後のAdministratorとなっているCommu
 - 各Communityの選択状態が未解決か解決済みかをUserが把握できるようにします。
 - Administratorへ昇格できるMemberを選択する場合、対象Community内で選択可能なMemberを識別できる情報を提示します。
 
-## Actions
+## 操作
 
 ### Communityを保持する
 
@@ -48,7 +48,7 @@ Community削除を選択した対象がある場合は削除対象をまとめ�
 
 Account削除を開始せずにFlowを終了できます。この画面上の選択だけではMembership、Administrator、Community等を変更しません。
 
-## States
+## 状態
 
 ### 未解決Communityあり
 
@@ -70,7 +70,7 @@ Communityまたは選択可能なMember等、判断に必要な情報を取得�
 
 後続段階は各Communityの選択結果によって決まります。具体的なrouteや画面構成は規定しません。
 
-## Constraints
+## 制約
 
 - 対象はUserが最後のAdministratorであるCommunityです。
 - 複数Communityを一つの作業面で扱いますが、解決方法はCommunityごとに独立して選択できます。
@@ -81,7 +81,7 @@ Communityまたは選択可能なMember等、判断に必要な情報を取得�
 - Community削除の追加確認とCommunity名入力はこの画面では完了させず、後続段階で扱います。
 - この画面上の選択だけではAdministrator昇格、Membership変更、Community削除等を確定しません。Account削除の最終確定前に破壊的変更を行いません。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、対象Community全体の解決状況を把握し、Communityごとに解決方法を選択できるCapabilityを維持します。
 
