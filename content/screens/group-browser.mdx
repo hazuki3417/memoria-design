@@ -40,6 +40,8 @@ Groupを選択した状態では、少なくとも次を確認できるように
 
 Groupには一意なrootやpathが存在しないため、folder breadcrumbを現在位置やGroup identityとして表示することを前提にしません。
 
+Group間relationのDAG構造例は[Media Group - Group同士の関係](/media/group#group同士の関係)を参照します。このScreenではDAG全体をgraphとして表示することを要求せず、選択Groupを中心に直接relationを確認します。
+
 ## 操作
 
 ### Groupを検索する
@@ -92,7 +94,7 @@ AdministratorとMemberを含む現在scopeで分類権限を持つUserは、既�
 
 Initial Releaseでは[Media Browser / Detail](/screens/media-browser-detail)のMedia Detailを、Mediaを既存Groupへ追加・除外する主要な入口とします。
 
-Group Browserでは選択したGroupへ分類済みのMediaを確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類も必須Capabilityとしません。
+Group Browserでは選択したGroupへ分類済みのMediaを確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類はMedia Browserで明示選択したMedia集合から実行し、同じ既存Groupへの追加・除外を適用します。
 
 ## 状態
 
