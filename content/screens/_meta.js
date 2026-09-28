@@ -10,5 +10,6 @@ export default {
   "account-deletion-final-confirmation": "Account Deletion Final Confirmation",
   "community-creation": "Community Creation",
   "personal-media": "Personal Media",
-  "community-media": "Community Media"
+  "community-media": "Community Media",
+  "community-members": "Community Members"
 }
