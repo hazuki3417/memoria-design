@@ -14,6 +14,24 @@ ACTIVE User本人がMemoria accountを削除する際に、削除の影響を理
 
 ## フロー
 
+```mermaid
+flowchart TD
+    Start["削除開始"] --> Impact["影響確認"]
+    Impact --> NeedResolution{"最後のAdministratorである<br/>Communityがある"}
+    NeedResolution -- "ある" --> Resolution["Community管理状態を解消"]
+    NeedResolution -- "ない" --> NeedDeleteReview
+    Resolution --> NeedDeleteReview{"削除するCommunityがある"}
+    NeedDeleteReview -- "ある" --> CommunityReview["Community削除対象を確認"]
+    NeedDeleteReview -- "ない" --> FinalReview["最終Review"]
+    CommunityReview --> FinalReview
+    FinalReview --> Reauth["Auth0再認証"]
+    Reauth --> Confirmation["最終確定"]
+    Confirmation --> Deleting["UserをDELETINGへ遷移<br/>非同期cleanup開始"]
+    FinalReview -. "計画を変更" .-> Resolution
+```
+
+不要なCommunity解決・削除確認段階はskipできます。図はFlowの意味的な順序を示し、各段階を独立Screen / step / Dialogのどれで表現するかは固定しません。
+
 ### 1. 削除の開始・影響把握
 
 User自身のaccountが削除されること、User管理Mediaの件数、および対象Mediaが復元不能に削除されることを確認します。
