@@ -1,4 +1,4 @@
-# Media Browser / Detail
+# Media一覧・詳細
 
 ## 概要
 
@@ -6,19 +6,19 @@ PersonalまたはCommunity contextで、現在contextのMediaをvisual content�
 
 > 実装状況: 既存のmemoria-webにはthumbnail中心の一覧、Media Detail modal、前後Mediaへの移動、情報panel、複数選択があります。本仕様ではそれらを参考にしつつ、Personal / Community context、Media Custody、現在の認可modelに合わせて意味とBehaviorを定義します。
 
-## Purpose
+## 目的
 
 UserがMediaの内部data構造を意識せず、画像そのものを中心に目的のMediaを発見・閲覧し、必要な場合だけ詳細情報や現在実行可能なActionへ進めるようにします。
 
 Personal MediaとCommunity Mediaで共通するBrowser / Detail interactionを定義し、対象Media、共有状態、Custody、Action availability等のcontext固有差分は各Screen Specificationに従います。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Media関連ユースケース - Mediaを閲覧・downloadする](/media/use-cases#mediaを閲覧downloadする)
 - [Media関連ユースケース - Mediaを削除する](/media/use-cases#mediaを削除する)
 - [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
 
-## Information
+## 表示情報
 
 ### Media Browser
 
@@ -46,7 +46,7 @@ Community contextでは、利用可能なActionを理解するために必要な
 
 MIME type、Object Storage key、Variant record、Processing Job、内部status等の実装・運用情報を通常のMedia Detail情報として提示することは要求しません。
 
-## Actions
+## 操作
 
 ### Mediaを選択して閲覧する
 
@@ -111,7 +111,7 @@ Personalでは共有・共有解除、Original download、削除等、Community�
 
 具体的な共有、削除確認等は対応するScreen / PatternのBehaviorに従います。Tag分類とTag filterのsemanticsは[Media Tag](/media/tag)に従います。
 
-## States
+## 状態
 
 ### Browser: Mediaあり
 
@@ -147,7 +147,7 @@ Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一�
 
 Detail内で前後Mediaへ移動してもApplication contextは変わりません。
 
-## Constraints
+## 制約
 
 - Browser / DetailはMediaのvisual contentを優先し、内部data modelをUI構造として露出しません。
 - 一覧とDetailの画像表示には同じImage Variant集合を利用でき、presentationに応じて適切なVariantを選択します。
@@ -161,7 +161,7 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
 - Tagは[Media Tag](/media/tag)に従い、1 Media単位のMedia Detailを付与・解除の主要入口とし、Media Browserでは現在scopeのTagによる絞り込みを提供します。
 
-## Responsive Behavior
+## Responsive対応
 
 Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在利用可能な主要Actionへ到達するCapabilityを維持します。
 
