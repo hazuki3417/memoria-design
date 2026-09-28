@@ -1,0 +1,60 @@
+# Account Deletion Flow
+
+## 概要
+
+ACTIVE User本人がMemoria accountを削除する際に、削除の影響を理解し、必要なCommunity上の判断を完了し、再認証後に削除を確定するまでのUser Flowです。
+
+このFlowは画面数やDialog等の具体的なUI構成を規定しません。各段階でUserが理解・判断する内容と、次へ進むための条件を定義します。
+
+## Related Use Cases
+
+- [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
+- [Media関連ユースケース - account削除時に管理Mediaを削除する](/media/use-cases#account削除時に管理mediaを削除する)
+- [Communityユースケース - Userを削除する](/community/use-cases#userを削除する)
+
+## Flow
+
+### 1. 削除の開始・影響把握
+
+User自身のaccountが削除されること、User管理Mediaの件数、および対象Mediaが復元不能に削除されることを確認します。
+
+User管理Mediaが0件の場合も同じAccount Deletion Flowを使用します。
+
+### 2. Communityへの影響解決
+
+Userが最後のAdministratorであるCommunityが存在する場合、対象Communityごとに次のいずれかを選択します。
+
+- 別MemberをAdministratorへ昇格する。
+- Communityを削除する。
+
+必要なCommunityが存在しない場合、この段階はUserへ不要な判断を要求せずskipできます。
+
+最後のAdministratorではないCommunityは特別な選択を要求せず、account削除時にMembershipと共有を解消します。
+
+### 3. Community削除の追加確認
+
+Community削除を選択した場合、対象Communityごとに参加者数、Community管理Media件数、他UserがUploadしたMediaも削除されることを確認します。
+
+誤操作を防ぐためCommunity名の入力を要求します。Community削除を選択していない場合、この段階はskipします。
+
+### 4. 再認証・最終確認
+
+必要なCommunity上の判断と確認をすべて完了した後、Auth0で再認証します。
+
+再認証後、User account、User管理Media、削除対象Community等、確定時点で失われる対象を最終確認し、account削除を明示的に確定します。
+
+再認証または必要な確認が完了しない場合は削除を開始しません。
+
+### 5. 削除開始
+
+削除確定後、UserをDELETINGとして即時利用不可にします。削除対象を確定時点で固定し、非同期Jobでcleanupします。
+
+Userに非同期cleanupの完了を画面上で待つことは要求しません。
+
+## Flow Principles
+
+- Account削除は複数の影響を持つ破壊的操作として段階的に確認します。
+- 不要な段階はProgressive Disclosureによりskipし、単純な削除でも不要な判断を要求しません。
+- 各段階を独立Screen、同一Screen内のstep、Dialog等のどのUI表現にするかは、このFlowでは規定しません。
+- 最終確定前であれば削除を開始せず、UserがFlowを中断できるようにします。
+- 削除確定後は同期的なcleanup完了を待たず、DELETINGへの遷移をもってMemoriaの利用を終了します。
