@@ -1,4 +1,4 @@
-# Community Deletion Confirmation
+# Community削除確認
 
 ## 概要
 
@@ -8,19 +8,19 @@ Account削除Flowに伴うCommunity削除特例とは異なり、Community管理
 
 > 実装状況: 本仕様に対応するCommunity削除UIは未実装です。
 
-## Purpose
+## 目的
 
 不可逆なCommunity削除について、誤対象・影響の見落とし・削除条件未充足のまま実行することを防ぎます。
 
 単純なconfirmation dialogではなく、削除対象、影響、現在削除可能かを継続して確認できる専用Screenとして扱います。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Communityユースケース - Communityを削除する](/community/use-cases#communityを削除する)
 - [Community権限 - MembershipとAdministrator](/community/authorization#membershipとadministrator)
 - [Communityの整合性とTransaction - Community削除のatomic cleanup](/community/consistency-transactions#community削除のatomic-cleanup)
 
-## Information
+## 表示情報
 
 削除実行前に少なくとも次を提示します。
 
@@ -35,7 +35,7 @@ Account削除Flowに伴うCommunity削除特例とは異なり、Community管理
 
 Community管理Mediaが存在する場合、削除できない理由と、通常削除の前に対象Mediaを解消する必要があることを理解できるようにします。
 
-## Actions
+## 操作
 
 ### Community名を入力する
 
@@ -55,7 +55,7 @@ Community管理Mediaが存在する場合、削除できない理由と、通常
 
 削除を実行せずCommunity Managementへ戻れます。
 
-## States
+## 状態
 
 ### 削除可能
 
@@ -103,7 +103,7 @@ Cancel時は対象CommunityのManagementへ戻ります。
 
 Account削除FlowからCommunity削除が必要な場合は、本Screenをそのまま再利用する前提としません。Account削除特例はCommunity管理Media削除や再認証を含むため、[Account Deletion Flow](/screens/account-deletion-flow)の責務として扱います。
 
-## Constraints
+## 制約
 
 - Administratorだけが通常Community削除を実行できます。
 - 他Administratorの同意は要求しません。
@@ -116,7 +116,7 @@ Account削除FlowからCommunity削除が必要な場合は、本Screenをその
 - Account削除時のCommunity削除特例とは分離します。
 - domain ruleと競合制御は[Communityユースケース](/community/use-cases)および[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、削除対象、削除影響、blocking condition、確認入力、Cancel、最終削除Actionを確認・操作できるCapabilityを維持します。
 
