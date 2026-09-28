@@ -9,6 +9,7 @@ export default {
   "account-deletion-final-review": "Account Deletion Final Review",
   "account-deletion-final-confirmation": "Account Deletion Final Confirmation",
   "community-creation": "Community Creation",
+  "community-invitation-acceptance": "Community Invitation Acceptance",
   "personal-media": "Personal Media",
   "community-media": "Community Media",
   "community-members": "Community Members",
