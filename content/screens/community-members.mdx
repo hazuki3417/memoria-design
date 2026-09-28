@@ -1,4 +1,4 @@
-# Community Members
+# Community参加者
 
 ## 概要
 
@@ -6,19 +6,19 @@ Community参加者が現在の参加者とAdministrator roleを確認し、Admin
 
 > 実装状況: Community Membership管理UIは未実装です。本仕様はInitial Releaseの参加者確認・管理UIを定義します。
 
-## Purpose
+## 目的
 
 Community参加者が「誰がこのCommunityに参加しているか」「誰がAdministratorか」を確認できるようにします。
 
 Administratorには参加者一覧と分離した管理画面を要求せず、対象Userを確認している同じMembers contextからrole変更・除外を行えるようにします。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Communityユースケース - 退会・除外する](/community/use-cases#退会除外する)
 - [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
 - [Community権限 - MembershipとAdministrator](/community/authorization#membershipとadministrator)
 
-## Information
+## 表示情報
 
 現在Communityに有効なMembershipを持つ参加者について、次を提示します。
 
@@ -31,7 +31,7 @@ Initial Releaseではprofile画像、email address、Auth0 identifier等を参�
 
 参加者の並び順や検索・filterは、利用規模上の必要性が確認されるまでProduct仕様として固定しません。
 
-## Actions
+## 操作
 
 ### Administratorへ変更する
 
@@ -63,7 +63,7 @@ Memberおよび最後のAdministratorではないAdministratorは、自分自身
 
 退会による影響を理解できる確認を行ってから実行します。最後のAdministratorは、別UserをAdministratorへ変更する等により不変条件を解消するまで退会できません。
 
-## States
+## 状態
 
 ### 参加者一覧
 
@@ -103,7 +103,7 @@ Community名変更、Invitation、Community削除等のCommunity自体の設定�
 
 Context Switcher、Context Navigation、Account Menuとの関係は[Application Information Architecture](/system/application-information-architecture)に従います。
 
-## Constraints
+## 制約
 
 - 有効なMembershipを持つAdministrator / Memberだけが参加者一覧を閲覧できます。
 - role変更・他Userの除外はAdministratorだけが実行できます。
@@ -115,7 +115,7 @@ Context Switcher、Context Navigation、Account Menuとの関係は[Application 
 - Communityのroleと操作権限は[Community権限](/community/authorization)を正本とします。
 - 除外されたUserの将来の再参加を恒久的に禁止しません。有効なInvitationがあればdomain ruleに従って再参加できます。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、参加者とAdministrator roleの確認、自分の退会、およびAdministratorによるrole変更・除外というCapabilityを維持します。
 
