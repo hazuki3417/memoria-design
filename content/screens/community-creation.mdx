@@ -1,0 +1,87 @@
+# Community Creation
+
+## 概要
+
+ログイン済みUserが、Application利用中のcontextを維持したまま新しいCommunityを作成するDialogです。
+
+> 実装状況: Community作成機能は未実装です。本仕様はInitial ReleaseのCommunity作成UIを定義します。
+
+## Purpose
+
+UserがApplication内から、Community名だけを指定して新しいCommunityを作成できるようにします。
+
+Community作成はApplication利用開始に必須となるFlowではなく、Application利用中に任意で行う操作として扱います。独立したPageへ移動せず、[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
+
+## Related Use Cases
+
+- [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
+
+## Information
+
+- 新しいCommunityを作成する操作であることを提示します。
+- Community名の入力を提示します。
+- Initial Releaseでは、作成時に説明、Community画像、公開Profile等の任意情報を要求しません。
+
+## Actions
+
+### Communityを作成する
+
+Userは有効なCommunity名を入力してCommunityを作成できます。
+
+作成が成立すると、作成したUserはCommunityの最初のMembershipおよびAdministratorになります。この処理はCommunity作成と同じTransactionで確定します。
+
+### Cancelする
+
+Userは作成を中止できます。CancelではCommunityやMembershipを作成せず、作成開始前のApplication contextを維持します。
+
+## States
+
+### 作成可能
+
+有効なCommunity名が入力されている場合、Community作成を実行できます。
+
+### 入力不正
+
+Community名が必須条件を満たさない場合は、[Feedback Pattern](/design-system/patterns/feedback)のField Errorとして、問題のある入力と修正方法をUserが理解できるようにします。Communityは作成しません。
+
+### 作成処理中
+
+作成要求を受け付けた後、結果が確定するまで重複した作成を防ぎます。処理中であることをUserへ伝えます。
+
+### 作成成功
+
+Community作成が完了した場合はDialogを閉じ、作成したCommunityの標準entryへ進みます。
+
+具体的なCommunity標準entryとApplication Navigation構造は、Application全体およびCommunity内のInformation Architectureを設計する段階で定義します。
+
+### 作成失敗
+
+一時的な失敗等、Userによる再試行が可能な場合は、[Feedback Pattern](/design-system/patterns/feedback)のOperation FeedbackとしてCommunityが作成されていないことを伝え、入力内容を失わずに再試行できるようにします。
+
+User状態の変化等によりCommunity作成を継続できない場合はBlocking Errorとして扱い、短時間で消えるNotificationだけに依存せず、現在の状態と次に取れる行動を伝えます。
+
+## Navigation
+
+Community Creationは、ログイン済みUserが通常のApplication利用中に起動するDialogとして提供します。
+
+具体的な起動位置、Application ShellのHeader、Sidebar、Navigation構造等はApplication全体のInformation Architectureを設計する段階で定義します。
+
+作成成功後は作成したCommunityの標準entryへ進みます。Cancelでは作成開始前のApplication contextを維持します。
+
+## Constraints
+
+- Community名は必須です。
+- Community名は前後空白を除去した結果が空文字になる値を許可しません。
+- 異なるCommunity間で同名を許可します。
+- Community名の最大長は入力・Security設計で決定します。
+- Initial Releaseでは作成時に説明、Community画像、公開Profile、公開設定等を入力しません。
+- 作成したUserを最初のMembershipおよびAdministratorとしてCommunity作成と同じTransactionで登録します。
+- 作成者専用の恒久的な権限は設けません。
+- Community作成には[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
+- validationと作成結果の提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、Community名を入力してCommunityを作成するCapabilityは維持します。
+
+DialogというInteractionの意味は維持しますが、具体的なsize、placement、small viewportでの表示方法は実装Foundationと利用環境に応じて決定します。現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。
