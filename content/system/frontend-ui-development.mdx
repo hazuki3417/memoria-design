@@ -125,7 +125,11 @@ Responsive対応は完成後に追加する補助対応ではなく、Screen Spe
 
 breakpointはMantineの標準設定を基本とし、製品上の必要性が確認されない限りMemoria独自のbreakpointを追加しません。特定のdevice modelを設計上の境界にはせず、利用可能な表示領域に応じてUIを適応させます。
 
-VRTやE2Eでは、すべての画面幅を網羅するのではなく、smartphone、tablet、desktop相当の代表viewportを利用します。具体的な代表viewport値はtest policyを定める際に決定します。
+設計時は表示領域を **Compact / Medium / Wide** の3つの代表的な領域として確認します。smartphone、tablet、desktopは理解のための代表例であり、特定のdevice modelを仕様上の境界にはしません。具体的なpixel値はVRTやE2E等のtest infrastructureで代表値として決定します。
+
+viewportとinput modalityは独立した設計軸として扱います。pointer、touch、keyboardの利用を想定し、重要な操作をhoverだけに依存させません。touchでも十分に操作可能な対象を確保し、keyboardで主要操作へ到達・実行でき、focusを視認できるようにします。高精度なpointerを前提とする細かすぎる操作を必須にしません。
+
+Screen SpecificationではCompact / Medium / Wideや各input modalityについて機械的に同じ記述を繰り返しません。表示領域や入力方式によってInformation、Action、Navigation等の表現・優先順位が変化する場合に、その差と維持すべきCapabilityをResponsive Behaviorとして記載します。
 
 ## Browser Support
 
@@ -161,5 +165,4 @@ UI品質の検証は、それぞれの検査手段が適した責務を担当し
 
 次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
 
-- Responsive Designの代表viewportと入力方式ごとのInteraction
 - Design Systemの具体的なFoundation / Pattern
