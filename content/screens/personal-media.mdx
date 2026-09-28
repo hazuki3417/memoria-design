@@ -6,13 +6,13 @@ ACTIVE UserがPersonal contextで、自身がCustodianであるMediaを閲覧・
 
 > 実装状況: 既存Media UIは本仕様を前提としておらず、Personal / Community context、Media Custody、Community共有を含む本仕様との差分があります。
 
-## Purpose
+## 目的
 
 Userが自分のMediaを一つのPersonal contextで確認し、新しいMediaを追加し、必要に応じて参加中Communityへ共有・分類・管理できるようにします。
 
 Personal Mediaは[Application Information Architecture](/system/application-information-architecture)で定義するPersonal contextの標準entryです。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Media関連ユースケース - Mediaをアップロードする](/media/use-cases#mediaをアップロードする)
 - [Media関連ユースケース - Mediaを閲覧・downloadする](/media/use-cases#mediaを閲覧downloadする)
@@ -21,7 +21,7 @@ Personal Mediaは[Application Information Architecture](/system/application-info
 - [Media関連ユースケース - Mediaを削除する](/media/use-cases#mediaを削除する)
 - [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
 
-## Information
+## 表示情報
 
 User本人がCustodianであるMediaを提示します。
 
@@ -29,7 +29,7 @@ User本人がCustodianであるMediaを提示します。
 
 Communityへ共有済みのMediaでは、Userが共有状態を確認・管理する必要がある場合に共有先Communityを確認できるようにします。Community側のGroup / Tag分類はPersonal側の分類として表示・編集しません。
 
-## Actions
+## 操作
 
 ### Mediaを閲覧する
 
@@ -67,7 +67,7 @@ Userは自身がCustodianであるMediaを削除できます。
 
 削除は復元できず、Media本体、派生file、Group関連、Community共有関係を削除します。破壊的操作として、実行前に対象と不可逆性を理解できる確認を提供します。
 
-## States
+## 状態
 
 ### Mediaあり
 
@@ -97,7 +97,7 @@ Communityへの共有を開始した場合も、共有元MediaがPersonal contex
 
 Context Switcher、Context Navigation、Account Menuの責務は[Application Information Architecture](/system/application-information-architecture)に従います。
 
-## Constraints
+## 制約
 
 - ACTIVE User本人がCustodianであるMediaだけをPersonal Mediaとして管理します。
 - Community管理MediaをPersonal Mediaへ混在させません。
@@ -106,7 +106,7 @@ Context Switcher、Context Navigation、Account Menuの責務は[Application Inf
 - Mediaのdomain ruleと権限は[Media関連ユースケース](/media/use-cases)を正本とします。
 - Mediaの委譲はInitial Release対象外です。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、Mediaの閲覧、Upload、共有、分類、権限のあるdownload・削除というCapabilityを維持します。
 
