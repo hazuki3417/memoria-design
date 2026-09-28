@@ -1,0 +1,105 @@
+# Authentication Return / Session Recovery
+
+## Purpose
+
+認証が必要になったUserをAuth0へ安全に委譲し、認証後に現在のUser状態と権限を再評価したうえで、元のUser flowへ予測可能に復帰させます。
+
+認証前に意図していたNavigation destinationと、変更・削除等のoperation実行を区別し、認証成功だけを理由に副作用のあるoperationを自動実行しません。
+
+## When to Use
+
+次のように、Memoria上のUser flowの途中でAuth0認証または再Loginが必要になる場合に適用します。
+
+- 未認証Userが保護されたApplication destinationへ進む
+- session失効後にApplication利用を継続する
+- Invitation等の外部entry pointからLoginし、元のflowへ戻る
+- 認証済みだがMemoria User未登録で、User Registrationを経由して元のflowへ戻る
+
+Account削除等で要求する強制再認証にも「安全な復帰先」「復帰だけではoperationを実行しない」という原則を適用します。ただし、再認証の方式、有効期限、確認済み計画とのbinding等は各domainのAuthentication / Security仕様を正本とします。
+
+## Behavior
+
+### Destinationを保持する
+
+認証前にUserが到達しようとしていた安全なApplication destinationは、認証後のreturn destinationとして保持できます。
+
+return destinationは許可された内部URLだけを受け付け、外部URLや任意のredirect先を利用しません。
+
+### Auth0へ認証を委譲する
+
+password、外部identity、Auth0 session等の認証UIと認証成立はAuth0へ委譲します。
+
+Memoria独自のpassword入力UIをこのPatternとして定義しません。
+
+### 認証後にUser状態を再評価する
+
+Auth0認証成功だけをApplication利用可能の根拠にしません。
+
+Memoriaへ戻った時点でissuer・subjectから現在Userを解決し、少なくとも次を区別します。
+
+- ACTIVE User: 現在権限を再評価したうえで利用可能なdestinationへ進む
+- 未登録User: User Registrationへ進み、登録完了後に安全なreturn destinationへ戻る
+- DELETING等の利用不可User: 通常Application利用を許可しない
+- 認証主体を一意に解決できない状態: 通常Application利用を許可せず、単純な再試行で解決する状態として扱わない
+
+### Authorizationを再評価する
+
+認証前のMembership、Administrator、Custody、Uploader等の権限を保持済みstateだけから復元しません。
+
+return destinationへ戻る時点で現在権限を再評価します。元のdestinationを利用できなくなっている場合は、そのdestinationを継続表示せず、安全に利用可能なApplication destinationへ移動します。
+
+### Operationを自動再開しない
+
+Loginやsession recovery前にUserが意図していたUpload、保存、共有、role変更、削除等の副作用を持つoperationを、認証成功だけを理由に自動送信・再送しません。
+
+認証後に元の確認画面や編集destinationへ戻せる場合でも、operation実行にはUserの明示的なActionを改めて要求します。
+
+認証前のrequest payloadを、認証後の自動Mutation実行のために保持することを本Patternの標準behaviorとしません。
+
+### Registrationを経由する
+
+Auth0認証済みでもMemoria Userが存在しない場合はUser Registrationへ進みます。
+
+Registration開始前に安全なreturn destinationが存在する場合は、登録完了後にそのdestinationへ戻ります。Registration完了だけを、Invitation accept等の元operation成立とはみなしません。
+
+## Variations
+
+### Standard Login Return
+
+通常のLoginでは、安全なreturn destinationがあればACTIVE Userをそこへ戻します。return destinationがなければApplication IAの標準entryへ進みます。
+
+### Session Recovery
+
+session失効によって再Loginが必要になった場合、認証後にUser状態と対象domainの権限を再評価します。
+
+閲覧destinationは現在も利用可能なら復帰できますが、失効前に開始して結果未確定だった副作用operationを自動再送しません。
+
+### Invitation Return
+
+Invitation URLからLogin / Registrationへ進んだ場合は、安全な内部Invitation destinationへ戻します。
+
+認証またはRegistration成功だけではMembershipを作成せず、Invitation Acceptance上でUserが改めて参加を確定します。
+
+### Forced Reauthentication
+
+account削除等の高risk operationで強制再認証する場合も、Auth0からMemoriaへ戻っただけではoperationを実行しません。
+
+再認証結果の有効性と対象計画をServer側で検証し、Memoria上の明示的な最終Actionを要求します。具体的な強制再認証方式と有効期限は本Patternでは定義しません。
+
+## Constraints
+
+- return destinationは許可された内部URLだけを利用します。
+- Auth0認証成功とMemoria Application利用可能状態を同一視しません。
+- 認証後はMemoria User状態と必要なdomain authorizationを再評価します。
+- 認証前に取得した権限情報だけでoperationを許可しません。
+- Login / Registration / session recovery成功だけで副作用operationを自動実行しません。
+- Uploadや削除等のoperationを認証後に自動再送しません。
+- 元のdestinationが利用不能なら、安全に利用可能なdestinationへ移動します。
+- token、credential、認証identifier等をreturn URLや公開stateへ保存しません。
+- account削除の強制再認証固有要件は[Userの認証と認可](/user/authentication-authorization)を正本とします。
+
+## Accessibility
+
+認証へ遷移する理由や、認証後に元の操作が自動実行されていない状態を、visual表現だけに依存せず理解できるようにします。
+
+認証復帰後にBlocking Errorや権限変化を提示する場合は[Feedback](/design-system/patterns/feedback)に従い、現在状態と次に取れるActionを理解できるようにします。
