@@ -90,7 +90,7 @@ Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域に
 | User・認証 | 登録、nickname、session、account削除、主要Screenは設計済み。account削除時のAuth0強制再認証方式と有効期限は実装前に確定する | [#16](https://github.com/hazuki3417/memoria-design/issues/16) |
 | Application UI | Application IA、User / Communityの主要Screen、Media Browser / Detail、Media Sharing、Group Browser、Media ↔ Group分類Interactionは設計済み。Media Upload詳細とTag Interactionは後続設計で具体化する | [#18](https://github.com/hazuki3417/memoria-design/issues/18) |
 | Group | scope、DAG、権限、Lifecycle、一覧・検索、Group-centered UI、Media Detailからの分類Interactionまで設計済み。残るGraphQL/API契約と具体的入力上限等を実装契約として確定する | [#42](https://github.com/hazuki3417/memoria-design/issues/42) |
-| Tag | 分類目的と基本境界を前提に、Media / Groupと合わせて操作、認可、絞り込みを横断設計する | [#23](https://github.com/hazuki3417/memoria-design/issues/23)・[#43](https://github.com/hazuki3417/memoria-design/issues/43) |
+| Tag | scope、命名、権限、Lifecycle、Media Detailでの付与・解除、Media BrowserでのAND filterまで設計済み。残る具体的上限とGraphQL/API contractを実装契約として確定する | [#23](https://github.com/hazuki3417/memoria-design/issues/23)・[#43](https://github.com/hazuki3417/memoria-design/issues/43) |
 | 静止画像処理 | Variantと非同期処理の基本設計を前提に、対応形式、Upload interaction、状態・再試行等の詳細を確定する | [#44](https://github.com/hazuki3417/memoria-design/issues/44) |
 | GraphQL | Product / Domain / Screen仕様を入力としてQuery、Mutation、型、error、認可の実装契約を具体化する | [#17](https://github.com/hazuki3417/memoria-design/issues/17) |
 | Security・Privacy | 公開前に満たす認証、認可、保護要件と、強制再認証等の実装方式を確定する | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
