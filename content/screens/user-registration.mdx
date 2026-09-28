@@ -1,0 +1,92 @@
+# User Registration
+
+## 概要
+
+Auth0で認証済みだがMemoria Userとして未登録の利用者が、Memoriaで利用するProfileを確認し、登録を確定する画面です。
+
+> 実装状況: User登録は再実装中です。既存実装の認証時User作成は本仕様の正本とはみなしません。
+
+## Purpose
+
+認証済みの未登録Userが、Memoriaで利用するnicknameを確認・必要に応じて変更し、Memoriaへの登録を明示的に確定できるようにします。
+
+## Related Use Cases
+
+- [Userユースケース - 新規登録](/user/use-cases#新規登録)
+- [Userユースケース - User Profileを登録・変更する](/user/use-cases#user-profileを登録変更する)
+- Invitationから遷移してきた場合は、[Communityユースケース - InvitationからCommunityへ参加する](/community/use-cases#invitationからcommunityへ参加する)にも関係します。
+
+## Information
+
+- Memoriaへの登録を完了するための画面であることを利用者が理解できるようにします。
+- 登録するUser Profileとしてnicknameを提示します。
+- Auth0から表示名を取得できた場合は、その値をnicknameの初期値として提示します。
+- Invitation経由であっても、登録成立前にCommunityのMember向け情報を表示しません。Invitation画面で許可されるCommunity情報はCommunityユースケースを正本とします。
+
+## Actions
+
+### 登録を確定する
+
+利用者はnicknameを確認または変更したうえで登録を確定できます。
+
+登録確定時にnicknameが有効であり、認証主体を一意に解決でき、同じissuer・subjectに対応するMemoria Userが存在しない場合にだけMemoria UserをACTIVEで作成します。
+
+入力または登録条件を満たさない場合は登録を開始・完了せず、利用者が修正または再試行できる状態を維持します。
+
+## States
+
+### 登録可能
+
+nicknameを確認・編集し、登録を確定できます。
+
+### 入力不正
+
+nicknameが必須条件を満たさない場合は、問題のある入力と修正方法を利用者が理解できるようにします。登録は実行しません。
+
+### 登録処理中
+
+登録要求を受け付けた後、結果が確定するまで重複した登録確定を防ぎます。処理中であることを利用者へ伝えます。
+
+### 登録失敗
+
+一時的な失敗等、利用者による再試行が可能な場合は、登録が完了していないことを明示し、入力済みnicknameを失わずに再試行できるようにします。
+
+認証主体を一意に解決できない等、同じ入力の再送では解決しない場合は、単純な再試行を促さず、登録できないことを利用者へ伝えます。
+
+### 登録済み
+
+登録要求時点で同じissuer・subjectに対応するMemoria Userがすでに存在する場合は、重複したUserを作成しません。この場合の画面遷移はNavigationの未決定事項と合わせて確定します。
+
+## Navigation
+
+Auth0認証後、issuer・subjectに対応するMemoria Userが存在しない場合にこの画面へ遷移します。
+
+Invitation URLを起点として認証・登録へ進んだ場合は、登録完了後に許可された元の内部URLへ戻し、Invitation flowを継続します。
+
+通常のLoginから登録した場合の登録完了後の遷移先は未決定です。
+
+登録を確定せずにこの画面を離れる操作を提供するか、その場合にAuth0 sessionをどう扱うかは未決定です。
+
+## Constraints
+
+- nicknameは必須です。
+- nicknameは前後空白を除去した結果が空文字になる値を許可しません。
+- nicknameの重複を許可します。
+- Auth0から取得した表示名は初期値としてのみ利用し、Memoria nicknameを正本とします。
+- Memoria Userは登録確定時にだけACTIVEで作成します。
+- 登録前はUpload、Community作成、参加申請を許可しません。
+- 同じissuer・subjectに対応するMemoria Userを重複作成しません。
+- 認証主体を一意に解決できない場合は登録を拒否します。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、nicknameの確認・編集と登録確定というCapabilityは維持します。
+
+現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なlayoutは実装で決定します。
+
+## 未決定事項
+
+- 通常のLoginから新規登録した場合の登録完了後の遷移先。
+- 登録を確定せずに離脱する明示的な操作を提供するか。
+- 離脱操作を提供する場合のAuth0 sessionの扱い。
+- 登録要求時点ですでに対応するMemoria Userが存在した場合の遷移先。
