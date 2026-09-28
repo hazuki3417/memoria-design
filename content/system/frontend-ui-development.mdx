@@ -108,12 +108,21 @@ support対象であることと、CIで常に全Browser・全viewportの組み�
 
 製品上または利用者環境上の要件が生じた場合は、このsupport policyを見直します。
 
+## Accessibility
+
+Memoria Webは認証後に利用するApplication UIです。Accessibilityは後付け対応ではなく通常のUI品質として扱い、認証後の主要な操作を利用者が支障なく実行できることを重視します。
+
+設計・実装上はWCAG 2.2 Level AAを基準とします。ただし、現時点では不特定多数へ公開する情報サイトとして網羅的な適合性を証明するための認証・監査運用までは要求しません。
+
+keyboard操作、focus visibility、semantic HTML、accessible name、contrast、色だけに依存しない状態表現、画像の適切な代替情報、操作対象の大きさ、状態変化の伝達等、Applicationの操作可能性に直接関係する事項は通常の実装品質に含めます。
+
+標準HTMLとMantine等が提供するaccessibleなprimitiveを優先し、独自Componentで既存のAccessibilityを損なわないようにします。自動検査で検出可能な問題はStorybook等で継続的に検出します。CIで強制する範囲はUI quality gateの方針として別途定めます。
+
 ## 未決定事項
 
 次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
 
 - Responsive Designの代表viewportと入力方式ごとのInteraction
-- Accessibilityの保証水準
 - VRT / E2Eを含むUI quality gate
 - UX Principlesの具体的な一覧
 - Design Systemの具体的なFoundation / Pattern
