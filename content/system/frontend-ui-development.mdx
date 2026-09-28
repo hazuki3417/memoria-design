@@ -118,12 +118,21 @@ keyboard操作、focus visibility、semantic HTML、accessible name、contrast�
 
 標準HTMLとMantine等が提供するaccessibleなprimitiveを優先し、独自Componentで既存のAccessibilityを損なわないようにします。自動検査で検出可能な問題はStorybook等で継続的に検出します。CIで強制する範囲はUI quality gateの方針として別途定めます。
 
+## UI Quality Gate
+
+UI品質の検証は、それぞれの検査手段が適した責務を担当します。通常の静的検査とUnit Testを基本とし、UIに影響する変更ではStorybook、Accessibility検査、Visual Regression Test、Interaction Testを利用します。Application E2Eは重要なUser Flowを対象とし、自動検査だけで判断できないVisualやUXはHuman Visual Reviewで確認します。
+
+検査はすべての変更で一律に実行するのではなく、変更の影響範囲に応じて必要なものを選択します。共通Componentやtheme等の変更による間接的な影響も考慮します。対象外となった検査は、未実施との違いをCI上で確認できるようにします。
+
+各検査を必須化する範囲は、test asset、実行時間、安定性を確認しながら段階的に拡大します。Visual Regression Testの基準画像は、意図した変更であることを人間が確認してから更新します。
+
+具体的な変更検知方法、GitHub Actions構成、代表viewport、Browser matrixは `memoria-web` のtest infrastructure設計で決定します。
+
 ## 未決定事項
 
 次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
 
 - Responsive Designの代表viewportと入力方式ごとのInteraction
-- VRT / E2Eを含むUI quality gate
 - UX Principlesの具体的な一覧
 - Design Systemの具体的なFoundation / Pattern
 - Screen Specificationの標準templateと配置
