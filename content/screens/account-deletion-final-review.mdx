@@ -1,0 +1,81 @@
+# Account Deletion Final Review
+
+## 概要
+
+Account削除の最終確定前に、これまでの選択から構成された削除計画全体をまとめて確認し、Auth0再認証へ進むか判断するための画面です。
+
+## Purpose
+
+Userが本人確認を行う前にaccount削除による主要な変更を一度に把握し、意図した削除計画であることを確認できるようにします。
+
+## Related Use Cases
+
+- [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
+- [Account Deletion Flow](/screens/account-deletion-flow)
+- [Account Deletion Community Resolution](/screens/account-deletion-community-resolution)
+- [Account Deletion Community Review](/screens/account-deletion-community-review)
+
+## Information
+
+削除計画に応じて、少なくとも次の内容をまとめて提示します。
+
+- Memoria accountが削除され、復元できないこと。
+- 削除対象となるUser管理Mediaとその件数。
+- 削除するCommunity。
+- Administratorを別Memberへ引き継いで保持するCommunityと、その後任。
+- 最後のAdministratorではないCommunityからはMembershipと共有が解消されること。
+- 最終確定後はUserがDELETINGとなり、Memoriaを利用できなくなること。
+
+対象が存在しない項目について不要な詳細を要求せず、実際の削除計画を理解するために必要な内容を提示します。
+
+## Actions
+
+### 再認証へ進む
+
+表示された削除計画を確認し、account削除を継続する場合はAuth0再認証へ進みます。
+
+このActionだけでは削除を開始しません。
+
+### 削除計画を見直す
+
+最終確定前であれば前段階へ戻り、Communityの解決方法等を変更できます。
+
+変更後は最新の選択結果に基づいてFinal Reviewを再構成し、以前のReview結果や再認証済み状態を最終確定に流用しません。
+
+### 削除を中止する
+
+Account削除を開始せずにFlowを終了できます。
+
+## States
+
+### Review可能
+
+削除計画を構成するために必要な情報が揃い、主要な変更を確認できます。
+
+### 削除計画が無効
+
+Community、Membership、Media等の状態変化によって現在の削除計画を安全に確定できない場合は再認証へ進めません。
+
+最新状態に基づいて必要な判断をやり直せるようにし、[Feedback Pattern](/design-system/patterns/feedback)のBlocking Errorとして扱います。
+
+### 必要情報取得失敗
+
+削除計画を確認するために必要な情報を取得できない場合は再認証へ進めません。再試行または安全なFlow終了を可能にします。
+
+## Navigation
+
+Account Deletion Flowで必要なCommunity ResolutionおよびCommunity Reviewを完了した後に到達します。不要な段階はskipされます。
+
+Review後に継続する場合はAuth0再認証へ遷移し、削除計画を変更する場合は該当する前段階へ戻ります。
+
+## Constraints
+
+- Final Reviewでは削除を実行しません。
+- 再認証前に削除計画全体を確認できるようにします。
+- Review内容は現在の削除計画から構成し、過去の選択を前提にしません。
+- 削除計画を変更した場合は最新状態でReviewをやり直します。
+- Auth0の具体的な再認証方式や有効期限はこのScreen Specificationでは規定しません。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、削除計画全体と主要な影響を理解し、再認証へ進むか、計画を見直すか、中止するかを判断できるCapabilityを維持します。

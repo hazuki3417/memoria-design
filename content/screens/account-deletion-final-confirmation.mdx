@@ -1,0 +1,83 @@
+# Account Deletion Final Confirmation
+
+## 概要
+
+Auth0再認証に成功したUserがMemoriaへ戻った後、account削除を実際に開始する最後の明示的な確定を行う画面です。
+
+## Purpose
+
+本人確認と削除内容への同意を分離し、再認証済みのUserが意図的な最終Actionを行った場合だけaccount削除を開始できるようにします。
+
+## Related Use Cases
+
+- [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
+- [Userの認証と認可](/user/authentication-authorization)
+- [Account Deletion Flow](/screens/account-deletion-flow)
+- [Account Deletion Final Review](/screens/account-deletion-final-review)
+
+## Information
+
+- Auth0再認証が完了していることをUserが理解できるようにします。
+- 次の確定Actionによってaccount削除が開始され、UserがMemoriaを利用できなくなることを明確にします。
+- 詳細な削除計画はFinal Reviewで確認済みであるため、同じ長いReviewをそのまま繰り返すことは要求しません。
+- 最終確定対象がFinal Review後に変更されていないことを前提とします。
+
+## Actions
+
+### Account削除を確定する
+
+Userが明示的に最終削除Actionを実行した場合だけ削除受付を行います。
+
+受付時にはUser状態、Community / Membership / Media等の対象、必要な選択、および再認証結果をServer側で再検証します。成功時は削除対象snapshotを固定し、UserをDELETINGへ変更して非同期削除Jobを開始します。
+
+### 削除を中止する
+
+最終確定前であれば削除を開始せずにFlowを終了できます。
+
+### 削除計画を変更する
+
+削除計画を変更する場合はFinal Review以前へ戻ります。この場合、現在の再認証済み状態を最終確定に利用せず、変更後の計画についてFinal ReviewとAuth0再認証を再度完了します。
+
+## States
+
+### 最終確定可能
+
+再認証が有効で、削除計画を最終確定できる状態です。
+
+### 再認証が利用できない
+
+再認証の失敗、取消し、期限切れ等により本人確認を満たさない場合は削除を確定できません。必要に応じてFinal Reviewから再認証をやり直します。
+
+### 削除計画が変更・無効化された
+
+競合するCommunity、Membership、Media等の変更により受付時の再検証に失敗した場合は削除を開始しません。
+
+[Feedback Pattern](/design-system/patterns/feedback)のBlocking Errorとして扱い、最新状態に基づく削除計画のReviewからやり直せるようにします。
+
+### 削除受付中
+
+重複した確定操作を防ぎ、削除受付を処理していることを伝えます。
+
+### 削除受付完了
+
+UserはDELETINGとなりMemoriaを利用できません。非同期cleanupの完了をこの画面で待たせません。
+
+## Navigation
+
+Auth0再認証成功後にMemoriaへ安全に復帰した場合に到達します。
+
+再認証からの復帰先は許可された内部URLだけを使用し、復帰しただけで削除を自動実行しません。
+
+## Constraints
+
+- Auth0再認証成功だけではaccount削除を開始しません。
+- Memoria上の明示的な最終削除Actionを必須とします。
+- 再認証失敗・取消し・期限切れの場合は削除を開始しません。
+- 削除計画変更後に以前の再認証済み状態を最終確定へ流用しません。
+- 削除受付時はServer側でUser状態、権限、対象、選択、再認証結果を再検証します。
+- 削除受付成功後はUserを即時DELETINGとして扱い、cleanup完了までACTIVEへ戻しません。
+- Auth0の具体的な強制再認証方式と有効期限はAuthentication / Security設計で定義します。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、これがaccount削除を開始する最後のActionであることを理解し、確定または中止できるCapabilityを維持します。

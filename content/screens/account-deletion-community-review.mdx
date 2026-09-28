@@ -1,0 +1,96 @@
+# Account Deletion Community Review
+
+## 概要
+
+Account削除に伴って削除することを選択したCommunityをまとめて確認し、各Communityへの不可逆な影響を理解したうえで削除確認を完了するための画面です。
+
+## Purpose
+
+複数のCommunityを削除する場合でも不要な画面遷移を繰り返さず、削除対象全体を把握しながらCommunityごとの重大な影響を確認し、誤操作を防止します。
+
+## Related Use Cases
+
+- [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
+- [Communityユースケース - Userを削除する](/community/use-cases#userを削除する)
+- [Account Deletion Flow](/screens/account-deletion-flow)
+- [Account Deletion Community Resolution](/screens/account-deletion-community-resolution)
+
+## Information
+
+Community削除を選択した対象を一つの作業面でまとめて提示します。
+
+各Communityについて、少なくとも次の影響をUserが確認できるようにします。
+
+- Community名。
+- 参加者数。
+- Community管理Media件数。
+- 他UserがUploadしたCommunity管理Mediaも削除されること。
+- Communityと対象dataが復元できないこと。
+
+各Communityの確認が未完了か完了済みかを把握できるようにします。
+
+## Actions
+
+### Communityごとの削除を確認する
+
+Userは各Communityについて、表示されたCommunity名と一致する名称を入力して削除確認を完了します。
+
+名称が一致しないCommunityは確認済みとして扱いません。
+
+### Account削除Flowを継続する
+
+すべての削除対象Communityについて確認が完了した場合だけ、Final Reviewへ進めます。
+
+### Communityの解決方法を見直す
+
+Userは最終確定前にCommunity Resolutionへ戻り、対象Communityの解決方法を変更できます。
+
+変更後は最新の選択結果に基づいてReview対象と確認状態を再評価します。
+
+### 削除を中止する
+
+Account削除を開始せずにFlowを終了できます。このReviewを完了しただけではCommunityやMediaを削除しません。
+
+## States
+
+### 未確認Communityあり
+
+一つ以上の削除対象Communityで名称確認が完了していません。未確認対象を識別できるようにし、後続段階へは進めません。
+
+### すべて確認済み
+
+すべての削除対象Communityについて名称確認が完了し、後続段階へ進めます。
+
+### Review対象変更
+
+Community Resolutionへ戻って選択を変更した場合は、最新の削除対象と影響情報を基準にReviewを再構成します。
+
+新たに削除対象となったCommunityについては確認を要求します。削除対象ではなくなったCommunityの確認結果は削除確定には使用しません。
+
+### 必要情報取得失敗
+
+参加者数やMedia件数等、削除判断に必要な情報を確認できない場合は後続段階へ進めません。
+
+[Feedback Pattern](/design-system/patterns/feedback)に従って問題を提示し、再試行、Community Resolutionへの復帰、または安全なFlow終了を可能にします。
+
+## Navigation
+
+[Account Deletion Community Resolution](/screens/account-deletion-community-resolution)で一つ以上のCommunity削除を選択した場合に到達します。削除対象Communityがない場合はこの段階をskipします。
+
+すべての確認完了後は[Account Deletion Final Review](/screens/account-deletion-final-review)へ進みます。
+
+## Constraints
+
+- Review対象はCommunity Resolutionで削除を選択したCommunityだけです。
+- 複数Communityを一つの作業面でまとめて確認します。
+- Community名入力は削除対象Communityごとに必要です。
+- すべての対象Communityの確認が完了するまで後続段階へ進めません。
+- Review完了だけではCommunity、Media、Membership等を変更しません。
+- Account削除の最終確定前であればCommunity Resolutionへ戻って選択を変更できます。
+- Community名入力、参加者数、Media件数等の具体的なUI layoutは規定しません。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、削除対象全体とCommunityごとの影響を把握し、それぞれの名称確認を完了できるCapabilityを維持します。
+
+対象Communityが多い場合でも未確認対象を見失わず、同じReviewの中で確認作業を完了できるようにします。具体的な一覧表現やlayoutは実装で決定します。
