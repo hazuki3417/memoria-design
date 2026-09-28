@@ -1,0 +1,122 @@
+# Community Members
+
+## 概要
+
+Community参加者が現在の参加者とAdministrator roleを確認し、Administratorが同じ文脈でMembership role変更・参加者除外を行う画面です。
+
+> 実装状況: Community Membership管理UIは未実装です。本仕様はInitial Releaseの参加者確認・管理UIを定義します。
+
+## Purpose
+
+Community参加者が「誰がこのCommunityに参加しているか」「誰がAdministratorか」を確認できるようにします。
+
+Administratorには参加者一覧と分離した管理画面を要求せず、対象Userを確認している同じMembers contextからrole変更・除外を行えるようにします。
+
+## Related Use Cases
+
+- [Communityユースケース - 退会・除外する](/community/use-cases#退会除外する)
+- [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
+- [Community権限 - MembershipとAdministrator](/community/authorization#membershipとadministrator)
+
+## Information
+
+現在Communityに有効なMembershipを持つ参加者について、次を提示します。
+
+- 現在のnickname
+- Administratorであるか
+
+Initial Releaseではprofile画像、email address、Auth0 identifier等を参加者情報として表示しません。
+
+現在User自身を参加者一覧で識別できるようにします。具体的なvisual treatmentは固定しません。
+
+参加者の並び順や検索・filterは、利用規模上の必要性が確認されるまでProduct仕様として固定しません。
+
+## Actions
+
+### Administratorへ変更する
+
+Administratorは現在のMemberをAdministratorへ変更できます。
+
+変更成立後は対象Userのrole表示と利用可能なCommunity管理権限を現在状態へ更新します。
+
+### Memberへ変更する
+
+Administratorは別のAdministratorをMemberへ変更できます。
+
+この操作によってAdministratorが0人になる場合は実行できません。現在User自身の降格も、別Administratorが残る場合に限り可能です。
+
+### Communityから除外する
+
+AdministratorはMemberまたは別AdministratorをCommunityから除外できます。
+
+除外により対象UserはCommunityへのアクセスを失い、対象UserがCustodianであるMediaのこのCommunityへの共有と、対象Communityの分類関連もdomain ruleに従って解除されます。Community管理Mediaは削除しません。
+
+対象Userと影響を理解できる確認を行ってから実行します。
+
+最後のAdministratorを除外する操作は実行できません。
+
+### 自分が退会する
+
+Memberおよび最後のAdministratorではないAdministratorは、自分自身をCommunityから退会させることができます。
+
+退会は他Userを管理するActionではありませんが、Membershipを終了する操作としてMembers contextから到達可能にします。
+
+退会による影響を理解できる確認を行ってから実行します。最後のAdministratorは、別UserをAdministratorへ変更する等により不変条件を解消するまで退会できません。
+
+## States
+
+### 参加者一覧
+
+現在の参加者とAdministrator roleを確認できます。
+
+Memberには参加者確認に必要な情報だけを提示し、Administrator専用のrole変更・除外Actionを利用させません。
+
+Administratorには対象Userと現在roleに応じて利用可能な管理Actionを提示します。
+
+### Role変更・除外・退会処理中
+
+操作結果が確定するまで、同じ意図の重複実行を防ぎます。
+
+対象UserのroleやMembershipが同時に変更された可能性があるため、結果確定時には最新状態を反映します。
+
+### 操作拒否
+
+最後のAdministrator条件等により操作できない場合、単なる一時的errorとして扱わず、現在の状態と操作できない理由をUserが理解できるようにします。
+
+解消可能な場合は、別MemberをAdministratorへ変更する等、必要な次の行動を理解できるようにします。
+
+### 読み込み失敗
+
+参加者一覧を取得できない場合は参加者が存在しない状態として表示せず、取得に失敗したことと再試行可能なActionを提示します。
+
+### Membership失効
+
+現在User自身が除外される等によりMembershipを失った場合はMembersを継続表示せず、[Application Information Architecture](/system/application-information-architecture)に従って利用可能な安全なApplication destinationへ移動します。
+
+## Navigation
+
+Community MembersはCommunity contextのContext Navigationから利用します。
+
+role変更・参加者除外のために独立したAdministrator専用参加者管理画面へ移動することは前提としません。対象Userを確認しているMembers contextから管理Actionを開始します。
+
+Community名変更、Invitation、Community削除等のCommunity自体の設定はMembersでは扱わず、Administrator向けCommunity Managementの責務とします。
+
+Context Switcher、Context Navigation、Account Menuとの関係は[Application Information Architecture](/system/application-information-architecture)に従います。
+
+## Constraints
+
+- 有効なMembershipを持つAdministrator / Memberだけが参加者一覧を閲覧できます。
+- role変更・他Userの除外はAdministratorだけが実行できます。
+- Communityには常に1人以上のAdministratorが必要です。
+- 最後のAdministratorの降格・除外・退会を許可しません。
+- Administratorへ変更できるのは現在Communityに参加済みのMemberです。
+- 参加者一覧に表示するUser情報は現在のnicknameとAdministrator roleを基本とします。
+- 退会・除外時のcleanupと競合制御は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
+- Communityのroleと操作権限は[Community権限](/community/authorization)を正本とします。
+- 除外されたUserの将来の再参加を恒久的に禁止しません。有効なInvitationがあればdomain ruleに従って再参加できます。
+
+## Responsive Behavior
+
+表示領域や入力方式が変わっても、参加者とAdministrator roleの確認、自分の退会、およびAdministratorによるrole変更・除外というCapabilityを維持します。
+
+参加者一覧の具体的なtable / list表現やActionのpresentationは固定しません。Compactな表示でもnicknameとroleの対応を誤認させず、Administrator向け管理Actionをhoverだけに依存させません。
