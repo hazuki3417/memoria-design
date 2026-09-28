@@ -1,4 +1,4 @@
-# Account Deletion Flow
+# アカウント削除フロー
 
 ## 概要
 
@@ -6,13 +6,13 @@ ACTIVE User本人がMemoria accountを削除する際に、削除の影響を理
 
 このFlowは画面数やDialog等の具体的なUI構成を規定しません。各段階でUserが理解・判断する内容と、次へ進むための条件を定義します。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Userユースケース - accountを削除する](/user/use-cases#accountを削除する)
 - [Media関連ユースケース - account削除時に管理Mediaを削除する](/media/use-cases#account削除時に管理mediaを削除する)
 - [Communityユースケース - Userを削除する](/community/use-cases#userを削除する)
 
-## Flow
+## フロー
 
 ### 1. 削除の開始・影響把握
 
@@ -67,7 +67,7 @@ Auth0は本人確認、Memoriaは削除内容への最終同意を担当しま�
 
 Userに非同期cleanupの完了を画面上で待つことは要求しません。
 
-## Flow Principles
+## フロー原則
 
 - Account削除は複数の影響を持つ破壊的操作として段階的に確認します。
 - 不要な段階はProgressive Disclosureによりskipし、単純な削除でも不要な判断を要求しません。
