@@ -64,6 +64,8 @@ ACTIVE UserがApplication内から自身のProfile設定へアクセスできる
 
 Profile更新のために別の画面へ遷移することは前提とせず、この画面上で確認・編集・保存を行います。
 
+意味のある未保存変更が存在する状態で、その編集内容を失うNavigationを行う場合は[Editable Form Pattern](/design-system/patterns/editable-form)に従って破棄確認を行います。
+
 ## Constraints
 
 - ACTIVE User本人のProfileだけを確認・変更できます。
@@ -74,6 +76,7 @@ Profile更新のために別の画面へ遷移することは前提とせず、�
 - Memoria nicknameを正本とし、Auth0から同期しません。
 - Profile更新成功時は現在値を置き換え、過去値を保存しません。
 - DELETING UserはProfileを変更できません。
+- Initial ReleaseではProfile更新のversion競合解決や自動mergeを提供しません。複数の有効な更新が成立した場合は、後から成立した更新結果が現在値になります。
 - 将来Profile項目を追加できる境界として扱い、nickname専用画面として設計しません。
 - 既存Profileの編集と変更確定には[Editable Form Pattern](/design-system/patterns/editable-form)を適用します。
 - Profile更新に関する成功、入力error、処理errorの提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
