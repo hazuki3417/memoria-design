@@ -84,11 +84,21 @@ Visual Designはシンプルかつコンテンツ中心とし、UI自体がMedia
 
 具体的なUX Principlesは、実際の画面設計を通して検証しながら策定します。
 
+## Responsive Design
+
+Memoriaは、原則として端末によって提供するユーザー目的やCapabilityを変えません。同じ機能を利用できることを基本としつつ、UI表現は利用可能な表示領域や入力環境へ適応させます。
+
+同じCapabilityを提供するために、情報配置、Navigation、操作の提示方法等が端末間で同一である必要はありません。Responsive Designはdesktop向けUIを単純に縮小する作業ではなく、同じユーザー目的をそれぞれの利用環境に適したUIで実現する設計として扱います。
+
+端末によってCapabilityを制限する必要が生じた場合は、実装都合で暗黙に制限せず、個別の製品設計判断として明示します。
+
+Responsive対応は完成後に追加する補助対応ではなく、Screen SpecificationとUI実装の時点から考慮します。具体的なbreakpoint、代表viewport、入力方式ごとのInteraction等は、後続の設計で必要性を確認して決定します。
+
 ## 未決定事項
 
 次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
 
-- Responsive Designと端末ごとの利用方針
+- Responsive Designの具体的なbreakpoint / viewport / 入力方式
 - 対象Browserとsupport policy
 - Accessibilityの保証水準
 - VRT / E2Eを含むUI quality gate
