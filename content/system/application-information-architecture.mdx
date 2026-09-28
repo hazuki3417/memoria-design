@@ -16,6 +16,24 @@ Application Shellは、次の3つのNavigation責務を分離します。
 
 具体的な表示位置やvisual representationは実装とVisual Reviewで決定します。
 
+```mermaid
+flowchart LR
+    Entry["Application entry"] --> Personal["Personal context"]
+    Personal --> PMedia["Media"]
+    Personal --> PClass["Groups / Tags"]
+    Switcher["Context Switcher"] --> Personal
+    Switcher --> Community["Community context"]
+    Community --> CMedia["Media"]
+    Community --> CClass["Groups / Tags"]
+    Community --> Members["Members"]
+    Community --> Management["Management<br/>Administratorのみ"]
+    Account["Account Menu"] --> Profile["User Profile"]
+    Account --> Deletion["account削除Flow"]
+    Account --> Logout["logout"]
+```
+
+この図はNavigationの意味的な責務を示すもので、Header / Sidebar等の配置や具体的なroute構造を規定しません。
+
 ## Application Context
 
 ### Personal context
