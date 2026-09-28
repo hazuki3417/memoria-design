@@ -1,35 +1,54 @@
 # Media Group
 
-
 ## 概要
 
-> 実装状況: Image Groupと親子関係は一部実装済みです。Mediaへの名称統一とDAGの多段循環保証には差分があります。
+> 実装状況: Image Groupと親子関係は一部実装済みです。Mediaへの名称統一、Communityでの権限、DAGの多段循環保証を含む本仕様との差分があります。
 
 ## 目的
 
 Media GroupはMediaを分類・整理するための概念です。学校Communityで「2026年 卒業式」「2025年 運動会」のようにMediaをまとめる用途を想定します。
+
+Groupはfolderではありません。Group自身も別Groupへ所属でき、同じGroupが複数Groupへ所属できます。結果として階層的に見える場合はありますが、一意なtreeやpathを前提としません。
 
 Groupは次の情報へ影響しません。
 
 - MediaのCustodian
 - Communityへの共有範囲
 - Community内部の閲覧権限
-- 物理ファイルの保存場所
+- 物理fileの保存場所
 
 ## 所属範囲
 
-- Userは自分用のMedia Groupを作成できる
-- CommunityはCommunity用のMedia Groupを作成できる
+GroupはUser scopeまたはCommunity scopeのどちらか一方だけに所属します。
+
+- Userは自分のPersonal Groupを作成・管理できる
+- Community Groupの分類体系はCommunityのAdministratorが管理する
+- CommunityのAdministratorとMemberは、既存のCommunity Groupを使って閲覧可能なMediaを分類できる
 - User間でGroupを共有しない
 - Community間でGroupを共有しない
 - UserとCommunityの間でGroupを共有しない
-- CommunityのAdministratorとMemberはCommunity内Groupを作成し、閲覧できるMediaを分類できる
 - User管理MediaをCommunityへ共有した場合も、Community内だけで有効なGroup関連を作成できる
-- 共有解除・退会・除外時は当該CommunityのGroup関連だけを削除する
+- 共有解除・退会・除外時は当該CommunityのMediaとGroupの関連だけを削除し、Group本体は保持する
+
+Community Groupでは「分類体系を管理すること」と「分類体系を利用すること」を分離します。AdministratorはGroupの作成・rename・削除・Group間relationの追加と解除を行えます。MemberはGroup構造を変更せず、既存Groupを使ったMedia分類だけを行えます。Group作成者という追加のownershipや権限概念は導入しません。
+
+## Group名
+
+Group名はscope内でGroupを識別する名称です。
+
+- Group名は必須とする
+- 入力時に前後のUnicode whitespaceを除去し、除去後が空文字の場合は拒否する
+- 同一scope内で同じ保存名のGroupを複数作成できない
+- Personal Groupは同一User scope、Community Groupは同一Community scopeで重複を禁止する
+- 別scopeでは同じGroup名を許可する
+- 大文字・小文字、全角・半角、内部の連続空白等をSystemが自動統合しない
+- renameにも同じ名称規則と重複判定を適用する
+
+最大文字数等の具体的な入力上限は、API / DB契約を具体化するときにUIとStorageの都合ではなくProduct上必要な制約として確定します。
 
 ## Mediaとの関係
 
-1つのMediaは複数Groupへ所属できます。Media本体を複製せず、関連だけを追加します。
+1つのMediaは複数Groupへ所属できます。Media本体を複製せず、relationだけを追加します。
 
 ```mermaid
 flowchart TD
@@ -42,9 +61,11 @@ flowchart TD
 - Groupを削除してもMedia本体は削除しない
 - Media削除時はすべてのGroup関連を削除する
 
+Mediaをどの画面からGroupへ追加・除外するか、複数Mediaをどう選択するか等の具体的な分類InteractionはMedia UI設計で決定します。Group設計ではrelation semanticsと権限だけを定義します。
+
 ## Group同士の関係
 
-Media Groupは有向非巡回グラフ（DAG）として扱います。同じGroupを複数の親へ関連付けられますが、循環は許可しません。
+Media Groupは有向非巡回グラフ（DAG）として扱います。同じGroupを複数の所属先Groupへ関連付けられますが、循環は許可しません。
 
 ```mermaid
 flowchart TD
@@ -56,23 +77,93 @@ flowchart TD
     Summer["夏"] --> Okinawa
 ```
 
+Groupが複数の所属先を持てるため、Groupには一意なrootやbreadcrumb pathを定義しません。「日本 / 沖縄」のようなpathをGroupのidentityや正規Navigationとして扱いません。
+
 ### 制約
 
-- 自分自身を親または子にできない
+- relationは同一scopeのGroup間だけに作成できる
+- 自分自身を所属先または所属Groupにできない
 - 直接・間接を問わず循環を作れない
-- 同じ親子関係を重複登録できない
-- 親を持たないGroupを許可する
-- 子を持たないGroupを許可する
+- 同じrelationを重複登録できない
+- 所属先を持たないGroupを許可する
+- 所属Groupを持たないGroupを許可する
+- 所属先Group数やDAGの深度へ、Product上の必要性がない固定上限を設けない
 
 自己参照だけでなく複数段の循環も禁止し、serviceまたはDBで循環検出を保証します。
+
+## GroupのLifecycle
+
+### 作成
+
+Groupは名称だけで成立できます。作成時点で所属先Groupを持つことを必須にしません。
+
+所属先の指定を作成と同時に行えるかはUI上の利便性として決定できますが、Group成立のdomain条件にはしません。
+
+### rename
+
+renameはGroupの名称だけを変更します。Groupのidentity、Media relation、他Groupとのrelationは維持します。
+
+### 削除
+
+Group削除では次を削除します。
+
+- Group本体
+- 対象GroupとMediaのrelation
+- 対象Groupと他Groupのrelation
+
+次は削除しません。
+
+- Media本体
+- 他Group本体
+- 他Group同士のrelation
+
+Group削除によって途切れたDAGをSystemが自動的に再接続しません。例えば `日本 → 沖縄 → 那覇` で「沖縄」を削除しても、`日本 → 那覇` を自動生成しません。
+
+削除前には、GroupによるMedia分類と他Groupとのrelationが削除される一方、Media本体と他Groupは削除されないことをUserが理解できる確認を提供します。Group名の再入力は要求しません。
+
+## Group relationの操作
+
+Group間relationは、対象Groupから「このGroupの所属先Group」を管理する操作として扱います。
+
+Group詳細では少なくとも次の関係を確認できるようにします。
+
+- このGroupが所属するGroup
+- このGroupに所属するGroup
+
+Initial Releaseではrelation編集の主要方向を「このGroupの所属先を追加・解除する」に統一します。逆方向のrelationも情報として確認できますが、同じrelationに異なる編集概念を増やすことは前提としません。
+
+所属先追加では同一scopeのGroupだけを候補とし、自分自身、既にrelationが存在するGroup、追加すると循環するGroupを選択可能な候補として扱いません。UIで事前に選択を防いでも、APIは現在状態を再検証して自己参照・重複・循環を拒否します。
+
+relation解除は指定したrelationだけを削除します。他のGroup relationやMedia relationには影響せず、解除後に所属先が0件になっても正常です。GroupやMedia本体を削除しないため、Group削除と同等の強い破壊的確認は要求しません。
+
+## Group UXの基本方針
+
+Groupはfolder treeやgraph editorとして表現しません。
+
+通常のGroup discoveryではGroupをflatに発見できるようにし、Groupを選択した後はそのGroupを中心として所属先Group、所属Group、Mediaを確認します。複数所属を通常のdomain capabilityとして扱いますが、DAG全体を常時visualizeすることはInitial Releaseの主要Interactionにしません。
+
+この方針により、DAGの能力を維持しながら、一意でないtree pathや大規模graphの理解をUserへ要求しません。
+
+PersonalとCommunityでは同じInteraction modelを利用できます。違いはscopeと操作権限です。
 
 ## Tagとの違い
 
 | 概念 | 用途 |
 | --- | --- |
 | Tag | Mediaへ短い属性・検索語を付ける |
-| Media Group | 名称と親子関係を持つ分類構造 |
+| Media Group | 名称とGroup間relationを持つ分類構造 |
 
-TagとGroupは併用でき、どちらもアクセス制御には使用しません。
+TagとGroupは併用でき、どちらもアクセス制御には使用しません。TagはInitial Release対象ですが、基礎設計と具体的なInteractionは別途設計します。
 
+## 未決定事項
 
+次はGroupのdomain semanticsを変更せず、関連設計を進める段階で確定します。
+
+- Group名の最大文字数等、具体的な入力上限
+- Group一覧のsort、filter、search、cursor pagination
+- Media側からのGroup分類、Group側からのMedia分類、一括分類等の具体的Interaction
+- Group作成時に所属先Groupを同時指定できるか等の操作上のshortcut
+- GraphQL Operation名、Input / Payload、error表現
+- DAG規模に実運用上の制限が必要になった場合の上限値
+
+Group全体をgraphとしてvisualizeする機能、Groupの作成者ownership、folder固有のmove semanticsはInitial Releaseの前提にしません。
