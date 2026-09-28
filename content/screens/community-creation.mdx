@@ -1,4 +1,4 @@
-# Community Creation
+# Community作成
 
 ## 概要
 
@@ -6,23 +6,23 @@ ACTIVE Userが、Application利用中のcontextを維持したまま新しいCom
 
 > 実装状況: Community作成機能は未実装です。本仕様はInitial ReleaseのCommunity作成UIを定義します。
 
-## Purpose
+## 目的
 
 UserがApplication内から、Community名だけを指定して新しいCommunityを作成できるようにします。
 
 Community作成はApplication利用開始に必須となるFlowではなく、Application利用中に任意で行う操作として扱います。独立したPageへ移動せず、[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
 
-## Related Use Cases
+## 関連Use Case
 
 - [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
 
-## Information
+## 表示情報
 
 - 新しいCommunityを作成する操作であることを提示します。
 - Community名の入力を提示します。
 - Initial Releaseでは、作成時に説明、Community画像、公開Profile等の任意情報を要求しません。
 
-## Actions
+## 操作
 
 ### Communityを作成する
 
@@ -34,7 +34,7 @@ Userは有効なCommunity名を入力してCommunityを作成できます。
 
 Userは作成を中止できます。CancelではCommunityやMembershipを作成せず、作成開始前のApplication contextを維持します。
 
-## States
+## 状態
 
 ### 作成可能
 
@@ -68,7 +68,7 @@ Application Navigationは[Application Information Architecture](/system/applicat
 
 作成成功後は作成したCommunityの標準entryへ進みます。Cancelでは作成開始前のApplication contextを維持します。
 
-## Constraints
+## 制約
 
 - ACTIVE UserだけがCommunityを作成できます。未登録・DELETING Userは作成できません。
 - Community名は必須です。
@@ -81,7 +81,7 @@ Application Navigationは[Application Information Architecture](/system/applicat
 - Community作成には[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
 - validationと作成結果の提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
 
-## Responsive Behavior
+## Responsive対応
 
 表示領域や入力方式が変わっても、Community名を入力してCommunityを作成するCapabilityは維持します。
 
