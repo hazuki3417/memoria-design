@@ -1,0 +1,44 @@
+# Creation Dialog
+
+## Purpose
+
+Application利用中の現在のcontextを維持したまま、限定的な新規作成Taskを短い操作で完了できるようにします。
+
+新規作成であることだけを理由にDialogを使用するのではなく、作成のために必要な入力と判断が限定され、独立したPageや複数段階のFlowへ移動する必要がない場合に適用します。
+
+## When to Use
+
+Application利用中に新しい対象を作成する操作のうち、次の性質を持つ場合に適用します。
+
+- 現在のApplication contextを維持したまま完了できる。
+- 作成の目的が単一で、必要な入力と判断が限定されている。
+- 複数段階の作業や、作成中に別の情報を参照する複雑なNavigationを必要としない。
+- Cancelした場合、変更を発生させず元のcontextへ戻れる。
+
+Applicationを利用可能な状態へ移行するRegistration等のProduct Flowや、作成そのものが独立した複雑なTaskとなる場合は対象に含めません。
+
+## Behavior
+
+- Dialogを開いている間も、UserがどのApplication contextから作成を開始したか理解できる状態を維持します。
+- 作成に必要な情報だけを提示し、作成後に設定できる任意情報を過剰に要求しません。
+- 入力が作成条件を満たさない場合は作成を実行せず、Dialog内で修正できる状態を維持します。
+- 作成処理中は同じ作成操作の重複実行を防ぎ、処理中であることを伝えます。
+- 再試行可能な失敗では、可能な限り入力内容を保持し、作成が完了していないことを伝えます。
+- 作成成功後はDialogを閉じ、作成した対象を利用するcontextへ進むか、元のcontextへ作成結果を反映します。
+- Cancelでは作成を行わず、元のApplication contextを維持します。
+- 作成に必要な入力や判断が増え、このPatternの範囲で明瞭に完了できなくなった場合は、Dialogへ詰め込まず専用PageまたはFlowを使用します。
+
+## Variations
+
+作成対象、field数、validation条件、成功後のNavigationまたは結果反映方法は、対象となるUse CaseやScreen Specificationに応じて異なります。
+
+Dialogを起動するActionの具体的なUI表現や、成功後に新しい対象へNavigationするか現在contextへ留まるかは固定しません。
+
+## Constraints
+
+- 「新規作成」という操作種別だけをDialog採用の根拠にしません。
+- 入力field数だけによる機械的な閾値は設けず、Taskの複雑さと現在contextを維持する価値で判断します。
+- Application利用開始に必須となるRegistration等のProduct Flowを、このPatternへ一般化しません。
+- validationや作成権限等のdomain固有条件は各domainまたはScreen Specificationを正本とします。
+- 入力errorや操作結果の提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
+- Dialog Component、form library、状態管理方法、routing、CSS、pixel値等の実装詳細は規定しません。
