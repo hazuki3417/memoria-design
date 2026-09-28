@@ -279,7 +279,7 @@ index:
 
 Custodyと同じXOR CHECKで、UserまたはCommunityのどちらか一方をGroupのscopeにします。
 
-Group名は正規化せず、保存された`name`の完全一致を一意性判定に使用します。大文字小文字や前後空白等が異なる値は別名として扱います。User scopeとCommunity scopeを分け、NULL semanticsに依存しないpartial unique indexで同一scope内の重複を防ぎます。
+Group名は入力時に前後のUnicode whitespaceを除去し、除去後の値を`name`として保存します。除去後が空文字の場合は拒否します。同一scope内の一意性判定にはこの保存値の完全一致を使用します。大文字小文字、全角・半角、内部の連続空白等はSystemが自動統合しません。User scopeとCommunity scopeを分け、NULL semanticsに依存しないpartial unique indexで同一scope内の重複を防ぎます。
 
 - `UNIQUE (scope_user_id, name) WHERE scope_user_id IS NOT NULL`
 - `UNIQUE (scope_community_id, name) WHERE scope_community_id IS NOT NULL`
