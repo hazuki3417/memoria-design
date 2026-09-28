@@ -68,6 +68,8 @@ Auth0再認証成功後にMemoriaへ安全に復帰した場合に到達しま�
 
 再認証からの復帰先は許可された内部URLだけを使用し、復帰しただけで削除を自動実行しません。
 
+Auth0からの安全な復帰と、再認証成功だけでは削除operationを実行しない共通behaviorは[Authentication Return / Session Recovery](/design-system/patterns/authentication-return-session-recovery)に従います。強制再認証固有の成立条件は[Userの認証と認可](/user/authentication-authorization)を正本とします。
+
 ## Constraints
 
 - Auth0再認証成功だけではaccount削除を開始しません。
