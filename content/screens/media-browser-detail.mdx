@@ -66,13 +66,29 @@ Mediaの閲覧を妨げない形で、必要なときに補助情報を確認で
 
 詳細情報を常時展開することは要求しません。WideではMediaと情報を同時表示し、Compactでは段階的に表示する等、presentationを変更できます。
 
-### Contextに応じたActionを実行する
+### Groupで分類する
+
+Media Detailを、1件のMediaを既存Groupへ分類する主要な入口とします。
+
+Userは現在scopeに存在するGroupについて、対象Mediaが現在所属しているGroupを確認し、分類権限がある場合はGroupへの追加・除外を行えます。
+
+Personal contextではPersonal Groupだけ、Community contextでは現在CommunityのCommunity Groupだけを候補にします。CommunityではAdministratorとMemberのどちらも既存Groupを使って閲覧可能なMediaを分類できます。
+
+1つのMediaを複数Groupへ分類できます。Groupから除外してもMedia本体、他Groupへの分類、Custody、共有状態を変更しません。
+
+Groupの新規作成をMedia分類の成立条件にしません。Group作成は[Group Browser](/screens/group-browser)のGroup構造管理として扱い、Community MemberにはGroup作成Actionを提供しません。
+
+分類操作中にGroup削除、Membership / role変更、Mediaの利用不能化等が発生した場合は現在状態を再検証し、成立しなかった変更を成功として表示しません。
+
+Initial Releaseでは1 Media単位の分類を標準Interactionとします。複数Mediaを選択して既存Groupへ一括分類する操作や、Media選択とGroup新規作成を一体化したshortcutは必須Capabilityとしません。
+
+### Contextに応じたその他のActionを実行する
 
 Detailから利用できるActionは現在contextとdomain上の権限に従います。
 
-Personalでは共有・共有解除、Personal Group / Tag分類、Original download、削除等、CommunityではCommunity Group / Tag分類、権限のあるOriginal download・削除・共有解除等へ到達できます。
+Personalでは共有・共有解除、Original download、削除等、Communityでは権限のあるOriginal download・削除・共有解除等へ到達できます。
 
-具体的な共有、Group分類、Tag分類、削除確認等は対応するScreen / PatternのBehaviorに従います。
+具体的な共有、Tag分類、削除確認等は対応するScreen / PatternのBehaviorに従います。
 
 ## States
 
@@ -119,7 +135,8 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - UI上のAction availabilityをAPI側認可の代替にしません。
 - Browser / Detailの基本InteractionはPersonal / Communityで共通化し、scopeと認可差分を各Screen Specificationで定義します。
 - Grid / List、thumbnail size、modal / route等の具体的presentationをProduct仕様として固定しません。
-- 複数Media選択と一括操作は、本Screen Specificationだけを理由にInitial Release必須Capabilityとしません。
+- Media ↔ Group分類は1 Media単位を標準Interactionとし、複数Mediaへの一括分類はInitial Release必須Capabilityとしません。
+- Group作成とMedia分類を一つの必須操作として結合しません。
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
 - Tagの具体的InteractionはTag設計で定義します。
 
