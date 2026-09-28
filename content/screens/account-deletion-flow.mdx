@@ -24,8 +24,10 @@ User管理Mediaが0件の場合も同じAccount Deletion Flowを使用します�
 
 Userが最後のAdministratorであるCommunityが存在する場合、対象Communityを一つの作業面でまとめて確認し、それぞれのCommunityについて次のいずれかを独立して選択します。
 
-- 別MemberをAdministratorへ昇格する。
+- 別MemberをAdministratorへ昇格してCommunityを保持する。
 - Communityを削除する。
+
+後任にできるMemberが存在する場合は、Communityを保持してAdministratorを引き継ぐ選択肢を主な選択肢として提示します。Community削除は明示的に選択できる代替手段として維持します。後任候補が存在しない場合は保持を選択できません。
 
 すべての対象Communityについて解決方法が決定するまで次の段階へ進みません。Communityごとに異なる解決方法を選択できます。
 
@@ -33,11 +35,13 @@ Userが最後のAdministratorであるCommunityが存在する場合、対象Com
 
 最後のAdministratorではないCommunityは特別な選択を要求せず、account削除時にMembershipと共有を解消します。
 
-### 3. Community削除の追加確認
+### 3. Community削除対象のReview
 
-Community削除を選択した場合、対象Communityごとに参加者数、Community管理Media件数、他UserがUploadしたMediaも削除されることを確認します。
+Community削除を選択した対象がある場合、削除対象Communityを一つの作業面でまとめてReviewします。各Communityについて参加者数、Community管理Media件数、他UserがUploadしたMediaも削除されることを確認します。
 
-誤操作を防ぐためCommunity名の入力を要求します。Community削除を選択していない場合、この段階はskipします。
+誤操作を防ぐため、同じReview上で対象CommunityごとにCommunity名の入力を要求します。すべての削除対象について必要な確認が完了するまで次の段階へ進みません。
+
+Community削除を選択していない場合、この段階はskipします。
 
 ### 4. 再認証・最終確認
 
