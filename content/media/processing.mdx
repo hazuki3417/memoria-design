@@ -41,7 +41,7 @@ Initial ReleaseでUploadを受け付けるOriginal形式はJPEG、PNG、WebP、H
 
 Originalの向き、透過情報、decode可能性、file signature、画素数などを静止画像処理で検証します。変換できない形式を正常完了として扱いません。Upload受付時に確定できる不正入力と、受付後の非同期処理でのみ判明する処理失敗は区別します。
 
-Initial Releaseでは1 Originalあたりのfile size上限を128 MiBとします。この値はProduct上限であり、Client、GraphQL/API、HTTP server、reverse proxy等の実装上限は128 MiBの有効な画像を拒否しないよう整合させます。file sizeだけではdecode後のresource使用量を制限できないため、画像安全上限を独立して適用します。Initial Releaseでは1画像あたりの総pixel数を100 megapixels（100,000,000 pixels）以下とします。width / heightの単辺上限は、極端な縦長・横長画像による処理負荷も制御できるよう別途設定します。
+Initial Releaseでは1 Originalあたりのfile size上限を128 MiBとします。この値はProduct上限であり、Client、GraphQL/API、HTTP server、reverse proxy等の実装上限は128 MiBの有効な画像を拒否しないよう整合させます。file sizeだけではdecode後のresource使用量を制限できないため、画像安全上限を独立して適用します。Initial Releaseでは1画像あたりの総pixel数を100 megapixels（100,000,000 pixels）以下とします。width / heightはそれぞれ32,768 pixels以下とします。総pixel数上限とは独立して適用し、総pixel数が100 MP以下でも極端に縦長・横長な画像は拒否します。
 
 ## 処理単位
 
