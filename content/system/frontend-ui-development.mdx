@@ -82,7 +82,17 @@ Memoriaは、機能を減らすことで単純に見せるのではなく、利�
 
 Visual Designはシンプルかつコンテンツ中心とし、UI自体がMediaより過度に主張しないことを重視します。一方で、操作性、feedback、interaction quality等はUI/UX上の重要な品質として扱います。
 
-具体的なUX Principlesは、実際の画面設計を通して検証しながら策定します。
+### UX Principles
+
+Memoriaの画面設計、AIによるUI生成、Visual Reviewでは次の原則を共通の判断軸として利用します。
+
+1. **Content First**: Mediaや利用者のデータを主役とし、UI自体は必要以上に主張しません。
+2. **Progressive Disclosure**: 利用者が現在必要な情報と操作を優先し、高度または低頻度なものは必要な文脈で提示します。
+3. **Contextual Action**: 操作は対象や現在の状態との関係を理解しやすい場所に提示し、画面全体へ無秩序にActionを並べません。
+4. **Predictable Interaction**: 同じ意味や操作には一貫したPatternを利用し、理由なく一般的なWeb UIの慣習から逸脱しません。
+5. **Immediate Feedback**: 操作の受付、進行、成功、失敗、状態変化を適切なtimingで明確に伝えます。
+
+これらは個別画面のlayoutを固定する規則ではなく、複数の実現方法からUIを選択・Reviewするための原則です。実際の画面設計から再利用可能な具体的Patternが見つかった場合はDesign Systemへ追加します。
 
 ## Responsive Design
 
@@ -133,6 +143,5 @@ UI品質の検証は、それぞれの検査手段が適した責務を担当し
 次の事項は、この文書の初版では確定しません。後続の検討で合意した内容を順次反映します。
 
 - Responsive Designの代表viewportと入力方式ごとのInteraction
-- UX Principlesの具体的な一覧
 - Design Systemの具体的なFoundation / Pattern
 - Screen Specificationの標準templateと配置
