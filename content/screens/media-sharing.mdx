@@ -34,6 +34,17 @@ Personal起点とCommunity起点で別の共有概念を作らず、同じdomain
 
 ## 操作
 
+```mermaid
+flowchart LR
+    Personal["Personal起点<br/>Mediaを固定"] --> CommunitySelect["共有先Communityを選択"]
+    Community["Community起点<br/>Communityを固定"] --> MediaSelect["Personal Mediaを選択"]
+    CommunitySelect --> Access["Media × Community<br/>Access relationを追加"]
+    MediaSelect --> Access
+    Access --> Keep["CustodianはUserのまま<br/>Mediaを複製しない"]
+```
+
+入口によって先に固定される対象だけが異なり、どちらも同じMediaとCommunityのAccess relation追加へ収束します。
+
 ### Personal Mediaから共有する
 
 Personal MediaまたはそのMedia Detailから共有を開始した場合、共有するMediaを固定し、Userが現在参加しているCommunityから共有先を選択します。
