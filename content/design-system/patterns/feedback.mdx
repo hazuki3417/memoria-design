@@ -1,0 +1,55 @@
+# Feedback
+
+## Purpose
+
+操作結果や問題を、その意味と利用者が解決できる場所に応じて適切に提示し、利用者が現在の状態と次に取れる行動を理解できるようにします。
+
+Notificationをすべてのfeedbackやerrorの共通表示先とはせず、利用者が情報を参照し続ける必要があるか、どこを修正すれば解決できるかに応じて提示方法を選択します。
+
+## When to Use
+
+Userの入力、操作、非同期処理、状態変化に対して、成功、warning、error等のfeedbackを提示するUIに適用します。
+
+## Behavior
+
+### Field Error
+
+特定の入力項目を修正することで解決できる問題は、対象となる入力項目との関係が分かる位置に表示します。
+
+client側とserver側のどちらで検出されたかでは分類しません。serverから返されたerrorであっても、特定fieldの修正によって解決できる場合はField Errorとして扱います。
+
+### Form Error
+
+個別fieldだけでは説明できず、入力の組み合わせやform全体の状態を修正する必要がある問題は、form内の利用者が継続して確認できる位置に表示します。
+
+修正中に参照する必要があるため、一時的なNotificationだけで伝えません。
+
+### Operation Feedback
+
+入力内容の修正とは直接関係しない操作結果は、操作の結果として利用者へ伝えます。
+
+保存や作成等の成功、一時的な通信失敗、再試行可能なserver error等が該当します。画面上で継続して参照する必要がない結果は、一時的なNotificationとして提示できます。
+
+再試行可能な失敗では、可能な限り利用者の入力や編集状態を保持します。
+
+### Blocking Error
+
+権限喪失、対象の消失、User状態の変化等により、現在の画面や操作を継続できない問題は、利用者が状態と次の行動を理解できる持続的な表示として提示します。
+
+短時間で消えるNotificationだけには依存しません。必要な場合は安全なNavigationや利用可能なActionを提示します。
+
+## Variations
+
+feedbackのseverity、文言、表示位置、表示期間、補助Actionは、問題の性質とScreen Specificationに応じて決定します。
+
+Operation Feedbackには成功、情報、warning、error等の表現を利用できます。ただしseverityだけを理由に提示方法を決めず、利用者がどこで理解・解決できる問題かを優先します。
+
+## Constraints
+
+- errorの発生源がclientかserverか、HTTPやGraphQL等の技術的なerror種別だけを理由に提示方法を決定しません。
+- 修正のために継続して参照する必要がある情報を、一時的なNotificationだけで提示しません。
+- Field Errorは対象fieldとの関係を利用者が理解できるようにします。
+- Form Errorはform全体との関係を利用者が理解できるようにします。
+- Blocking Errorでは、現在の操作を継続できないことと、可能であれば次に取れる行動を明確にします。
+- feedbackは色だけに依存して意味を伝えません。
+- Notification library、Component API、表示秒数、画面上のpixel位置等の実装詳細は規定しません。
