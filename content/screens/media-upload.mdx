@@ -40,7 +40,7 @@ Personal MediaをCommunityへ共有する操作とは別です。Community direc
 
 ## File Selection
 
-Userは1件または複数の静止画像fileを選択できます。
+Userは1件または複数の静止画像fileを選択できます。Initial Releaseでは1回のUpload操作で選択できるfileを最大100件とします。
 
 file picker、drag and drop等の具体的な入力presentationは固定しません。Compact / touch環境ではOS標準の画像選択やcamera roll等、利用可能な入力方法を使用できます。
 
@@ -71,8 +71,9 @@ Upload開始時、Upload対象の各fileについて独立したMedia upload req
 
 - 1 requestは1 Mediaを登録する
 - 1 Mediaごとに独立して成功・失敗を確定する
-- 複数requestはUI / clientで並行または制御された並列度で実行できる
-- client側の具体的な同時実行数はProduct仕様として固定しない
+- 複数requestはUI / clientで上限付きの並列実行（bounded concurrency）として処理する
+- 選択した全fileを同時にrequestしたり、file本体やdecode結果を一括してmemoryへ展開したりすることを前提にしない
+- client側の具体的な同時実行数はProduct仕様として固定せず、Frontend実装・実行環境に応じて決定する
 - 1件の失敗を理由に他Mediaの成功をrollbackしない
 - 成功済みMediaを同じUpload操作のretry対象へ戻さない
 
@@ -176,7 +177,8 @@ Upload完了を理由にApplication contextを切り替えません。Upload後�
 - Originalを無加工で保持する
 - 1 request = 1 Media
 - 1 Processing Jobは1 Mediaを扱う
-- UIでは複数Mediaを一度に選択・実行できる
+- UIでは1回のUpload操作につき最大100件のMediaを選択・実行できる
+- 複数Uploadはbounded concurrencyで処理し、選択件数と同時実行数を同一視しない
 - 複数Uploadはatomic batchではない
 - Personal uploadの初期CustodianはUser本人
 - Community direct uploadの初期Custodianは現在Community
