@@ -11,5 +11,7 @@ export default {
   "community-creation": "Community Creation",
   "personal-media": "Personal Media",
   "community-media": "Community Media",
-  "community-members": "Community Members"
+  "community-members": "Community Members",
+  "community-management": "Community Management",
+  "community-deletion-confirmation": "Community Deletion Confirmation"
 }
