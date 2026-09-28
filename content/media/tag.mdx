@@ -1,0 +1,171 @@
+# Media Tag
+
+## 概要
+
+Media Tagは、Mediaへ短い分類語・検索語を付与し、後からMediaを絞り込むための分類entityです。
+
+TagはGroupとは別entity・別責務です。GroupのようなGroup間relationや階層を持たず、MediaのCustodian、共有範囲、閲覧権限を変更しません。
+
+## Scope
+
+TagはUser scopeまたはCommunity scopeのどちらか一方だけに属します。
+
+- Personal contextではUser本人のTagを扱う
+- Community contextでは現在CommunityのTagを扱う
+- UserとCommunityの間でTag entityを共有しない
+- Community間でTag entityを共有しない
+- 異なるscopeの同名Tagは別Tagとして扱う
+- User管理MediaをCommunityへ共有した場合も、そのCommunity内だけで有効なTag relationを作成できる
+
+共有解除、退会、除外等でMediaがCommunityから閲覧不能になる場合は、そのCommunity scopeのMedia ↔ Tag relationだけを削除し、Tag本体、Personal Tag、他CommunityのTag relationは変更しません。
+
+## Tag名
+
+Tag名はscope内でTagを識別する名称です。
+
+- Tag名は必須とする
+- 入力時に前後のUnicode whitespaceを除去する
+- trim後が空文字の場合は拒否する
+- 同一scope内で同じ保存名のTagを複数作成できない
+- 別scopeでは同じTag名を許可する
+- 内部空白を許可する
+- 大文字・小文字、全角・半角、連続空白等をSystemが自動統合しない
+- 保存した名称の完全一致を名称同一性判定に使用する
+
+Tag名の最大文字数、scope内Tag数、MediaあたりTag数等の具体的上限は、Product上必要な値をAPI / DB contractと合わせて決定します。既存物理modelの型幅をそのままProduct上限として扱いません。
+
+## Mediaとの関係
+
+MediaとTagは多対多です。
+
+- 1 Mediaへ複数Tagを付与できる
+- 1 Tagを複数Mediaへ付与できる
+- Tagの付与・解除でMedia本体を複製しない
+- Tagの付与・解除でCustodianや共有範囲を変更しない
+- 1つのTagを解除しても他Tagは維持する
+- すべてのTagを解除してもMedia本体は削除しない
+- Tagを削除してもMedia本体は削除しない
+- Media削除時はそのMediaのTag relationを削除する
+
+Tagは分類・検索のためのmetadataであり、閲覧権限の条件として使用しません。
+
+## 権限
+
+### Personal Tag
+
+Personal contextではUser本人が次を行えます。
+
+- Tag作成
+- Tag rename
+- Tag削除
+- 自身がCustodianであるMediaへのTag付与・解除
+- TagによるMedia絞り込み
+
+### Community Tag
+
+Community Tagでは「Tagを日常的に利用すること」と「共有語彙を変更・削除すること」を分離します。
+
+AdministratorとMemberは次を行えます。
+
+- Community Tagを新規作成する
+- 現在Communityで閲覧可能なMediaへ既存Tagを付与する
+- MediaからCommunity Tagを解除する
+- TagによってCommunity Mediaを絞り込む
+
+Administratorだけが次を行えます。
+
+- 既存Community Tagをrenameする
+- Community Tagを削除する
+
+Memberが作成したTagもCommunity scopeの共有entityであり、作成者ownershipを導入しません。作成者だけがrename/deleteできる等の追加権限は設けません。
+
+Membershipを失ったUserはCommunity Tagの作成・利用・管理を行えません。
+
+## Lifecycle
+
+### 作成
+
+Tagは名称だけで成立できます。Mediaへの付与をTag作成の成立条件にしません。
+
+CommunityではAdministratorとMemberがTagを作成できます。作成時にMediaへ同時付与するshortcutをUIとして提供することはできますが、Tag成立のdomain条件にはしません。
+
+### Rename
+
+renameはTagの名称だけを変更します。Tag identityと既存Media relationは維持します。
+
+PersonalではUser本人、CommunityではAdministratorだけがrenameできます。
+
+### 削除
+
+Tag削除ではTag本体とそのTagのMedia relationを削除します。Media本体や他Tagは削除しません。
+
+PersonalではUser本人、CommunityではAdministratorだけが削除できます。
+
+削除は複数Mediaの分類へ影響し得るため、削除対象Tagと分類relationが解除されることを理解できる確認を提供します。Tag名の再入力は要求しません。
+
+## Media分類Interaction
+
+Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除の主要な入口とします。
+
+Media Detailでは現在scopeで対象Mediaに付与されているTagを確認できます。分類権限があるUserは現在scopeの既存Tagを付与・解除できます。
+
+Personal contextではPersonal Tagだけ、Community contextでは現在CommunityのCommunity Tagだけを扱います。
+
+CommunityではAdministratorとMemberがTagを利用でき、必要なTagが存在しない場合は新しいCommunity Tagを作成できます。Tag作成とMediaへの付与を一つのpresentationで連続して行えるかは実装上のInteractionとして選択できますが、作成とrelation追加はdomain上別の結果として扱います。
+
+複数Mediaへの一括Tag付与・解除はInitial Release必須Capabilityとしません。
+
+## TagによるMedia絞り込み
+
+Media Browserでは、現在scopeのTagを条件として現在contextで閲覧可能なMediaを絞り込めるようにします。
+
+- Personal MediaではPersonal Tagを条件にする
+- Community Mediaでは現在CommunityのCommunity Tagを条件にする
+- Tag filterは閲覧権限を付与せず、既に閲覧可能なMedia集合を狭めるだけとする
+- filter中もMedia Browserの標準的なMedia orderingを維持する
+- filter解除によって現在contextの通常Media一覧へ戻れるようにする
+
+複数Tagを指定した場合のAND / OR semanticsは、Userが結果を予測できる一貫した契約として別途確定します。具体的なquery、cursor、index契約と合わせて決定し、UI実装から逆算してdomain semanticsを決めません。
+
+## Tag管理
+
+Personal / Communityとも、現在scopeに存在するTagを確認できる軽量な管理領域を提供できます。
+
+Tagは階層やrelationを持たないため、Group BrowserのようなGroup-centered DAG navigationやgraph表現を導入しません。
+
+管理領域では少なくともTag名を識別でき、権限に応じて作成、rename、削除へ到達できるようにします。Media件数等は識別や影響理解の補助情報として提示できますが、必須情報や具体的presentationとして固定しません。
+
+Tagの発見方法、sort、検索、pagination等の具体的な一覧contractは利用規模とAPI contractに合わせて決定します。
+
+## States / Concurrency
+
+Tag作成・rename・削除・Media relation変更では、実行時に現在scope、Membership / role、TagとMediaの存在、重複等を再検証します。
+
+- 同名Tagが並行作成された場合はscope内一意制約に従い重複を成立させない
+- 操作中にTagが削除された場合、存在しないrelation変更を成功として表示しない
+- CommunityでroleがAdministratorからMemberへ変わった場合、Tag作成・分類は継続可能だがrename/deleteは継続実行させない
+- Membershipを失った場合はCommunity Tag操作を継続しない
+- Mediaが現在scopeから閲覧不能になった場合はTag付与・解除を継続しない
+
+## Groupとの違い
+
+| 概念 | 主な役割 |
+| --- | --- |
+| Tag | Mediaへ短い属性・検索語を付け、絞り込みに利用する |
+| Media Group | Mediaをまとまりとして整理し、Group同士のDAG relationを持つ |
+
+TagにはGroup間relation相当の階層を導入しません。GroupとTagは併用できますが、どちらも閲覧権限の境界にはしません。
+
+## Initial Releaseで固定しない事項
+
+次はTagのdomain semanticsを変更せず、API / UI実装契約を進める段階で確定します。
+
+- Tag名の最大文字数等の具体的入力上限
+- scope内Tag数、MediaあたりTag数の具体的上限
+- 複数Tag filterのAND / OR semantics
+- Tag一覧のsort、検索、pagination契約
+- GraphQL Operation名、Input / Payload、error表現
+- Tag作成とMedia付与を連続操作する場合の具体的presentation
+- Initial Release後に一括Tag操作が必要になった場合の追加Interaction
+
+自動Tag付け、AI分類、Custody transfer時のTag移行はInitial Release対象外です。
