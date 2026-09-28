@@ -7,5 +7,6 @@ export default {
   "account-deletion-community-resolution": "Account Deletion Community Resolution",
   "account-deletion-community-review": "Account Deletion Community Review",
   "account-deletion-final-review": "Account Deletion Final Review",
-  "account-deletion-final-confirmation": "Account Deletion Final Confirmation"
+  "account-deletion-final-confirmation": "Account Deletion Final Confirmation",
+  "community-creation": "Community Creation"
 }
