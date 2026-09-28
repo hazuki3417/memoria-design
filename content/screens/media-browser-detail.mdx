@@ -1,0 +1,132 @@
+# Media Browser / Detail
+
+## 概要
+
+PersonalまたはCommunity contextで、現在contextのMediaをvisual content中心に発見し、選択したMediaを詳しく閲覧して権限に応じたActionへ進む共通Interactionです。
+
+> 実装状況: 既存のmemoria-webにはthumbnail中心の一覧、Media Detail modal、前後Mediaへの移動、情報panel、複数選択があります。本仕様ではそれらを参考にしつつ、Personal / Community context、Media Custody、現在の認可modelに合わせて意味とBehaviorを定義します。
+
+## Purpose
+
+UserがMediaの内部data構造を意識せず、画像そのものを中心に目的のMediaを発見・閲覧し、必要な場合だけ詳細情報や現在実行可能なActionへ進めるようにします。
+
+Personal MediaとCommunity Mediaで共通するBrowser / Detail interactionを定義し、対象Media、共有状態、Custody、Action availability等のcontext固有差分は各Screen Specificationに従います。
+
+## Related Use Cases
+
+- [Media関連ユースケース - Mediaを閲覧・downloadする](/media/use-cases#mediaを閲覧downloadする)
+- [Media関連ユースケース - Mediaを削除する](/media/use-cases#mediaを削除する)
+- [Media関連ユースケース - MediaをGroupへ追加・除外する](/media/use-cases#mediaをgroupへ追加除外する)
+
+## Information
+
+### Media Browser
+
+Media Browserでは画像のvisual contentを主要な識別情報として提示します。
+
+通常状態では新しいMediaから順に発見できるようにします。Media一覧の標準順序はMediaの作成日時の降順とし、同時刻等でも安定して継続取得できることをAPI contractで保証します。
+
+file名、Uploader、Custodian等をすべてのMediaへ常時表示することは要求しません。対象Mediaを識別し、誤操作を防ぐために必要な補助情報だけをpresentationに応じて提示できます。
+
+### Media Detail
+
+Media Detailでは選択したMedia自体を主役として表示します。
+
+必要に応じて次の情報を確認できるようにします。
+
+- Original file名
+- Original file size
+- 画像のwidth / height
+- Upload日時
+- Uploader
+
+Personal contextでは、User管理Mediaの共有状態を管理するために、必要に応じて共有先Communityを確認できるようにします。
+
+Community contextでは、利用可能なActionを理解するために必要な場合、MediaがUser管理かCommunity管理か、およびUploaderを確認できるようにします。
+
+MIME type、Object Storage key、Variant record、Processing Job、内部status等の実装・運用情報を通常のMedia Detail情報として提示することは要求しません。
+
+## Actions
+
+### Mediaを選択して閲覧する
+
+BrowserからMediaを選択すると、そのMediaをDetailとして閲覧できます。
+
+Detailのpresentationをmodal、overlay、split view、dedicated routeのいずれかへ固定しません。表示領域と入力方式に適したpresentationを選択できます。
+
+### 前後のMediaへ移動する
+
+Browserの一覧contextからDetailを開いた場合、Userは現在の一覧contextを維持したまま前後のMediaへ移動できます。
+
+前後関係は現在Browserで成立している順序を基準とします。移動のためにPersonal / Community contextや現在の一覧条件を暗黙に変更しません。
+
+### 詳細情報を確認する
+
+Mediaの閲覧を妨げない形で、必要なときに補助情報を確認できます。
+
+詳細情報を常時展開することは要求しません。WideではMediaと情報を同時表示し、Compactでは段階的に表示する等、presentationを変更できます。
+
+### Contextに応じたActionを実行する
+
+Detailから利用できるActionは現在contextとdomain上の権限に従います。
+
+Personalでは共有・共有解除、Personal Group / Tag分類、Original download、削除等、CommunityではCommunity Group / Tag分類、権限のあるOriginal download・削除・共有解除等へ到達できます。
+
+具体的な共有、Group分類、Tag分類、削除確認等は対応するScreen / PatternのBehaviorに従います。
+
+## States
+
+### Browser: Mediaあり
+
+現在contextで閲覧可能なMediaをvisual content中心に発見できます。Mediaを選択するとDetailへ進めます。
+
+### Browser: Empty
+
+現在contextにMediaが存在しないことを明示します。Mediaを追加するActionはPersonal / Community Mediaそれぞれの仕様に従います。
+
+### Browser: 読み込み失敗
+
+Emptyと混同せず、一覧取得に失敗したことを示して再試行できるようにします。
+
+### Detail: 表示可能
+
+選択したMediaを表示し、現在Userが利用できるActionだけを提供します。
+
+### Detail: Mediaが利用不能になった
+
+Detail表示中にMedia削除、共有解除、Membership喪失等によって現在contextから閲覧できなくなった場合、そのMediaを表示し続けません。
+
+Browserへ戻れる場合は現在contextのBrowserへ戻し、context自体を利用できない場合はApplication IAに従う安全なdestinationへ移動します。
+
+### Detail: 読み込み失敗
+
+Media自体を取得できない状態と、補助情報や個別Actionの一時的な失敗を区別します。再試行可能な場合は対象を保ったまま再試行できるようにします。
+
+## Navigation
+
+Media Browser / Detailは独立したApplication contextを作りません。Personal Mediaまたは現在Community Mediaのcontextを維持します。
+
+Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一覧contextへ戻れるようにします。
+
+Detail内で前後Mediaへ移動してもApplication contextは変わりません。
+
+## Constraints
+
+- Browser / DetailはMediaのvisual contentを優先し、内部data modelをUI構造として露出しません。
+- 一覧とDetailの画像表示には同じImage Variant集合を利用でき、presentationに応じて適切なVariantを選択します。
+- Original download権限と表示用Variantの閲覧権限を同一視しません。
+- UploaderとCustodianを同一視しません。
+- UI上のAction availabilityをAPI側認可の代替にしません。
+- Browser / Detailの基本InteractionはPersonal / Communityで共通化し、scopeと認可差分を各Screen Specificationで定義します。
+- Grid / List、thumbnail size、modal / route等の具体的presentationをProduct仕様として固定しません。
+- 複数Media選択と一括操作は、本Screen Specificationだけを理由にInitial Release必須Capabilityとしません。
+- Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
+- Tagの具体的InteractionはTag設計で定義します。
+
+## Responsive Behavior
+
+Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在利用可能な主要Actionへ到達するCapabilityを維持します。
+
+Wideでは一覧とDetailまたはMediaと情報を同時に提示できますが必須ではありません。CompactではDetailを段階的な画面として提示する等、表示領域に合わせて構成を変更できます。
+
+Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。
