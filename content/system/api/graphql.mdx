@@ -927,8 +927,8 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 2. **scope Input表現（確定）**: `ScopeType` enum（`PERSONAL` / `COMMUNITY`）を明示する。共通 `ScopeInput` をGroup / Tagの取得・作成で使用し、Image Uploadの `UploadCustodyInput` も同じenumと検証規則を使用する。`COMMUNITY` は `communityId` 必須、`PERSONAL` は指定禁止とし、不整合は `VALIDATION`。
 3. **Bulk result表現（確定）**: 共有・共有解除・Group分類・Tag分類に専用のitem result型を設ける。状態の意味は共通 `BulkItemStatus`（`SUCCEEDED` / `ALREADY_APPLIED` / `FAILED`）で統一し、各resultは `mediaId` / `status` / `errorCode` を持つ。操作固有の結果fieldは必要になった時点で個別に追加する。
 4. **Invitation secret返却（確定）**: APIが完全な招待URLを生成し、Administrator向け `CommunityInvitation.url` で返す。Web ClientはURLを組み立てない。招待URLはsecretとして取り扱い、非Administrator向けQueryへ公開しない。
-5. **Original download契約**: GraphQLが短期URLを返す方式を採用するか、別download endpointへ遷移させるか。
-6. **Account deletion binding**: `reviewToken` と再認証結果をGraphQL Inputで渡す論理形を、session-bound server state等へ変更するか。
+5. **Original download契約（保留）**: 認可・ドメイン要件は維持するが、短期URL、別download endpoint、複数画像ZIP生成・一時保存等のtransport詳細は未確定。現在の `mediaOriginalDownload` SDLは検討用の暫定案であり、実装確定契約には含めない。
+6. **Account deletion binding（保留）**: 削除前の再認証とReview内容へのbinding要件は維持するが、Auth0再認証の証明方法・保持方法・有効期限は未確定。現在の `reviewToken` / `reauthenticationProof` は論理上の暫定表現であり、実装確定契約には含めない。
 7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
 8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
 9. **Group relation detailとモデルfield（確定）**: Group Browser画面仕様に従い、`MediaGroup.parents` / `children` / `media` を独立したRelay Connectionとして公開する。Group間relationの追加候補検索は別契約とし、候補の絞り込みと循環禁止はAPI側でも再検証する。
