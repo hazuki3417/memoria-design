@@ -166,7 +166,7 @@ column表は「列 / 型 / 制約 / 意味」の4列に統一します。共通�
 
 ## Screen Specification
 
-推奨fileは `content/screens/<screen-name>.mdx` です。Screen Specificationは画面が満たすべき意味と振る舞いを定義します。具体的なReact / Mantine実装やpixel単位のlayoutは定義しません。
+推奨fileは `content/screens/<screen-name>.mdx` です。Screen Specificationは画面が満たすべき意味と振る舞いを定義します。具体的なReact / Mantine実装、pixel単位のlayout、`Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view`等のpresentationは原則として定義しません。
 
 ### 必須情報
 
@@ -185,7 +185,7 @@ Purposeは機能名の言い換えではなく、利用者が達成する目的�
 
 Informationはfield一覧を機械的に列挙するのではなく、利用者の判断や操作に必要な情報と表示条件を記載します。表示順や強調に意味がある場合はその意味を記載できますが、実装上の座標やpixel値では指定しません。
 
-ActionsはButtonやMenu等のWidget名ではなく利用者が実行できる操作として記載し、実装者が操作可能条件、結果、拒否条件を推測しなくてよい粒度にします。確認、取消不能性、複数選択等が利用者の判断へ影響する場合は明記します。
+ActionsはButtonやMenu等のWidget名やDialog等のpresentationではなく、利用者が実行できる操作として記載し、実装者が操作可能条件、結果、拒否条件を推測しなくてよい粒度にします。確認、取消不能性、複数選択等が利用者の判断へ影響する場合は明記します。
 
 StatesはLoading / Empty / Content / Error等の見出しを機械的に作成せず、その画面で利用者体験や可能な操作が変わる状態だけを記載します。Errorを記載する場合は、単に「errorを表示する」で終えず、利用者へ伝える内容と再試行・遷移等の復帰方法を必要に応じて示します。
 
@@ -200,7 +200,8 @@ Responsive BehaviorはDesktop layoutを縮小する手順ではなく、異な�
 ### 表記と正本境界
 
 - Screen Specification内へUse Case、domain rule、Design Systemの共通規則を複製せず、正本へlinkします。
-- 特定のlayout、pixel値、React / Mantine Component、CSS、GraphQL operation、Story一覧、test implementationは原則として記載しません。
+- 特定のlayout、pixel値、React / Mantine Component、CSS、GraphQL operation、Story一覧、test implementationに加え、`Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view`等のpresentationも原則として固定しません。
+- presentation自体がProduct要件である場合だけ例外とし、なぜそのpresentationでなければ要件を満たせないかを同じ仕様に明記します。単に既存実装がそうなっている、一般的なUIである、Design System Patternが存在する、という理由だけでは固定しません。
 - Storybookは仕様の正本ではなく、Screen Specificationを現在の実装がどう表現しているかを観察・検証する実行可能なExampleとして扱います。
 - 実装との差分がある場合は共通書式に従って明示し、現在の実装を理由に仕様を暗黙に変更しません。
 
