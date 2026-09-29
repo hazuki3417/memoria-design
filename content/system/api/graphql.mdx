@@ -919,6 +919,16 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - Community説明、画像、公開profile
 - profile画像、公開用account ID、複数認証subjectのaccount linking
 
+## 確定済み契約の実装引き渡しチェック
+
+画面仕様（Group Browser、Media Detail、Media Upload）とMedia Group / Tagドメイン仕様、`memoria-api/develop` の既存GraphQL schemaを照合した結果、確定済みの主要なドメイン境界と画面Interactionに矛盾は認められません。以下は実装引き渡し時の確認事項です。
+
+- 既存APIの `scalar Upload` と `scalar Int64` は既存schemaに存在するが、新しいMedia upload transportは専用HTTP endpoint、Initial ReleaseのMedia size/dimension fieldは標準 `Int` とする。既存scalarの削除はこの契約だけを根拠に行わない。
+- Group relationの表示は `MediaGroup.parents` / `children` / `media` を使用する。関連追加の候補検索は表示用Connectionと別の契約が必要であり、候補の絞り込み・DAG循環禁止をAPIで再検証する。
+- Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
+- `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、確定済みschemaの実装引き渡し対象から除外する。
+- 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
+
 ## レビュー時の要判断事項
 
 既存設計だけでは一意に決められない事項を以下で追跡します。確定済みの項目は採用方針を明記します。
