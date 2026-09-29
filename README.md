@@ -53,7 +53,8 @@ npm run build
 
 ## 最初に読む資料
 
-1. [初回Releaseの範囲と成功条件](./content/first-release.mdx)
+1. [プロダクトビジョン・設計原則](./content/product-vision.mdx)
+2. [初回Releaseの範囲と成功条件](./content/first-release.mdx)
 2. [Media](./content/media/index.mdx)・[Community](./content/community/index.mdx)・[User](./content/user/index.mdx)
 3. [Media関連ユースケース](./content/media/use-cases.mdx)
 4. [ユビキタス言語](./content/ubiquitous.mdx)
