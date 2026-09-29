@@ -28,6 +28,9 @@ GraphQLはDBの外部キーをそのまま公開するのではなく、Client�
 - Communityの関連fieldは所属を表す `members: CommunityMembershipConnection!` に限定します。Membershipはroleを持つ独立した関連モデルであり、単純なUser配列にはしません。
 - CommunityのMedia / Group / TagはCommunity自身の構成要素として公開しません。これらはそれぞれ独立したドメインモデルであり、Communityを利用範囲として指定するQueryから取得します。
 - 一覧関連はConnectionでページングし、DataLoaderは1 GraphQL request内でbatch/cacheします。DataLoaderは深いnestや大量取得を制限する仕組みではないため、query depth / complexityと取得件数の制限は維持します。
+- ネストしたRelay ConnectionはGraphQL全体で許容します。親モデルから辿ることがドメイン上自然であれば関連fieldとして公開し、ネストしているという理由だけで重複するトップレベルQueryを追加しません。独立した取得・認可・利用上の理由がある場合は別Queryを検討します。
+- Apollo Clientでは親モデルをIDで正規化し、Connection fieldごとに引数・filterを考慮したpagination policyを定義します。Media削除、関連追加・除外など一覧の構成が変わるMutation後は、影響するConnectionの無効化・再取得を初期方針とし、手動のedge更新は必要性を検証してから採用します。Mediaのevictだけで関連Connectionのedges・pageInfoが同期されるとは見なしません。
+- 実装時はネストしたConnectionの初回取得・追加ページ取得・削除・関連追加／除外・filter変更を組み合わせ、複数の親モデルでキャッシュが混線しないことと、Mutation後に一覧・pageInfoが整合することを検証します。
 - MediaのGroup / Tag分類はPersonalとCommunityで独立しているため、scopeを曖昧にした関連fieldを追加しません。Groupの親子・所属Mediaなど、必要な関連の具体的なSDLは既存ドメイン仕様と照合してレビューします。
 
 ## 共通scalarとenum
