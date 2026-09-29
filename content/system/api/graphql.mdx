@@ -371,6 +371,8 @@ type Media {
   updatedAt: DateTime!
   image: Image
   processing: MediaProcessing
+  groups(scope: ScopeInput!, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  tags(scope: ScopeInput!, first: Int, after: String, last: Int, before: String): MediaTagConnection!
 }
 
 type MediaUploader {
@@ -433,7 +435,7 @@ extend type Query {
 
 Tag filterは現在scopeのTagだけを受け付け、複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
 
-`media(id:)` は現在Userが閲覧可能なMediaだけを返します。Community context固有のGroup / Tag分類はscopeを明示する別Queryまたは分類契約から取得し、Media自体へ全Communityの分類情報を混在させません。
+`media(id:)` は現在Userが閲覧可能なMediaだけを返します。Media詳細の分類情報は `Media.groups(scope:)` / `Media.tags(scope:)` から現在のPersonal / Community scopeを明示して取得します。指定scopeでMediaが閲覧可能であることを再検証し、別CommunityやPersonalの分類情報を暗黙に混在させません。Group / Tagの一覧・検索・管理は独立Queryで提供し、Community自身の子fieldには追加しません。
 
 ## Image UploadとProcessing
 
@@ -947,7 +949,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
 8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
 9. **Group relation detailとモデルfield（確定）**: Group Browser画面仕様に従い、`MediaGroup.parents` / `children` / `media` を独立したRelay Connectionとして公開する。Group間relationの追加候補検索は別契約とし、候補の絞り込みと循環禁止はAPI側でも再検証する。
-10. **Media scope固有分類取得とモデルfield**: Media detail上のGroup / Tagをscope付きfieldにするか、独立Queryにするか。
+10. **Media scope固有分類取得とモデルfield（確定）**: Group詳細の関連Connectionと同様に、Media詳細の直接関連情報は `Media.groups(scope:)` / `Media.tags(scope:)` の独立したRelay Connectionとして取得する。scopeは必須とし、現在scopeでのMedia可視性を検証する。Group / Tag本体の一覧・検索・管理は独立Query、Communityの子fieldにはしない。
 11. **GraphQL Upload transport**: 現在の「API経由Upload」をmultipart GraphQL `Upload` scalarで実現するか、API内の別HTTP upload endpointを使うか。
 12. **整数scalar**: file size等がJavaScript安全整数を超えない制約を利用して `Int` とするか、`BigInt` / custom scalarを導入するか。
 
