@@ -447,6 +447,8 @@ Initial Releaseではファイル本体をGraphQL multipart Mutationで受け取
 
 Initial Releaseの入力形式、128 MiB、100 megapixels、width / height上限等はMedia処理設計を適用し、違反は `VALIDATION` とします。
 
+Initial ReleaseのOriginal file size上限は128 MiBであり、`Media.fileSize` と `ImageVariant.sizeBytes` にはGraphQL標準の32-bit signed `Int` を使用します。画像のwidth / heightも同じ `Int` とし、`BigInt` / custom integer scalarは導入しません。将来この範囲を超える値が必要になった場合は、該当fieldの型変更とClient互換性を別途設計します。
+
 Original保存とDB transactionが成功した時点でMutationを成功とし、Variant生成完了やRedis配送完了を待ちません。返却Mediaの `processing.status` により非同期状態を観測します。terminal `FAILED` でもMediaは残り、通常権限に従って削除できます。Initial ReleaseではUser向けmanual reprocess Mutationを提供しません。
 
 Uploadは再送による重複Media作成を避ける必要があるため `idempotencyKey` を要求します。keyの形式・保持期間は[冪等性と再試行](./idempotency)および未決定Implementation Detailで確定します。
@@ -932,6 +934,6 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 9. **Group relation detailとモデルfield（確定）**: Group Browser画面仕様に従い、`MediaGroup.parents` / `children` / `media` を独立したRelay Connectionとして公開する。Group間relationの追加候補検索は別契約とし、候補の絞り込みと循環禁止はAPI側でも再検証する。
 10. **Media scope固有分類取得とモデルfield（確定）**: Group詳細の関連Connectionと同様に、Media詳細の直接関連情報は `Media.groups(scope:)` / `Media.tags(scope:)` の独立したRelay Connectionとして取得する。scopeは必須とし、現在scopeでのMedia可視性を検証する。Group / Tag本体の一覧・検索・管理は独立Query、Communityの子fieldにはしない。
 11. **Upload transport（確定）**: ファイル本体は同じmemoria-api内の専用HTTP upload endpointで受信し、必要最小限のcustody情報とidempotency keyも同じrequestで受け取る。GraphQLはMediaの取得・分類・共有・削除・Processing状態取得を担当する。既存Redis Streamsによる非同期処理基盤を再利用し、HTTP endpointとGraphQLはApplication Use Caseおよび認証・認可規則を共有する。具体的なHTTP routeとrequest / response形式は詳細設計で確定する。
-12. **整数scalar**: file size等がJavaScript安全整数を超えない制約を利用して `Int` とするか、`BigInt` / custom scalarを導入するか。
+12. **整数scalar（確定）**: Initial ReleaseのOriginal file size上限128 MiB、画像寸法・Variant size等の現在の上限をGraphQL標準の32-bit signed `Int` で表現する。`BigInt` / custom integer scalarは導入しない。将来2,147,483,647を超える値を公開する要件が生じた場合は、該当fieldのscalarとClient互換性を別途設計する。
 
 これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。レビュー完了後に決定内容を本ページとIssue #61へ反映し、実行可能SDLへ引き渡します。
