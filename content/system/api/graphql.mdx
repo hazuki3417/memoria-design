@@ -473,15 +473,21 @@ Uploadは再送による重複Media作成を避ける必要があるため `idem
 ### 単一・複数Mediaを同一Communityへ共有
 
 ```graphql
-enum MediaBulkItemStatus {
+enum BulkItemStatus {
   SUCCEEDED
   ALREADY_APPLIED
   FAILED
 }
 
-type MediaBulkItemResult {
+type ShareMediaItemResult {
   mediaId: ID!
-  status: MediaBulkItemStatus!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
+type UnshareMediaItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
   errorCode: String
 }
 
@@ -491,7 +497,7 @@ input ShareMediaToCommunityInput {
 }
 
 type ShareMediaToCommunityPayload {
-  results: [MediaBulkItemResult!]!
+  results: [ShareMediaItemResult!]!
 }
 
 input UnshareMediaFromCommunityInput {
@@ -500,7 +506,7 @@ input UnshareMediaFromCommunityInput {
 }
 
 type UnshareMediaFromCommunityPayload {
-  results: [MediaBulkItemResult!]!
+  results: [UnshareMediaItemResult!]!
 }
 
 extend type Mutation {
@@ -630,8 +636,14 @@ type MediaGroupRelationPayload {
   childGroup: MediaGroup!
 }
 
+type MediaGroupClassificationItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
 type ChangeMediaGroupClassificationPayload {
-  results: [MediaBulkItemResult!]!
+  results: [MediaGroupClassificationItemResult!]!
 }
 
 extend type Mutation {
@@ -708,8 +720,14 @@ type DeleteMediaTagPayload {
   tagId: ID!
 }
 
+type MediaTagClassificationItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
 type ChangeMediaTagClassificationPayload {
-  results: [MediaBulkItemResult!]!
+  results: [MediaTagClassificationItemResult!]!
 }
 
 extend type Mutation {
@@ -919,7 +937,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 
 1. **Operation naming（確定）**: 対象モデルの更新を表す `updateCommunity` 方式を採用する。Communityの名称変更は `updateCommunity`、Profile変更は `updateUserProfile` とし、単一属性に限定した `renameCommunity` 等は設けない。Membershipの除外や退会、Media削除など更新とは異なる独立したUser intentは、既存案どおり `removeCommunityMember` / `leaveCommunity` / `deleteMedia` 等の操作名で表す。
 2. **scope Input表現（確定）**: `ScopeType` enum（`PERSONAL` / `COMMUNITY`）を明示する。共通 `ScopeInput` をGroup / Tagの取得・作成で使用し、Image Uploadの `UploadCustodyInput` も同じenumと検証規則を使用する。`COMMUNITY` は `communityId` 必須、`PERSONAL` は指定禁止とし、不整合は `VALIDATION`。
-3. **Bulk result表現**: `SUCCEEDED / ALREADY_APPLIED / FAILED + errorCode` を共通型として採用するか。
+3. **Bulk result表現（確定）**: 共有・共有解除・Group分類・Tag分類に専用のitem result型を設ける。状態の意味は共通 `BulkItemStatus`（`SUCCEEDED` / `ALREADY_APPLIED` / `FAILED`）で統一し、各resultは `mediaId` / `status` / `errorCode` を持つ。操作固有の結果fieldは必要になった時点で個別に追加する。
 4. **Invitation secret返却**: Administrator Queryで完全URLを返すか、token / URL生成責務を別境界にするか。
 5. **Original download契約**: GraphQLが短期URLを返す方式を採用するか、別download endpointへ遷移させるか。
 6. **Account deletion binding**: `reviewToken` と再認証結果をGraphQL Inputで渡す論理形を、session-bound server state等へ変更するか。
