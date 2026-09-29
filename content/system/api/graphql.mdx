@@ -445,6 +445,7 @@ input UploadImageInput {
 }
 
 input UploadCustodyInput {
+  type: ScopeType!
   communityId: ID
 }
 
@@ -457,7 +458,7 @@ extend type Mutation {
 }
 ```
 
-`communityId` 未指定はPersonal Media、指定時はCommunity直接Uploadを意味します。Serverは指定Communityへの現在Membershipを検証します。ClientからUser Custodian IDやUploader IDを受け取りません。
+`custody.type` が `PERSONAL` ならPersonal Media、`COMMUNITY` ならCommunity直接Uploadを意味します。`COMMUNITY` では `communityId` が必須で、`PERSONAL` では指定を禁止します。Serverは指定Communityへの現在Membershipを検証します。ClientからUser Custodian IDやUploader IDを受け取りません。
 
 1 request / 1 Processing Job / 1 Mediaを維持し、複数画像選択はClientが個別Mutationをbounded concurrencyで実行します。1回のUI選択は最大100 filesですが、GraphQL Mutation自体を100 filesのatomic batchにはしません。
 
@@ -566,23 +567,29 @@ type MediaGroupConnection {
   pageInfo: PageInfo!
 }
 
-input MediaGroupScopeInput {
+enum ScopeType {
+  PERSONAL
+  COMMUNITY
+}
+
+input ScopeInput {
+  type: ScopeType!
   communityId: ID
 }
 
 extend type Query {
-  mediaGroups(scope: MediaGroupScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  mediaGroups(scope: ScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
   mediaGroup(id: ID!): MediaGroup
 }
 ```
 
-`communityId` 未指定はPersonal scope、指定時はCommunity scopeです。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailで所属先Group、所属Group、Mediaを取得できる関係を提供しますが、DAG全体graph取得を主要契約にしません。
+`scope.type` は `PERSONAL` / `COMMUNITY` の明示指定を必須とします。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailで所属先Group、所属Group、Mediaを取得できる関係を提供しますが、DAG全体graph取得を主要契約にしません。
 
 ### Command
 
 ```graphql
 input CreateMediaGroupInput {
-  scope: MediaGroupScopeInput!
+  scope: ScopeInput!
   name: String!
 }
 
@@ -664,22 +671,18 @@ type MediaTagConnection {
   pageInfo: PageInfo!
 }
 
-input MediaTagScopeInput {
-  communityId: ID
-}
-
 extend type Query {
-  mediaTags(scope: MediaTagScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaTagConnection!
+  mediaTags(scope: ScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaTagConnection!
 }
 ```
 
-`communityId` 未指定はPersonal scope、指定時はCommunity scopeです。同一scopeの保存name完全一致を重複禁止し、大文字小文字・全角半角・内部空白等を自動統合しません。
+TagもGroupと共通の `ScopeInput` を使用し、`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止します。同一scopeの保存name完全一致を重複禁止し、大文字小文字・全角半角・内部空白等を自動統合しません。
 
 ### Command
 
 ```graphql
 input CreateMediaTagInput {
-  scope: MediaTagScopeInput!
+  scope: ScopeInput!
   name: String!
 }
 
@@ -915,7 +918,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 既存設計だけでは一意に決められない事項を以下で追跡します。確定済みの項目は採用方針を明記します。
 
 1. **Operation naming（確定）**: 対象モデルの更新を表す `updateCommunity` 方式を採用する。Communityの名称変更は `updateCommunity`、Profile変更は `updateUserProfile` とし、単一属性に限定した `renameCommunity` 等は設けない。Membershipの除外や退会、Media削除など更新とは異なる独立したUser intentは、既存案どおり `removeCommunityMember` / `leaveCommunity` / `deleteMedia` 等の操作名で表す。
-2. **scope Input表現**: Personal / Communityをnullable `communityId` で表すか、明示enum / one-of相当Inputにするか。
+2. **scope Input表現（確定）**: `ScopeType` enum（`PERSONAL` / `COMMUNITY`）を明示する。共通 `ScopeInput` をGroup / Tagの取得・作成で使用し、Image Uploadの `UploadCustodyInput` も同じenumと検証規則を使用する。`COMMUNITY` は `communityId` 必須、`PERSONAL` は指定禁止とし、不整合は `VALIDATION`。
 3. **Bulk result表現**: `SUCCEEDED / ALREADY_APPLIED / FAILED + errorCode` を共通型として採用するか。
 4. **Invitation secret返却**: Administrator Queryで完全URLを返すか、token / URL生成責務を別境界にするか。
 5. **Original download契約**: GraphQLが短期URLを返す方式を採用するか、別download endpointへ遷移させるか。
