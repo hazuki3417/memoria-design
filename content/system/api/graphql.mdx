@@ -12,7 +12,7 @@
 
 - **全ドメイン共通**: GraphQL SchemaのQuery / Mutationは特定画面・ユースケース専用にせず、公開ドメインモデルと操作の責務に基づく再利用可能なI/Fとします。User、Community、Membership、Media、Group、Tag、Account関連のすべてに適用し、ドメイン別の重複型・同義Query / Mutationを安易に増やしません。
 - **Web Operationとの責務分離**: Webは画面・ユースケースごとの名前付きGraphQL OperationとFragmentを所有し、SchemaのQuery / Mutationと関連fieldを組み合わせます。Schemaのfield名を画面名やWeb Operation名へ寄せず、同じ責務は異なる画面から再利用します。API内部のApplication Use Caseは認可・整合性・transactionを担当し、Web Operationと1対1対応させません。
-- **汎用性の境界**: 共通化は意味・認可・副作用が一致する責務の範囲で行います。対象のscopeやCommunityなどで結果が変わる場合は明示的な引数を使い、IDだけで対象と認可範囲が確定する場合は不要なscopeを要求しません。複数scopeの横断取得や無関係な操作の統合は、具体的な要件がない限り導入しません。Mutationは共通I/Fであっても、共有・退会・削除など異なるUser intentを一つにまとめません。
+- **汎用性とscopeの境界**: 共通化は意味・認可・副作用が一致する責務の範囲で行います。Personal IDとCommunity IDはいずれもULIDであり、ID値・形式から種類を推定しません。既存resourceのIDで対象を特定でき、保存済みの所属情報からscopeを確定できるQuery / Mutationには重複するscope引数を要求しません。一覧・新規作成など対象resource IDがない場合や、同じMediaの分類など指定scopeで結果が変わる場合は、`ScopeInput`等でコンテキストを明示します。Personalは認証済みUser本人を基準とし、Clientから本人のUser IDを要求しません。異なる種類のIDを受け取る必要がある場合は、ULIDから推測したり曖昧な汎用IDにせず、型または意味を明示する引数・fieldを設計します。複数scopeの横断取得や無関係な操作の統合は、具体的な要件がない限り導入しません。Mutationは共通I/Fであっても、共有・退会・削除など異なるUser intentを一つにまとめません。
 
 - Queryは状態を変更せず、Mutationは1つのUser intentを表す動詞と対象の組み合わせにします。
 - MutationはInput ObjectとPayloadを使用します。Clientが指定すべきでないUser ID、role、時刻、Custodian等をInputへ含めません。
@@ -574,7 +574,7 @@ extend type Query {
 }
 ```
 
-`scope.type` は `PERSONAL` / `COMMUNITY` の明示指定を必須とします。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
+`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
 
 ### Command
 
