@@ -1,0 +1,60 @@
+# プロダクトビジョン・設計原則
+
+## この文書の位置づけ
+
+Memoriaが何のために存在し、どのような価値を守るかを示す、個別のRelease計画・Domain設計・画面仕様・技術選択より上位の判断指針です。個別仕様の詳細や法的な権利関係をこの文書だけで確定しません。
+
+この文書では、合意済みの方針と、今後のレビューで判断する候補を区別します。未確定事項を確定済みのプロダクト信念として扱いません。
+
+## 存在意義と目指す体験
+
+Memoriaは、家族や部活動などの閉じたCommunityで生まれる写真・動画とその付加情報を、参加者が共有し、整理し、時間を越えて引き継げるようにするプロダクトです。汎用ファイルストレージではなく、CommunityのMediaをアルバムのように蓄積する体験を中心に据えます。
+
+## 合意済みの信念
+
+### CommunityのMediaは共有資産
+
+Communityに直接アップロードされたMediaは、アップロードした個人だけに依存するものではなく、Communityが継続して管理する共有資産として扱います。Uploaderの記録とMediaの管理主体を分け、Uploaderの退会・Account削除によってCommunity管理Mediaが失われないようにします。
+
+ここでいう「共有資産」はMemoria内の管理責任と利用体験を表す概念であり、著作権や法的所有権の移転を意味しません。
+
+### 参加者が共有できること
+
+Community管理MediaとCommunityへ共有されたUser管理Mediaは、そのCommunityの有効な参加者全員が閲覧できます。Uploaderだけに閲覧を限定しません。Community外への公開は前提にせず、参加資格の失効後は新しい閲覧許可を発行しません。
+
+### 個人のMediaとCommunityのMediaを区別する
+
+個人が管理するMediaをCommunityへ共有しても、Media本体を複製したり、管理主体を暗黙にCommunityへ変更したりしません。個人管理Mediaの共有と、Communityへの直接Uploadは異なる意思決定として扱います。
+
+## 設計へ落とし込む原則
+
+| 原則 | 設計・実装時の判断 |
+| --- | --- |
+| 管理主体とUploaderを分離する | Mediaは常に1 Userまたは1 CommunityをCustodianとし、Uploaderは別に記録する |
+| 管理責任と閲覧権限を分離する | Community参加資格を基準に共有Mediaの閲覧を認可し、Uploaderとの個別関係だけで判断しない |
+| Communityの継続性を守る | Uploaderが退会・Account削除してもCommunity管理Mediaを自動削除しない |
+| 個人の管理責任を尊重する | User管理MediaのCommunity共有はCustodyの変更ではない |
+| 閉じた共有空間を守る | Community外Userには内部Mediaを公開せず、Membershipとroleに応じて操作を認可する |
+| 整理と管理権限を混同しない | Group・Tagによる分類はMediaのCustody・閲覧権限を変更しない |
+
+具体的な操作権限、削除条件、共有解除、データモデルはMedia・Community・Userの各Domain設計を正本とします。
+
+## 設計判断への適用
+
+新機能や仕様変更では、最初に「誰のMediaか」「誰が閲覧できるか」「Uploaderや参加者が離れた後に何が残るか」を確認します。個人の利便性とCommunityの継続性が衝突する場合は、現在のCustodianと共有範囲を明確にしたうえで、暗黙の移管・削除を避ける設計を検討します。合意済みの信念と衝突する変更は、個別実装で例外化せず、Product上の判断としてレビューします。
+
+## 全体レビューで確定する事項
+
+以下は現時点で新たなプロダクト信念としては未確定です。既存のDomain仕様を変更する意図はありません。
+
+1. Communityの継続性と、Uploader本人による削除権限が衝突する場合の長期的な優先順位。初回Releaseでは参加中のUploader本人にCommunity管理Mediaの削除権限があります。
+2. Community管理Mediaを長期に継承する際のAdministrator交代・Community消滅へのProduct上の期待。初回ReleaseのCommunity削除条件は既存仕様を維持します。
+3. Communityの共有体験と、個人のプライバシー・削除希望が衝突する場面での原則。法的な権利・義務は別途検討が必要です。
+4. 将来の動画・通知・公開共有などで、閉じたCommunityという境界をどこまで維持するか。
+
+## 関連する正本
+
+- [初回Releaseの範囲と成功条件](/first-release)
+- [Media](/media)・[Mediaライフサイクル](/media/lifecycle)
+- [Community](/community)・[Community権限](/community/authorization)
+- [ドキュメント管理方針](/documentation-policy)
