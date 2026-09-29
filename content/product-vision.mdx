@@ -14,7 +14,7 @@ Communityは、家族やサークルなど、現実世界で一緒に時間を�
 
 ### 外部には閉じ、内部では開く
 
-CommunityにMediaを公開することは、そのCommunityの参加者に見せることを意味します。参加者全員が等しく閲覧できることを基本とし、一部の参加者だけが閲覧できるMediaや、参加者ごとの細かな閲覧権限は設けません。
+CommunityにMediaを公開することは、そのCommunityの参加者に見せることを意味します。参加者全員が等しく閲覧できることを基本とし、一部の参加者だけが閲覧できるMediaや、参加者ごとの細かな閲覧権限は設けません。Communityの秩序と参加者の信頼関係を守るため、Mediaの閲覧にはCommunityへの参加を必要とします。外部公開リンクや期限付きゲストアクセスなど、Membershipを経由せずにCommunity内のMediaを閲覧する仕組みは提供しません。
 
 「等しく閲覧できる」は閲覧範囲の原則です。Mediaの削除やOriginal downloadなどの操作権限は、参加者の役割やMediaとの関係に応じて定めます。
 
@@ -40,7 +40,7 @@ Memoriaは、写っている本人による削除申請や、Administratorへの
 
 | 原則 | 設計・実装で守ること |
 | --- | --- |
-| Communityの境界を守る | Community外のUserに内部Mediaを公開せず、参加資格に基づいて閲覧を認可する |
+| Communityの境界を守る | Community内のMediaはMembershipに基づいて閲覧を認可し、外部公開やゲスト閲覧を提供しない |
 | Community内部の閲覧を開く | 共有Mediaは参加者全員が閲覧でき、参加者ごとの閲覧制限を設けない |
 | Uploaderと管理主体を分ける | Mediaは1 Userまたは1 CommunityをCustodianとし、Uploaderを別に記録する |
 | Communityに残るMediaを守る | Uploaderの退会やAccount削除によってCommunity管理Mediaを自動削除しない |
