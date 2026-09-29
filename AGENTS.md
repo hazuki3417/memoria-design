@@ -149,6 +149,7 @@ npm run build
 9. 新しいプロダクト用語は、対象設計と同じ変更で`content/ubiquitous.mdx`へ追加します。
 10. draw.io、SVG、旧MDXを移行・削除する前に、属性、関連、多重度、constraint、データパターン、操作順序、例外、意図、非対応理由が最新設計へ統合されていることを確認します。
 11. 実装を開始する設計では、開発者が重要な仕様判断を推測する状態を残しません。
+12. Screen SpecificationではInformation、Action、State、Navigation上の意味、制約、Responsiveで維持するCapabilityを定義し、`Dialog`、`Drawer`、`Modal`、`Page`、`Sidebar`、`split view`等のpresentation、Component構成、layout、visual designを原則として固定しません。presentation自体がProduct要件の場合だけ理由を明記して例外とします。既存実装やDesign System Patternの存在だけを固定理由にしません。
 
 ## コードレビュー規則
 
@@ -164,6 +165,7 @@ npm run build
 - 元資料を削除する変更では、詳細情報が最新設計へ完全に移行されているか確認します。
 - 人間の責任範囲をAIへ移す記述や、ローカル開発を副次的に扱う記述を指摘します。
 - Windowsホストからの直接実行、OS間の`node_modules`共有、依存関係の未記録など、標準ローカル環境の再現性を損なう手順を指摘します。
+- Screen Specificationが、Product要件上の理由なくDialog / Drawer / Modal / Page / Sidebar / split view等のpresentationを固定している変更を指摘します。
 - 日本語で統一されていないプロダクト資料を指摘します。
 - 内容を識別できないページ名、状態が不明な設計、プロダクト概要より先に技術詳細を要求するナビゲーションを指摘します。
 - `_meta.js`のカテゴリ、セパレーター、表示順がドキュメント管理方針と一致しない変更を指摘します。

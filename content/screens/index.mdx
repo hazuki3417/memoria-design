@@ -4,6 +4,8 @@
 
 このdirectoryはMemoriaの画面単位のUI仕様を管理します。設計書本文・見出し・ページタイトルは日本語を基本とし、Media / Group / Tag / Custodian / GraphQL等のドメイン・技術上の正式名称やコード識別子は必要に応じて英語表記を維持します。Screen Specificationは、画面が満たすべき意味と振る舞いを定義し、具体的なReact / Mantine実装やpixel単位のlayoutは定義しません。
 
+Screen Specificationでは、必要なInformation、Action、State、Navigation上の意味、制約、Responsiveで維持すべきCapabilityを定義します。`Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view`等のpresentation、Component構成、配置、寸法、visual designは原則として固定しません。特定のpresentation自体がProduct要件として必要な場合だけ、その理由と要件を明示して例外的に定義します。
+
 UI設計全体の方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)、設計書セットの構成と正本境界は[ドキュメント管理方針](/documentation-policy)、各Screen Specificationの章立て・必須情報・記載粒度は[設計書テンプレート](/design-document-templates#screen-specification)を正本とします。
 
 ## 配置

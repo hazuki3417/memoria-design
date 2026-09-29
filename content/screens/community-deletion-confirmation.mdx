@@ -12,7 +12,7 @@ Account削除Flowに伴うCommunity削除特例とは異なり、Community管理
 
 不可逆なCommunity削除について、誤対象・影響の見落とし・削除条件未充足のまま実行することを防ぎます。
 
-単純なconfirmation dialogではなく、削除対象、影響、現在削除可能かを継続して確認できる専用Screenとして扱います。
+削除を確定する前に、削除対象、影響、現在削除可能かをUserが十分に確認できることを要求します。これらをどのpresentationで提示するかは本仕様では固定しません。
 
 ## 関連Use Case
 
@@ -95,13 +95,13 @@ Initial ReleaseではCustodian委譲がないため、通常削除を行うに�
 
 ## Navigation
 
-Community ManagementからこのScreenへ進みます。
+Community ManagementからCommunity削除確認を開始します。
 
 Cancel時は対象CommunityのManagementへ戻ります。
 
 削除成功後は削除済みCommunityへ戻らず、利用可能なApplication destinationへ移動します。
 
-Account削除FlowからCommunity削除が必要な場合は、本Screenをそのまま再利用する前提としません。Account削除特例はCommunity管理Media削除や再認証を含むため、[Account Deletion Flow](/screens/account-deletion-flow)の責務として扱います。
+Account削除FlowからCommunity削除が必要な場合は、通常Community削除確認と同じUI構成をそのまま再利用することを前提としません。Account削除特例はCommunity管理Media削除や再認証を含むため、[Account Deletion Flow](/screens/account-deletion-flow)の責務として扱います。
 
 ## 制約
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-ACTIVE Userが、Application利用中のcontextを維持したまま新しいCommunityを作成するDialogです。
+ACTIVE Userが、Application利用中のcontextから新しいCommunityを作成するための画面仕様です。
 
 > 実装状況: Community作成機能は未実装です。本仕様はInitial ReleaseのCommunity作成UIを定義します。
 
@@ -10,7 +10,7 @@ ACTIVE Userが、Application利用中のcontextを維持したまま新しいCom
 
 UserがApplication内から、Community名だけを指定して新しいCommunityを作成できるようにします。
 
-Community作成はApplication利用開始に必須となるFlowではなく、Application利用中に任意で行う操作として扱います。独立したPageへ移動せず、[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
+Community作成はApplication利用開始に必須となるFlowではなく、Application利用中に任意で開始できる操作として扱います。作成中の具体的なpresentationや画面遷移方式は本仕様では固定しません。
 
 ## 関連Use Case
 
@@ -50,7 +50,7 @@ Community名が必須条件を満たさない場合は、[Feedback Pattern](/des
 
 ### 作成成功
 
-Community作成が完了した場合はDialogを閉じ、作成したCommunityの標準entryへ進みます。
+Community作成が完了した場合は、作成したCommunityの標準entryへ進みます。
 
 Communityの標準entryはMediaです。Application Navigationの構造は[Application Information Architecture](/system/application-information-architecture)に従います。
 
@@ -62,7 +62,7 @@ User状態の変化等によりCommunity作成を継続できない場合はBloc
 
 ## Navigation
 
-Community Creationは、ACTIVE Userが通常のApplication利用中に起動するDialogとして提供します。
+Community作成は、ACTIVE Userが通常のApplication利用中に開始できるようにします。
 
 Application Navigationは[Application Information Architecture](/system/application-information-architecture)に従い、Context SwitcherからCommunity作成を開始できるようにします。Header、Sidebar等の具体的なpresentationは固定しません。
 
@@ -78,11 +78,10 @@ Application Navigationは[Application Information Architecture](/system/applicat
 - Initial Releaseでは作成時に説明、Community画像、公開Profile、公開設定等を入力しません。
 - 作成したUserを最初のMembershipおよびAdministratorとしてCommunity作成と同じTransactionで登録します。
 - 作成者専用の恒久的な権限は設けません。
-- Community作成には[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
 - validationと作成結果の提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
 
 ## Responsive対応
 
 表示領域や入力方式が変わっても、Community名を入力してCommunityを作成するCapabilityは維持します。
 
-DialogというInteractionの意味は維持しますが、具体的なsize、placement、small viewportでの表示方法は実装Foundationと利用環境に応じて決定します。現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。
+現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なpresentation、layout、size、placementは後続のUI具体化で決定します。

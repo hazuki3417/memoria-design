@@ -56,6 +56,14 @@ Media本体へUser/Community ownership IDを埋め込まず、`media_custodies`�
 - ULIDはPostgreSQLで`varchar(26)`等、既存で確定済みのPersistence規約を未決定へ戻さない。
 - `Initial Release外`と`将来を見越したDomain/Persistence設計`を分離する。未提供を理由に将来設計を削除しない。
 
+## Screen Specificationの責務境界
+
+Screen Specificationは、利用者が確認するInformation、実行するAction、区別すべきState、Navigation上の意味、制約、Responsiveで維持するCapabilityを正本とします。
+
+具体的なlayout、visual design、Component構成、および `Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view` 等のpresentationは後続のUI具体化で決定し、Screen Specificationでは原則固定しません。presentation自体がProduct要件である場合だけ、その理由を明記して例外とします。既存のmemoria-web実装やDesign System Patternの存在を、そのままProduct仕様へ昇格させません。
+
+Screen Specificationの作成・Reviewでは `/screens`、`/design-document-templates#screen-specification`、`/system/frontend-ui-development` を併せて確認します。
+
 ## 実装時の判断
 
 既存仕様・実装を推測せず、対象GitHub repositoryの最新状態を確認します。設計と実装が違う場合は設計を勝手に実装へ合わせず差分を報告します。大きな設計判断が必要なら人間と合意してから変更します。
