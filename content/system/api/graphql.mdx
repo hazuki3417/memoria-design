@@ -10,7 +10,9 @@
 
 ## 契約原則
 
-- GraphQL SchemaのQuery / Mutationは特定画面・ユースケース専用にせず、公開ドメインモデルと操作の責務に基づく再利用可能なI/Fとします。Webは画面・ユースケースごとの名前付きGraphQL Operationを定義して共通I/Fを組み合わせます。汎用性を理由に未要求のscope横断一覧や任意操作を追加しません。
+- **全ドメイン共通**: GraphQL SchemaのQuery / Mutationは特定画面・ユースケース専用にせず、公開ドメインモデルと操作の責務に基づく再利用可能なI/Fとします。User、Community、Membership、Media、Group、Tag、Account関連のすべてに適用し、ドメイン別の重複型・同義Query / Mutationを安易に増やしません。
+- **Web Operationとの責務分離**: Webは画面・ユースケースごとの名前付きGraphQL OperationとFragmentを所有し、SchemaのQuery / Mutationと関連fieldを組み合わせます。Schemaのfield名を画面名やWeb Operation名へ寄せず、同じ責務は異なる画面から再利用します。API内部のApplication Use Caseは認可・整合性・transactionを担当し、Web Operationと1対1対応させません。
+- **汎用性の境界**: 共通化は意味・認可・副作用が一致する責務の範囲で行います。対象のscopeやCommunityなどで結果が変わる場合は明示的な引数を使い、IDだけで対象と認可範囲が確定する場合は不要なscopeを要求しません。複数scopeの横断取得や無関係な操作の統合は、具体的な要件がない限り導入しません。Mutationは共通I/Fであっても、共有・退会・削除など異なるUser intentを一つにまとめません。
 
 - Queryは状態を変更せず、Mutationは1つのUser intentを表す動詞と対象の組み合わせにします。
 - MutationはInput ObjectとPayloadを使用します。Clientが指定すべきでないUser ID、role、時刻、Custodian等をInputへ含めません。
@@ -848,9 +850,9 @@ extend type Mutation {
 
 `reviewToken` と `reauthenticationProof` の具体的な生成・保持・有効期限・Auth0連携方式はSecurity / Authentication上の未決定事項です。本レビューではFlow上必要なServer-side bindingを示す論理契約として扱い、具体形式を確定しません。
 
-## Operationと認可・副作用一覧
+## Schema fieldと認可・副作用一覧
 
-| Operation | 主体 | 主な副作用 / 結果 |
+| Schema field / 操作 | 主体 | 主な副作用 / 結果 |
 | --- | --- | --- |
 | `me` | 認証済み主体 | 登録状態取得 |
 | `registerUser` | 未登録認証主体 | ACTIVE User作成 |
