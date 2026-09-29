@@ -1,18 +1,12 @@
 # プロダクトビジョン・設計原則
 
-## この文書の位置づけ
+## 目的
 
-Memoriaが何のために存在し、どのような価値を守るかを示す、個別のRelease計画・Domain設計・画面仕様・技術選択より上位の判断指針です。個別仕様の詳細や法的な権利関係をこの文書だけで確定しません。
+Memoriaは、家族やサークルなど、現実のCommunityで生まれた写真や動画を、その集まりの人たちが一緒に見て、整理し、残していける場所を目指します。個人が持つファイルを一時的に見せ合うだけでなく、Communityの中で思い出が積み重なっていくアルバムのような体験を大切にします。
 
-この文書では、合意済みの方針と、今後のレビューで判断する候補を区別します。未確定事項を確定済みのプロダクト信念として扱いません。
+Memoriaの設計と実装は、**「Communityは外部には閉じ、内部では開く」「Mediaは博物館の展示物に近い」**という思想を基準に判断します。
 
-## 存在意義と目指す体験
-
-Memoriaは、家族やサークルなど、現実のCommunityで生まれた写真や動画を、その集まりの人たちが一緒に見て、整理し、残していける場所を目指します。個人が持つファイルを一時的に見せ合うだけでなく、Communityの中で思い出が積み重なっていくアルバムのような体験を中心に据えます。
-
-その原点は、初期draw.ioに記された**「Communityは外部には閉じ、内部では開く」「Mediaは博物館の展示物に近い」**という考え方です。これをプロダクトの中心的な方針とします。
-
-## プロダクトの中心となる思想
+## プロダクトの思想
 
 ### 現実の集まりに近いCommunity
 
@@ -20,56 +14,46 @@ Communityは、家族やサークルなど、現実世界で一緒に時間を�
 
 ### 外部には閉じ、内部では開く
 
-CommunityにMediaを公開することは、そのCommunityの参加者に見せることを意味します。Community内では参加者全員が等しく閲覧でき、一部の参加者だけが閲覧できるMediaや、参加者ごとの細かな閲覧権限は設けません。
+CommunityにMediaを公開することは、そのCommunityの参加者に見せることを意味します。参加者全員が等しく閲覧できることを基本とし、一部の参加者だけが閲覧できるMediaや、参加者ごとの細かな閲覧権限は設けません。
 
-「等しく閲覧できる」は閲覧範囲の原則であり、削除やOriginal downloadなどの操作権限まで全員同一にする意味ではありません。操作権限はCommunity権限設計で定義します。
+「等しく閲覧できる」は閲覧範囲の原則です。Mediaの削除やOriginal downloadなどの操作権限は、参加者の役割やMediaとの関係に応じて定めます。
 
 ### Mediaは博物館の展示物に近い
 
-Communityに置かれたMediaは、Uploader個人の手元だけで管理するファイルではなく、その集まりの人たちが一緒に眺め、整理し、残していくものとして扱います。誰かがCommunityを離れても、その人が残したMediaまで自動的に失われることはありません。
+Communityに置かれたMediaは、Uploader個人の手元だけで管理するファイルではなく、その集まりの人たちが一緒に眺め、整理し、残していくものです。誰かがCommunityを離れても、その人が残したCommunity管理Mediaまで自動的に失われることはありません。
 
-この比喩は、閲覧体験と継続的な管理についての思想です。著作権や法的所有権を定義するものではありません。
+この考え方は、Mediaの閲覧体験と継続的な管理に関するものです。著作権や法的所有権の移転を意味しません。
 
 ### 個人の場所とCommunityの場所を分ける
 
-Community全員には見せたくないMediaは、個人の領域で管理します。個人管理MediaをCommunityへ共有する場合は、そのCommunityの参加者全員が閲覧できるものとして扱い、Media自体の管理主体は個人のままとします。
+Community全員には見せたくないMediaは、個人の領域で管理します。個人管理MediaをCommunityへ共有した場合、そのCommunityの参加者全員が閲覧できますが、Media自体の管理主体は個人のままです。
 
-## 現行仕様への反映と初期案との違い
+## 設計原則
 
-上記の思想を実現するため、Communityへ直接UploadしたMediaはCommunityをCustodianとし、Uploaderは別に記録します。これは内部設計上「Communityの共有資産」と説明できるものですが、**「共有資産」はプロダクトの理念そのものではなく、思想をデータモデルとライフサイクルへ落とし込むための用語**です。
-
-初期draw.ioにはCommunityのネストやprivate/publicの2値による公開範囲の案もありますが、現在はCommunity同士をネストせず、MembershipとCustody・共有関係で閲覧範囲を表現します。Community Groupは分類専用であり、閲覧権限を分割しません。初期案の具体的な構造を現在の仕様として復活させるものではありません。
-
-初期資料：[draw.io SVG（履歴上の原本）](https://github.com/hazuki3417/memoria-design/blob/eb215f4291d4cb28fac3e9a55716f5d96b0af21f/pages/_drawio/modeling.drawio.svg)。
-
-## 設計へ落とし込む原則
-
-| 原則 | 設計・実装時の判断 |
+| 原則 | 設計・実装で守ること |
 | --- | --- |
-| 管理主体とUploaderを分離する | Mediaは常に1 Userまたは1 CommunityをCustodianとし、Uploaderは別に記録する |
-| 管理責任と閲覧権限を分離する | Community参加資格を基準に共有Mediaの閲覧を認可し、Uploaderとの個別関係だけで判断しない |
-| Communityの継続性を守る | Uploaderが退会・Account削除してもCommunity管理Mediaを自動削除しない |
-| 個人の管理責任を尊重する | User管理MediaのCommunity共有はCustodyの変更ではない |
-| 閉じた共有空間を守る | Community外Userには内部Mediaを公開せず、Membershipとroleに応じて操作を認可する |
-| 整理と管理権限を混同しない | Group・Tagによる分類はMediaのCustody・閲覧権限を変更しない |
+| Communityの境界を守る | Community外のUserに内部Mediaを公開せず、参加資格に基づいて閲覧を認可する |
+| Community内部の閲覧を開く | 共有Mediaは参加者全員が閲覧でき、参加者ごとの閲覧制限を設けない |
+| Uploaderと管理主体を分ける | Mediaは1 Userまたは1 CommunityをCustodianとし、Uploaderを別に記録する |
+| Communityに残るMediaを守る | Uploaderの退会やAccount削除によってCommunity管理Mediaを自動削除しない |
+| 個人のMediaを尊重する | User管理MediaをCommunityへ共有してもCustodyを変更しない |
+| 閲覧と管理の権限を分ける | 閲覧範囲が同じでも、削除・Original downloadなどの操作権限は別に定義する |
+| 分類と閲覧権限を分ける | GroupやTagはMediaの整理に用い、閲覧範囲やCustodyを変更しない |
 
-具体的な操作権限、削除条件、共有解除、データモデルはMedia・Community・Userの各Domain設計を正本とします。
+Communityへ直接UploadしたMediaはCommunityをCustodianとし、Uploaderは別に記録します。これは管理上、Communityの「共有資産」と説明できる状態ですが、共有資産という言葉はプロダクトの思想ではなく、その思想を実現するための管理モデルを表します。
 
-## 設計判断への適用
+## 設計・実装判断への適用
 
-新機能や仕様変更では、最初に「誰のMediaか」「誰が閲覧できるか」「Uploaderや参加者が離れた後に何が残るか」を確認します。個人の利便性とCommunityの継続性が衝突する場合は、現在のCustodianと共有範囲を明確にしたうえで、暗黙の移管・削除を避ける設計を検討します。合意済みの信念と衝突する変更は、個別実装で例外化せず、Product上の判断としてレビューします。
+新しい機能や仕様を検討するときは、次の観点を確認します。
 
-## 全体レビューで確定する事項
+1. その機能は、現実のCommunityが一緒にMediaを見て残していく体験につながるか。
+2. Communityの外部と内部の境界、および参加者全員の閲覧という原則を守っているか。
+3. Mediaを誰が管理し、Uploaderや参加者がCommunityを離れた後に何が残るか。
+4. 個人のMediaとCommunityのMediaの管理責任を混同していないか。
 
-以下は現時点で新たなプロダクト信念としては未確定です。既存のDomain仕様を変更する意図はありません。
+思想と個別の仕様が衝突する場合は、実装上の例外で解決せず、プロダクトの判断としてレビューします。具体的な操作権限、削除条件、共有解除、データモデルは各Domain設計で定義します。
 
-1. Communityの継続性と、Uploader本人による削除権限が衝突する場合の長期的な優先順位。初回Releaseでは参加中のUploader本人にCommunity管理Mediaの削除権限があります。
-2. Community管理Mediaを長期に継承する際のAdministrator交代・Community消滅へのProduct上の期待。初回ReleaseのCommunity削除条件は既存仕様を維持します。
-3. Communityの共有体験と、個人のプライバシー・削除希望が衝突する場面での原則。法的な権利・義務は別途検討が必要です。
-4. 将来の動画・通知・公開共有などで、閉じたCommunityという境界をどこまで維持するか。
-5. 「博物館の展示物」という比喩を、将来の継承・公開・削除機能の具体的な判断にどこまで適用するか。
-
-## 関連する正本
+## 関連設計
 
 - [初回Releaseの範囲と成功条件](/first-release)
 - [Media](/media)・[Mediaライフサイクル](/media/lifecycle)
