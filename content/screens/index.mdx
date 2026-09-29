@@ -10,11 +10,13 @@ UI設計全体の方針は[Frontend UI設計・開発方針](/system/frontend-ui
 
 ## 配置
 
-画面ごとに `content/screens/<screen-name>.mdx` を作成します。画面数が少ない間はflatに配置し、分類が必要になった時点でsubdirectoryを検討します。
+画面ごとに `content/screens/<screen-name>.mdx` を作成します。Nextra上ではProduct domainと利用者のFlowが追いやすい単位でseparatorを設け、同一Flowの画面は実際の確認順に並べます。URLを変える必要がない分類ではflatなfile配置を維持し、各分類が独立した案内や階層を必要とする規模になった場合にsubdirectoryへ移行します。
 
 各Screen Specificationは対応するProduct domainのUse Caseを明示的に参照します。Use Case、domain rule、共通Design System ruleをこのdirectoryへ複製しません。
 
 ## 読み取り方
+
+Nextraのサイドメニューは、User、アカウント削除Flow、Community、Media・Groupの順に分類します。複数画面で成立するFlowは概要を先頭に置き、その後へ利用者が確認・操作する順序で各Screen Specificationを並べます。
 
 画面仕様を確認するときは、Related Use CasesからProduct上の目的と制約を確認したうえで、Screen Specificationに記載されたInformation、Actions、States、Navigation、Constraints、Responsive Behaviorを読みます。
 

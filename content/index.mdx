@@ -9,12 +9,13 @@ Memoriaは、家族や部活動などのクローズドなCommunityで生まれ�
 プロダクトの概要から詳細へ理解する場合は、次の順序で読みます。
 
 1. [初回Releaseの範囲と成功条件](/first-release)で直近のGoal、対象機能、対象外を確認する
-2. [Mediaドメイン](/media)、[Communityドメイン](/community)、[Userドメイン](/user)でProductの主要概念と責務境界を確認する
-3. [Mediaユースケース](/media/use-cases)と[Communityユースケース](/community/use-cases)で利用者の操作を確認する
-4. [ユビキタス言語](/ubiquitous)で用語の意味を確認する
-5. [リポジトリ構成](/system)でシステム全体と責務境界を確認する
-6. 各domainの論理モデル、物理モデル、レコードパターン、Transaction、設計判断へ進む
-7. 開発する場合は[ローカル開発環境](/local-development)と[ブランチ運用](/branch-strategy)を確認する
+2. [ユビキタス言語](/ubiquitous)で主要なProduct用語を確認する
+3. [Mediaドメイン](/media)、[Communityドメイン](/community)、[Userドメイン](/user)で主要概念と責務境界を確認する
+4. 各domainのユースケースで利用者の目的と操作を確認する
+5. UIを確認する場合は[画面仕様](/screens)でProduct domainとFlowごとのScreen Specificationを確認する
+6. [システム全体構成](/system)と[Application Information Architecture](/system/application-information-architecture)でシステムとApplicationの全体像を確認する
+7. 必要に応じて各domainの詳細設計とWeb / API / Data / Infrastructure / 横断設計へ進む
+8. 開発する場合は[ローカル開発環境](/local-development)と[ブランチ運用](/branch-strategy)を確認する
 
 ## 目的別の入口
 
@@ -24,7 +25,9 @@ Memoriaは、家族や部活動などのクローズドなCommunityで生まれ�
 | プロダクトの目的と対象範囲 | [Mediaドメイン](/media)・[Communityドメイン](/community) |
 | User登録・認証・account削除 | [User設計](/user)・[Userユースケース](/user/use-cases)・[認証と認可](/user/authentication-authorization) |
 | Community参加・招待・権限 | [Communityユースケース](/community/use-cases)・[Community権限](/community/authorization) |
-| 利用者の操作とシステムの振る舞い | [Media関連ユースケース](/media/use-cases) |
+| 利用者の操作とシステムの振る舞い | 各domainのユースケース・[画面仕様](/screens) |
+| 画面ごとの情報・操作・状態・遷移 | [画面仕様](/screens) |
+| 共通UI/UX Pattern | [Design System](/design-system) |
 | プロダクト用語 | [ユビキタス言語](/ubiquitous) |
 | リポジトリの責務 | [リポジトリ構成](/system) |
 | 文書の配置と読み取り順序 | [ドキュメント管理方針](/documentation-policy)・[Context map](/context) |
