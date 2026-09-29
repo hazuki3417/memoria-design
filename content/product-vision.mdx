@@ -26,6 +26,18 @@ Community管理MediaとCommunityへ共有されたUser管理Mediaは、そのCom
 
 個人が管理するMediaをCommunityへ共有しても、Media本体を複製したり、管理主体を暗黙にCommunityへ変更したりしません。個人管理Mediaの共有と、Communityへの直接Uploadは異なる意思決定として扱います。
 
+## 初期モデリングから継承する思想（レビュー案）
+
+初期draw.ioの「アプリケーションのあり方、目指すところ、コンセプト的な」には、現在の設計原則につながる次の考え方が記載されています。初期案をそのまま現行仕様へ戻すのではなく、思想として残す部分をレビューします。
+
+- **現実の集まりに近いCommunity**：家族やサークルなど、実世界の人間関係に対応する閉じた共有空間とする。
+- **外部には閉じ、内部では開く**：Communityに公開したMediaは参加者全員が閲覧できる。参加者ごとの細粒度な閲覧ACLや、Community内の一部だけが見られる非公開領域は設けない。
+- **博物館の展示物に近いMedia**：Mediaを単なるUploader個人のファイルではなく、Communityで共有・整理し、残していく対象として捉える。この比喩は今回合意した「共有資産」と整合するが、著作権・法的所有権を定義するものではない。
+
+初期案には「Communityのネストで共有範囲を分ける」「private/publicの2値を想定する」といった実装候補もあります。現在はCommunity同士をネストしない設計であり、公開範囲もMembershipとCustody・共有関係で表現します。**初期案の具体的な構造は採用済み仕様ではありません。** 個人領域は現在のUser管理Mediaで表現し、Community Groupは分類専用で閲覧制御には使用しません。
+
+初期資料：[draw.io SVG（履歴上の原本）](https://github.com/hazuki3417/memoria-design/blob/eb215f4291d4cb28fac3e9a55716f5d96b0af21f/pages/_drawio/modeling.drawio.svg)。
+
 ## 設計へ落とし込む原則
 
 | 原則 | 設計・実装時の判断 |
@@ -51,6 +63,7 @@ Community管理MediaとCommunityへ共有されたUser管理Mediaは、そのCom
 2. Community管理Mediaを長期に継承する際のAdministrator交代・Community消滅へのProduct上の期待。初回ReleaseのCommunity削除条件は既存仕様を維持します。
 3. Communityの共有体験と、個人のプライバシー・削除希望が衝突する場面での原則。法的な権利・義務は別途検討が必要です。
 4. 将来の動画・通知・公開共有などで、閉じたCommunityという境界をどこまで維持するか。
+5. 初期draw.ioの「内部では開く」「博物館の展示物」という思想の表現を、現在のプロダクト信念として採用するか。初期案のCommunityネストやprivate/publicモデルは現在の仕様と異なる。
 
 ## 関連する正本
 
