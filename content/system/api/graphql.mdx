@@ -561,6 +561,9 @@ Original downloadも同じ権限規則を適用し、短時間利用可能なdow
 type MediaGroup {
   id: ID!
   name: String!
+  parents(first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  children(first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  media(first: Int, after: String, last: Int, before: String): MediaConnection!
 }
 
 type MediaGroupEdge {
@@ -589,7 +592,7 @@ extend type Query {
 }
 ```
 
-`scope.type` は `PERSONAL` / `COMMUNITY` の明示指定を必須とします。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailで所属先Group、所属Group、Mediaを取得できる関係を提供しますが、DAG全体graph取得を主要契約にしません。
+`scope.type` は `PERSONAL` / `COMMUNITY` の明示指定を必須とします。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
 
 ### Command
 
@@ -943,7 +946,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 6. **Account deletion binding**: `reviewToken` と再認証結果をGraphQL Inputで渡す論理形を、session-bound server state等へ変更するか。
 7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
 8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
-9. **Group relation detailとモデルfield**: Group-centered viewに必要な親・子・Media connectionをどのfield構造で公開するか。
+9. **Group relation detailとモデルfield（確定）**: Group Browser画面仕様に従い、`MediaGroup.parents` / `children` / `media` を独立したRelay Connectionとして公開する。Group間relationの追加候補検索は別契約とし、候補の絞り込みと循環禁止はAPI側でも再検証する。
 10. **Media scope固有分類取得とモデルfield**: Media detail上のGroup / Tagをscope付きfieldにするか、独立Queryにするか。
 11. **GraphQL Upload transport**: 現在の「API経由Upload」をmultipart GraphQL `Upload` scalarで実現するか、API内の別HTTP upload endpointを使うか。
 12. **整数scalar**: file size等がJavaScript安全整数を超えない制約を利用して `Int` とするか、`BigInt` / custom scalarを導入するか。
