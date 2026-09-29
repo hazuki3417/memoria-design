@@ -912,9 +912,9 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 
 ## レビュー時の要判断事項
 
-既存設計だけでは一意に決められないため、以下は本契約案のレビューで明示的に判断します。
+既存設計だけでは一意に決められない事項を以下で追跡します。確定済みの項目は採用方針を明記します。
 
-1. **Operation naming**: `updateCommunity` / `renameCommunity`、`removeCommunityMember` 等の最終命名。
+1. **Operation naming（確定）**: 対象モデルの更新を表す `updateCommunity` 方式を採用する。Communityの名称変更は `updateCommunity`、Profile変更は `updateUserProfile` とし、単一属性に限定した `renameCommunity` 等は設けない。Membershipの除外や退会、Media削除など更新とは異なる独立したUser intentは、既存案どおり `removeCommunityMember` / `leaveCommunity` / `deleteMedia` 等の操作名で表す。
 2. **scope Input表現**: Personal / Communityをnullable `communityId` で表すか、明示enum / one-of相当Inputにするか。
 3. **Bulk result表現**: `SUCCEEDED / ALREADY_APPLIED / FAILED + errorCode` を共通型として採用するか。
 4. **Invitation secret返却**: Administrator Queryで完全URLを返すか、token / URL生成責務を別境界にするか。
