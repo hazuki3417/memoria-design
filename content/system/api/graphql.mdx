@@ -589,7 +589,7 @@ extend type Query {
 }
 ```
 
-`scope.type` は `PERSONAL` / `COMMUNITY` の明示指定を必須とします。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailで所属先Group、所属Group、Mediaを取得できる関係を提供しますが、DAG全体graph取得を主要契約にしません。
+`scope.type` は `PERSONAL` / `COMMUNITY` の明示指定を必須とします。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailで所属先Group、所属Group、Mediaを取得できる関係を提供しますが、DAG全体graph取得を主要契約にしません。
 
 ### Command
 
@@ -688,7 +688,7 @@ extend type Query {
 }
 ```
 
-TagもGroupと共通の `ScopeInput` を使用し、`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止します。同一scopeの保存name完全一致を重複禁止し、大文字小文字・全角半角・内部空白等を自動統合しません。
+TagもGroupと共通の一覧規則（name昇順・同名はID昇順、大文字・小文字を区別する部分一致検索、opaque cursor）と `ScopeInput` を使用し、`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止します。同一scopeの保存name完全一致を重複禁止し、大文字小文字・全角半角・内部空白等を自動統合しません。
 
 ### Command
 
@@ -942,7 +942,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 5. **Original download契約**: GraphQLが短期URLを返す方式を採用するか、別download endpointへ遷移させるか。
 6. **Account deletion binding**: `reviewToken` と再認証結果をGraphQL Inputで渡す論理形を、session-bound server state等へ変更するか。
 7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
-8. **Group / Tag list sort・search matching・cursor**: Product仕様として具体契約をどこまで固定するか。
+8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
 9. **Group relation detailとモデルfield**: Group-centered viewに必要な親・子・Media connectionをどのfield構造で公開するか。
 10. **Media scope固有分類取得とモデルfield**: Media detail上のGroup / Tagをscope付きfieldにするか、独立Queryにするか。
 11. **GraphQL Upload transport**: 現在の「API経由Upload」をmultipart GraphQL `Upload` scalarで実現するか、API内の別HTTP upload endpointを使うか。
