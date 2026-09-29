@@ -2,58 +2,236 @@
 
 ## 概要
 
-> 実装状況: 実行可能な契約は`memoria-api/schemas/graphql/*.graphql`です。ImageからMediaへの名称・型変更、すべての一覧へのRelay Connection適用、`hasPrevPage`から標準の`hasPreviousPage`への変更には差分があります。
+> 実装状況: 実行可能な契約は `memoria-api/schemas/graphql/*.graphql` です。現在はUserとRelay基盤が中心で、本ページのCommunity、Media、Group、Tag、account削除契約は未実装です。
 
-APIはschema、Webはoperation・fragment・生成型を所有します。resolver、DataLoader、schema進化、Access Token、GraphQL Errorの実装規約は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照します。
+本ページはInitial ReleaseでWeb Clientから利用するGraphQLの型、Query、Mutation、認可、error、pagination、非同期状態の契約を定義します。APIはschema、Webはoperation・fragment・生成型を所有します。resolver、DataLoader、schema進化、Access Token、GraphQL Errorの実装規約は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照します。
 
-## 原則
+12項目の設計レビューは完了し、5（Original download transport）と6（Account deletionの再認証binding）を除く項目は確定済みです。確定済みのGraphQL契約は `memoria-api/schemas/graphql/` へ実行可能SDLとして反映します。5・6の暫定SDLは実装確定契約に含めず、当該仕様が確定するまで実装対象から除外します。Product / domain semanticsは変更しません。
 
-- Queryは名詞、Mutationは動詞と対象を組み合わせます。
-- inputはユースケース単位とし、`Input`接尾辞を付けます。
-- Mutationの返却型は`Payload`接尾辞を付けます。
-- 一括操作を提供する場合は単一Mutationとしてtransaction境界を定義します。ただしMedia uploadと派生物生成は1 request・1 Media・1 Jobに分離します。
+## 契約原則
+
+- **全ドメイン共通**: GraphQL SchemaのQuery / Mutationは特定画面・ユースケース専用にせず、公開ドメインモデルと操作の責務に基づく再利用可能なI/Fとします。User、Community、Membership、Media、Group、Tag、Account関連のすべてに適用し、ドメイン別の重複型・同義Query / Mutationを安易に増やしません。
+- **Web Operationとの責務分離**: Webは画面・ユースケースごとの名前付きGraphQL OperationとFragmentを所有し、SchemaのQuery / Mutationと関連fieldを組み合わせます。Schemaのfield名を画面名やWeb Operation名へ寄せず、同じ責務は異なる画面から再利用します。API内部のApplication Use Caseは認可・整合性・transactionを担当し、Web Operationと1対1対応させません。
+- **汎用性とscopeの境界**: 共通化は意味・認可・副作用が一致する責務の範囲で行います。Personal IDとCommunity IDはいずれもULIDであり、ID値・形式から種類を推定しません。既存resourceのIDで対象を特定でき、保存済みの所属情報からscopeを確定できるQuery / Mutationには重複するscope引数を要求しません。一覧・新規作成など対象resource IDがない場合や、同じMediaの分類など指定scopeで結果が変わる場合は、`ScopeInput`等でコンテキストを明示します。Personalは認証済みUser本人を基準とし、Clientから本人のUser IDを要求しません。異なる種類のIDを受け取る必要がある場合は、ULIDから推測したり曖昧な汎用IDにせず、型または意味を明示する引数・fieldを設計します。複数scopeの横断取得や無関係な操作の統合は、具体的な要件がない限り導入しません。Mutationは共通I/Fであっても、共有・退会・削除など異なるUser intentを一つにまとめません。
+
+- Queryは状態を変更せず、Mutationは1つのUser intentを表す動詞と対象の組み合わせにします。
+- MutationはInput ObjectとPayloadを使用します。Clientが指定すべきでないUser ID、role、時刻、Custodian等をInputへ含めません。
 - Mutationのnestは許可せず、同階層のMutationはそれぞれ独立したtransactionです。
-- 操作ごとに現在のUser状態、Membership、role、Custody、Uploaderを確認し、Client指定の識別子やroleを認可根拠にしません。
-- 非公開resourceの存在と内部errorの詳細をresponseへ不要に公開しません。
-- request size、Query depth、取得件数、rate limitに用途に応じた上限を設けます。
-- 破壊的変更には移行期間を設けます。
+- 単一resource操作は成功時の現在状態をPayloadで返し、Clientが不要な推測や追加取得をしなくてよい契約にします。
+- 明示選択した複数Mediaへの操作はMediaごとに認可・現在状態を再検証し、domain仕様が部分成功を許す場合は全件atomicにしません。
+- 操作ごとに現在のUser状態、Membership、role、Custody、UploaderをServer側で確認し、Client指定の識別子や表示状態を認可根拠にしません。
+- 非公開resourceの存在、SQL、stack trace、Storage key、Auth0 identifier等をresponseへ不要に公開しません。
+- request size、Query depth / complexity、取得件数、rate limitに用途に応じた上限を設けます。
+- DB更新と非同期処理の連動はTransactional Outboxを利用し、Redis配送完了をMutation成功条件にしません。
+- 管理主体委譲、User起点Join Request、動画OperationはInitial ReleaseのGraphQL契約へ含めません。
 
-## DateTime scalar
+## モデル中心の公開境界
 
-GraphQLの `DateTime` はRFC3339互換の日時文字列として通信します。timezone offsetと小数秒を許容し、Application内部では日時型として扱います。保存・比較はUTCなど同じ基準へ揃え、利用者向けのtimezone変換や表示形式はClient側で扱います。
+GraphQLはDBの外部キーをそのまま公開するのではなく、Clientへ公開するドメインモデルと本質的な関連を表現します。Queryはモデルへの入口、関連fieldはモデル間の移動、MutationはUser intentを表します。関連の逆方向は利用目的がある場合だけ公開し、単に技術的に辿れるという理由では追加しません。
 
-Go実装ではgqlgen標準の `graphql.Time` mappingを利用し、Domain / Application / GraphQL model間で個別に日時文字列へ変換しません。
+- Communityの関連fieldは所属を表す `members: CommunityMembershipConnection!` に限定します。Membershipは共通 `User` とCommunity固有のroleを結ぶ関連モデルであり、単純なUser配列にはしません。親Communityへの逆参照やCommunity専用の重複User型は設けません。
+- CommunityのMedia / Group / TagはCommunity自身の構成要素として公開しません。これらはそれぞれ独立したドメインモデルであり、Communityを利用範囲として指定するQueryから取得します。
+- 一覧関連はConnectionでページングし、DataLoaderは1 GraphQL request内でbatch/cacheします。DataLoaderは深いnestや大量取得を制限する仕組みではないため、query depth / complexityと取得件数の制限は維持します。
+- ネストしたRelay ConnectionはGraphQL全体で許容します。親モデルから辿ることがドメイン上自然であれば関連fieldとして公開し、ネストしているという理由だけで重複するトップレベルQueryを追加しません。独立した取得・認可・利用上の理由がある場合は別Queryを検討します。
+- Apollo Clientでは親モデルをIDで正規化し、Connection fieldごとに引数・filterを考慮したpagination policyを定義します。Media削除、関連追加・除外など一覧の構成が変わるMutation後は、影響するConnectionの無効化・再取得を初期方針とし、手動のedge更新は必要性を検証してから採用します。Mediaのevictだけで関連Connectionのedges・pageInfoが同期されるとは見なしません。
+- 実装時はネストしたConnectionの初回取得・追加ページ取得・削除・関連追加／除外・filter変更を組み合わせ、複数の親モデルでキャッシュが混線しないことと、Mutation後に一覧・pageInfoが整合することを検証します。
+- MediaのGroup / Tag分類はPersonalとCommunityで独立しているため、scopeを曖昧にした関連fieldを追加しません。Groupの親子・所属Mediaなど、必要な関連の具体的なSDLは既存ドメイン仕様と照合してレビューします。
+
+## scope指定の横断検証
+
+公開するQuery / Mutationと関連fieldを、対象の識別方法に基づき横断確認した結果を以下に固定します。ULIDの形式ではPersonal / Communityを識別しません。既存resourceはDBの所属・関連を参照し、認可は各操作時に再検証します。
+
+| 対象 | scope / ID契約 | 理由・検証 |
+| --- | --- | --- |
+| `me`、Profile更新、Account削除Review / Confirm | scope不要、認証主体で特定 | Clientから本人のPersonal IDを受け取らない |
+| `community(id:)`、Community更新・削除、Membership・Invitation管理 | `communityId` またはCommunityのIDを指定、scope不要 | Communityという対象種別がfield / Inputで確定する |
+| `myCommunities` | scope不要、認証主体で特定 | 本人の所属Community一覧 |
+| `media(id:)`、Media削除 | `mediaId` 等で対象特定、scope不要 | Media本体の識別と閲覧・削除認可は別。閲覧可能な複数scopeがあってもMedia本体は同一 |
+| `mediaList`、`mediaGroups`、`mediaTags` | `ScopeInput!` 必須 | 一覧の取得範囲を選ぶ必要がある |
+| `Media.groups`、`Media.tags` | `ScopeInput!` 必須 | 同一Mediaの分類はPersonal / 各Communityで異なる。Media IDだけでは分類scopeを決定できない |
+| Group / Tag作成 | `ScopeInput!` 必須 | 作成前に対象Group / TagのIDが存在しない |
+| Group / Tag詳細・名称変更・削除 | 対象Group / Tag ID、scope不要 | 対象の保存済み所属からscopeを確定する |
+| Group間relation追加・解除 | `parentGroupId` と `childGroupId`、scope不要 | 双方の所属を取得し同一scopeを検証する。異scopeを許可しない |
+| Group / TagへのMedia分類 | `groupId` / `tagId` と `mediaIds`、scope不要 | 分類先の所属からscopeを確定し、各Mediaがそのscopeで閲覧・分類可能か検証する |
+| Media共有・共有解除 | `mediaIds` と `communityId`、scope不要 | 共有先のCommunityを明示し、各MediaのCustody・権限を検証する。Personal / Communityの汎用owner IDにはしない |
+| Community削除Impact・Account削除のCommunity解決 | `communityId`、scope不要 | 操作対象のCommunity種別が明示されている |
+
+`ScopeInput` は `type: PERSONAL` のとき認証済みUser本人を表し `communityId` を禁止します。`type: COMMUNITY` のとき `communityId` を必須とし、現在のMembershipと対象Mediaの可視性を検証します。既存resource IDから所属を解決する操作では、異なるscopeのIDを同時に指定しても暗黙に変換・横断処理しません。
+
+## 共通scalarとenum
+
+```graphql
+scalar DateTime
+
+enum CommunityRole {
+  MEMBER
+  ADMIN
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum MediaStatus {
+  ACTIVE
+  DELETING
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+```
+
+`DateTime` はRFC3339互換の日時文字列として通信します。timezone offsetと小数秒を許容し、Application内部では日時型として扱います。保存・比較は同じ基準へ揃え、利用者向けtimezone変換や表示形式はClient側で扱います。
+
+Initial ReleaseではUpload可能なMediaはImageだけですが、Media modelの識別子として `MediaType` は将来のVideoを表現できる形を維持します。Video固有Operationは提供しません。
+
+## Error契約
+
+Transport / Application errorは `errors[].extensions.code` をClientとの分類契約として使用します。
+
+| code | 意味 | 代表例 |
+| --- | --- | --- |
+| `UNAUTHENTICATED` | 有効な認証主体を確定できない | token失効、不正token |
+| `USER_REGISTRATION_REQUIRED` | 認証済みだがMemoria User未登録 | 通常Product操作 |
+| `USER_DELETING` | UserがDELETINGで新規操作不可 | Login後の通常操作 |
+| `FORBIDDEN` | resourceは解決できるが現在主体に操作権限がない | MemberによるCommunity設定変更 |
+| `NOT_FOUND` | Clientへ公開可能な対象が存在しない | 自身が閲覧可能だったresourceの消失 |
+| `VALIDATION` | Inputが契約上の制約を満たさない | 空のname、pagination引数不正 |
+| `CONFLICT` | 現在状態と要求が競合する | 重複登録、最後のadmin降格、DAG循環 |
+| `RATE_LIMITED` | rate limitに達した | Invitation token確認 |
+| `INTERNAL` | Clientへ詳細を公開しない内部障害 | DB / Storage等の予期しない障害 |
+
+field単位で修正可能なvalidation detailはGraphQL errorの `extensions` に安全なfield識別子を含められますが、DB constraint名や内部実装情報は公開しません。
+
+Bulk Mutationで一部Mediaだけが成立しないことはMutation全体のGraphQL errorにせず、Payload内のitem resultで表現します。認証失敗やMutation自体を実行できない障害は通常のGraphQL errorとします。
+
+## Relay Connection
+
+一覧はRelay Cursor Connections Specificationに沿います。
+
+```graphql
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+```
+
+- forward paginationは `first` と任意の `after`、backward paginationは `last` と任意の `before` を使用します。
+- 既定取得件数は30件、最大取得件数は100件です。
+- 0以下、上限超過、`before + first`、`after + last`、`first + last` は `VALIDATION` とします。
+- edgeは `cursor` と `node`、connectionは `edges` と `pageInfo` を返します。
+- cursorはopaqueとし、ClientがDB key構造へ依存しないようにします。
+- Media一覧は既存設計どおり `createdAt DESC, id DESC` を論理順とします。
+- Group / Tag一覧はname ASC、同名時ID ASCとし、対応するopaque cursorを使用します。Community / Membership一覧の具体的sortとcursor keyは、Product仕様で未確定のため本契約だけで新規決定しません。
 
 ## User
 
-初回ReleaseのUser契約は、認証済み主体の登録状態確認、User登録、User Profile更新を提供します。実行可能なSDLは`memoria-api`を正本とします。
+### 型
 
-- `me: User`はUser自体をnullableとし、Access Tokenが有効でMemoria Userが未登録の場合は`null`を返します。
-- `User`は内部のauth issuer・subject、email、User状態を公開せず、`id`、`profile`、作成・更新日時を公開します。
-- `UserProfile`は初回Releaseでは`nickname`を持ちます。Profile項目追加を想定し、nickname専用MutationではなくProfile更新として扱います。
-- `registerUser`はAccess Tokenから確定した未登録の認証主体を登録します。Clientからissuer・subjectを受け取りません。
-- `updateUserProfile`はACTIVE User本人のProfileを更新します。
-- 未登録は`me`では正常状態として扱いますが、通常のProduct操作はACTIVE Userを要求します。DELETING Userは利用を拒否します。
-- User登録済み主体による再登録は`CONFLICT`、Profile入力不正は`VALIDATION`として扱います。
+```graphql
+type User {
+  id: ID!
+  profile: UserProfile!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
 
-account削除はUser domainの初回Release要件ですが、Communityの最後のAdministrator解決とMedia削除対象の固定が必要なため、この最初のUser実装sliceには含めません。Community・Media境界の実装後に独立した契約として追加します。
+type UserProfile {
+  nickname: String!
+}
+
+extend type Query {
+  me: User
+}
+
+input RegisterUserInput {
+  nickname: String!
+}
+
+type RegisterUserPayload {
+  user: User!
+}
+
+input UpdateUserProfileInput {
+  nickname: String!
+}
+
+type UpdateUserProfilePayload {
+  user: User!
+}
+
+extend type Mutation {
+  registerUser(input: RegisterUserInput!): RegisterUserPayload!
+  updateUserProfile(input: UpdateUserProfileInput!): UpdateUserProfilePayload!
+}
+```
+
+`me` はUser自体をnullableとし、Access Tokenが有効でMemoria Userが未登録の場合は `null` を返します。Userはissuer・subject、email、内部状態を公開しません。DELETING Userは通常Product操作と同様に拒否します。
+
+`registerUser` はAccess Tokenから認証主体を確定し、Clientからissuer・subjectを受け取りません。登録済み主体による再登録は `CONFLICT` です。
+
+`updateUserProfile` はACTIVE User本人だけが実行でき、Initial Releaseではnicknameを更新します。同時更新にversion mergeは導入せず、成立した更新の最終状態を返します。
 
 ## Community
 
-Community契約は初回Releaseに必要な操作からvertical slice単位で確定します。最初のsliceではCommunity作成を提供します。
-
-### Community作成
-
-`createCommunity(input: CreateCommunityInput!): CreateCommunityPayload!`で、認証済みのACTIVE UserがCommunityを作成します。
+### 型
 
 ```graphql
 type Community {
   id: ID!
   name: String!
+  members(first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
+  myMembership: CommunityMembership!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
+type CommunityMembership {
+  user: User!
+  role: CommunityRole!
+}
+
+type CommunityMembershipEdge {
+  cursor: String!
+  node: CommunityMembership!
+}
+
+type CommunityMembershipConnection {
+  edges: [CommunityMembershipEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CommunityEdge {
+  cursor: String!
+  node: Community!
+}
+
+type CommunityConnection {
+  edges: [CommunityEdge!]!
+  pageInfo: PageInfo!
+}
+
+extend type Query {
+  community(id: ID!): Community
+  myCommunities(first: Int, after: String, last: Int, before: String): CommunityConnection!
+}
+```
+
+`community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。`Community.myMembership` は現在の認証User本人の有効なMembershipを直接返し、ページングされた `Community.members` に本人が含まれるかどうかに依存しません。`members` は本人を除外せず、全参加者を対象とします。両fieldは同じ保存済みMembershipを参照し、二重保存しません。`community(id:)` は有効なMembershipを持つUserにのみ公開するため、取得可能なCommunityの `myMembership` は非nullです。Membership失効時はCommunity取得と各fieldの認可を再評価し、Clientの表示済みroleを認可根拠にしません。
+
+Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.myMembership` は本人のrole取得、`Community.members` は本人を含む全参加者一覧の取得に使います。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
+
+### 作成・名称変更
+
+```graphql
 input CreateCommunityInput {
   name: String!
 }
@@ -62,34 +240,729 @@ type CreateCommunityPayload {
   community: Community!
 }
 
+input UpdateCommunityInput {
+  communityId: ID!
+  name: String!
+}
+
+type UpdateCommunityPayload {
+  community: Community!
+}
+
 extend type Mutation {
   createCommunity(input: CreateCommunityInput!): CreateCommunityPayload!
+  updateCommunity(input: UpdateCommunityInput!): UpdateCommunityPayload!
 }
 ```
 
-- ClientはCommunity名だけを指定します。作成User ID、Membership role、作成日時などServerが確定する値は受け取りません。
-- `name`は前後の空白を除去した値を保存し、除去後に空文字となる入力は`VALIDATION`として拒否します。
-- 名称の最大長はSecurity設計で未確定のため、このsliceでは独自の上限値をGraphQL契約へ追加しません。
-- 認証主体からACTIVE Userを解決し、そのUserを作成者として扱います。未登録UserまたはDELETING Userには通常のProduct操作を許可しません。
-- Community作成と、作成Userの`role=admin` Membership作成は同じDB transactionで確定します。一方だけが保存された状態を成功として返しません。
-- Community名はCommunity間で重複可能なため、同名Communityの存在を`CONFLICT`として扱いません。
-- 成功時は作成したCommunityを`payload.community`で返します。
-- このsliceではCommunity取得・一覧、Invitation、Membership管理、Community改名・削除を追加しません。それぞれの契約を確定したsliceで追加します。
+`createCommunity` はACTIVE Userが実行し、Communityと実行Userの `role=ADMIN` Membershipを同一transactionで作成します。同名Communityは許可します。
 
-## Pagination
+`updateCommunity` は現在のAdministratorだけが実行します。Initial Releaseで更新可能なCommunity fieldはnameだけです。Community説明や画像を先行して契約へ追加しません。
 
-一覧はRelay Cursor Connections Specificationに沿います。
+### Membership role・退会・除外
 
-- forward paginationは`first`と任意の`after`を使用します。
-- 一覧の既定取得件数は30件、最大取得件数は100件です。0以下または上限を超える値はvalidation errorにします。
-- backward paginationは`last`と任意の`before`を使用します。
-- `before + first`、`after + last`、`first + last`はerrorにします。
-- edgeは`cursor`と`node`、connectionは`edges`と`pageInfo`を返します。
-- `PageInfo`は標準名の`hasNextPage`、`hasPreviousPage`、`startCursor`、`endCursor`を使用します。独自の`hasPrevPage`を新規契約へ導入しません。
-- backward取得でDBの取得順が逆になる場合、API responseは論理順へ戻します。
-- cursorは利用者が内部key構造へ依存しないopaqueな値にします。
+```graphql
+input ChangeCommunityMemberRoleInput {
+  communityId: ID!
+  userId: ID!
+  role: CommunityRole!
+}
 
-具体的な型・field・引数は実行可能なschemaを正本とします。取得件数の目標と境界値の検証は[非機能要件](/system/cross-cutting/non-functional-requirements)を参照してください。
+type ChangeCommunityMemberRolePayload {
+  membership: CommunityMembership!
+}
 
-upload完了やJob開始など再送で重複作成される操作にはidempotency keyを適用します。すべてのMutationへ一律に要求せず、[冪等性の設計](./idempotency)に従って対象を限定します。
+input RemoveCommunityMemberInput {
+  communityId: ID!
+  userId: ID!
+}
 
+type RemoveCommunityMemberPayload {
+  community: Community!
+}
+
+input LeaveCommunityInput {
+  communityId: ID!
+}
+
+type LeaveCommunityPayload {
+  communityId: ID!
+}
+
+extend type Mutation {
+  changeCommunityMemberRole(input: ChangeCommunityMemberRoleInput!): ChangeCommunityMemberRolePayload!
+  removeCommunityMember(input: RemoveCommunityMemberInput!): RemoveCommunityMemberPayload!
+  leaveCommunity(input: LeaveCommunityInput!): LeaveCommunityPayload!
+}
+```
+
+role変更・他Userの除外はAdministratorだけが実行します。最後のAdministratorをMemberへ変更、除外、退会させる要求は `CONFLICT` とします。
+
+退会・除外ではMembership、対象UserがCustodianであるMediaの当該Community共有、当該CommunityのGroup / Tag relationをdomain transaction規則に従って解消します。Community管理Mediaは削除しません。
+
+## Invitation
+
+### tokenからの公開情報
+
+```graphql
+type CommunityInvitationPreview {
+  communityName: String!
+  expiresAt: DateTime!
+}
+
+extend type Query {
+  communityInvitationPreview(token: String!): CommunityInvitationPreview
+}
+```
+
+Invitation accept前に公開するCommunity情報は名称とInvitation成立判断に必要な情報だけです。Member一覧、Media、Group、Tagを公開しません。無効・期限切れ・削除済みCommunityのtokenでは利用可能なCommunity情報を返しません。token確認にはrate limitを適用します。
+
+### Administrator向けInvitation管理
+
+```graphql
+type CommunityInvitation {
+  url: String!
+  expiresAt: DateTime!
+}
+
+extend type Query {
+  communityInvitation(communityId: ID!): CommunityInvitation
+}
+
+input IssueCommunityInvitationInput {
+  communityId: ID!
+}
+
+type IssueCommunityInvitationPayload {
+  invitation: CommunityInvitation!
+}
+
+input ReissueCommunityInvitationInput {
+  communityId: ID!
+}
+
+type ReissueCommunityInvitationPayload {
+  invitation: CommunityInvitation!
+}
+
+input RevokeCommunityInvitationInput {
+  communityId: ID!
+}
+
+type RevokeCommunityInvitationPayload {
+  communityId: ID!
+}
+
+input AcceptCommunityInvitationInput {
+  token: String!
+}
+
+type AcceptCommunityInvitationPayload {
+  membership: CommunityMembership!
+}
+
+extend type Mutation {
+  issueCommunityInvitation(input: IssueCommunityInvitationInput!): IssueCommunityInvitationPayload!
+  reissueCommunityInvitation(input: ReissueCommunityInvitationInput!): ReissueCommunityInvitationPayload!
+  revokeCommunityInvitation(input: RevokeCommunityInvitationInput!): RevokeCommunityInvitationPayload!
+  acceptCommunityInvitation(input: AcceptCommunityInvitationInput!): AcceptCommunityInvitationPayload!
+}
+```
+
+Invitationの発行・状態確認・無効化・再発行はAdministratorだけが実行します。Administrator向けQueryおよび発行・再発行Payloadは、APIが組み立てた完全な招待URLを `CommunityInvitation.url` で返します。Web ClientはURLを組み立てず、そのまま表示・コピーします。URLは招待tokenを含むsecretとして扱い、一般公開Queryやログへ露出させません。Communityごとに同時に利用可能なInvitationは1件です。再発行は旧Invitation無効化と新規発行を同一transactionで確定します。
+
+`acceptCommunityInvitation` はACTIVE Userが実行し、有効性をlock後に再確認して `role=MEMBER` Membershipを直接作成します。Join Requestは作成しません。既参加User、期限切れ、無効化、Community削除との競合は新しいMembershipを作成しません。
+
+## Media
+
+### 型
+
+```graphql
+type Media {
+  id: ID!
+  mediaType: MediaType!
+  status: MediaStatus!
+  originalFileName: String!
+  fileSize: Int!
+  mimeType: String!
+  uploadedBy: MediaUploader
+  uploadedAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  image: Image
+  processing: MediaProcessing
+  groups(scope: ScopeInput!, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  tags(scope: ScopeInput!, first: Int, after: String, last: Int, before: String): MediaTagConnection!
+}
+
+type MediaUploader {
+  userId: ID
+  nickname: String
+  deleted: Boolean!
+}
+
+type Image {
+  width: Int!
+  height: Int!
+  variants: [ImageVariant!]!
+}
+
+type ImageVariant {
+  id: ID!
+  format: String!
+  width: Int!
+  height: Int!
+  sizeBytes: Int!
+  url: String!
+}
+
+type MediaProcessing {
+  status: ProcessingStatus!
+}
+
+type MediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+type MediaConnection {
+  edges: [MediaEdge!]!
+  pageInfo: PageInfo!
+}
+```
+
+Image Variantは `Media -> Image -> ImageVariant` の構造を正本とします。Object Storage keyは公開せず、閲覧権限を確認したAPI / delivery境界からClientが利用できるURLを返します。
+
+`uploadedBy` はUploader削除後も「削除済みUser」を表現できる必要があります。削除前nickname等を保持しないため、削除済みUploaderにnicknameを返しません。
+
+`processing` はClientがVariant生成中・完了・terminal failureを区別するための利用者向け状態です。内部のattempt数、Redis ownership、内部error本文は公開しません。
+
+### Personal / Community一覧と詳細
+
+```graphql
+input MediaFilterInput {
+  tagIds: [ID!]
+}
+
+extend type Query {
+  media(id: ID!): Media
+  mediaList(scope: ScopeInput!, filter: MediaFilterInput, first: Int, after: String, last: Int, before: String): MediaConnection!
+}
+```
+
+`mediaList(scope:)` は1つのscope内のMedia一覧を取得する共通Queryです。`PERSONAL` は現在UserがCustodianであるACTIVE Mediaを返し、`COMMUNITY` は有効なMembershipを持つ指定Communityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。異なるscopeのMediaを1つのConnectionへ混在させません。Web側では画面・ユースケースに対応するGraphQL Operationを定義し、この共通Queryへscopeを渡します。
+
+Tag filterは現在scopeのTagだけを受け付け、Tag IDの形式からscopeを推測せず保存済みの所属情報を検証します。複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
+
+`media(id:)` は現在Userが閲覧可能なMediaだけを返します。Media詳細の分類情報は `Media.groups(scope:)` / `Media.tags(scope:)` から現在のPersonal / Community scopeを明示して取得します。指定scopeでMediaが閲覧可能であることを再検証し、別CommunityやPersonalの分類情報を暗黙に混在させません。Group / Tagの一覧・検索・管理は独立Queryで提供し、Community自身の子fieldには追加しません。
+
+## Image UploadとProcessing
+
+Initial Releaseではファイル本体をGraphQL multipart Mutationで受け取らず、同じmemoria-api内の専用HTTP upload endpointで受信します。ファイル送信時に必要な最小限のmetadata（`custody.type`、Communityの場合の`communityId`、`idempotencyKey`）も同じHTTP requestで渡します。endpointの具体的path、multipart field名、response schemaはHTTP API詳細設計で確定します。GraphQLは登録済みMediaの取得・分類・共有・削除・Processing状態取得を担当します。
+
+`custody.type` が `PERSONAL` ならPersonal Media、`COMMUNITY` ならCommunity直接Uploadを意味します。`COMMUNITY` では `communityId` が必須で、`PERSONAL` では指定を禁止します。Serverは指定Communityへの現在Membershipを検証します。ClientからUser Custodian IDやUploader IDを受け取りません。
+
+1 request / 1 Processing Job / 1 Mediaを維持し、複数画像選択はClientが個別HTTP upload requestをbounded concurrencyで実行します。1回のUI選択は最大100 filesですが、100 filesを単一のatomic requestにはしません。HTTP endpointとGraphQL resolverは共通のApplication Use Caseと認証・認可規則を利用し、受信経路ごとにMedia登録・Storage保存・Job発行を重複実装しません。
+
+Initial Releaseの入力形式、128 MiB、100 megapixels、width / height上限等はMedia処理設計を適用し、違反は `VALIDATION` とします。
+
+Initial ReleaseのOriginal file size上限は128 MiBであり、`Media.fileSize` と `ImageVariant.sizeBytes` にはGraphQL標準の32-bit signed `Int` を使用します。画像のwidth / heightも同じ `Int` とし、`BigInt` / custom integer scalarは導入しません。将来この範囲を超える値が必要になった場合は、該当fieldの型変更とClient互換性を別途設計します。
+
+Original保存とDB transactionが成功した時点でHTTP upload requestを成功とし、Variant生成完了やRedis配送完了を待ちません。返却Mediaの `processing.status` により非同期状態を観測します。terminal `FAILED` でもMediaは残り、通常権限に従って削除できます。Initial ReleaseではUser向けmanual reprocess Mutationを提供しません。
+
+Uploadは再送による重複Media作成を避ける必要があるため `idempotencyKey` を要求します。keyの形式・保持期間は[冪等性と再試行](./idempotency)および未決定Implementation Detailで確定します。
+
+## Media共有
+
+### 単一・複数Mediaを同一Communityへ共有
+
+```graphql
+enum BulkItemStatus {
+  SUCCEEDED
+  ALREADY_APPLIED
+  FAILED
+}
+
+type ShareMediaItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
+type UnshareMediaItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
+input ShareMediaToCommunityInput {
+  mediaIds: [ID!]!
+  communityId: ID!
+}
+
+type ShareMediaToCommunityPayload {
+  results: [ShareMediaItemResult!]!
+}
+
+input UnshareMediaFromCommunityInput {
+  mediaIds: [ID!]!
+  communityId: ID!
+}
+
+type UnshareMediaFromCommunityPayload {
+  results: [UnshareMediaItemResult!]!
+}
+
+extend type Mutation {
+  shareMediaToCommunity(input: ShareMediaToCommunityInput!): ShareMediaToCommunityPayload!
+  unshareMediaFromCommunity(input: UnshareMediaFromCommunityInput!): UnshareMediaFromCommunityPayload!
+}
+```
+
+共有はUser Custodian本人だけが、自身が現在参加しているCommunityに対して実行できます。Community管理Mediaは共有対象にできません。
+
+複数Mediaは各Mediaを独立して再認可し、部分成功を許容します。既に共有済み / 解除済みの状態は重複relationを作らず、現在状態をPayloadで識別可能にします。他Mediaの失敗によって成立済みrelationをrollbackしません。
+
+共有解除はUser Custodian本人または共有先CommunityのAdministratorが実行できます。解除時は対象CommunityのAccessとCommunity scopeのGroup / Tag relationだけを削除し、Media本体、Custody、他Community、Personal分類へ影響させません。
+
+## Media削除とOriginal download
+
+```graphql
+input DeleteMediaInput {
+  mediaId: ID!
+  idempotencyKey: String!
+}
+
+type DeleteMediaPayload {
+  mediaId: ID!
+  status: MediaStatus!
+}
+
+type MediaOriginalDownload {
+  url: String!
+}
+
+extend type Query {
+  mediaOriginalDownload(mediaId: ID!): MediaOriginalDownload!
+}
+
+extend type Mutation {
+  deleteMedia(input: DeleteMediaInput!): DeleteMediaPayload!
+}
+```
+
+User Custody MediaはCustodian本人が削除できます。Community Custody Mediaは現在のAdministrator、または有効なMembershipを持つUploader本人だけが削除できます。Uploader権限は退会・除外・User削除で失効します。
+
+削除受付はMediaを `DELETING` へ遷移させ、Object Storage削除等の非同期cleanupを開始します。通常一覧からはACTIVE Mediaだけを返します。削除Mutationは非同期cleanup完了を待たず、受付済み状態を返します。再送による副作用重複を避けるため `idempotencyKey` を要求します。
+
+Original downloadも同じ権限規則を適用し、短時間利用可能なdownload URL等のdelivery情報だけを返します。Storage keyは公開しません。
+
+## Group
+
+### 型とQuery
+
+```graphql
+type MediaGroup {
+  id: ID!
+  name: String!
+  parents(first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  children(first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  media(first: Int, after: String, last: Int, before: String): MediaConnection!
+}
+
+type MediaGroupEdge {
+  cursor: String!
+  node: MediaGroup!
+}
+
+type MediaGroupConnection {
+  edges: [MediaGroupEdge!]!
+  pageInfo: PageInfo!
+}
+
+enum ScopeType {
+  PERSONAL
+  COMMUNITY
+}
+
+input ScopeInput {
+  type: ScopeType!
+  communityId: ID
+}
+
+extend type Query {
+  mediaGroups(scope: ScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
+  mediaGroup(id: ID!): MediaGroup
+}
+```
+
+`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、[Issue #131](https://github.com/hazuki3417/memoria-design/issues/131)で同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
+
+### Command
+
+```graphql
+input CreateMediaGroupInput {
+  scope: ScopeInput!
+  name: String!
+}
+
+input RenameMediaGroupInput {
+  groupId: ID!
+  name: String!
+}
+
+input DeleteMediaGroupInput {
+  groupId: ID!
+}
+
+input AddMediaGroupRelationInput {
+  parentGroupId: ID!
+  childGroupId: ID!
+}
+
+input RemoveMediaGroupRelationInput {
+  parentGroupId: ID!
+  childGroupId: ID!
+}
+
+input ChangeMediaGroupClassificationInput {
+  groupId: ID!
+  mediaIds: [ID!]!
+}
+
+type MediaGroupPayload {
+  group: MediaGroup!
+}
+
+type DeleteMediaGroupPayload {
+  groupId: ID!
+}
+
+type MediaGroupRelationPayload {
+  parentGroup: MediaGroup!
+  childGroup: MediaGroup!
+}
+
+type MediaGroupClassificationItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
+type ChangeMediaGroupClassificationPayload {
+  results: [MediaGroupClassificationItemResult!]!
+}
+
+extend type Mutation {
+  createMediaGroup(input: CreateMediaGroupInput!): MediaGroupPayload!
+  renameMediaGroup(input: RenameMediaGroupInput!): MediaGroupPayload!
+  deleteMediaGroup(input: DeleteMediaGroupInput!): DeleteMediaGroupPayload!
+  addMediaGroupRelation(input: AddMediaGroupRelationInput!): MediaGroupRelationPayload!
+  removeMediaGroupRelation(input: RemoveMediaGroupRelationInput!): MediaGroupRelationPayload!
+  addMediaToGroup(input: ChangeMediaGroupClassificationInput!): ChangeMediaGroupClassificationPayload!
+  removeMediaFromGroup(input: ChangeMediaGroupClassificationInput!): ChangeMediaGroupClassificationPayload!
+}
+```
+
+Personal Group構造はUser本人、Community Groupのcreate / rename / delete / relation管理はAdministratorが行います。CommunityのAdministrator / Memberは閲覧可能Mediaを既存Groupへ分類できます。
+
+Group relationは同一scopeだけを許可し、自己参照、重複、直接・間接循環を `CONFLICT` とします。Group削除はMedia本体を削除せず、対象GroupのMedia relationとGroup relationだけを削除します。
+
+Group IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Group IDとMedia IDのULID形式からscopeを推測しません。複数Media分類は各Mediaを再認可して部分成功を許容します。query結果全件を暗黙対象にするInputは提供しません。
+
+## Tag
+
+### 型とQuery
+
+```graphql
+type MediaTag {
+  id: ID!
+  name: String!
+}
+
+type MediaTagEdge {
+  cursor: String!
+  node: MediaTag!
+}
+
+type MediaTagConnection {
+  edges: [MediaTagEdge!]!
+  pageInfo: PageInfo!
+}
+
+extend type Query {
+  mediaTags(scope: ScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaTagConnection!
+}
+```
+
+TagもGroupと共通の一覧規則（name昇順・同名はID昇順、大文字・小文字を区別する部分一致検索、opaque cursor）と `ScopeInput` を使用し、`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止します。同一scopeの保存name完全一致を重複禁止し、大文字小文字・全角半角・内部空白等を自動統合しません。
+
+### Command
+
+```graphql
+input CreateMediaTagInput {
+  scope: ScopeInput!
+  name: String!
+}
+
+input RenameMediaTagInput {
+  tagId: ID!
+  name: String!
+}
+
+input DeleteMediaTagInput {
+  tagId: ID!
+}
+
+input ChangeMediaTagClassificationInput {
+  tagId: ID!
+  mediaIds: [ID!]!
+}
+
+type MediaTagPayload {
+  tag: MediaTag!
+}
+
+type DeleteMediaTagPayload {
+  tagId: ID!
+}
+
+type MediaTagClassificationItemResult {
+  mediaId: ID!
+  status: BulkItemStatus!
+  errorCode: String
+}
+
+type ChangeMediaTagClassificationPayload {
+  results: [MediaTagClassificationItemResult!]!
+}
+
+extend type Mutation {
+  createMediaTag(input: CreateMediaTagInput!): MediaTagPayload!
+  renameMediaTag(input: RenameMediaTagInput!): MediaTagPayload!
+  deleteMediaTag(input: DeleteMediaTagInput!): DeleteMediaTagPayload!
+  addMediaTag(input: ChangeMediaTagClassificationInput!): ChangeMediaTagClassificationPayload!
+  removeMediaTag(input: ChangeMediaTagClassificationInput!): ChangeMediaTagClassificationPayload!
+}
+```
+
+Personal TagはUser本人が管理します。CommunityではAdministrator / MemberがTagを作成し、閲覧可能Mediaへ付与・解除できます。Community Tagのrename / deleteはAdministratorだけが実行します。
+
+Tag IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Tag IDとMedia IDのULID形式からscopeを推測しません。Media Browserの複数Tag filterはAND条件です。OR切替や複雑な検索式はInitial Releaseへ追加しません。複数Media分類は部分成功を許容し、query結果全件を暗黙対象にしません。
+
+## Community削除
+
+```graphql
+type CommunityDeletionImpact {
+  communityId: ID!
+  communityName: String!
+  memberCount: Int!
+  managedMediaCount: Int!
+}
+
+extend type Query {
+  communityDeletionImpact(communityId: ID!): CommunityDeletionImpact!
+}
+
+input DeleteCommunityInput {
+  communityId: ID!
+  confirmationName: String!
+  idempotencyKey: String!
+}
+
+type DeleteCommunityPayload {
+  communityId: ID!
+}
+
+extend type Mutation {
+  deleteCommunity(input: DeleteCommunityInput!): DeleteCommunityPayload!
+}
+```
+
+現在のAdministratorだけが削除影響を取得・削除できます。Community Custody Mediaが1件でも残る通常のCommunity削除は `CONFLICT` とし、先に対象Mediaを削除する必要があります。
+
+`confirmationName` は誤操作防止のUser intent確認であり、認可の代替ではありません。削除成立時はCommunity、Membership、Invitation、共有relation、Community scope Group / Tag等をdomain transaction規則に従って削除します。User Custody Media本体や他Communityのrelationは変更しません。
+
+## Account削除計画
+
+Account削除は単純な1 Mutationではなく、最終確定まで破壊的変更を行わない計画型Flowとして扱います。
+
+### 影響・解決候補の取得
+
+```graphql
+type AccountDeletionImpact {
+  personalMediaCount: Int!
+  communitiesRequiringResolution: [AccountDeletionCommunity!]!
+}
+
+type AccountDeletionCommunity {
+  community: Community!
+  successorCandidates: [User!]!
+  memberCount: Int!
+  managedMediaCount: Int!
+}
+
+extend type Query {
+  accountDeletionImpact: AccountDeletionImpact!
+}
+```
+
+対象は現在Userが最後のAdministratorであるCommunityです。後任候補がないCommunityではCommunity保持を選択できません。
+
+### 削除計画の検証
+
+```graphql
+enum AccountDeletionCommunityAction {
+  KEEP_WITH_SUCCESSOR
+  DELETE
+}
+
+input AccountDeletionCommunityResolutionInput {
+  communityId: ID!
+  action: AccountDeletionCommunityAction!
+  successorUserId: ID
+  confirmationName: String
+}
+
+input ReviewAccountDeletionInput {
+  communities: [AccountDeletionCommunityResolutionInput!]!
+}
+
+type AccountDeletionReview {
+  personalMediaCount: Int!
+  communitiesToKeep: [Community!]!
+  communitiesToDelete: [CommunityDeletionImpact!]!
+  reviewToken: String!
+}
+
+type ReviewAccountDeletionPayload {
+  review: AccountDeletionReview!
+}
+
+extend type Mutation {
+  reviewAccountDeletion(input: ReviewAccountDeletionInput!): ReviewAccountDeletionPayload!
+}
+```
+
+`reviewAccountDeletion` は破壊的変更を行わず、現在状態に対して全Community解決方法、後任候補、Community名確認を検証し、最終Review対象を固定して識別する `reviewToken` を返す契約案です。
+
+`KEEP_WITH_SUCCESSOR` では同じCommunityの別Memberである `successorUserId` を必須とし、`DELETE` では `confirmationName` を必須とします。不要fieldの指定は拒否します。
+
+### 最終確定
+
+```graphql
+input ConfirmAccountDeletionInput {
+  reviewToken: String!
+  reauthenticationProof: String!
+  idempotencyKey: String!
+}
+
+type ConfirmAccountDeletionPayload {
+  accepted: Boolean!
+}
+
+extend type Mutation {
+  confirmAccountDeletion(input: ConfirmAccountDeletionInput!): ConfirmAccountDeletionPayload!
+}
+```
+
+最終確定ではACTIVE User、review対象、Community / Membership / Mediaの現在状態、再認証結果を再検証します。Review後に計画対象が変化した場合は `CONFLICT` とし、最新状態でReviewからやり直します。
+
+成功時は必要なAdministrator昇格・Community削除対象を確定し、User管理Media等の削除snapshotを固定してUserをDELETINGへ遷移させます。非同期cleanup完了をMutation responseで待ちません。
+
+`reviewToken` と `reauthenticationProof` の具体的な生成・保持・有効期限・Auth0連携方式はSecurity / Authentication上の未決定事項です。本レビューではFlow上必要なServer-side bindingを示す論理契約として扱い、具体形式を確定しません。
+
+## Schema fieldと認可・副作用一覧
+
+| Schema field / 操作 | 主体 | 主な副作用 / 結果 |
+| --- | --- | --- |
+| `me` | 認証済み主体 | 登録状態取得 |
+| `registerUser` | 未登録認証主体 | ACTIVE User作成 |
+| `updateUserProfile` | ACTIVE User本人 | nickname更新 |
+| `myCommunities` | ACTIVE User | 自身のMembership一覧 |
+| `community` / `Community.members` | Member / Admin | Community内部情報取得 |
+| `createCommunity` | ACTIVE User | Community + admin Membership作成 |
+| `updateCommunity` | Admin | Community名更新 |
+| `changeCommunityMemberRole` | Admin | role変更。最後のadmin保護 |
+| `removeCommunityMember` | Admin | Membershipと関連共有・分類cleanup |
+| `leaveCommunity` | Member / Admin | 自身のMembershipと関連cleanup |
+| Invitation管理 | Admin | 7日Invitationの発行・失効・再発行 |
+| `acceptCommunityInvitation` | ACTIVE User | member Membership作成 |
+| `mediaList(scope: PERSONAL)` | ACTIVE User | User Custody Media取得 |
+| `mediaList(scope: COMMUNITY)` | Member / Admin | 指定Communityから閲覧可能なMedia取得 |
+| HTTP Media upload endpoint | ACTIVE User | Original保存、Media / Custody / Job / Outbox作成 |
+| share / unshare | User Custodian、解除はCommunity Adminも可 | Community Accessとscope分類cleanup |
+| `deleteMedia` | Custodian / Community Admin / active Uploader | DELETING遷移、非同期削除開始 |
+| `mediaOriginalDownload` | 同上 | Original delivery情報取得 |
+| Group構造管理 | Personal owner / Community Admin | Group / DAG relation変更 |
+| Group分類 | scope上の許可User | Media relation追加・解除、bulk部分成功 |
+| Tag管理 | Personal owner / Community role規則 | Tag変更 |
+| Tag分類 | scope上の許可User | Media relation追加・解除、bulk部分成功 |
+| `deleteCommunity` | Admin | Community domain一式削除 |
+| account deletion review | ACTIVE User本人 | 破壊的変更なし、計画検証 |
+| account deletion confirm | 再認証済みACTIVE User本人 | DELETING遷移、削除snapshot固定、cleanup開始 |
+
+## 冪等性
+
+Initial Releaseで少なくとも次のCommandは再送による副作用重複を防ぐ必要があります。
+
+- HTTP Media upload endpoint（HTTP requestの `idempotencyKey`）
+- `deleteMedia`
+- `deleteCommunity`
+- `confirmAccountDeletion`
+
+これらはGraphQL MutationではInput、HTTP uploadではrequestに `idempotencyKey` を必須とする契約案とします。共有・分類等のrelation操作はunique constraintと現在状態を利用して重複適用を防ぎ、bulk itemごとに現在状態を返します。
+
+全Mutationへ一律にidempotency keyを要求しません。keyの長さ、形式、retention、response snapshot表現は[冪等性と再試行](./idempotency)とIssue #61で確定します。
+
+## 非同期処理との境界
+
+- Upload成功はOriginal保存とPostgreSQL commitで確定し、Variant生成完了を待ちません。
+- Processing状態はMediaから観測できます。内部Job errorやRedis状態はClient契約にしません。
+- Media削除は `DELETING` 受付を同期結果とし、Object Storage cleanup完了を待ちません。
+- account削除はUserをDELETINGへ遷移させた時点で利用終了とし、cleanup完了をBrowserで待たせません。
+- Transactional OutboxのRedis配送成功をGraphQL Mutationの成功条件に含めません。
+
+## Initial Release対象外
+
+次のOperationは本契約へ追加しません。
+
+- User起点Join Request
+- Media Custody transfer / 管理主体委譲
+- Video upload / processing / playback固有Operation
+- User向けProcessing manual retry
+- 公開Community検索
+- query結果全件を対象にするbulk mutation
+- Tag filterのOR切替・複雑な検索式
+- Group DAG全体のgraph editor向け専用API
+- Community説明、画像、公開profile
+- profile画像、公開用account ID、複数認証subjectのaccount linking
+
+## 確定済み契約の実装引き渡しチェック
+
+画面仕様（Group Browser、Media Detail、Media Upload）とMedia Group / Tagドメイン仕様、`memoria-api/develop` の既存GraphQL schemaを照合した結果、確定済みの主要なドメイン境界と画面Interactionに矛盾は認められません。以下は実装引き渡し時の確認事項です。
+
+- 既存APIの `scalar Upload` と `scalar Int64` は既存schemaに存在するが、新しいMedia upload transportは専用HTTP endpoint、Initial ReleaseのMedia size/dimension fieldは標準 `Int` とする。既存scalarの削除はこの契約だけを根拠に行わない。
+- Group relationの表示は `MediaGroup.parents` / `children` / `media` を使用する。関連追加の候補検索は表示用Connectionと別の契約が必要であり、候補の絞り込み・DAG循環禁止をAPIで再検証する。
+- Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
+- `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、確定済みschemaの実装引き渡し対象から除外する。
+- 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
+
+## レビュー時の要判断事項
+
+既存設計だけでは一意に決められない事項を以下で追跡します。確定済みの項目は採用方針を明記します。
+
+1. **Operation naming（確定）**: 対象モデルの更新を表す `updateCommunity` 方式を採用する。Communityの名称変更は `updateCommunity`、Profile変更は `updateUserProfile` とし、単一属性に限定した `renameCommunity` 等は設けない。Membershipの除外や退会、Media削除など更新とは異なる独立したUser intentは、既存案どおり `removeCommunityMember` / `leaveCommunity` / `deleteMedia` 等の操作名で表す。
+2. **scope Input表現（確定）**: `ScopeType` enum（`PERSONAL` / `COMMUNITY`）を明示する。共通 `ScopeInput` をGroup / Tagの取得・作成で使用し、HTTP Image Uploadのcustody指定も同じenumと検証規則を使用する。`COMMUNITY` は `communityId` 必須、`PERSONAL` は指定禁止とし、不整合は `VALIDATION`。
+3. **Bulk result表現（確定）**: 共有・共有解除・Group分類・Tag分類に専用のitem result型を設ける。状態の意味は共通 `BulkItemStatus`（`SUCCEEDED` / `ALREADY_APPLIED` / `FAILED`）で統一し、各resultは `mediaId` / `status` / `errorCode` を持つ。操作固有の結果fieldは必要になった時点で個別に追加する。
+4. **Invitation secret返却（確定）**: APIが完全な招待URLを生成し、Administrator向け `CommunityInvitation.url` で返す。Web ClientはURLを組み立てない。招待URLはsecretとして取り扱い、非Administrator向けQueryへ公開しない。
+5. **Original download契約（保留）**: 認可・ドメイン要件は維持するが、短期URL、別download endpoint、複数画像ZIP生成・一時保存等のtransport詳細は未確定。現在の `mediaOriginalDownload` SDLは検討用の暫定案であり、実装確定契約には含めない。
+6. **Account deletion binding（保留）**: 削除前の再認証とReview内容へのbinding要件は維持するが、Auth0再認証の証明方法・保持方法・有効期限は未確定。現在の `reviewToken` / `reauthenticationProof` は論理上の暫定表現であり、実装確定契約には含めない。
+7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
+8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
+9. **Group relation detailとモデルfield（確定）**: Group Browser画面仕様に従い、`MediaGroup.parents` / `children` / `media` を独立したRelay Connectionとして公開する。Group間relationの追加候補検索は別契約とし、候補の絞り込みと循環禁止はAPI側でも再検証する。
+10. **Media scope固有分類取得とモデルfield（確定）**: Group詳細の関連Connectionと同様に、Media詳細の直接関連情報は `Media.groups(scope:)` / `Media.tags(scope:)` の独立したRelay Connectionとして取得する。scopeは必須とし、現在scopeでのMedia可視性を検証する。Group / Tag本体の一覧・検索・管理は独立Query、Communityの子fieldにはしない。
+11. **Upload transport（確定）**: ファイル本体は同じmemoria-api内の専用HTTP upload endpointで受信し、必要最小限のcustody情報とidempotency keyも同じrequestで受け取る。GraphQLはMediaの取得・分類・共有・削除・Processing状態取得を担当する。既存Redis Streamsによる非同期処理基盤を再利用し、HTTP endpointとGraphQLはApplication Use Caseおよび認証・認可規則を共有する。具体的なHTTP routeとrequest / response形式は詳細設計で確定する。
+12. **整数scalar（確定）**: Initial ReleaseのOriginal file size上限128 MiB、画像寸法・Variant size等の現在の上限をGraphQL標準の32-bit signed `Int` で表現する。`BigInt` / custom integer scalarは導入しない。将来2,147,483,647を超える値を公開する要件が生じた場合は、該当fieldのscalarとClient互換性を別途設計する。
+
+これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。確定事項は本ページに反映済みです。保留した5・6の詳細設計はIssueで追跡し、確定済みのGraphQL契約を先に実行可能SDLへ引き渡します。
