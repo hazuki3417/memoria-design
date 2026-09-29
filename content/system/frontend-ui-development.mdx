@@ -25,7 +25,7 @@ Screen Specificationでは、UIが満たすべき意味と振る舞いを定義�
 - Navigationと画面間の関係
 - その画面固有の制約
 
-pixel単位の配置や、特定のReact/Mantine API等の実装詳細は原則としてScreen Specificationへ含めません。
+pixel単位の配置、特定のReact/Mantine API、Component構成に加え、`Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view`等の具体的presentationも原則としてScreen Specificationへ含めません。Screen Specificationは「何を確認・判断・操作できる必要があるか」を定義し、「それをどのUI形式で実現するか」は後続のUI具体化とVisual Reviewで決定します。
 
 Storybookは、Screen SpecificationとDesign Systemに基づいて実装されたComponentや画面状態を確認するために利用します。Storyは仕様そのものではなく、仕様を検証するための実行可能なExampleです。
 
@@ -46,7 +46,7 @@ Screen Specificationは製品UIの仕様として `content/screens/` に配置�
 
 Related Use Casesでは、`media/use-cases.mdx` 等の既存Use Caseを明示的に参照し、画面が提供する利用者価値を追跡可能にします。
 
-Screen SpecificationはUIが満たすべき意味と振る舞いを記述し、特定のlayout、pixel値、Mantine Component等の実現方法を固定しません。またStorybookのStory一覧を仕様へ複製しません。Storyや実装側から対応するScreen Specificationを参照できる関係を基本とします。
+Screen SpecificationはUIが満たすべき意味と振る舞いを記述し、特定のlayout、pixel値、Mantine Component、Dialog / Drawer / Page等のpresentationを実現方法として固定しません。presentation自体がProduct要件となる例外では、その必要性と制約を仕様上説明します。またStorybookのStory一覧を仕様へ複製しません。Storyや実装側から対応するScreen Specificationを参照できる関係を基本とします。
 
 ## AIを利用したUI開発
 
