@@ -10,6 +10,8 @@
 
 ## 契約原則
 
+- GraphQL SchemaのQuery / Mutationは特定画面・ユースケース専用にせず、公開ドメインモデルと操作の責務に基づく再利用可能なI/Fとします。Webは画面・ユースケースごとの名前付きGraphQL Operationを定義して共通I/Fを組み合わせます。汎用性を理由に未要求のscope横断一覧や任意操作を追加しません。
+
 - Queryは状態を変更せず、Mutationは1つのUser intentを表す動詞と対象の組み合わせにします。
 - MutationはInput ObjectとPayloadを使用します。Clientが指定すべきでないUser ID、role、時刻、Custodian等をInputへ含めません。
 - Mutationのnestは許可せず、同階層のMutationはそれぞれ独立したtransactionです。
@@ -420,12 +422,11 @@ input MediaFilterInput {
 
 extend type Query {
   media(id: ID!): Media
-  personalMedia(filter: MediaFilterInput, first: Int, after: String, last: Int, before: String): MediaConnection!
-  communityMedia(communityId: ID!, filter: MediaFilterInput, first: Int, after: String, last: Int, before: String): MediaConnection!
+  mediaList(scope: ScopeInput!, filter: MediaFilterInput, first: Int, after: String, last: Int, before: String): MediaConnection!
 }
 ```
 
-`personalMedia` は現在UserがCustodianであるACTIVE Mediaを返します。`communityMedia` は有効なMembershipを持つCommunityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。
+`mediaList(scope:)` は1つのscope内のMedia一覧を取得する共通Queryです。`PERSONAL` は現在UserがCustodianであるACTIVE Mediaを返し、`COMMUNITY` は有効なMembershipを持つ指定Communityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。異なるscopeのMediaを1つのConnectionへ混在させません。Web側では画面・ユースケースに対応するGraphQL Operationを定義し、この共通Queryへscopeを渡します。
 
 Tag filterは現在scopeのTagだけを受け付け、複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
 
@@ -863,8 +864,8 @@ extend type Mutation {
 | `leaveCommunity` | Member / Admin | 自身のMembershipと関連cleanup |
 | Invitation管理 | Admin | 7日Invitationの発行・失効・再発行 |
 | `acceptCommunityInvitation` | ACTIVE User | member Membership作成 |
-| `personalMedia` | ACTIVE User | User Custody Media取得 |
-| `communityMedia` | Member / Admin | Communityから閲覧可能なMedia取得 |
+| `mediaList(scope: PERSONAL)` | ACTIVE User | User Custody Media取得 |
+| `mediaList(scope: COMMUNITY)` | Member / Admin | 指定Communityから閲覧可能なMedia取得 |
 | HTTP Media upload endpoint | ACTIVE User | Original保存、Media / Custody / Job / Outbox作成 |
 | share / unshare | User Custodian、解除はCommunity Adminも可 | Community Accessとscope分類cleanup |
 | `deleteMedia` | Custodian / Community Admin / active Uploader | DELETING遷移、非同期削除開始 |
@@ -919,7 +920,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 
 - 既存APIの `scalar Upload` と `scalar Int64` は既存schemaに存在するが、新しいMedia upload transportは専用HTTP endpoint、Initial ReleaseのMedia size/dimension fieldは標準 `Int` とする。既存scalarの削除はこの契約だけを根拠に行わない。
 - Group relationの表示は `MediaGroup.parents` / `children` / `media` を使用する。関連追加の候補検索は表示用Connectionと別の契約が必要であり、候補の絞り込み・DAG循環禁止をAPIで再検証する。
-- Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
+- Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
 - `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、確定済みschemaの実装引き渡し対象から除外する。
 - 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
