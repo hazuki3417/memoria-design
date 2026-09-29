@@ -941,7 +941,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 4. **Invitation secret返却（確定）**: APIが完全な招待URLを生成し、Administrator向け `CommunityInvitation.url` で返す。Web ClientはURLを組み立てない。招待URLはsecretとして取り扱い、非Administrator向けQueryへ公開しない。
 5. **Original download契約**: GraphQLが短期URLを返す方式を採用するか、別download endpointへ遷移させるか。
 6. **Account deletion binding**: `reviewToken` と再認証結果をGraphQL Inputで渡す論理形を、session-bound server state等へ変更するか。
-7. **Idempotency対象**: Community削除を含めるか、account削除・Upload・Media削除だけを必須とするか。
+7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
 8. **Group / Tag list sort・search matching・cursor**: Product仕様として具体契約をどこまで固定するか。
 9. **Group relation detailとモデルfield**: Group-centered viewに必要な親・子・Media connectionをどのfield構造で公開するか。
 10. **Media scope固有分類取得とモデルfield**: Media detail上のGroup / Tagをscope付きfieldにするか、独立Queryにするか。
