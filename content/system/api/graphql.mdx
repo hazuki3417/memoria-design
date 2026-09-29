@@ -189,6 +189,7 @@ type Community {
   id: ID!
   name: String!
   members(first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
+  myMembership: CommunityMembership!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -224,9 +225,9 @@ extend type Query {
 }
 ```
 
-`community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。現行 `community(id:)` の `members` はページングされた参加者一覧であり、Community取得だけで本人のMembershipが含まれる保証はありません。本人roleを直接参照するためのGraphQL fieldの要否と形状は別途確認し、`myCommunities` にrole取得の責務を追加しません。
+`community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。`Community.myMembership` は現在の認証User本人の有効なMembershipを直接返し、ページングされた `Community.members` に本人が含まれるかどうかに依存しません。`members` は本人を除外せず、全参加者を対象とします。両fieldは同じ保存済みMembershipを参照し、二重保存しません。`community(id:)` は有効なMembershipを持つUserにのみ公開するため、取得可能なCommunityの `myMembership` は非nullです。Membership失効時はCommunity取得と各fieldの認可を再評価し、Clientの表示済みroleを認可根拠にしません。
 
-Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
+Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.myMembership` は本人のrole取得、`Community.members` は本人を含む全参加者一覧の取得に使います。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
 
 ### 作成・名称変更
 
