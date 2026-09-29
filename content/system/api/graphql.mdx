@@ -25,7 +25,7 @@
 
 GraphQLはDBの外部キーをそのまま公開するのではなく、Clientへ公開するドメインモデルと本質的な関連を表現します。Queryはモデルへの入口、関連fieldはモデル間の移動、MutationはUser intentを表します。関連の逆方向は利用目的がある場合だけ公開し、単に技術的に辿れるという理由では追加しません。
 
-- Communityの関連fieldは所属を表す `members: CommunityMembershipConnection!` に限定します。Membershipはroleを持つ独立した関連モデルであり、単純なUser配列にはしません。
+- Communityの関連fieldは所属を表す `members: CommunityMembershipConnection!` に限定します。Membershipは共通 `User` とCommunity固有のroleを結ぶ関連モデルであり、単純なUser配列にはしません。親Communityへの逆参照やCommunity専用の重複User型は設けません。
 - CommunityのMedia / Group / TagはCommunity自身の構成要素として公開しません。これらはそれぞれ独立したドメインモデルであり、Communityを利用範囲として指定するQueryから取得します。
 - 一覧関連はConnectionでページングし、DataLoaderは1 GraphQL request内でbatch/cacheします。DataLoaderは深いnestや大量取得を制限する仕組みではないため、query depth / complexityと取得件数の制限は維持します。
 - ネストしたRelay ConnectionはGraphQL全体で許容します。親モデルから辿ることがドメイン上自然であれば関連fieldとして公開し、ネストしているという理由だけで重複するトップレベルQueryを追加しません。独立した取得・認可・利用上の理由がある場合は別Queryを検討します。
@@ -169,14 +169,8 @@ type Community {
 }
 
 type CommunityMembership {
-  community: Community!
-  user: CommunityMemberUser!
+  user: User!
   role: CommunityRole!
-}
-
-type CommunityMemberUser {
-  id: ID!
-  nickname: String!
 }
 
 type CommunityMembershipEdge {
@@ -207,7 +201,7 @@ extend type Query {
 
 `community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索には使用しません。
 
-参加者情報は現在nicknameとroleだけをClientへ提供します。email、profile画像、Auth0 identifierは含めません。
+Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
 
 ### 作成・名称変更
 
@@ -778,7 +772,7 @@ type AccountDeletionImpact {
 
 type AccountDeletionCommunity {
   community: Community!
-  successorCandidates: [CommunityMemberUser!]!
+  successorCandidates: [User!]!
   memberCount: Int!
   managedMediaCount: Int!
 }
