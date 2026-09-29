@@ -37,6 +37,27 @@ GraphQLはDBの外部キーをそのまま公開するのではなく、Client�
 - 実装時はネストしたConnectionの初回取得・追加ページ取得・削除・関連追加／除外・filter変更を組み合わせ、複数の親モデルでキャッシュが混線しないことと、Mutation後に一覧・pageInfoが整合することを検証します。
 - MediaのGroup / Tag分類はPersonalとCommunityで独立しているため、scopeを曖昧にした関連fieldを追加しません。Groupの親子・所属Mediaなど、必要な関連の具体的なSDLは既存ドメイン仕様と照合してレビューします。
 
+## scope指定の横断検証
+
+公開するQuery / Mutationと関連fieldを、対象の識別方法に基づき横断確認した結果を以下に固定します。ULIDの形式ではPersonal / Communityを識別しません。既存resourceはDBの所属・関連を参照し、認可は各操作時に再検証します。
+
+| 対象 | scope / ID契約 | 理由・検証 |
+| --- | --- | --- |
+| `me`、Profile更新、Account削除Review / Confirm | scope不要、認証主体で特定 | Clientから本人のPersonal IDを受け取らない |
+| `community(id:)`、Community更新・削除、Membership・Invitation管理 | `communityId` またはCommunityのIDを指定、scope不要 | Communityという対象種別がfield / Inputで確定する |
+| `myCommunities` | scope不要、認証主体で特定 | 本人の所属Community一覧 |
+| `media(id:)`、Media削除 | `mediaId` 等で対象特定、scope不要 | Media本体の識別と閲覧・削除認可は別。閲覧可能な複数scopeがあってもMedia本体は同一 |
+| `mediaList`、`mediaGroups`、`mediaTags` | `ScopeInput!` 必須 | 一覧の取得範囲を選ぶ必要がある |
+| `Media.groups`、`Media.tags` | `ScopeInput!` 必須 | 同一Mediaの分類はPersonal / 各Communityで異なる。Media IDだけでは分類scopeを決定できない |
+| Group / Tag作成 | `ScopeInput!` 必須 | 作成前に対象Group / TagのIDが存在しない |
+| Group / Tag詳細・名称変更・削除 | 対象Group / Tag ID、scope不要 | 対象の保存済み所属からscopeを確定する |
+| Group間relation追加・解除 | `parentGroupId` と `childGroupId`、scope不要 | 双方の所属を取得し同一scopeを検証する。異scopeを許可しない |
+| Group / TagへのMedia分類 | `groupId` / `tagId` と `mediaIds`、scope不要 | 分類先の所属からscopeを確定し、各Mediaがそのscopeで閲覧・分類可能か検証する |
+| Media共有・共有解除 | `mediaIds` と `communityId`、scope不要 | 共有先のCommunityを明示し、各MediaのCustody・権限を検証する。Personal / Communityの汎用owner IDにはしない |
+| Community削除Impact・Account削除のCommunity解決 | `communityId`、scope不要 | 操作対象のCommunity種別が明示されている |
+
+`ScopeInput` は `type: PERSONAL` のとき認証済みUser本人を表し `communityId` を禁止します。`type: COMMUNITY` のとき `communityId` を必須とし、現在のMembershipと対象Mediaの可視性を検証します。既存resource IDから所属を解決する操作では、異なるscopeのIDを同時に指定しても暗黙に変換・横断処理しません。
+
 ## 共通scalarとenum
 
 ```graphql
@@ -430,7 +451,7 @@ extend type Query {
 
 `mediaList(scope:)` は1つのscope内のMedia一覧を取得する共通Queryです。`PERSONAL` は現在UserがCustodianであるACTIVE Mediaを返し、`COMMUNITY` は有効なMembershipを持つ指定Communityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。異なるscopeのMediaを1つのConnectionへ混在させません。Web側では画面・ユースケースに対応するGraphQL Operationを定義し、この共通Queryへscopeを渡します。
 
-Tag filterは現在scopeのTagだけを受け付け、複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
+Tag filterは現在scopeのTagだけを受け付け、Tag IDの形式からscopeを推測せず保存済みの所属情報を検証します。複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
 
 `media(id:)` は現在Userが閲覧可能なMediaだけを返します。Media詳細の分類情報は `Media.groups(scope:)` / `Media.tags(scope:)` から現在のPersonal / Community scopeを明示して取得します。指定scopeでMediaが閲覧可能であることを再検証し、別CommunityやPersonalの分類情報を暗黙に混在させません。Group / Tagの一覧・検索・管理は独立Queryで提供し、Community自身の子fieldには追加しません。
 
@@ -646,7 +667,7 @@ Personal Group構造はUser本人、Community Groupのcreate / rename / delete /
 
 Group relationは同一scopeだけを許可し、自己参照、重複、直接・間接循環を `CONFLICT` とします。Group削除はMedia本体を削除せず、対象GroupのMedia relationとGroup relationだけを削除します。
 
-複数Media分類は各Mediaを再認可して部分成功を許容します。query結果全件を暗黙対象にするInputは提供しません。
+Group IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Group IDとMedia IDのULID形式からscopeを推測しません。複数Media分類は各Mediaを再認可して部分成功を許容します。query結果全件を暗黙対象にするInputは提供しません。
 
 ## Tag
 
@@ -726,7 +747,7 @@ extend type Mutation {
 
 Personal TagはUser本人が管理します。CommunityではAdministrator / MemberがTagを作成し、閲覧可能Mediaへ付与・解除できます。Community Tagのrename / deleteはAdministratorだけが実行します。
 
-Media Browserの複数Tag filterはAND条件です。OR切替や複雑な検索式はInitial Releaseへ追加しません。複数Media分類は部分成功を許容し、query結果全件を暗黙対象にしません。
+Tag IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Tag IDとMedia IDのULID形式からscopeを推測しません。Media Browserの複数Tag filterはAND条件です。OR切替や複雑な検索式はInitial Releaseへ追加しません。複数Media分類は部分成功を許容し、query結果全件を暗黙対象にしません。
 
 ## Community削除
 
