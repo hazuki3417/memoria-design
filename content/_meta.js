@@ -1,6 +1,7 @@
 export default {
   "index": "Home",
   "-- Product": {"type":"separator","title":"プロダクト"},
+  "product-vision": "プロダクトビジョン・設計原則",
   "first-release": "初回Release",
   "ubiquitous": "ユビキタス言語",
   "media": "Media",
