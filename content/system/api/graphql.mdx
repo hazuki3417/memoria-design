@@ -130,7 +130,7 @@ type PageInfo {
 - edgeは `cursor` と `node`、connectionは `edges` と `pageInfo` を返します。
 - cursorはopaqueとし、ClientがDB key構造へ依存しないようにします。
 - Media一覧は既存設計どおり `createdAt DESC, id DESC` を論理順とします。
-- Group / Tag / Community / Membership一覧の具体的sortとcursor keyは、Product仕様で未確定のものを本契約だけで新規決定しません。
+- Group / Tag一覧はname ASC、同名時ID ASCとし、対応するopaque cursorを使用します。Community / Membership一覧の具体的sortとcursor keyは、Product仕様で未確定のため本契約だけで新規決定しません。
 
 ## User
 
@@ -224,7 +224,7 @@ extend type Query {
 }
 ```
 
-`community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索には使用しません。
+`community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。現行 `community(id:)` の `members` はページングされた参加者一覧であり、Community取得だけで本人のMembershipが含まれる保証はありません。本人roleを直接参照するためのGraphQL fieldの要否と形状は別途確認し、`myCommunities` にrole取得の責務を追加しません。
 
 Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
 
@@ -467,7 +467,7 @@ Initial Releaseの入力形式、128 MiB、100 megapixels、width / height上限
 
 Initial ReleaseのOriginal file size上限は128 MiBであり、`Media.fileSize` と `ImageVariant.sizeBytes` にはGraphQL標準の32-bit signed `Int` を使用します。画像のwidth / heightも同じ `Int` とし、`BigInt` / custom integer scalarは導入しません。将来この範囲を超える値が必要になった場合は、該当fieldの型変更とClient互換性を別途設計します。
 
-Original保存とDB transactionが成功した時点でMutationを成功とし、Variant生成完了やRedis配送完了を待ちません。返却Mediaの `processing.status` により非同期状態を観測します。terminal `FAILED` でもMediaは残り、通常権限に従って削除できます。Initial ReleaseではUser向けmanual reprocess Mutationを提供しません。
+Original保存とDB transactionが成功した時点でHTTP upload requestを成功とし、Variant生成完了やRedis配送完了を待ちません。返却Mediaの `processing.status` により非同期状態を観測します。terminal `FAILED` でもMediaは残り、通常権限に従って削除できます。Initial ReleaseではUser向けmanual reprocess Mutationを提供しません。
 
 Uploadは再送による重複Media作成を避ける必要があるため `idempotencyKey` を要求します。keyの形式・保持期間は[冪等性と再試行](./idempotency)および未決定Implementation Detailで確定します。
 
@@ -595,7 +595,7 @@ extend type Query {
 }
 ```
 
-`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
+`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、[Issue #131](https://github.com/hazuki3417/memoria-design/issues/131)で同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
 
 ### Command
 
