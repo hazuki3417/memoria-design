@@ -21,6 +21,15 @@ Operation名、Input / Payload名、field構成は本設計のレビュー完了
 - DB更新と非同期処理の連動はTransactional Outboxを利用し、Redis配送完了をMutation成功条件にしません。
 - 管理主体委譲、User起点Join Request、動画OperationはInitial ReleaseのGraphQL契約へ含めません。
 
+## モデル中心の公開境界
+
+GraphQLはDBの外部キーをそのまま公開するのではなく、Clientへ公開するドメインモデルと本質的な関連を表現します。Queryはモデルへの入口、関連fieldはモデル間の移動、MutationはUser intentを表します。関連の逆方向は利用目的がある場合だけ公開し、単に技術的に辿れるという理由では追加しません。
+
+- Communityの関連fieldは所属を表す `members: CommunityMembershipConnection!` に限定します。Membershipはroleを持つ独立した関連モデルであり、単純なUser配列にはしません。
+- CommunityのMedia / Group / TagはCommunity自身の構成要素として公開しません。これらはそれぞれ独立したドメインモデルであり、Communityを利用範囲として指定するQueryから取得します。
+- 一覧関連はConnectionでページングし、DataLoaderは1 GraphQL request内でbatch/cacheします。DataLoaderは深いnestや大量取得を制限する仕組みではないため、query depth / complexityと取得件数の制限は維持します。
+- MediaのGroup / Tag分類はPersonalとCommunityで独立しているため、scopeを曖昧にした関連fieldを追加しません。Groupの親子・所属Mediaなど、必要な関連の具体的なSDLは既存ドメイン仕様と照合してレビューします。
+
 ## 共通scalarとenum
 
 ```graphql
@@ -151,6 +160,7 @@ extend type Mutation {
 type Community {
   id: ID!
   name: String!
+  members(first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -189,11 +199,10 @@ type CommunityConnection {
 extend type Query {
   community(id: ID!): Community
   myCommunities(first: Int, after: String, last: Int, before: String): CommunityConnection!
-  communityMembers(communityId: ID!, first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
 }
 ```
 
-`community` と `communityMembers` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索には使用しません。
+`community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索には使用しません。
 
 参加者情報は現在nicknameとroleだけをClientへ提供します。email、profile画像、Auth0 identifierは含めません。
 
@@ -840,7 +849,7 @@ extend type Mutation {
 | `registerUser` | 未登録認証主体 | ACTIVE User作成 |
 | `updateUserProfile` | ACTIVE User本人 | nickname更新 |
 | `myCommunities` | ACTIVE User | 自身のMembership一覧 |
-| `community` / `communityMembers` | Member / Admin | Community内部情報取得 |
+| `community` / `Community.members` | Member / Admin | Community内部情報取得 |
 | `createCommunity` | ACTIVE User | Community + admin Membership作成 |
 | `updateCommunity` | Admin | Community名更新 |
 | `changeCommunityMemberRole` | Admin | role変更。最後のadmin保護 |
@@ -910,8 +919,8 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 6. **Account deletion binding**: `reviewToken` と再認証結果をGraphQL Inputで渡す論理形を、session-bound server state等へ変更するか。
 7. **Idempotency対象**: Community削除を含めるか、account削除・Upload・Media削除だけを必須とするか。
 8. **Group / Tag list sort・search matching・cursor**: Product仕様として具体契約をどこまで固定するか。
-9. **Group relation detail Query**: Group-centered viewに必要な親・子・Media connectionをどのfield構造で公開するか。
-10. **Media scope固有分類取得**: Media detail上のGroup / Tagをscope付きfieldにするか、独立Queryにするか。
+9. **Group relation detailとモデルfield**: Group-centered viewに必要な親・子・Media connectionをどのfield構造で公開するか。
+10. **Media scope固有分類取得とモデルfield**: Media detail上のGroup / Tagをscope付きfieldにするか、独立Queryにするか。
 11. **GraphQL Upload transport**: 現在の「API経由Upload」をmultipart GraphQL `Upload` scalarで実現するか、API内の別HTTP upload endpointを使うか。
 12. **整数scalar**: file size等がJavaScript安全整数を超えない制約を利用して `Int` とするか、`BigInt` / custom scalarを導入するか。
 
