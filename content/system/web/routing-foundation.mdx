@@ -28,6 +28,15 @@
 
 ## 2. 認証境界
 
+### 合意済み: 二段階の認証確認
+
+- Middlewareで未認証アクセスを早期Redirectし、認証済みServer LayoutでもSessionを確認する。これは利便性と表示制御のための二段階チェックであり、どちらも単独ではデータの保護境界とみなさない。
+- App RouterではClient Navigation中にLayoutが再利用され得るため、保護されたServer側データ取得、Server Action、Route Handlerなど実際のデータアクセス地点で必要な認証確認を行う。APIが最終的な業務認可を保証する。
+- Client側AuthGuardは補助的な表示・遷移制御に限定し、保護の唯一の根拠にしない。
+- 現行の認証済みLayoutのSessionなしで`null`を返す挙動は解消対象とし、Server側での明示的なRedirectを基本案とする。Redirect先、`returnTo`検証、ループ防止は認証復帰仕様の検討後に確定する。
+- GraphQL BFFの`src/app/api/graphql/route.ts`は現在リクエストHeaderを転送する実装である。認証境界の実装時には、認証方式と転送Headerの許可範囲を別途確認し、LayoutのSession確認だけで保護されたと扱わない。
+
+
 - 既存のAuth0／Next.js BFF構成とHttpOnly Session Cookieを前提とし、TokenをURL・公開Client State・Logへ露出しない。
 - Middlewareは認証前の早期Redirectを担い、認証済みLayoutはServer側のSession確認を担う。Client側のGuardのみを保護の根拠にしない。
 - 未認証時に空画面（`null`）だけを返す状態を最終仕様とせず、Server側でのRedirectまたは明示的な失敗処理に統一する方針を検討する。
@@ -59,7 +68,7 @@
 
 ## レビューで合意が必要な論点
 
-1. **認証の二段階チェック**: Middlewareの早期RedirectとServer Layoutの最終チェックを併用するか。現行の`null`応答をどの段階でRedirectへ変更するか。
+1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
 2. **保護対象の管理方法**: Middleware側の一覧を継続するか、Route Groupとの乖離を防ぐ共通定義へ移行するか。Next.jsの実行環境制約も確認する。
 3. **認証復帰の仕様**: `returnTo`にQueryを保持するか、復帰先をどのタイミングで検証するか。
 4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
