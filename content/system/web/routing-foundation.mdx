@@ -182,6 +182,14 @@ src/app/
 - 未認証の保護画面直接アクセスを公開`/`へ転送しない。Session切れと不正な`returnTo`のケースも既存の認証復帰規約に従う。
 - 確認対象: `/`の認証有無、`/dashboard`の認証有無、Path＋Query復帰、ログアウト後の`/`、公開／保護の境界、認証ループ防止。画面デザインは別途レビューする。
 
+### 合意済み: 認証復帰先の優先順位
+
+- ログイン成功時は、検証済みの`returnTo`を第1優先とし、元のPathとQueryを保持して復帰する（例: `/images?page=2`）。
+- `returnTo`が未指定・不正・許可対象外の場合は、暫定認証済み初期画面`/dashboard`へ遷移する。正式な初期画面が画面詳細設計で確定したら、共通のFallback先を変更する。
+- 外部Origin、認証Endpointへの循環、危険なEncoding等の検証は既存の認証復帰仕様に従い、生成時とCallback後のRedirect直前に行う。
+- 未認証で保護画面へ直接アクセスした場合、公開トップページを経由せずAuth0ログインへ遷移させる。
+- 実装上の具体的なCallback Hook・Middleware／Proxy連携は導入済みAuth0 SDKのAPIを確認して決定する。
+
 ### 実装前調査: Auth0 SDKとNext.js 16の認証境界（2026-09-30）
 
 - 現行`memoria-web/develop`の`package.json`は`@auth0/nextjs-auth0: ^4.27.0`、`next: ^16.3.7`。`Auth0Client`は`src/lib/auth.ts`で初期化し、`src/middleware.ts`から`auth.middleware(request)`を呼ぶ。現行のログイン／ログアウト導線は`/auth/login`、`/auth/logout`を使用する。
