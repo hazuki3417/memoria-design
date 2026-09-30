@@ -6,7 +6,7 @@
 
 本ページはInitial ReleaseでWeb Clientから利用するGraphQLの型、Query、Mutation、認可、error、pagination、非同期状態の契約を定義します。APIはschema、Webはoperation・fragment・生成型を所有します。resolver、DataLoader、schema進化、Access Token、GraphQL Errorの実装規約は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照します。
 
-12項目の設計レビューは完了し、5（Original download transport）と6（Account deletionの再認証binding）を除く項目は確定済みです。確定済みのGraphQL契約は `memoria-api/schemas/graphql/` へ実行可能SDLとして反映します。5・6の暫定SDLは実装確定契約に含めず、当該仕様が確定するまで実装対象から除外します。Product / domain semanticsは変更しません。
+12項目のうち、5（Original download transport）と6（Account deletionの再認証binding）は詳細設計を要します。それ以外のGraphQL契約は `memoria-api/schemas/graphql/` へ実行可能SDLとして反映します。5・6の暫定SDLは実装対象の契約に含めず、当該仕様が確定するまで実装対象から除外します。Product / domain semanticsは変更しません。
 
 ## 契約原則
 
@@ -959,19 +959,19 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - Community説明、画像、公開profile
 - profile画像、公開用account ID、複数認証subjectのaccount linking
 
-## 確定済み契約の実装引き渡しチェック
+## 実装引き渡しチェック
 
-画面仕様（Group Browser、Media Detail、Media Upload）とMedia Group / Tagドメイン仕様、`memoria-api/develop` の既存GraphQL schemaを照合した結果、確定済みの主要なドメイン境界と画面Interactionに矛盾は認められません。以下は実装引き渡し時の確認事項です。
+画面仕様（Group Browser、Media Detail、Media Upload）とMedia Group / Tagドメイン仕様、`memoria-api/develop` の既存GraphQL schemaを照合した結果、主要なドメイン境界と画面Interactionに矛盾は認められません。以下は実装引き渡し時の確認事項です。
 
 - 既存APIの `scalar Upload` と `scalar Int64` は既存schemaに存在するが、新しいMedia upload transportは専用HTTP endpoint、Initial ReleaseのMedia size/dimension fieldは標準 `Int` とする。既存scalarの削除はこの契約だけを根拠に行わない。
 - Group relationの表示は `MediaGroup.parents` / `children` / `media` を使用する。関連追加の候補検索は表示用Connectionと別の契約が必要であり、候補の絞り込み・DAG循環禁止をAPIで再検証する。
 - Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
-- `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、確定済みschemaの実装引き渡し対象から除外する。
+- `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、schemaの実装引き渡し対象から除外する。
 - 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
 ## レビュー時の要判断事項
 
-既存設計だけでは一意に決められない事項を以下で追跡します。確定済みの項目は採用方針を明記します。
+既存設計だけでは一意に決められない事項を以下で追跡します。採用方針は各項目に明記します。
 
 1. **Operation naming（確定）**: 対象モデルの更新を表す `updateCommunity` 方式を採用する。Communityの名称変更は `updateCommunity`、Profile変更は `updateUserProfile` とし、単一属性に限定した `renameCommunity` 等は設けない。Membershipの除外や退会、Media削除など更新とは異なる独立したUser intentは、既存案どおり `removeCommunityMember` / `leaveCommunity` / `deleteMedia` 等の操作名で表す。
 2. **scope Input表現（確定）**: `ScopeType` enum（`PERSONAL` / `COMMUNITY`）を明示する。共通 `ScopeInput` をGroup / Tagの取得・作成で使用し、HTTP Image Uploadのcustody指定も同じenumと検証規則を使用する。`COMMUNITY` は `communityId` 必須、`PERSONAL` は指定禁止とし、不整合は `VALIDATION`。
@@ -986,4 +986,4 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 11. **Upload transport（確定）**: ファイル本体は同じmemoria-api内の専用HTTP upload endpointで受信し、必要最小限のcustody情報とidempotency keyも同じrequestで受け取る。GraphQLはMediaの取得・分類・共有・削除・Processing状態取得を担当する。既存Redis Streamsによる非同期処理基盤を再利用し、HTTP endpointとGraphQLはApplication Use Caseおよび認証・認可規則を共有する。具体的なHTTP routeとrequest / response形式は詳細設計で確定する。
 12. **整数scalar（確定）**: Initial ReleaseのOriginal file size上限128 MiB、画像寸法・Variant size等の現在の上限をGraphQL標準の32-bit signed `Int` で表現する。`BigInt` / custom integer scalarは導入しない。将来2,147,483,647を超える値を公開する要件が生じた場合は、該当fieldのscalarとClient互換性を別途設計する。
 
-これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。確定事項は本ページに反映済みです。保留した5・6の詳細設計はIssueで追跡し、確定済みのGraphQL契約を先に実行可能SDLへ引き渡します。
+これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。5・6の詳細設計はIssueで追跡し、対象のSDLは詳細設計後に引き渡します。
