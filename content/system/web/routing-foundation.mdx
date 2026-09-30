@@ -160,9 +160,9 @@
 - 共有可能な状態はURLで扱う既存方針を維持する。ただし具体的なKey、Default値、戻る操作の仕様は画面詳細設計に委ねる。
 - Redirect先の検証やURL生成を共通化する際は、画面固有のRoute一覧をこの基盤設計に固定しない。
 
-### 実装設計案: 暫定トップページと認証境界の配置（レビュー待ち）
+### 合意済み: 暫定トップページと認証境界の配置
 
-現行`memoria-web/develop`の`src/app/layout.tsx`は全体Provider、`src/app/(authenticated)/layout.tsx`はSession・GetMe・AppShellを担当する。現行`src/app/page.tsx`は確認時点で存在しない。`src/middleware.ts`は保護Pathを限定列挙し、`returnTo`にはPathnameのみを渡している。以下は変更案であり、実装済みではない。
+現行`memoria-web/develop`の`src/app/layout.tsx`は全体Provider、`src/app/(authenticated)/layout.tsx`はSession・GetMe・AppShellを担当する。現行`src/app/page.tsx`は確認時点で存在しない。`src/middleware.ts`は保護Pathを限定列挙し、`returnTo`にはPathnameのみを渡している。以下は合意済みの実装方針であり、実装済みではない。
 
 ```text
 src/app/
