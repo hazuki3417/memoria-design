@@ -177,7 +177,11 @@ Upload開始前は選択したfileを削除して作業を中止できます。
 
 Upload開始後、既にServer側でMedia登録が成立したMediaを「cancel」によって暗黙削除しません。Upload requestの通信cancelと、成立済みMediaの削除は別操作です。
 
-複数Uploadの実行中に画面遷移・reload・network切断が発生した場合の再接続・状態復元は、idempotencyとserver-side observable stateを前提にGraphQL / Frontend contractで具体化します。client memoryだけを正本にしません。
+Initial ReleaseではUpload開始前の未送信fileが残る状態、およびUpload中・待機中のfileが残る状態で画面内Navigationを行う場合、作業が失われる可能性を確認してから離脱します。Upload中は未完了requestが中断される可能性を伝え、成立済みMediaをcancelや離脱によって暗黙削除しません。Browserのreload・tab close等は環境が許す範囲で標準の離脱確認を利用し、確実な表示を保証しません。
+
+Media登録が完了しServer側の画像Processingだけが残っている場合、Upload画面への滞在を必須とせずMedia Browserへ移動できます。Media BrowserでもProcessing中・terminal failureを識別できるようにします。
+
+Initial Releaseでは画面離脱後もfile送信を継続するbackground Uploadを必須要件としません。画面遷移・reload・network切断が発生した場合、Serverで登録済みのMediaと未確定requestの状態をidempotencyおよびserver-side observable stateで照合し、結果不明のfileを無条件に自動再送して重複登録しません。具体的な離脱guard、復帰・再試行UI、request識別・照合方法はGraphQL / Frontend詳細設計で決定し、client memoryだけを正本にしません。
 
 ## 状態 / Concurrency
 
