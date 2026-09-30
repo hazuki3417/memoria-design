@@ -105,7 +105,7 @@ PersonalではUser本人、CommunityではAdministratorだけが削除できま�
 
 ## Media分類Interaction
 
-Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除、および未登録Tag作成の主要な入口とします。
+Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除、および未登録Tag作成の主要な入口とします。Tag付けはfree text入力を基本とし、入力したTag名ごとに現在scopeの既存Tagを完全一致で再利用し、未登録なら作成してMediaへ付与します。既存Tag候補の補完は入力支援として提供できますが、候補からの選択を必須にしません。Web実装ではMantine `TagsInput`を利用する想定とします。
 
 Media Detailでは現在scopeで対象Mediaに付与されているTagを確認できます。分類権限があるUserは現在scopeの既存Tagを付与・解除でき、未登録のTag名を入力した場合は新規作成して付与できます。
 
@@ -170,7 +170,7 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 - scope内Tag数、MediaあたりTag数の具体的上限
 - Tag一覧のsort、検索、pagination契約
 - GraphQL Operation名、Input / Payload、error表現
-- MediaへのTag入力・既存Tag候補の具体的presentation
+- Mantine `TagsInput`によるfree text入力時の補完・候補表示・確定タイミング等の詳細interaction
 - filter結果全件を暗黙対象にするquery-based bulk Tag操作や、複数Tagを同時に複数Mediaへ適用する高度なmatrix操作
 
 自動Tag付け、AI分類、Custody transfer時のTag移行はInitial Release対象外です。
