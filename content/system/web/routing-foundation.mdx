@@ -142,7 +142,7 @@
 - 閲覧権限のないCommunity・Media等は、存在の有無を秘匿する404相当をAPIが返し、Webは404を表示する。
 - 閲覧できるリソースに対する権限外の管理操作・Original download等は、APIが403相当を返し、Webは権限不足を表示する。
 - 認証Sessionがない場合は認証エラーを優先する。現在のMembership等を操作時点で再評価し、Webは独自の存在確認やエラーコード変換を行わない。
-- GraphQLの具体的な公開エラーコードとHTTP Statusの対応はAPI共通契約の詳細設計で確定する。
+- GraphQLの公開エラーコードは既存契約の`UNAUTHENTICATED`／`FORBIDDEN`／`NOT_FOUND`を使用する。GraphQL実行時のHTTP Statusと複数Field Errorの表示優先順位は実装契約で検証する。
 
 ### Domain調査結果: Community／Mediaの情報秘匿境界（2026-09-30）
 
@@ -160,6 +160,10 @@
 - **上表の403／404は調査から導いた設計候補であり、APIの実装済み契約でも確定したDomain仕様でもない。** 「閲覧できないリソースは存在秘匿」「閲覧できるリソースに対する許可されない操作は権限不足」という共通規則を採用するか、ユーザーとの合意後に各Domain・APIの正本へ反映する。
 - APIは対象存在確認と権限判定の順序・公開エラーを統一し、存在しないIDと閲覧権限のないIDで不要な情報差が生じないようにする。WebはAPIの公開結果だけを表示し、独自の存在確認をしない。
 - 参照: [Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)。
+
+### 正本確認: GraphQL公開エラーコードは定義済み（2026-09-30）
+
+[GraphQL契約](/system/api/graphql)には`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`等が既に定義されている。上記の「正式名称が未決定」という記述はAPI実装との差分調査時点の記録であり、現在の設計上の未決定事項ではない。既存APIの`graph/handler.go`はこれらすべてを統一変換していないため、実装引き渡し時に差分を解消する。GraphQL実行時のHTTP Statusと複数Field Errorの表示優先順位は引き続き検証対象とする。
 
 ## 4. URL設計規約
 
