@@ -69,7 +69,7 @@
 
 ### 認証後の遷移と編集状態の扱い
 
-- 通常ログイン、未認証での保護画面直接アクセス、セッション期限切れ後の再ログイン、認証エラー画面からの再ログインのいずれも、認証成功後は暫定初期画面`/dashboard`へ遷移する。元画面のPath・Queryを認証をまたいで保持しない。
+- 通常ログイン、未認証での保護画面直接アクセス、セッション期限切れ後の再ログイン、認証エラー画面からの再ログインのいずれも、認証成功後はPersonal Dashboardの入口`/dashboard`へ遷移する。元画面のPath・Queryを認証をまたいで保持しない。
 - 未認証で保護画面へ直接アクセスした場合は、公開トップページを経由せずSDKのAuth0ログインへ誘導する。認証成功後に元画面へ戻さない。
 - 編集中にセッションが切れた場合、未保存の入力や画面状態は破棄し、再ログイン後に最初から操作をやり直す。認証をまたぐ下書き保存・自動復元・元画面復帰は今回の対象外とする。
 - `returnTo`の独自生成・検証・保持、再試行用Cookieは導入しない。SDKの標準認証トランザクション管理は維持する。アプリが明示的に復帰先を指定する場合は固定の`/dashboard`のみとする。
@@ -271,7 +271,7 @@ src/app/
   not-found.tsx                      # 共通404
 ```
 
-- `src/app/page.tsx`はServer Componentとし、Sessionがあれば認証済み初期画面（暫定`/dashboard`）へServer Redirect、なければ簡易トップページを描画する。公開トップページに認証済みAppShell・GetMeを要求しない。
+- `src/app/page.tsx`はServer Componentとし、SessionがあればPersonal Dashboard（`/dashboard`）へServer Redirect、なければ簡易トップページを描画する。公開トップページに認証済みAppShell・GetMeを要求しない。
 - `(authenticated)/layout.tsx`は既存のSession確認・GetMe・AppShellを維持し、Sessionなしの`return null`を、元URLを保持しないSDKログインRedirectへ変更する。Layoutだけに認証を依存させず、保護データの取得地点でも確認する。
 - Middlewareの画面Routeは原則保護、公開ページ`/`を明示的Allowlistとする。Auth0 SDKのEndpoint、API Route、静的Assetは別区分にし、SDKの実際のPath・Matcherと照合する。公開`/`ではMiddlewareによるログイン強制をせず、Page側がSessionで表示を振り分ける。
 - ログインボタンはSDKのログイン導線に接続する。すべてのログイン成功後は暫定`/dashboard`へ遷移する。Logout完了後は公開`/`へ戻す。SDKのCallback／Logout設定と実際のEndpointは実装前に確認する。
