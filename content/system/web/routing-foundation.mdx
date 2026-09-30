@@ -36,14 +36,8 @@
 - 現行の認証済みLayoutのSessionなしで`null`を返す挙動は解消対象とし、Server側での明示的なRedirectを基本案とする。Redirect先、`returnTo`検証、ループ防止は認証復帰仕様の検討後に確定する。
 - GraphQLプロキシの主目的は、WebとAPIが異なるドメインでもブラウザからNext.jsの同一Originへアクセスさせ、ブラウザとAPI間のCORS設定への依存を減らすことである。認証をプロキシに集約すること自体は、この構成の目的ではない。
 - `src/app/api/graphql/route.ts`は現状、リクエストHeaderを転送する。プロキシ経由でもAPIが最終的な認証・認可を行う。認証方式と転送Headerの許可範囲、Cookieの扱いは実装時に確認する。LayoutのSession確認だけでAPIへのアクセスが保護されたと扱わない。
-
-
 - 既存のAuth0／Next.js BFF構成とHttpOnly Session Cookieを前提とし、TokenをURL・公開Client State・Logへ露出しない。
-- Middlewareは認証前の早期Redirectを担い、認証済みLayoutはServer側のSession確認を担う。Client側のGuardのみを保護の根拠にしない。
-- 未認証時に空画面（`null`）だけを返す状態を最終仕様とせず、Server側でのRedirectまたは明示的な失敗処理に統一する方針を検討する。
-- `returnTo`はアプリ内の安全な相対パスに限定し、外部URLへのOpen Redirectを防止する。クエリ文字列の保持範囲、期限切れ時の再認証、Callback後の復帰先は別途確認する。
-- URL保護判定に文字列の単純な前方一致を用いる場合、`/images`と`/images-extra`などの境界を区別する。Middlewareの保護対象一覧とRoute Groupの保護対象が乖離しない構成を検討する。
-- APIが最終的な業務認可を保証する。認証済みであっても個別リソースへのアクセスが許可されるとはみなさない。
+- 認証済みでも個別リソースの利用権限は保証されず、APIが最終的な業務認可を行う。
 
 ### 合意済み: 保護対象は原則保護・公開URLを例外登録
 
@@ -66,14 +60,13 @@
 
 ## 3. エラーとLoading
 
-### 現行構成に基づく配置案（レビュー待ち）
+### 合意済み: 共通Error／Loadingの配置方針
 
 - Root LayoutはHTML、Locale、Mantine等の共通Providerを構築している。Rootの`global-error.tsx`はこのLayout自体が失敗した場合の最終Fallbackとして配置し、必要な`html`／`body`を自前で描画する。通常のProviderが使えることを前提にしない。
 - Rootの`not-found.tsx`はURL不一致時の共通404を担当する。認証済み領域で共通Shellを維持する必要が明確になった場合は、その領域にも局所的な404境界を追加する。
 - 認証済み領域の`error.tsx`は当該Layoutの**子Segment**の描画失敗を扱う。認証済みLayout自身のSession取得や`GetMe`失敗は同階層の`error.tsx`では捕捉できないため、親階層の境界と認証エラーの明示的な処理を分けて設計する。
 - `loading.tsx`は実際に待機が必要なSegment単位で設け、全画面一律には配置しない。認証済みLayoutのSession取得／`GetMe`待機を子階層の`loading.tsx`だけで解決できる前提にしない。必要に応じて親側のSuspense境界とProvider依存を検証する。
 - `notFound()`／`redirect()`は通常の例外表示と区別し、意図した404・認証遷移として扱う。`error.tsx`では機密情報を表示せず、再試行可能なケースに限り`reset()`を提供する。
-
 
 
 - `error.tsx`は対象Segment配下の回復可能なRender Errorを扱い、再試行と利用可能な共通UIを提供する。
@@ -101,9 +94,9 @@
 1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
 2. **保護対象の管理方法（基本方針は合意済み）**: 画面Routeは原則保護し、認証不要の公開URLをAllowlistで管理する。Auth0 Endpoint・API Route・静的Assetは別区分とする。具体的なPath、Matcher、Locale処理は実装前に現行コードとSDK仕様を確認して確定する。
 3. **認証復帰の仕様（基本方針は合意済み）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
-4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
+4. **共通Error／Loadingの配置（基本方針は合意済み）**: Rootの`global-error.tsx`／`not-found.tsx`、認証済み領域の子Segment用`error.tsx`、必要なSegment単位の`loading.tsx`を基本とする。認証済みLayout自身の失敗は親境界・認証エラー処理で扱う。
 
-上記の論点は未決定です。合意後に本書を確定し、実装作業は別Issueで管理します。
+4項目の基本方針は合意済みです。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
 
 ## 関連
 
