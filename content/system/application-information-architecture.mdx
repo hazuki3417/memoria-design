@@ -83,7 +83,7 @@ Communityの検索、pin、recent、手動並べ替え等はInitial Releaseの�
 
 ACTIVE UserはContext SwitcherからCommunity作成を開始できます。
 
-Community作成には[Community Creation](/screens/community-creation)と[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。作成成功後は作成したCommunityを現在contextとして、そのCommunityのMediaへ移動します。
+Community作成には[Community Creation](/screens/community-creation)と[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。作成成功後は作成したCommunityを現在contextとして、そのCommunityのDashboard（`/communities/[communityId]/dashboard`）へ移動します。
 
 ### Navigation state
 
@@ -91,7 +91,15 @@ Context SwitcherはApplication固有のhidden session stateを切り替える機
 
 Navigation先から現在contextを判定できることを基本とし、reload、deep link、browser historyからCommunity固有の画面へ直接到達した場合も、そのNavigation先に対応するCommunityを現在contextとして表現します。
 
-具体的なURL path形式はWeb実装設計で決定しますが、Community固有のNavigationでは対象Communityを識別可能にします。
+Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communityId]/dashboard`とします。`communityId`にはAPIが公開する安定した識別子を使用し、表示名をURL上の識別子として扱いません。Community固有の他画面も`/communities/[communityId]/...`配下に配置し、具体的な末尾Pathは各画面の詳細設計で決定します。
+
+### Switcherの状態と遷移
+
+- Community一覧の読み込み中は現在contextの表示を維持し、Switcher内で読み込み中であることを伝えます。取得失敗は空一覧と混同せず、再試行を提供します。
+- 参加Communityがない場合もPersonalとACTIVE User向けCommunity作成の入口を維持します。
+- Context選択時は対象Dashboardへ遷移します。切り替え処理中は重複操作を防ぎ、遷移先の取得に失敗した場合はエラーを表示し、現在の利用可能なcontextを維持します。
+- URLを現在contextの正本とし、Switcher独自の永続的な選択状態を持ちません。Browserの戻る・進むと直接アクセス時にもURLから現在contextを復元します。
+- Membership喪失時の案内画面の具体的なPath・表示文言・404との境界は、APIの公開エラー契約と画面詳細設計で確定します。
 
 ## Context Navigation
 
@@ -131,7 +139,7 @@ Personal contextの標準entryはDashboardです。
 
 ### Community
 
-各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。具体的なURL文字列とDashboardの情報構成は画面詳細設計で決めます。
+各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。Community DashboardのURLは`/communities/[communityId]/dashboard`です。Dashboardの情報構成は画面詳細設計で決めます。
 
 ## DashboardとContextの関係
 
@@ -144,7 +152,7 @@ Personal contextの標準entryはDashboardです。
 
 Navigation上で操作を提示することと、domain上の認可は分離します。Web UIで非表示または無効化してもAPI側の認可を代替しません。
 
-CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったManagement等を継続利用させません。Community Membershipを失った場合は、そのCommunity contextを継続して表示せず、安全に利用可能なApplication destinationへ移動します。
+CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったManagement等を継続利用させません。Community Membershipを失った場合は、そのCommunityの保護データを継続表示せず、アクセスできなくなったことを示す専用の案内画面を経由します。案内画面ではMembership喪失とCommunity削除・存在秘匿の区別を、APIの公開エラー契約から判別できない限り断定しません。案内からPersonal Dashboard（`/dashboard`）へ戻れるようにし、案内画面自体に当該Communityの非公開情報を表示しません。既に権限のないCommunityのURLへ直接アクセスした場合も同じ公開エラー契約に従い、安全な案内または404を表示します。
 
 具体的な認可規則は[Community権限](/community/authorization)および[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を正本とします。
 
@@ -167,7 +175,7 @@ Header、Sidebar、Menu、Drawer等の具体的なpresentationをviewport間で�
 
 - Header / Sidebar等の具体的layout
 - Context Switcherの具体的Componentとvisual design
-- URL pathの具体的な文字列
+- Dashboard以外の画面URLとMembership喪失時の案内画面Path
 - Groups / Tagsの詳細なNavigation表現
 - Community Management内部の画面分割
 - Community数増加時の検索・pin・recent等の拡張
