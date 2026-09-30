@@ -188,6 +188,10 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
 - Tagは[Media Tag](/media/tag)に従い、1 Media単位のMedia Detailを付与・解除の主要入口とし、Media Browserでは現在scopeのTagによる絞り込みを提供します。
 
+## Collectionの読み込み
+
+Media Browserの一覧はRelay Connectionによる無限ローディングを使用し、ページ番号によるPaginationを提供しません。検索・絞り込み・並び順の変更に対応するConnectionを取得し、追加取得中・終端・追加取得失敗を区別します。追加取得に失敗しても表示済みMediaと明示選択を維持し、再試行できるようにします。DetailからBrowserへ戻る場合は検索・絞り込み・スクロール位置を可能な限り復元します。未取得Mediaを暗黙にBulk選択せず、keyboard・支援技術からも追加取得に到達できるようにします。
+
 ## Responsive対応
 
 Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在利用可能な主要Actionへ到達するCapabilityを維持します。
