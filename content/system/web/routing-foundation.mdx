@@ -202,6 +202,16 @@ src/app/
 - Middleware／ProxyのログインRedirect生成時と認証Callback後の最終Redirect直前に、同じ検証規則を適用する。SDKのCallback Hookまたは標準復帰処理との接続方法は、導入バージョンのAPIを確認して確定する。独自OAuth Callbackを一から実装しない。
 - テストでは上記の許可／拒否例に加え、Path＋Query保持、URLの一重・二重Encoding、認証ループ、空文字、Fallbackを確認する。
 
+### SDK v4.27.0のソース確認: Callback接続方式（実装詳細案）
+
+- Auth0公式`auth0/nextjs-auth0`のタグ`v4.27.0`を確認した。SDKの`handleLogin()`は`returnTo`をOAuth認可パラメータから分離し、`startInteractiveLogin()`で検証後に認証トランザクションへ保存する。Callbackでは保存済み`returnTo`を`onCallback`の`ctx.returnTo`へ渡す。
+- SDK標準の`toSafeRedirect()`は同一Originの絶対URLも許可するため、Memoriaで合意した相対URL限定の検証規則より緩い。Memoria側の`validateReturnTo()`をログインURL生成時とCallbackで適用する。
+- `Auth0Client`の`signInReturnToPath`を暫定`/dashboard`とし、`onCallback(error, ctx)`で成功時に`resolvePostLoginUrl(ctx.returnTo)`を使用する方式を実装詳細案とする。SDK v4.27.0では`onCallback`が返した`NextResponse`にSDKがセッションCookieを書き込むため、独自OAuth Callbackは作らない。エラー時は成功Redirectせず、認証エラー表示方針に従う。
+- 公開トップページからの通常ログインは`/auth/login`を使用する。保護画面からのログインは`createLoginUrl()`で検証済みPath＋QueryをURLSearchParamsへ設定する。直接指定された不正な`/auth/login?returnTo=...`はCallbackで再検証して`/dashboard`へFallbackする。
+- LogoutはSDK標準`/auth/logout`を使用する。SDK v4.27.0では`returnTo`未指定時のLogout先はApp Base URL。Auth0管理画面にBase URLをAllowed Logout URLとして登録し、公開`/`に戻す。Logoutの外部復帰先指定を許可しない運用は、導線と必要に応じた入口検証で担保する。
+- SDKのLogin／Callback／Logout Pathは独自の画面保護判定から除外する。SDKのMiddleware／Proxy自体を通すMatcherはRolling Sessionを考慮して広く維持する。
+- 実装時はLockfileで解決された正確なSDKバージョン、Next.js 16のProxy移行互換性、Callbackエラー時のUX、セッションCookie保持をIntegration Testで確認する。
+
 ### 実装前調査: Auth0 SDKとNext.js 16の認証境界（2026-09-30）
 
 - 現行`memoria-web/develop`の`package.json`は`@auth0/nextjs-auth0: ^4.27.0`、`next: ^16.3.7`。`Auth0Client`は`src/lib/auth.ts`で初期化し、`src/middleware.ts`から`auth.middleware(request)`を呼ぶ。現行のログイン／ログアウト導線は`/auth/login`、`/auth/logout`を使用する。
