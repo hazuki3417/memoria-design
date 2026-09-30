@@ -19,10 +19,12 @@ Application Shellは、次の3つのNavigation責務を分離します。
 ```mermaid
 flowchart LR
     Entry["Application entry"] --> Personal["Personal context"]
+    Personal --> PDashboard["Dashboard"]
     Personal --> PMedia["Media"]
     Personal --> PClass["Groups / Tags"]
     Switcher["Context Switcher"] --> Personal
     Switcher --> Community["Community context"]
+    Community --> CDashboard["Dashboard"]
     Community --> CMedia["Media"]
     Community --> CClass["Groups / Tags"]
     Community --> Members["Members"]
@@ -42,7 +44,8 @@ Personal contextは、User本人がCustodianであるMediaと、そのUser専用
 
 Initial Releaseでは次を主要領域とします。
 
-- **Media**: Personal contextの標準entry。User管理Mediaを閲覧・Upload・管理・Community共有する。
+- **Dashboard**: Personal contextの標準entry。本人のMediaや活動に関する情報を提示する。具体的な表示項目は画面詳細設計で定義する。
+- **Media**:User管理Mediaを閲覧・Upload・管理・Community共有する。
 - **Groups / Tags**: User管理MediaをUser専用の分類で整理する。
 
 Profile、account削除、logout等はPersonal contextの機能として扱わず、Account Menuから利用するUser account操作として分離します。
@@ -53,7 +56,8 @@ Profile、account削除、logout等はPersonal contextの機能として扱わ�
 
 Initial Releaseでは次を主要領域とします。
 
-- **Media**: Community contextの標準entry。Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
+- **Dashboard**: 各Community contextの標準entry。そのCommunityのMediaや活動に関する情報を提示する。具体的な表示項目は画面詳細設計で定義する。
+- **Media**:Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
 - **Groups / Tags**: Community内で閲覧可能なMediaをCommunity専用の分類で整理する。
 - **Members**: 現在の参加者とAdministrator roleを確認する。Administratorは同じ領域でrole変更・参加者除外を行う。
 - **Management**: Administrator向けのCommunity自体の設定を提供する。
@@ -93,11 +97,11 @@ Navigation先から現在contextを判定できることを基本とし、reload
 
 Context Navigationは、現在contextの中でUserが何を行うかを選択するNavigationです。
 
-Personal contextではMediaとGroups / Tagsを提供します。
+Personal contextではDashboard、Media、Groups / Tagsを提供します。
 
-Community contextではMedia、Groups / Tags、Membersを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。
+Community contextではDashboard、Media、Groups / Tags、Membersを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。
 
-Contextを切り替えた場合、移動先contextの標準entryへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
+Contextを切り替えた場合、移動先contextのDashboardへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
 
 ## Account Menu
 
@@ -117,19 +121,24 @@ Profileの具体的な仕様は[User Profile](/screens/user-profile)、account�
 
 ### Application
 
-認証・User登録完了後に通常のApplicationへ入る場合、Initial ReleaseではPersonal Mediaを標準entryとします。
+認証・User登録完了後に通常のApplicationへ入る場合、Initial ReleaseではPersonal Dashboardを標準entryとします。共通ルーティング基盤で定めた認証成功後の固定`/dashboard`はPersonal Dashboardへの入口とします。
 
 最後に利用したcontextを自動復元するrecent-context behaviorはInitial Releaseの必須要件としません。将来必要性が確認された場合に独立したNavigation behaviorとして検討します。
 
 ### Personal
 
-Personal contextの標準entryはMediaです。
+Personal contextの標準entryはDashboardです。
 
 ### Community
 
-Community contextの標準entryはMediaです。
+各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。具体的なURL文字列とDashboardの情報構成は画面詳細設計で決めます。
 
-専用のCommunity Overview / DashboardはInitial Releaseでは設けません。Communityの目的であるMediaの共有・閲覧を直接提示し、Communityが空の場合もMedia領域で必要なEmpty Stateとcontextual actionを提供します。
+## DashboardとContextの関係
+
+- Dashboardは現在contextの主要領域の一つであり、Context SwitcherはDashboard内の表示filterではなくApplicationの操作対象そのものを切り替えます。
+- Personal Dashboardと各Community DashboardをInitial Releaseの画面構成に含めます。両者の表示項目や集計の詳細は後続のScreen Specificationで決めます。
+- Context切り替え時は前のcontextの同名画面や直前画面を復元せず、移動先のDashboardへ進みます。最近利用したcontextの自動復元はInitial Releaseの必須機能ではありません。
+- DashboardからMediaへ到達できるようにしますが、Dashboardの導入を理由にMediaの閲覧・Upload・分類をDashboardへ統合しません。
 
 ## Navigationと権限
 
