@@ -1,0 +1,76 @@
+# APIディレクトリ構成
+
+## 目的と適用範囲
+
+`memoria-api`のディレクトリの責務、現行実装、今後の配置判断を整理します。設計上の責務と依存方向は[APIクリーンアーキテクチャ](./clean-architecture)、実装上の判断は[Backend実装規約](./implementation-conventions)を正本とします。この文書は両者を置き換えません。
+
+**現行実装の正本は`memoria-api`の最新コードです。** 以下の現行構成は2026-09-30に`develop`を確認した時点のスナップショットです。設計上の目標と実装済みの構成を混同しません。
+
+## 現行ディレクトリと責務
+
+~~~text
+memoria-api/
+├── cmd/
+│   └── integration-server/     # integration build tag付きの結合テスト用サーバー
+├── graph/                      # gqlgen生成物、resolver、mapper、HTTP handler
+│   └── model/                # GraphQL生成model
+├── internal/
+│   ├── authidentity/        # 認証主体を表す境界型
+│   ├── config/              # 環境設定の読み込み
+│   ├── db/                  # sqlc生成code
+│   ├── domain/              # Domain entity・value object・rule
+│   ├── errors/              # 現行の共通error型
+│   ├── infrastructure/
+│   │   └── postgres/        # pgx接続・Repository具象実装・mapping
+│   ├── observability/       # logging・tracing
+│   ├── repository/          # Use Caseが利用するRepository interface
+│   ├── service/
+│   │   └── user/            # UserのUse Case
+│   ├── testsupport/         # test用の認証補助
+│   └── util/                # 現行の共通補助処理
+├── schemas/
+│   ├── graphql/             # GraphQL schemaの生成元
+│   ├── postgres/
+│   │   ├── migrations/      # PostgreSQL migration
+│   │   └── query/user/      # sqlc queryの生成元
+│   └── mongodb/             # 現存する旧schema。現行採用の根拠ではない
+├── test/k6/                 # 負荷テスト用script
+└── docs/                    # 実装固有の運用・開発手順
+~~~
+
+このツリーは主要な配置を示すもので、全ファイル・全ディレクトリを列挙するものではありません。GraphQLとPostgreSQLの生成元・生成物の関係は`memoria-api/README.md`および生成設定で確認します。
+
+## 新規実装時の既存配置規則
+
+| 対象 | 配置 | 判断基準 |
+| --- | --- | --- |
+| Domain entity・value object | `internal/domain/` | GraphQL・DB・SDKに依存しないProduct rule |
+| Use Case | `internal/service/<domain>/` | 認可、処理順序、Repositoryの協調 |
+| Repository interface | `internal/repository/` | Use Caseが必要とする外部I/OのPort |
+| PostgreSQL実装 | `internal/infrastructure/postgres/` | pgx・sqlc生成型とDomainの変換 |
+| GraphQL schema | `schemas/graphql/` | GraphQL契約の生成元 |
+| Resolver・mapper | `graph/` | GraphQL入出力とUse Caseの変換 |
+| SQL・migration | `schemas/postgres/` | PostgreSQLの生成元 |
+| sqlc生成code | `internal/db/` | 生成物。手動編集しない |
+| Unit test | 対象package内の`*_test.go` | Domain・Use Caseの単体検証 |
+| Integration testの補助 | `internal/testsupport/`、`cmd/integration-server/` | 本番の認証や起動構成と混同しない |
+
+配置だけを目的に新しい抽象化や空のLayerを追加しません。Repository interfaceは利用側の必要性に従い、汎用CRUD interfaceを機械的に増やしません。
+
+## 設計済みだが現行実装と区別する事項
+
+[Backend実装規約](./implementation-conventions)では、API・Media Worker・Outbox Publisherを同一Repositoryで所有し、それぞれ独立したprocessとして起動することが確定しています。ただし**具体的なentry pointのdirectory名とbootstrapのpackage分割は未合意**です。現行の`cmd/integration-server/`は`integration` build tag付きであり、本番APIのentry pointとして扱いません。
+
+同様に、Object Storage、Redis Streams、Outbox、Worker等の具体的なInfrastructure directoryや、認証・logging・tracing・設定・DIの再編成は、存在を先取りして固定しません。既存の`internal/util/`、`internal/errors/`、`schemas/mongodb/`の存廃もこの文書だけでは決定しません。
+
+## 未決定事項とレビュー観点
+
+次の項目は、実装を伴う変更前に設計合意が必要です。
+
+1. 本番API・Worker・Publisherの`cmd/`配下のentry point名とbootstrapの共有範囲
+2. Domainごとのpackage境界と、`internal/service/`・`internal/repository/`・`internal/infrastructure/`の分割粒度
+3. 認証・設定・Observability・共通helperをどの責務で所有するか
+4. 生成code、Mapper、Integration testの拡張時に維持する境界
+5. 旧MongoDB schemaなど、現行Baselineに含まれない資産の整理手順
+
+未決定事項はIssueで追跡し、合意後にこの文書と関連する実装規約を更新します。現行コードとの差分は、設計の正当性を推測せず個別にレビューします。

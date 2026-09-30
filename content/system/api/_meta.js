@@ -1,6 +1,7 @@
 export default {
   "index": "APIアーキテクチャ",
   "clean-architecture": "クリーンアーキテクチャ",
+  "directory-structure": "ディレクトリ構成",
   "implementation-conventions": "Backend実装規約",
   "graphql": "GraphQL契約",
   "graphql-implementation": "GraphQL・gqlgen実装規約",
