@@ -116,6 +116,16 @@ Membershipを失って現在Community context自体を利用できない場合�
 
 共有relationが成立していない失敗を成功として表示しません。再試行可能な場合は、可能な限り選択済みのMedia / Communityを維持して再試行できるようにします。
 
+## 共有ダイアログのInteraction
+
+Initial Releaseでは、選択と共有内容の確認を**同じ共有ダイアログ内**で完結させます。選択後に別の確認ダイアログや専用の確認stepを追加しません。実行前に共有するMedia、共有先Community、共有先の参加者全員が閲覧できること、MediaのCustodianは変わらないことを確認できるようにします。
+
+Personal起点では選択済みMediaを維持し、共有先Communityを選択します。Community起点では現在Communityを固定し、Personal Mediaを検索・絞り込み・明示選択します。既に共有済みの対象は重複共有させず、現在の共有状態を識別できるようにします。複数Mediaの選択数と共有実行対象が分かるようにし、対象がない場合は実行できません。
+
+共有実行中は二重送信を防ぎ、ダイアログ内で進行状態を伝えます。**全件成功時**は簡潔な成功Feedbackを表示してダイアログを閉じ、開始元contextを維持します。**部分成功・全件失敗時**はダイアログを維持し、成功件数・失敗対象・可能な範囲の失敗理由と次のActionを継続して表示します。成功済み対象は再送せず、再試行可能な未成立対象だけを再試行できます。結果不明のrequestはServer側の成立状態を確認せず成功・失敗と断定せず、無条件に再送しません。
+
+選択中のCancelは共有relationを作成せずダイアログを閉じます。成立済みの共有はCancelやダイアログを閉じる操作によって取り消しません。失敗時に選択内容を可能な限り維持し、修正・再試行できるようにします。詳細なDialog寸法、検索・絞り込み、Compact presentation、Feedbackの具体的なComponentは後続のUI具体化で決定します。
+
 ## Navigation
 
 Media Sharingは独立したApplication contextを作りません。
