@@ -46,7 +46,7 @@ Personal contextは、User本人がCustodianであるMediaと、そのUser専用
 
 Initial Releaseでは次を主要領域とします。
 
-- **Dashboard**: Personal contextの標準entry。本人のMediaや活動に関する情報を提示する。具体的な表示項目は画面詳細設計で定義する。
+- **Dashboard**: Personal contextの標準entry。本人のMediaや活動に関する情報を提示する。最近のMediaと主要機能への入口を提供する。詳細は[Context Dashboard](/screens/context-dashboard)を参照する。
 - **Media**:User管理Mediaを閲覧・Upload・管理・Community共有する。
 - **Groups**: User管理MediaをUser専用のGroupで整理する。
 - **Tags**: User管理MediaにUser専用のTagを付与し、分類・絞り込みに利用する。
@@ -59,7 +59,7 @@ Profile、account削除、logout等はPersonal contextの機能として扱わ�
 
 Initial Releaseでは次を主要領域とします。
 
-- **Dashboard**: 各Community contextの標準entry。そのCommunityのMediaや活動に関する情報を提示する。具体的な表示項目は画面詳細設計で定義する。
+- **Dashboard**: 各Community contextの標準entry。そのCommunityのMediaや活動に関する情報を提示する。最近のMediaと主要機能への入口を提供する。詳細は[Context Dashboard](/screens/context-dashboard)を参照する。
 - **Media**:Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
 - **Groups**: Community内で閲覧可能なMediaをCommunity専用のGroupで整理する。
 - **Tags**: Community内で閲覧可能なMediaにCommunity専用のTagを付与し、分類・絞り込みに利用する。
@@ -147,12 +147,12 @@ Personal contextの標準entryはDashboardです。
 
 ### Community
 
-各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。Community DashboardのURLは`/communities/[communityId]/dashboard`です。Dashboardの情報構成は画面詳細設計で決めます。
+各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。Community DashboardのURLは`/communities/[communityId]/dashboard`です。Dashboardの情報構成は[Context Dashboard](/screens/context-dashboard)で定義します。
 
 ## DashboardとContextの関係
 
 - Dashboardは現在contextの主要領域の一つであり、Context SwitcherはDashboard内の表示filterではなくApplicationの操作対象そのものを切り替えます。
-- Personal Dashboardと各Community DashboardをInitial Releaseの画面構成に含めます。両者の表示項目や集計の詳細は後続のScreen Specificationで決めます。
+- Personal Dashboardと各Community DashboardをInitial Releaseの画面構成に含め、双方に最近のMediaと主要機能への入口を提供します。Media件数等の統計と活動履歴は後続リリースで検討します。詳細は[Context Dashboard](/screens/context-dashboard)を参照します。
 - Context切り替え時は前のcontextの同名画面や直前画面を復元せず、移動先のDashboardへ進みます。最近利用したcontextの自動復元はInitial Releaseの必須機能ではありません。
 - DashboardからMediaへ到達できるようにしますが、Dashboardの導入を理由にMediaの閲覧・Upload・分類をDashboardへ統合しません。
 
