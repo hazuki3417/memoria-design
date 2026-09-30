@@ -106,7 +106,7 @@ bulk Actionは一つのUser意図として開始しますが、各Mediaの結果
 複数選択中は、選択集合のすべてに意味があり、現在Userが実行可能なbulk Actionだけを提示します。Initial Releaseでは次をbulk対象に含めます。
 
 - 既存Groupへの追加・除外
-- free textで入力したTagの付与（既存Tagは再利用、未登録Tagは作成して付与）・既存Tagの解除
+- Mantine `TagsInput`を想定したfree textでのTag編集。入力確定は未保存の編集状態とし、保存Action時に既存Tagを再利用、未登録Tagを作成して付与する。既存Tagの解除も保存時に反映し、キャンセル時は変更を破棄する
 - User管理Mediaの1 Communityへの共有
 - Media削除
 
