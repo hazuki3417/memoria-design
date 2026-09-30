@@ -128,6 +128,15 @@
 - **禁止事項**: Webが別のAPIを呼んでリソースの実在を調べ直す、403を機械的に404へ変換する、404を機械的に403へ変換する、エラー文面に対象の内部識別子や秘匿Metadataを露出することはしない。
 - **テスト方針**: APIの401／403／404／5xx相当の公開エラーを区別し、認証遷移、権限不足表示、404、再試行表示に対応させる。GraphQLのHTTP Statusと`errors[].extensions.code`の具体的な対応は、実際のAPI Schema・エラー契約を確認して確定する。
 
+### 調査結果: 現行APIのGraphQLエラーコードと未決事項（2026-09-30）
+
+`memoria-api/develop`の`graph/handler.go`と`internal/errors/common.go`を確認した。定数には`UNAUTHORIZED`、`FORBIDDEN`、`BAD_REQUEST`、`INTERNAL_SERVER_ERROR`がある。一方、共通GraphQL ErrorHandlerが明示的に変換しているのは`UnauthorizedError`の`UNAUTHORIZED`、User Serviceの`UNAUTHENTICATED`、`VALIDATION`、`CONFLICT`である。現時点で共通Handlerに403／404の統一変換は確認できず、`NOT_FOUND`の共通定数も確認したファイルには存在しない。
+
+- **未決定**: APIが存在秘匿を必要とするDomain操作で404相当を返す条件、403相当を返す条件、GraphQL `errors[].extensions.code`の正式名称、HTTP Statusとの関係、複数Field Error時のWeb表示優先順位。
+- **設計上の制約**: API契約が確定するまでWeb側で`FORBIDDEN`／`NOT_FOUND`の返却を既存実装の事実として扱わない。Web側が独自の存在確認を行わず、APIの公開エラー契約に従う方針は維持する。
+- **次の確認先**: Community／Mediaの認可仕様、APIのGraphQL SchemaとErrorHandler、既存のエラーテスト。Domainの情報秘匿要件と整合する共通エラー契約を別途合意してからAPI／Webの実装へ進む。
+- 参照: [API ErrorHandler](https://github.com/hazuki3417/memoria-api/blob/develop/graph/handler.go)、[API共通エラーコード](https://github.com/hazuki3417/memoria-api/blob/develop/internal/errors/common.go)。
+
 ## 4. URL設計規約
 
 ### 合意済み: Path命名
