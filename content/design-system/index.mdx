@@ -13,3 +13,10 @@ Memoria Design Systemは、実際のScreen設計から確認された再利用�
 - [Editable Form](/design-system/patterns/editable-form): 既存データを編集し、有効な変更が存在する場合に変更を確定するための共通Pattern。
 - [Creation Dialog](/design-system/patterns/creation-dialog): Application contextを維持したまま、限定的な新規作成Taskを完了するための共通Pattern。
 - [Feedback](/design-system/patterns/feedback): 操作結果や問題を、利用者が理解・解決できる場所に応じて提示するための共通Pattern。
+
+## 共通ドロップダウンメニューのデザイン方針（Visual Review中）
+
+- アカウントメニューやContext Switcherなど、同種のリスト型ドロップダウンには一貫したデザインを適用する。
+- GitHubのサイト上のメニューを参考に、控えめな境界線と影、コンパクトな余白、hover・focus時の明瞭な背景表示、必要に応じた項目グループの区切りを用いる。GitHubの実装や寸法をそのまま仕様とはしない。
+- keyboard操作、focusの視認性、touch操作のしやすさを維持する。コンパクト化によって操作対象が小さくなりすぎないよう確認する。
+- 現段階ではStorybookでのVisual Review対象とし、細部の寸法・配色は承認後に共通実装へ反映する。
