@@ -21,12 +21,14 @@ flowchart LR
     Entry["Application entry"] --> Personal["Personal context"]
     Personal --> PDashboard["Dashboard"]
     Personal --> PMedia["Media"]
-    Personal --> PClass["Groups / Tags"]
+    Personal --> PGroups["Groups"]
+    Personal --> PTags["Tags"]
     Switcher["Context Switcher"] --> Personal
     Switcher --> Community["Community context"]
     Community --> CDashboard["Dashboard"]
     Community --> CMedia["Media"]
-    Community --> CClass["Groups / Tags"]
+    Community --> CGroups["Groups"]
+    Community --> CTags["Tags"]
     Community --> Members["Members"]
     Community --> Management["Management<br/>Administratorのみ"]
     Account["Account Menu"] --> Profile["User Profile"]
@@ -46,7 +48,8 @@ Initial Releaseでは次を主要領域とします。
 
 - **Dashboard**: Personal contextの標準entry。本人のMediaや活動に関する情報を提示する。具体的な表示項目は画面詳細設計で定義する。
 - **Media**:User管理Mediaを閲覧・Upload・管理・Community共有する。
-- **Groups / Tags**: User管理MediaをUser専用の分類で整理する。
+- **Groups**: User管理MediaをUser専用のGroupで整理する。
+- **Tags**: User管理MediaにUser専用のTagを付与し、分類・絞り込みに利用する。
 
 Profile、account削除、logout等はPersonal contextの機能として扱わず、Account Menuから利用するUser account操作として分離します。
 
@@ -58,7 +61,8 @@ Initial Releaseでは次を主要領域とします。
 
 - **Dashboard**: 各Community contextの標準entry。そのCommunityのMediaや活動に関する情報を提示する。具体的な表示項目は画面詳細設計で定義する。
 - **Media**:Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
-- **Groups / Tags**: Community内で閲覧可能なMediaをCommunity専用の分類で整理する。
+- **Groups**: Community内で閲覧可能なMediaをCommunity専用のGroupで整理する。
+- **Tags**: Community内で閲覧可能なMediaにCommunity専用のTagを付与し、分類・絞り込みに利用する。
 - **Members**: 現在の参加者とAdministrator roleを確認する。Administratorは同じ領域でrole変更・参加者除外を行う。
 - **Management**: Administrator向けのCommunity自体の設定を提供する。
 
@@ -105,11 +109,15 @@ Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communi
 
 Context Navigationは、現在contextの中でUserが何を行うかを選択するNavigationです。
 
-Personal contextではDashboard、Media、Groups / Tagsを提供します。
+Personal contextではDashboard、Media、Groups、Tagsを提供します。
 
-Community contextではDashboard、Media、Groups / Tags、Membersを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。
+Community contextではDashboard、Media、Groups、Tags、Membersを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。
 
 Contextを切り替えた場合、移動先contextのDashboardへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
+
+### GroupsとTagsの独立性
+
+GroupsとTagsはPersonal・Community双方のContext Navigationで独立した項目として提供します。両者を「分類」という単一のNavigation項目にまとめません。各Context内でGroupsとTagsのデータ・操作を区別し、Context間で暗黙に共有しません。各項目の具体的なURL、一覧・詳細画面の構成は後続のScreen Specificationで定義します。
 
 ## Account Menu
 
@@ -176,7 +184,7 @@ Header、Sidebar、Menu、Drawer等の具体的なpresentationをviewport間で�
 - Header / Sidebar等の具体的layout
 - Context Switcherの具体的Componentとvisual design
 - Dashboard以外の画面URLと共通エラー表示の具体的な配置
-- Groups / Tagsの詳細なNavigation表現
+- Groups・Tagsそれぞれの画面内部のNavigation表現
 - Community Management内部の画面分割
 - Community数増加時の検索・pin・recent等の拡張
 - viewportごとのpixel値
