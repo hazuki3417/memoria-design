@@ -133,6 +133,14 @@
 
 ## 5. 遷移と状態の共通規約
 
+### 合意済み: ログイン画面の基本構成
+
+- Memoriaのブランドを適用したAuth0 Universal Loginを使用し、ログインフォーム・認証処理・パスワード再設定・MFA等はAuth0が提供する機能を基本とする。
+- 現時点ではNext.jsアプリ内に独自のログインフォームやログイン案内ページを設けない。既存のAuth0標準画面はプロトタイプ上の選択であり、最終的なブランド表現ではない。
+- Memoria側のログイン導線からAuth0 SDKのログイン処理へ遷移し、認証完了後は検証済みの`returnTo`、無効または未指定の場合は安全な認証済み初期画面へ復帰する。
+- Auth0 Universal Loginの具体的なカスタマイズ可能範囲・デザイン・運用上の制約は画面設計時に確認する。Next.js内の独自フォームは将来の選択肢として残すが、今回の実装対象には含めない。
+- Auth0 SDKの実際のLogin／Callback／LogoutのPathと、既存`/auth/login`・`/auth/logout`のルート定義との対応は実装前に確認する。
+
 - Server側の認証RedirectはServer側のNavigation APIを基本とし、Client側の利用者操作による遷移はNext.js Router／Linkを使用する。ブラウザHistoryの直接操作を標準手段にしない。
 - 共有可能な状態はURLで扱う既存方針を維持する。ただし具体的なKey、Default値、戻る操作の仕様は画面詳細設計に委ねる。
 - Redirect先の検証やURL生成を共通化する際は、画面固有のRoute一覧をこの基盤設計に固定しない。
