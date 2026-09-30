@@ -99,7 +99,7 @@ Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communi
 - 参加Communityがない場合もPersonalとACTIVE User向けCommunity作成の入口を維持します。
 - Context選択時は対象Dashboardへ遷移します。切り替え処理中は重複操作を防ぎ、遷移先の取得に失敗した場合はエラーを表示し、現在の利用可能なcontextを維持します。
 - URLを現在contextの正本とし、Switcher独自の永続的な選択状態を持ちません。Browserの戻る・進むと直接アクセス時にもURLから現在contextを復元します。
-- Membership喪失時の案内画面の具体的なPath・表示文言・404との境界は、APIの公開エラー契約と画面詳細設計で確定します。
+- Membership喪失・存在しないURL・閲覧不可・回復不能な取得失敗は、個別の専用画面を設けず共通エラー表示を使用します。APIの公開エラーコードによる内部処理の区別は維持します。認証Session失効時は従来どおりログインへ誘導します。
 
 ## Context Navigation
 
@@ -152,7 +152,7 @@ Personal contextの標準entryはDashboardです。
 
 Navigation上で操作を提示することと、domain上の認可は分離します。Web UIで非表示または無効化してもAPI側の認可を代替しません。
 
-CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったManagement等を継続利用させません。Community Membershipを失った場合は、そのCommunityの保護データを継続表示せず、アクセスできなくなったことを示す専用の案内画面を経由します。案内画面ではMembership喪失とCommunity削除・存在秘匿の区別を、APIの公開エラー契約から判別できない限り断定しません。案内からPersonal Dashboard（`/dashboard`）へ戻れるようにし、案内画面自体に当該Communityの非公開情報を表示しません。既に権限のないCommunityのURLへ直接アクセスした場合も同じ公開エラー契約に従い、安全な案内または404を表示します。
+CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったManagement等を継続利用させません。Community Membershipを失った場合は、そのCommunityの保護データを継続表示せず、他のエラーと共通のエラー画面を表示します。原因を特定する文言やCommunityの非公開情報を表示せず、Personal Dashboard（`/dashboard`）へ戻る導線を提供します。過去のCommunity URLへの直接アクセスで`NOT_FOUND`となった場合も、同じ画面を表示します。
 
 具体的な認可規則は[Community権限](/community/authorization)および[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を正本とします。
 
@@ -175,7 +175,7 @@ Header、Sidebar、Menu、Drawer等の具体的なpresentationをviewport間で�
 
 - Header / Sidebar等の具体的layout
 - Context Switcherの具体的Componentとvisual design
-- Dashboard以外の画面URLとMembership喪失時の案内画面Path
+- Dashboard以外の画面URLと共通エラー表示の具体的な配置
 - Groups / Tagsの詳細なNavigation表現
 - Community Management内部の画面分割
 - Community数増加時の検索・pin・recent等の拡張
