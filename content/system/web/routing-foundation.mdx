@@ -106,10 +106,17 @@
 - `q`は暗号化ではない。Token、認証Code、個人情報などの機密値を含めない。URL長、入力検証、不正値・未知バージョンの扱いは実装前に検討する。
 - 画面固有のQuery Keyと既定値は、共通画面ならその詳細設計、業務画面なら業務画面詳細設計で定める。
 
-### 検討中: URL正規化・互換性
+### 合意済み: URL正規化・互換性
 
-- 動的Segmentの識別子表現、URL階層の深さ、操作をPathとQueryのどちらで表すかの詳細は個別に検討する。
-- 末尾Slash、大文字小文字、URL変更時のRedirect、既存ブックマークとの互換性を規約化する。
+- 末尾SlashのないURLを正規形とし、Next.js標準の`trailingSlash: false`相当の挙動を利用する。独自Middlewareに同じ正規化を重複実装しない。現行`next.config.mjs`に明示設定はないため、実装時に設定要否を確認する。
+- 静的Pathは小文字で定義する。リクエストURL全体を一律小文字変換せず、動的SegmentのID等の大文字小文字を保持する。
+- URL変更時は旧URLから新URLへの明示的なRedirectを個別に検討し、恒久的な移行が確定している場合に恒久Redirectを使う。互換性のあるQueryは保持し、旧ブックマークや共有リンクへの影響を確認する。
+- 未知のPathは類似Pathへ推測Redirectせず404とする。認証用EndpointとAPI Routeには画面URLの規約を機械的に適用せず、それぞれの契約を優先する。
+- 既存URLの一括変更は本設計の合意だけでは実施しない。変更対象・移行方法・Redirectの終了条件は個別に決定する。
+
+### 検討中: 動的Segment・識別子・操作URL
+
+- 動的Segmentの識別子表現、エンコードと検証、操作をPathとQueryのどちらで表すかの詳細は個別に検討する。
 - 業務固有のPath割当は業務画面設計で扱う。共通画面のPath・遷移は表示確認に依存しない範囲で先行して設計する。
 
 ## 5. 遷移と状態の共通規約
@@ -133,7 +140,7 @@
 3. **認証復帰の仕様（基本方針は合意済み）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
 4. **共通Error／Loadingの配置（基本方針は合意済み）**: Rootの`global-error.tsx`／`not-found.tsx`、認証済み領域の子Segment用`error.tsx`、必要なSegment単位の`loading.tsx`を基本とする。認証済みLayout自身の失敗は親境界・認証エラー処理で扱う。
 
-認証・保護対象・認証復帰・Error／Loadingの4項目の基本方針は合意済みです。URL命名は合意済みです。URL階層も合意済みです。定義管理とSearch Params／`q`の使い分けも合意済みです。URL正規化・互換性は今後レビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
+認証・保護対象・認証復帰・Error／Loadingの4項目の基本方針は合意済みです。URL命名は合意済みです。URL階層も合意済みです。定義管理とSearch Params／`q`の使い分けも合意済みです。URL正規化・互換性も合意済みです。動的Segment・識別子・操作URLは今後レビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
 
 ## 関連
 
