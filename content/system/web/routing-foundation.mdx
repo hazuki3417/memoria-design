@@ -235,6 +235,14 @@ src/app/
 - **Proxy移行**: Next.js 16の`src/proxy.ts`への移行を第一候補とするが、SDK v4.27.0の実際のMiddleware互換性、Node.js Runtime、既存CIでの動作を検証してから確定する。`src/middleware.ts`と`src/proxy.ts`を同時運用しない。
 - **境界テスト**: `/`、`/auth/error`、Login／Callback／Logout、`/api/graphql`、`/_next/**`、実際の公開Asset、`/dashboard`、未知Path、Prefix衝突、Session有無、Session更新Cookie、Locale Cookie、Callback失敗、ログインループ、固定`/dashboard`遷移を対象とする。
 
+### 実装詳細案: 認証境界の実装順序とCookie検証
+
+- SDK v4.27.0の`AuthClient.handler()`は認証Endpoint以外のリクエストで`NextResponse.next()`を返し、Rolling Sessionが必要ならそのResponseへSession Cookieを設定する。Memoriaが別の`NextResponse.redirect()`を作ると、この更新Cookieを引き継げない可能性がある。
+- 実装時は、SDK Endpointを最優先で委譲し、通常画面はSDK Middlewareが返すResponseと独自認証判定のResponseの関係を明示する。独自Redirectが必要な場合は、SDKのCookie／Cache-Control等を落とさない安全な合成方法をIntegration Testで確認する。Cookie Headerの単純連結や認証Cookieの手動再生成は行わない。
+- 公開`/`は未認証なら公開画面、認証済みならServer Pageで`/dashboard`へRedirectする。`/auth/error`は未認証でも表示する。保護画面はProxyと認証済みLayoutの二段階でSessionを確認し、データ取得地点で追加確認する。
+- 認証EndpointのMethod違い、SDKが有効化した追加Endpoint、`/auth/error`との衝突、`/api/graphql`の非Redirect、`/_next/**`と静的Assetの到達性、Locale CookieとRolling Session Cookieの共存を実装テストで検証する。
+- Next.js 16の`proxy.ts`移行を実施する場合は、実際のLockfileに解決されたSDKバージョンを確認し、Node.js Runtime／Matcher／Buildと実機で検証する。検証前にMiddlewareとProxyのどちらかを推測で固定しない。
+
 ### 実装前調査: Auth0 SDKとNext.js 16の認証境界（2026-09-30）
 
 - 現行`memoria-web/develop`の`package.json`は`@auth0/nextjs-auth0: ^4.27.0`、`next: ^16.3.7`。`Auth0Client`は`src/lib/auth.ts`で初期化し、`src/middleware.ts`から`auth.middleware(request)`を呼ぶ。現行のログイン／ログアウト導線は`/auth/login`、`/auth/logout`を使用する。
@@ -260,7 +268,7 @@ src/app/
 3. **認証後の遷移（合意済み）**: 通常ログイン、未認証直接アクセス、期限切れ、エラー後の再試行のすべてで`/dashboard`へ統一する。元画面・未保存の編集状態は復元しない。
 4. **共通Error／Loadingの配置（基本方針は合意済み）**: Rootの`global-error.tsx`／`not-found.tsx`、認証済み領域の子Segment用`error.tsx`、必要なSegment単位の`loading.tsx`を基本とする。認証済みLayout自身の失敗は親境界・認証エラー処理で扱う。
 
-認証・保護対象・認証復帰・Error／Loadingの4項目の基本方針は合意済みです。URL命名は合意済みです。URL階層も合意済みです。定義管理とSearch Params／`q`の使い分けも合意済みです。URL正規化・互換性も合意済みです。動的Segment・識別子・操作URLも合意済みです。具体的な共通画面URLと遷移、実装詳細は引き続きレビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、固定遷移先のSDK接続、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
+認証・保護対象・固定認証後遷移・Error／Loadingの4項目の基本方針は合意済みです。URL命名は合意済みです。URL階層も合意済みです。定義管理とSearch Params／`q`の使い分けも合意済みです。URL正規化・互換性も合意済みです。動的Segment・識別子・操作URLも合意済みです。具体的な共通画面URLと遷移、実装詳細は引き続きレビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、固定遷移先のSDK接続、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
 
 ## 関連
 
