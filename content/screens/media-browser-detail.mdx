@@ -166,6 +166,8 @@ Media自体を取得できない状態と、補助情報や個別Actionの一時
 
 Media Browser / Detailは独立したApplication contextを作りません。Personal Mediaまたは現在Community Mediaのcontextを維持します。
 
+Media Browserの基本URLはPersonalで`/media`、Communityで`/communities/[communityId]/media`とします。Media Detailを開いた状態をURLへ反映するかどうか、反映する場合の`mediaId`等のquery parameterや直接リンクの扱いは、画面layout・interactionの詳細設計時に決定します。`mediaId` query parameter案は参考情報であり、Initial Releaseの確定仕様ではありません。ダイアログ方式だからURLを使わない、または右ペイン方式だからURLを使うとは規定しません。
+
 Initial ReleaseではMedia Detailをダイアログ方式で表示し、表示方式を変更するUser設定は提供しません。後続リリースではダイアログ方式と右ペイン方式をUser設定で切り替え可能にする方針とし、Personal / Communityで共通の表示設定を適用します。右ペイン方式ではMedia画像を上、詳細情報・Groups・Tags・操作を下に配置します。表示領域が不足する場合は設定にかかわらず適切な表示方式へ適応します。具体的な設定保存方式やbreakpointは後続設計で決定します。
 
 Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一覧context（検索・絞り込み・スクロール位置を含む）へ戻れるようにします。Groupsから開いた場合は選択中Groupの一覧contextを維持します。
