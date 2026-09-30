@@ -56,7 +56,7 @@ Operation Feedbackには成功、情報、warning、error等の表現を利用�
 
 ## 共通Visual Design（Visual Review方針）
 
-Notificationとページ内Feedbackは、User Profile試作のBlocked Alertで採用したシンプルな外観（装飾を抑えたpanel、icon、title、本文）をvisual基準とし、同じ意味のfeedbackを別の見た目にしないよう、severityごとのicon・配色・枠線・角丸・余白・title/bodyの文字階層を共通化します。表示先に応じて、閉じるButton・再試行・安全なNavigation等の補助Actionの有無を切り替えます。すべての表示に同じActionを強制しません。
+Notificationとページ内Feedbackは、User Profile試作のBlockedでページ内表示しているMantine Alertそのものをvisual基準とし、Notificationでも同じAlertを内容として表示する形を試作します。Notification標準のcard外観をAlert風に近づけるのではなく、共通のAlertを表示先によって使い分けます。また、、同じ意味のfeedbackを別の見た目にしないよう、severityごとのicon・配色・枠線・角丸・余白・title/bodyの文字階層を共通化します。表示先に応じて、閉じるButton・再試行・安全なNavigation等の補助Actionの有無を切り替えます。すべての表示に同じActionを強制しません。
 
 - Notificationは一時的な操作結果に用い、必要な場合だけ閉じる操作を表示します。
 - ページ内Feedbackは修正中または操作不能の間、参照し続ける必要がある情報に用い、必要に応じて再試行や安全な移動先を表示します。
