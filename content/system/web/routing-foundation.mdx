@@ -137,6 +137,13 @@
 - **次の確認先**: Community／Mediaの認可仕様、APIのGraphQL SchemaとErrorHandler、既存のエラーテスト。Domainの情報秘匿要件と整合する共通エラー契約を別途合意してからAPI／Webの実装へ進む。
 - 参照: [API ErrorHandler](https://github.com/hazuki3417/memoria-api/blob/develop/graph/handler.go)、[API共通エラーコード](https://github.com/hazuki3417/memoria-api/blob/develop/internal/errors/common.go)。
 
+### 合意済み: 閲覧可否に基づく403／404の使い分け（2026-09-30）
+
+- 閲覧権限のないCommunity・Media等は、存在の有無を秘匿する404相当をAPIが返し、Webは404を表示する。
+- 閲覧できるリソースに対する権限外の管理操作・Original download等は、APIが403相当を返し、Webは権限不足を表示する。
+- 認証Sessionがない場合は認証エラーを優先する。現在のMembership等を操作時点で再評価し、Webは独自の存在確認やエラーコード変換を行わない。
+- GraphQLの具体的な公開エラーコードとHTTP Statusの対応はAPI共通契約の詳細設計で確定する。
+
 ### Domain調査結果: Community／Mediaの情報秘匿境界（2026-09-30）
 
 [Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)を確認した。Community名・参加者・Group・Tag・Mediaは所属と操作権限に基づく非公開情報であり、Community外Userには内部情報を返さない。User管理MediaのOriginalはCustodianのみ、Community管理MediaのOriginalはAdministratorと参加中のUploader本人のみが取得できる。退会・除外後は新しい閲覧許可を発行しない。
