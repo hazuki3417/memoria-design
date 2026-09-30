@@ -117,7 +117,7 @@ Userの主な関心と管理対象はMediaです。GroupsはMediaの発見・整
 
 ### GroupsとTagsの責務
 
-Groupsは一覧と選択中GroupのMediaを同じ基本URLで扱い、選択状態をURLで復元可能にします。初回リリースではTags専用画面と独立Navigationを設けません。MediaへのTag入力時、現在scopeに同名Tagがあれば再利用し、未登録なら作成して付与します。既存Tagの解除とTagによるMedia絞り込みもMedia内で提供します。Tag本体のrename・削除・統合は後続リリースへ送ります。将来のTags専用画面は、Media表示より表記ゆれや語彙の整備を中心目的とします。
+GroupsはPersonalで`/groups`、Communityで`/communities/[communityId]/groups`を基本URLとし、選択中Groupを両Context共通の`groupId` query parameterで表現します。選択状態はURLから復元可能にします。初回リリースではTags専用画面と独立Navigationを設けません。MediaへのTag入力時、現在scopeに同名Tagがあれば再利用し、未登録なら作成して付与します。既存Tagの解除とTagによるMedia絞り込みもMedia内で提供します。Tag本体のrename・削除・統合は後続リリースへ送ります。将来のTags専用画面は、Media表示より表記ゆれや語彙の整備を中心目的とします。
 
 ## Account Menu
 
@@ -183,7 +183,7 @@ Header、Sidebar、Menu、Drawer等の具体的なpresentationをviewport間で�
 
 - Header / Sidebar等の具体的layout
 - Context Switcherの具体的Componentとvisual design
-- Dashboard以外の画面URLと共通エラー表示の具体的な配置
+- Dashboard・Groups以外の画面URLと共通エラー表示の具体的な配置
 - Groups画面内部のNavigation表現、および後続リリースのTags管理画面
 - Community Management内部の画面分割
 - Community数増加時の検索・pin・recent等の拡張
