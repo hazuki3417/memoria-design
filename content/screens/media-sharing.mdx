@@ -126,6 +126,14 @@ Personal起点では選択済みMediaを維持し、共有先Communityを選択�
 
 選択中のCancelは共有relationを作成せずダイアログを閉じます。成立済みの共有はCancelやダイアログを閉じる操作によって取り消しません。失敗時に選択内容を可能な限り維持し、修正・再試行できるようにします。詳細なDialog寸法、検索・絞り込み、Compact presentation、Feedbackの具体的なComponentは後続のUI具体化で決定します。
 
+### Community起点のMedia検索・絞り込み・追加読み込み
+
+Community起点の共有ダイアログでは、Personal Mediaを新しい順に提示し、写真名検索と既存のPersonal Group / Tagによる絞り込みを利用できるようにします。検索・絞り込みの組み合わせの詳細はPersonal Media Browserと整合させ、後続の詳細設計で決定します。共有先Communityは固定し、現在Communityへ共有済みのMediaは重複選択できない状態として識別できるようにします。
+
+一覧はRelay Connectionによる無限ローディングとし、ページ番号によるPaginationは提供しません。検索・絞り込み変更時は該当条件のConnectionを取得し直し、既に明示選択したMediaは表示範囲外になっても保持します。選択数と選択済み対象の確認・個別解除に到達できるようにし、未取得Mediaを暗黙に選択しません。
+
+追加取得中・終端・追加取得失敗を区別し、失敗時には表示済みMediaと選択を保持して再試行できます。大量のMediaでもダイアログ内の選択・共有確定Actionに到達できるようにし、keyboard・支援技術でも追加読み込みを利用できるようにします。具体的なfetch size、cursor、検索条件、Compact presentationは後続のUI / GraphQL詳細設計で決定します。
+
 ## Navigation
 
 Media Sharingは独立したApplication contextを作りません。
