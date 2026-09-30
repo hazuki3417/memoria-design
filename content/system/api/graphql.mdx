@@ -115,6 +115,23 @@ field単位で修正可能なvalidation detailはGraphQL errorの `extensions` �
 
 Bulk Mutationで一部Mediaだけが成立しないことはMutation全体のGraphQL errorにせず、Payload内のitem resultで表現します。認証失敗やMutation自体を実行できない障害は通常のGraphQL errorとします。
 
+### 実装引き渡し: API ErrorHandlerの差分（2026-09-30）
+
+`memoria-api/develop/graph/handler.go`の現行実装では、`UnauthorizedError`を`UNAUTHORIZED`へ変換し、User Serviceの`ErrUnauthenticated`、`ErrValidation`、`ErrConflict`をそれぞれ`UNAUTHENTICATED`、`VALIDATION`、`CONFLICT`へ変換している。設計正本の`FORBIDDEN`／`NOT_FOUND`／`INTERNAL`等の統一変換は未確認であり、実装済みとは扱わない。
+
+- API実装時は、既存`UNAUTHORIZED`／`BAD_REQUEST`等の定数・呼び出し箇所との互換性を棚卸しし、設計正本の公開コードに合わせる。公開Messageは内部例外の本文をそのまま渡さず、安全な固定文面へ変換する。
+- 非公開リソースへの閲覧不可と不存在は同じ`NOT_FOUND`として公開する。閲覧可能なリソースへの操作権限不足は`FORBIDDEN`とする。認証失敗を存在秘匿404へ変換しない。
+- ErrorHandlerの単体テストに加え、GraphQL経由で`errors[].extensions.code`、公開Message、HTTP Status、内部情報非露出を検証する。複数Field ErrorやBulk item resultの契約を混同しない。
+
+### レビュー案: 複数GraphQL Field ErrorのWeb表示
+
+GraphQLは`data`と`errors`が同時に返る場合があるため、Operation全体のエラーを1件に潰して判断しない。
+
+- 認証失敗を示す公開コードが含まれる場合は、対象Operationのデータを利用せず、認証状態を再確認して再ログインへ誘導する。
+- `NOT_FOUND`と`FORBIDDEN`が混在する場合、Operation全体の404／403へ単純変換せず、各`error.path`と画面に必須なFieldを照合する。秘匿対象の存在が推測できる部分データ・他のError文面を表示しない。
+- 一覧等の独立Fieldで安全な部分データが返った場合の表示可否は、Operation単位で定義する。Mutationの認証・認可失敗を部分成功として扱わず、既存のBulk item resultはPayload契約に従う。
+- **要合意**: 同一Operationで認証エラー以外の複数Errorが発生した際、必須Field失敗なら画面全体を失敗表示とし、独立Field失敗なら部分表示を許可する方針。GraphQL Error PathとNullable設計、Client Cacheの挙動を実装前に検証する。
+
 ## Relay Connection
 
 一覧はRelay Cursor Connections Specificationに沿います。
