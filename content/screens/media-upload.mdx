@@ -20,6 +20,12 @@ Personal / Communityで共通するUpload Interactionを使用し、違いは初
 - [Community Media](/screens/community-media)
 - [Media Browser / Detail](/screens/media-browser-detail)
 
+## 画面構成
+
+Initial ReleaseではMedia UploadをMedia Browserとは独立した専用画面として提供します。Personal / CommunityのMedia画面から現在contextを維持して遷移します。既存`memoria-web`の`/images/new`と`ImageDropForm`・`ImageInputForm`は参考実装として扱い、既存route名やUpload API・Task管理の振る舞いをそのまま新仕様とはしません。
+
+専用画面ではfile追加、選択fileごとのpreview・validation、Upload開始、個別進捗・結果、失敗fileの再試行を一つの作業の中で確認できるようにします。初回リリースの具体的なroute、画面内の配置・responsive presentation、Upload後の遷移は後続のUI具体化で決定します。
+
 ## 開始点 / Scope
 
 ### Personal
