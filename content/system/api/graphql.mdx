@@ -100,12 +100,16 @@ Transport / Application errorは `errors[].extensions.code` をClientとの分�
 | `UNAUTHENTICATED` | 有効な認証主体を確定できない | token失効、不正token |
 | `USER_REGISTRATION_REQUIRED` | 認証済みだがMemoria User未登録 | 通常Product操作 |
 | `USER_DELETING` | UserがDELETINGで新規操作不可 | Login後の通常操作 |
-| `FORBIDDEN` | resourceは解決できるが現在主体に操作権限がない | MemberによるCommunity設定変更 |
-| `NOT_FOUND` | Clientへ公開可能な対象が存在しない | 自身が閲覧可能だったresourceの消失 |
+| `FORBIDDEN` | 現在主体が閲覧可能なresourceに対して、許可されない操作を要求した | MemberによるCommunity設定変更、閲覧可能なMediaの権限外Original download |
+| `NOT_FOUND` | 対象が存在しない、または現在主体に閲覧権限がなく存在を秘匿する | 自身が閲覧可能だったresourceの消失、Community外Userによる非公開Community参照 |
 | `VALIDATION` | Inputが契約上の制約を満たさない | 空のname、pagination引数不正 |
 | `CONFLICT` | 現在状態と要求が競合する | 重複登録、最後のadmin降格、DAG循環 |
 | `RATE_LIMITED` | rate limitに達した | Invitation token確認 |
 | `INTERNAL` | Clientへ詳細を公開しない内部障害 | DB / Storage等の予期しない障害 |
+
+**閲覧可否に基づく公開エラー（合意済み）**: 存在しない対象と、現在主体に閲覧権限のない非公開対象は、どちらも`NOT_FOUND`とし、存在の違いを公開しない。現在主体が閲覧可能な対象に対する管理・Original download等の権限外操作は`FORBIDDEN`とする。認証主体を確定できない場合は`UNAUTHENTICATED`を優先する。認可は操作時点で再評価し、Webは追加の存在確認やコードの独自変換を行わない。
+
+**GraphQL Transport**: 上記は`errors[].extensions.code`の分類契約であり、GraphQL OperationのHTTP Statusを各コードの数値（403／404等）と同一にする契約ではない。GraphQL実行後のApplication Errorと、HTTP層で処理が拒否されるTransport Errorを区別する。HTTP Status、GraphQL response body、複数Field Errorの表示優先順位はAPI／Web実装契約の検証項目とする。
 
 field単位で修正可能なvalidation detailはGraphQL errorの `extensions` に安全なfield識別子を含められますが、DB constraint名や内部実装情報は公開しません。
 
