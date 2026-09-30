@@ -112,7 +112,7 @@
 - **再試行**: 認証エラー画面の再ログインは新規認証を開始する。通常の`error.tsx`の`reset()`は回復可能な子Segmentに限定し、認証失敗を無限再試行しない。
 - **表示の一貫性**: 公開エラー画面は認証済みAppShellに依存させない。認証済み領域の404・通常エラーは、表示可能な範囲で共通ナビゲーションを維持する。文言・見た目は画面詳細設計でレビューする。
 
-### レビュー案: リソース権限エラーの表示契約
+### 合意済み: リソース権限エラーの表示契約
 
 既存の[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)では、現在のUser状態・Membership等に基づくAPIでの認可を要求している。403／404の使い分けは、Webの推測で決めずAPIの公開エラー契約に従う。
 
@@ -124,7 +124,7 @@
 | APIが明示的な権限不足として403を返した | 権限不足画面／メッセージ | 権限要求や管理者への問い合わせ導線は業務画面ごとに判断 |
 | 一時的なAPI障害・通信失敗 | 通常の回復可能なエラー | 認可拒否と混同せず、再試行可能な場合だけ再試行を提示 |
 
-- **未決定**: どの業務リソースで403を返すか、存在秘匿の404を返すかは、Community／Media等の各DomainとAPIのエラー契約を確認し、ユーザーと合意してから確定する。共通Web基盤は両方を表示可能にする。
+- **合意済み**: 閲覧権限のない非公開リソースは存在秘匿の`NOT_FOUND`、閲覧可能なリソースへの権限外操作は`FORBIDDEN`とする。共通Web基盤は両方を表示可能にする。
 - **禁止事項**: Webが別のAPIを呼んでリソースの実在を調べ直す、403を機械的に404へ変換する、404を機械的に403へ変換する、エラー文面に対象の内部識別子や秘匿Metadataを露出することはしない。
 - **テスト方針**: APIの401／403／404／5xx相当の公開エラーを区別し、認証遷移、権限不足表示、404、再試行表示に対応させる。GraphQLのHTTP Statusと`errors[].extensions.code`の具体的な対応は、実際のAPI Schema・エラー契約を確認して確定する。
 
@@ -132,7 +132,7 @@
 
 `memoria-api/develop`の`graph/handler.go`と`internal/errors/common.go`を確認した。定数には`UNAUTHORIZED`、`FORBIDDEN`、`BAD_REQUEST`、`INTERNAL_SERVER_ERROR`がある。一方、共通GraphQL ErrorHandlerが明示的に変換しているのは`UnauthorizedError`の`UNAUTHORIZED`、User Serviceの`UNAUTHENTICATED`、`VALIDATION`、`CONFLICT`である。現時点で共通Handlerに403／404の統一変換は確認できず、`NOT_FOUND`の共通定数も確認したファイルには存在しない。
 
-- **未決定**: APIが存在秘匿を必要とするDomain操作で404相当を返す条件、403相当を返す条件、GraphQL `errors[].extensions.code`の正式名称、HTTP Statusとの関係、複数Field Error時のWeb表示優先順位。
+- **調査時点から確定済み**: 存在秘匿は`NOT_FOUND`、閲覧可能な対象への権限外操作は`FORBIDDEN`、認証失敗は`UNAUTHENTICATED`。必須Field失敗は画面全体、独立した補助Field失敗は安全な部分表示とする。GraphQL実行時のHTTP Statusと具体的なField分類は後続設計で検証する。
 - **設計上の制約**: API契約が確定するまでWeb側で`FORBIDDEN`／`NOT_FOUND`の返却を既存実装の事実として扱わない。Web側が独自の存在確認を行わず、APIの公開エラー契約に従う方針は維持する。
 - **次の確認先**: Community／Mediaの認可仕様、APIのGraphQL SchemaとErrorHandler、既存のエラーテスト。Domainの情報秘匿要件と整合する共通エラー契約を別途合意してからAPI／Webの実装へ進む。
 - 参照: [API ErrorHandler](https://github.com/hazuki3417/memoria-api/blob/develop/graph/handler.go)、[API共通エラーコード](https://github.com/hazuki3417/memoria-api/blob/develop/internal/errors/common.go)。
@@ -154,10 +154,10 @@
 | 他人の非共有User管理Media・参加していないCommunityのMedia参照 | private by default。権限のないUserへMedia情報を返さない | 存在秘匿404相当を候補とする |
 | 参加中Memberによる、閲覧可能なMediaのOriginal取得 | Variant閲覧は可能だが、Original取得はCustodian／Administrator／対象Uploader等に限定 | 既に閲覧可能なMediaに対する操作拒否として403相当を候補とする |
 | MemberによるCommunity管理操作 | 参加者はCommunityを閲覧できるが管理操作はAdministrator限定 | 既に閲覧可能なCommunityに対する操作拒否として403相当を候補とする |
-| 退会・除外後の過去URLからの取得 | 新しい閲覧許可・署名発行を禁止 | 現在のMembershipを再評価し、内部情報を返さない。具体的なエラーコードは要合意 |
+| 退会・除外後の過去URLからの取得 | 新しい閲覧許可・署名発行を禁止 | 現在のMembershipを再評価し、閲覧権限がなければ`NOT_FOUND`とする |
 | 無効・期限切れの招待URL | Invitation acceptを拒否。有効な招待URLに限りCommunity名を表示 | 招待の存在・期限情報をどこまで表示するか、招待画面とAPIの契約で別途決定 |
 
-- **上表の403／404は調査から導いた設計候補であり、APIの実装済み契約でも確定したDomain仕様でもない。** 「閲覧できないリソースは存在秘匿」「閲覧できるリソースに対する許可されない操作は権限不足」という共通規則を採用するか、ユーザーとの合意後に各Domain・APIの正本へ反映する。
+- **上表の403／404は合意済みのDomain・GraphQL設計方針であり、APIの実装済み契約ではない。** 「閲覧できないリソースは存在秘匿」「閲覧できるリソースに対する許可されない操作は権限不足」という共通規則を適用する。
 - APIは対象存在確認と権限判定の順序・公開エラーを統一し、存在しないIDと閲覧権限のないIDで不要な情報差が生じないようにする。WebはAPIの公開結果だけを表示し、独自の存在確認をしない。
 - 参照: [Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)。
 
@@ -169,7 +169,7 @@
 
 ### 正本確認: GraphQL公開エラーコードは定義済み（2026-09-30）
 
-[GraphQL契約](/system/api/graphql)には`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`等が既に定義されている。上記の「正式名称が未決定」という記述はAPI実装との差分調査時点の記録であり、現在の設計上の未決定事項ではない。既存APIの`graph/handler.go`はこれらすべてを統一変換していないため、実装引き渡し時に差分を解消する。GraphQL実行時のHTTP Statusと複数Field Errorの表示優先順位は引き続き検証対象とする。
+[GraphQL契約](/system/api/graphql)には`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`等が既に定義されている。上記の「正式名称が未決定」という記述はAPI実装との差分調査時点の記録であり、現在の設計上の未決定事項ではない。既存APIの`graph/handler.go`はこれらすべてを統一変換していないため、実装引き渡し時に差分を解消する。GraphQL実行時のHTTP Statusと各画面の必須／補助Field分類は引き続き検証対象とする。
 
 ## 4. URL設計規約
 
