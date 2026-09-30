@@ -1,0 +1,40 @@
+# UX設計・レビュー基準
+
+## 目的
+
+MemoriaはMediaの発見・整理・共有という利用者の目的を、迷い、不要な操作、失敗時の損失を抑えて達成できる体験によって差別化します。美観だけをUX品質の代理指標とせず、利用者の目的達成、操作の予測可能性、応答性、復旧可能性、Accessibilityを併せて評価します。
+
+この文書は画面設計・AIによる提案・StorybookでのVisual Reviewで使用する**評価手順**です。原則の正本は[Frontend UI設計・開発方針](/system/frontend-ui-development)、再利用可能な振る舞いの正本は[Design System Patterns](/design-system)、個別の目的・権限・状態は各Screen SpecificationとDomain設計です。
+
+## 画面設計時の評価
+
+各画面の主要Taskについて、少なくとも以下を確認します。
+
+1. **目的と導線**: Userは現在context、操作対象、次に取るActionを理解できるか。主要Taskに不要な画面遷移・再選択・必須入力がないか。初期状態、Empty、Deep Link、戻る操作でも迷わないか。
+2. **情報の優先順位**: MediaなどTaskの主対象が明確か。今必要な情報・Actionを先に示し、詳細・低頻度Actionは必要な文脈で開示するか。
+3. **一貫性と適応**: 同じ意味の操作、文言、確認、結果Feedbackは共通Patternを使うか。一方、対象数・複雑さ・入力環境が違う場合、見た目の完全統一よりTaskの達成しやすさを優先しているか。
+4. **入力と意思決定**: 不要な入力を要求しないか。既知の値は維持し、適切な初期値を提示するか。Field Errorは修正箇所に、Form Errorは継続して確認できる位置に提示するか。重要・不可逆なActionは結果を理解して確定できるか。
+5. **状態とFeedback**: Loading、Empty、成功、部分成功、失敗、権限喪失、非同期処理を区別するか。操作の受付・進行・結果と次の行動が分かるか。Notificationだけでは修正できない問題を画面内に保持するか。
+6. **復旧と信頼**: 再試行可能な失敗で入力・選択・成功済み結果を可能な限り維持するか。重複実行、意図しない破棄、結果不明時の誤った成功表示を避けるか。Clientの表示だけをServer上の成立の正本としないか。
+7. **ResponsiveとAccessibility**: Compact / Medium / Wide、touch、keyboardで主要Taskを達成できるか。focus、読み上げ、状態の非色依存表現、適切な操作対象を確保するか。WCAG 2.2 AAを基準とする。
+8. **体感品質と検証**: 応答待ち・大量データ・低速通信でも現在の状態を把握できるか。利用者の目的に対して操作数、認知負荷、エラーからの復旧が適切か。実装後に代表的なTaskをStorybook・Interaction Test・Visual Reviewで検証できるか。
+
+## Dialogと専用Pageの判断
+
+Dialogは現在contextを維持しながら限定されたTaskを完了する場合に適します。大量の選択肢、複数段階の判断、長時間の進捗確認などでDialog内の操作性が低下する場合は、専用Pageや適切な表示領域を検討します。両起点で同じDialogを採用する場合も、選択内容に応じて検索・一覧・寸法等のpresentationを変えられます。UIの一貫性は目的ではなく、学習負担と誤操作を減らすための手段です。
+
+## AIによる設計・レビューの進め方
+
+- 既存仕様や実装を推測せず、作業開始時にGitHubの最新のIssue、対象Screen、Domain、Frontend方針、関連Patternを確認します。既存Web Componentは参考実装でありProduct仕様ではありません。
+- Userの提案には単に同意せず、UX上の利点・懸念・代替案・推奨理由を具体的なTaskに結び付けて返します。重大な判断は合意後に正本へ反映します。
+- 画面の主要Taskと代表的な正常・失敗・復帰シナリオを先に定め、この評価項目で確認します。具体的なpixel配置やComponent選択は後続のUI具体化とHuman Visual Reviewで決定します。
+- 複数画面に再利用できる判断だけをPatternへ昇格させ、個別のUI判断は対象Screenに残します。未決定の問題はIssueで追跡します。
+- 外部サービスやDesign Systemの優れたPatternは参考にできますが、模倣を目的にせずMemoriaの利用者Taskと制約に適合する理由を明示します。差別化や「最高」の達成を根拠なく宣言せず、実装後の利用者FeedbackやTask評価で継続的に検証します。
+
+## 関連する正本
+
+- [Application Information Architecture](/system/application-information-architecture): context、Navigation、主要領域
+- [Editable Form](/design-system/patterns/editable-form): 変更判定、保存、離脱確認
+- [Creation Dialog](/design-system/patterns/creation-dialog): 限定された作成Task
+- [Feedback](/design-system/patterns/feedback): Field / Form / Operation / BlockingのFeedback
+- [Screen Specifications](/screens): 各画面の目的、状態、Action、Responsive制約
