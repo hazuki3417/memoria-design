@@ -105,7 +105,7 @@ PersonalではUser本人、CommunityではAdministratorだけが削除できま�
 
 ## Media分類Interaction
 
-Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除、および未登録Tag作成の主要な入口とします。Tag付けはfree text入力を基本とし、入力したTag名ごとに現在scopeの既存Tagを完全一致で再利用し、未登録なら作成してMediaへ付与します。既存Tag候補の補完は入力支援として提供できますが、候補からの選択を必須にしません。Web実装ではMantine `TagsInput`を利用する想定とします。
+Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除、および未登録Tag作成の主要な入口とします。Tag付けはfree text入力を基本とし、入力したTag名ごとに現在scopeの既存Tagを完全一致で再利用し、未登録なら作成してMediaへ付与します。既存Tag候補の補完は入力支援として提供できますが、候補からの選択を必須にしません。Web実装ではMantine `TagsInput`を利用する想定とします。`TagsInput`でEnter等により入力を確定しても、その時点ではTag本体の作成・Media relationの変更を行いません。確定したTag名はMedia Detail内の未保存の編集状態として保持し、UserがMediaへのTag変更を保存したときに初めて反映します。キャンセル時は未保存のTag名・付与解除の変更を破棄し、未登録Tagを作成しません。
 
 Media Detailでは現在scopeで対象Mediaに付与されているTagを確認できます。分類権限があるUserは現在scopeの既存Tagを付与・解除でき、未登録のTag名を入力した場合は新規作成して付与できます。
 
@@ -129,7 +129,7 @@ Media Browserでは、現在scopeのTagを条件として現在contextで閲覧�
 
 ## 初回リリースの提供範囲
 
-初回リリースではTags専用画面を設けません。Media DetailでTagを入力・選択した際、現在scopeに同じ保存名のTagがあれば再利用し、未登録ならTagを新規作成して対象Mediaに付与します。作成と付与はdomain上別の結果として扱い、作成済みでも付与に失敗した場合は成功として表示しません。既存Tagの付与・解除とMedia BrowserでのTag絞り込みを提供します。
+初回リリースではTags専用画面を設けません。Media DetailでTag入力を確定した時点では未保存の編集状態にとどめます。Userが変更を保存したとき、現在scopeに同じ保存名のTagがあれば再利用し、未登録ならTagを新規作成して対象Mediaに付与します。作成と付与はdomain上別の結果として扱い、作成済みでも付与に失敗した場合は成功として表示しません。既存Tagの付与・解除とMedia BrowserでのTag絞り込みを提供します。
 
 Tag本体の独立した作成画面、rename、削除、統合は初回リリースではUser向けに提供しません。既存のdomain上のrename・削除semanticsと権限は将来のため維持し、初回リリースのUIからは実行させません。
 
@@ -170,7 +170,7 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 - scope内Tag数、MediaあたりTag数の具体的上限
 - Tag一覧のsort、検索、pagination契約
 - GraphQL Operation名、Input / Payload、error表現
-- Mantine `TagsInput`によるfree text入力時の補完・候補表示・確定タイミング等の詳細interaction
+- Mantine `TagsInput`によるfree text入力時の補完・候補表示、保存Actionの具体的presentation
 - filter結果全件を暗黙対象にするquery-based bulk Tag操作や、複数Tagを同時に複数Mediaへ適用する高度なmatrix操作
 
 自動Tag付け、AI分類、Custody transfer時のTag移行はInitial Release対象外です。
