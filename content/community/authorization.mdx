@@ -72,6 +72,13 @@ CommunityへはAdministratorとMemberのどちらも直接Uploadできます。C
 
 Media情報の編集機能は、初回Releaseで必要な編集項目がない限り提供しません。将来追加する場合はAdministratorと参加中のUploader本人へ許可します。file本体の差し替えは提供しません。
 
+## 認可拒否時の公開エラー
+
+- Community外UserがCommunity詳細・参加者・Group・Tag・Community内Mediaなどの非公開情報を要求した場合は、Communityの存在を秘匿する404相当とする。存在しない対象との違いを公開しない。
+- 有効なMembershipを持ちCommunityを閲覧できるMemberが、Administrator限定の管理操作を要求した場合は403相当とする。
+- 退会・除外等でMembershipを失ったUserには新しい閲覧許可を発行せず、過去のCommunity URLから内部情報を公開しない。認証Session自体が失効している場合は認証エラーを優先する。
+- 招待URLは有効tokenの所持者へCommunity名を表示できる例外であり、無効・期限切れtokenの公開応答はInvitation詳細設計で決める。
+
 ## 権限失効
 
 退会・除外・User削除によりMembershipを失ったUserは、Communityの閲覧、Upload、分類、管理を行えません。Uploader本人も削除・Original download権限を失います。既存の署名付きURL・Signed Cookieは短い有効期間とし、失効後の再発行を禁止します。

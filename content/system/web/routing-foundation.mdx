@@ -1,0 +1,355 @@
+# Webルーティング基盤設計
+
+> 状態: レビュー案。業務固有の画面URL・遷移・業務権限は本書の対象外です。共通画面は表示確認を必要としない仕様から先行して設計します。
+> 実装の正本: `memoria-web`。本書は2026-09-30時点の`develop`を参照した設計案です。
+
+> 設計と実装の優先順位: 本設計を実装方針の正本とする。既存`memoria-web`のコードは現状把握・移行影響の調査資料であり、不一致があれば原則として実装を設計へ合わせる。技術的制約などで設計変更が必要な場合は、変更前にユーザーと合意し、本書へ反映する。
+
+## 目的と対象
+
+画面詳細設計に先行して、Next.js App Routerの共通基盤を定義します。対象はRoute Group／Layoutの責務、認証境界、エラー・Loading・Rendering、共通ナビゲーション規約、基盤テストです。業務固有のURL・導線・検索パラメータのキー・業務認可・操作後の遷移先は業務画面の詳細設計で決めます。共通画面のURL・責務・状態遷移・コンポーネント契約は、表示確認を必要としない範囲で先行して設計します。見た目と操作感はコンポーネントを実装し、表示可能な環境でレビューして確定します。
+
+## 現行実装の確認
+
+- `src/app/layout.tsx`: locale、共通Provider、HTMLとテーマを構成。
+- `src/app/(authenticated)/layout.tsx`: Server側でSessionを確認し、GraphQL `GetMe`を実行し、ユーザーProviderと共通AppShellを構成。Sessionがない場合は`null`を返す。
+- `src/app/(authenticated)/(library)/layout.tsx`: Client ComponentとしてContainerを配置。
+- `src/middleware.ts`: Sessionと保護対象パスを確認し、未認証時にログインへRedirect。
+- `src/lib/middleware/route.ts`: 保護対象を列挙し、`startsWith`で判定。`returnTo`には元のpathnameを設定。
+- `src/components/Auth/Csr/AuthGuard.tsx`: Client側でUser Contextを確認し、未認証時にログインへ遷移。
+
+現行実装の観察と、以下の設計案は区別します。現時点で`error.tsx`、`not-found.tsx`、`loading.tsx`の代表的な配置は確認できていません。別の階層やブランチを含めた網羅的な不存在確認ではありません。
+
+## 1. Route GroupとLayout
+
+- Route GroupはURLを決めるためではなく、共通Layout、認証境界などの技術的責務を共有するために使用する。
+- Root LayoutはHTML、locale、アプリ全体のProviderなど全ルート共通の責務を保持する。認証必須のデータ取得をRootへ移さない。
+- 認証済みLayoutはセッション確認、認証済み領域に必要な共通ProviderとShellを担当する。個別画面の業務データ取得や業務権限判定を持たない。
+- 子Layoutは共通表示領域など、複数画面で共有する構造が明確な場合に設ける。現行の`(library)`を将来のURL分類として固定しない。
+- Server Componentを基本とし、ブラウザAPI、イベント、Client専用Contextなどが必要な境界だけClient Componentにする。既存LayoutのClient指定を機械的に増やさない。
+
+## 2. 認証境界
+
+### 二段階の認証確認
+
+- Middlewareで未認証アクセスを早期Redirectし、認証済みServer LayoutでもSessionを確認する。これは利便性と表示制御のための二段階チェックであり、どちらも単独ではデータの保護境界とみなさない。
+- App RouterではClient Navigation中にLayoutが再利用され得るため、保護されたServer側データ取得、Server Action、Route Handlerなど実際のデータアクセス地点で必要な認証確認を行う。APIが最終的な業務認可を保証する。
+- Client側AuthGuardは補助的な表示・遷移制御に限定し、保護の唯一の根拠にしない。
+- 現行の認証済みLayoutのSessionなしで`null`を返す挙動は解消対象とし、Server側での明示的なRedirectを基本案とする。Redirect先はSDKログイン、認証成功後は`/dashboard`とし、認証ループを防ぐ。
+- GraphQLプロキシの主目的は、WebとAPIが異なるドメインでもブラウザからNext.jsの同一Originへアクセスさせ、ブラウザとAPI間のCORS設定への依存を減らすことである。認証をプロキシに集約すること自体は、この構成の目的ではない。
+- `src/app/api/graphql/route.ts`は現状、リクエストHeaderを転送する。プロキシ経由でもAPIが最終的な認証・認可を行う。認証方式と転送Headerの許可範囲、Cookieの扱いは実装時に確認する。LayoutのSession確認だけでAPIへのアクセスが保護されたと扱わない。
+- 既存のAuth0／Next.js BFF構成とHttpOnly Session Cookieを前提とし、TokenをURL・公開Client State・Logへ露出しない。
+- 認証済みでも個別リソースの利用権限は保証されず、APIが最終的な業務認可を行う。
+
+### 保護対象は原則保護・公開URLを例外登録
+
+- Middlewareが扱う画面Routeは原則認証必須とし、認証不要な画面Routeだけを明示的なAllowlistで管理する。将来追加する画面が未登録のまま公開されない構成とする。
+- Auth0のLogin／Callback／Logout等の認証用Endpointは、Auth0 SDKが要求するMiddleware処理を妨げないよう別区分で扱う。実際のPathとMatcherは現行SDK設定・Route構成を確認して確定する。
+- GraphQLプロキシ等のAPI Route、Next.js内部Asset、静的ファイルは画面RouteのAllowlistとは別に分類する。API Routeを画面用のログインRedirectに巻き込まず、各Endpointの認証・認可とエラー応答を独立して定義する。
+- Path判定はSegment境界を考慮した厳密な一致または明示的な子Path一致とし、単純な`startsWith`による意図しない一致を避ける。Route Group名はURLに現れないため、Middlewareの分類条件に使わない。
+- 未知の画面Pathに対しても認証確認を行うが、存在しないRouteの最終的な404処理はNext.jsに委ねる。認証不要な404表示の要否は公開ページ設計時に再検討する。
+- 具体的な公開Path一覧、Auth0 Endpoint、Matcherの除外条件、Locale付きPathの扱いは実装前の調査事項とし、現時点で未確認のPathを決め打ちしない。
+
+### 公開・保護ページの境界
+
+| 区分 | Path・対象 | 未認証時の扱い |
+| --- | --- | --- |
+| 公開ページ | `/`、`/auth/error` | 表示可。公開`/`は認証済みの場合のみ`/dashboard`へServer Redirect |
+| SDK認証Endpoint | `/auth/login`、`/auth/callback`、`/auth/logout`および導入SDKが追加するEndpoint | Memoria独自の画面保護判定から除外し、SDKへ処理を委譲 |
+| API | `/api/**`（現行`/api/graphql`を含む） | 画面用ログインRedirectを行わず、各EndpointとAPIで認証・認可・エラー応答を制御 |
+| 静的・内部Asset | `/_next/**`、実際の静的Asset、`favicon.ico`等 | 画面用ログインRedirectの対象外。SDK MiddlewareのMatcher除外範囲はSDK推奨に従う |
+| その他の画面 | `/dashboard`、`/images`、`/settings`、将来追加する画面、未知の画面Path | 原則認証必須。未認証なら直接Auth0ログインへ。成功後は`/dashboard` |
+
+- 画面保護の判定は公開Pathの完全一致と、SDK／API／AssetのSegment境界を考慮した分類で実装する。`/auth/error-extra`、`/apiary`、`/images-other`等を意図せず例外にしない。
+- SDK認証Endpointの一覧・Matcherは、導入済みAuth0 SDKの実際のRouteと照合する。独自の画面保護判定から除外しても、Rolling SessionのためSDK Middlewareを通す範囲はSDK推奨の広いMatcherを維持する。
+- 未認証の未知の画面Pathも原則保護としてAuth0ログインへ誘導する。ログイン成功後は元の未知Pathへ戻さず`/dashboard`へ遷移する。認証済みで未知Pathへアクセスした場合はNext.jsの404へ委譲する。未認証向けの公開404は設けない。
+- Server LayoutでSessionを再確認し、保護されたデータアクセス地点で認証確認する。画面分類だけでAPIの認可を代替しない。
+- 実装前に`memoria-web`のNext.js 16／Auth0 SDKのMatcher、Locale Cookie、API Route、静的Assetの実Pathを確認する。公開Pathの追加は明示的な設計レビュー対象とする。
+- テスト: 公開`/`と`/auth/error`、認証Endpointの到達性、APIの非Redirect、Assetの到達性、保護画面と未知画面、Prefix衝突、認証済み／未認証、ログイン成功後の固定`/dashboard`遷移。
+
+### 認証後の遷移と編集状態の扱い
+
+- 通常ログイン、未認証での保護画面直接アクセス、セッション期限切れ後の再ログイン、認証エラー画面からの再ログインのいずれも、認証成功後は暫定初期画面`/dashboard`へ遷移する。元画面のPath・Queryを認証をまたいで保持しない。
+- 未認証で保護画面へ直接アクセスした場合は、公開トップページを経由せずSDKのAuth0ログインへ誘導する。認証成功後に元画面へ戻さない。
+- 編集中にセッションが切れた場合、未保存の入力や画面状態は破棄し、再ログイン後に最初から操作をやり直す。認証をまたぐ下書き保存・自動復元・元画面復帰は今回の対象外とする。
+- `returnTo`の独自生成・検証・保持、再試行用Cookieは導入しない。SDKの標準認証トランザクション管理は維持する。アプリが明示的に復帰先を指定する場合は固定の`/dashboard`のみとする。
+- 不正な復帰先を使ったOpen Redirectを許さない。SDKの標準Login Endpointに外部から渡される`returnTo`等によって任意の遷移先が採用されないよう、SDK v4.27.0の標準挙動とアプリ側の入口制御／Callbackでの固定Redirectを実装時に確認する。
+- テスト: 未認証の直接アクセス、セッション期限切れ、ログイン成功、Callback失敗後の再試行、固定`/dashboard`遷移、外部復帰先指定によるOpen Redirect防止、認証ループ防止。
+
+## 3. エラーとLoading
+
+### 共通Error／Loadingの配置方針
+
+- Root LayoutはHTML、Locale、Mantine等の共通Providerを構築している。Rootの`global-error.tsx`はこのLayout自体が失敗した場合の最終Fallbackとして配置し、必要な`html`／`body`を自前で描画する。通常のProviderが使えることを前提にしない。
+- Rootの`not-found.tsx`はURL不一致時の共通404を担当する。認証済み領域で共通Shellを維持する必要が明確になった場合は、その領域にも局所的な404境界を追加する。
+- 認証済み領域の`error.tsx`は当該Layoutの**子Segment**の描画失敗を扱う。認証済みLayout自身のSession取得や`GetMe`失敗は同階層の`error.tsx`では捕捉できないため、親階層の境界と認証エラーの明示的な処理を分けて設計する。
+- `loading.tsx`は実際に待機が必要なSegment単位で設け、全画面一律には配置しない。認証済みLayoutのSession取得／`GetMe`待機を子階層の`loading.tsx`だけで解決できる前提にしない。必要に応じて親側のSuspense境界とProvider依存を検証する。
+- `notFound()`／`redirect()`は通常の例外表示と区別し、意図した404・認証遷移として扱う。`error.tsx`では機密情報を表示せず、再試行可能なケースに限り`reset()`を提供する。
+
+
+- `error.tsx`は対象Segment配下の回復可能なRender Errorを扱い、再試行と利用可能な共通UIを提供する。
+- `global-error.tsx`はRoot Layout自体の失敗に備える最終的な境界とする。
+- `not-found.tsx`は存在しないRoute／リソースに対する404表示を扱う。認証・認可失敗を無条件に404へ置換しない。
+- `loading.tsx`とSuspenseは、実際に非同期処理があり待機表示が必要なSegmentで使用する。すべてのRouteへの一律配置はしない。
+- エラー表示にToken、内部Stack Trace、機密情報を露出しない。画面固有の文言やリトライ導線は各画面の詳細設計で決める。
+
+### エラー画面の責務と遷移（設計先行）
+
+| 状況 | 画面・処理 | 利用者の主な導線 |
+| --- | --- | --- |
+| 未認証・Session期限切れで保護画面へアクセス | SDKログインへRedirect | 認証成功後は`/dashboard`。元画面・未保存編集内容は復元しない |
+| Auth0ログインの明示的なキャンセル | 公開トップ`/` | ログインし直す |
+| Auth0認証失敗・Callback失敗 | 公開`/auth/error` | 再ログイン、公開トップへ戻る |
+| 未認証で未知の画面URLへアクセス | SDKログインへRedirect | 認証後は`/dashboard`。未知URLには戻さない |
+| 認証済みで未知URL・存在しないリソースへアクセス | `not-found.tsx`を基本とする404 | `/dashboard`へ戻る |
+| 子Segmentの回復可能な描画・取得エラー | 当該`error.tsx` | 再試行（`reset()`）、`/dashboard`へ戻る |
+| 認証済みLayout自身のSession／`GetMe`取得失敗 | 認証状態・APIエラーを区別し、同階層`error.tsx`に依存しない | Sessionなしならログイン。API障害なら回復可能なエラー画面 |
+| Root Layout自体の失敗 | `global-error.tsx` | 再試行またはページ再読み込み。Provider・AppShellに依存しない |
+
+- **設計上の区別**: `/auth/error`はOAuth認証の失敗を扱う公開画面であり、通常の画面描画エラーやAPI障害をすべて集約しない。セッション期限切れは通常の再ログイン導線で扱い、Callback失敗とは区別する。
+- **情報保護**: エラー画面にはToken、内部例外、Callbackパラメータ、機密性のあるAPI応答を表示しない。追跡用IDの採用可否はログ設計と合わせて判断する。
+- **404と権限**: 認証済みの存在しないURLは404とする。既存リソースに対する権限不足を403とするか、存在秘匿のため404とするかはAPIの認可方針と画面詳細設計で別途合意する。
+- **再試行**: 認証エラー画面の再ログインは新規認証を開始する。通常の`error.tsx`の`reset()`は回復可能な子Segmentに限定し、認証失敗を無限再試行しない。
+- **表示の一貫性**: 公開エラー画面は認証済みAppShellに依存させない。認証済み領域の404・通常エラーは、表示可能な範囲で共通ナビゲーションを維持する。文言・見た目は画面詳細設計でレビューする。
+
+### リソース権限エラーの表示契約
+
+既存の[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)では、現在のUser状態・Membership等に基づくAPIでの認可を要求している。403／404の使い分けは、Webの推測で決めずAPIの公開エラー契約に従う。
+
+| APIの結果・状況 | Webの扱い | 補足 |
+| --- | --- | --- |
+| 認証Sessionなし／失効 | 再ログインへ誘導 | ログイン成功後は固定`/dashboard`。元画面・編集内容は復元しない |
+| 存在しないリソース・形式不正なID | 404 | 実在を推測できる詳細を表示しない |
+| APIが存在秘匿のため404を返した | 404 | Web側で「権限不足」と言い換えず、存在確認の追加問い合わせをしない |
+| APIが明示的な権限不足として403を返した | 権限不足画面／メッセージ | 権限要求や管理者への問い合わせ導線は業務画面ごとに判断 |
+| 一時的なAPI障害・通信失敗 | 通常の回復可能なエラー | 認可拒否と混同せず、再試行可能な場合だけ再試行を提示 |
+
+- 閲覧権限のない非公開リソースは存在秘匿の`NOT_FOUND`、閲覧可能なリソースへの権限外操作は`FORBIDDEN`とする。共通Web基盤は両方を表示可能にする。
+- **禁止事項**: Webが別のAPIを呼んでリソースの実在を調べ直す、403を機械的に404へ変換する、404を機械的に403へ変換する、エラー文面に対象の内部識別子や秘匿Metadataを露出することはしない。
+- **テスト方針**: APIの401／403／404／5xx相当の公開エラーを区別し、認証遷移、権限不足表示、404、再試行表示に対応させる。GraphQLのHTTP Statusと`errors[].extensions.code`の具体的な対応は、実際のAPI Schema・エラー契約を確認して確定する。
+
+### 調査結果: 現行APIのGraphQLエラーコードと未決事項
+
+`memoria-api/develop`の`graph/handler.go`と`internal/errors/common.go`を確認した。定数には`UNAUTHORIZED`、`FORBIDDEN`、`BAD_REQUEST`、`INTERNAL_SERVER_ERROR`がある。一方、共通GraphQL ErrorHandlerが明示的に変換しているのは`UnauthorizedError`の`UNAUTHORIZED`、User Serviceの`UNAUTHENTICATED`、`VALIDATION`、`CONFLICT`である。現時点で共通Handlerに403／404の統一変換は確認できず、`NOT_FOUND`の共通定数も確認したファイルには存在しない。
+
+- 存在秘匿は`NOT_FOUND`、閲覧可能な対象への権限外操作は`FORBIDDEN`、認証失敗は`UNAUTHENTICATED`。必須Field失敗は画面全体、独立した補助Field失敗は安全な部分表示とする。GraphQL実行時のHTTP Statusと具体的なField分類は後続設計で検証する。
+- **設計上の制約**: API契約が確定するまでWeb側で`FORBIDDEN`／`NOT_FOUND`の返却を既存実装の事実として扱わない。Web側が独自の存在確認を行わず、APIの公開エラー契約に従う方針は維持する。
+- **次の確認先**: Community／Mediaの認可仕様、APIのGraphQL SchemaとErrorHandler、既存のエラーテスト。Domainの情報秘匿要件と整合する共通エラー契約を別途合意してからAPI／Webの実装へ進む。
+- 参照: [API ErrorHandler](https://github.com/hazuki3417/memoria-api/blob/develop/graph/handler.go)、[API共通エラーコード](https://github.com/hazuki3417/memoria-api/blob/develop/internal/errors/common.go)。
+
+### 閲覧可否に基づく403／404の使い分け
+
+- 閲覧権限のないCommunity・Media等は、存在の有無を秘匿する404相当をAPIが返し、Webは404を表示する。
+- 閲覧できるリソースに対する権限外の管理操作・Original download等は、APIが403相当を返し、Webは権限不足を表示する。
+- 認証Sessionがない場合は認証エラーを優先する。現在のMembership等を操作時点で再評価し、Webは独自の存在確認やエラーコード変換を行わない。
+- GraphQLの公開エラーコードは既存契約の`UNAUTHENTICATED`／`FORBIDDEN`／`NOT_FOUND`を使用する。GraphQL実行時のHTTP Statusと複数Field Errorの表示優先順位は実装契約で検証する。
+
+### Domain調査結果: Community／Mediaの情報秘匿境界
+
+[Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)を確認した。Community名・参加者・Group・Tag・Mediaは所属と操作権限に基づく非公開情報であり、Community外Userには内部情報を返さない。User管理MediaのOriginalはCustodianのみ、Community管理MediaのOriginalはAdministratorと参加中のUploader本人のみが取得できる。退会・除外後は新しい閲覧許可を発行しない。
+
+| 操作・主体 | 既存Domain要件 | エラー契約への設計上の含意 |
+| --- | --- | --- |
+| Community外UserによるCommunity詳細・参加者・Group・Tag参照 | Community内部情報を公開しない | 存在の有無を露出しない404相当の契約を候補とする |
+| 他人の非共有User管理Media・参加していないCommunityのMedia参照 | private by default。権限のないUserへMedia情報を返さない | 存在秘匿404相当を候補とする |
+| 参加中Memberによる、閲覧可能なMediaのOriginal取得 | Variant閲覧は可能だが、Original取得はCustodian／Administrator／対象Uploader等に限定 | 既に閲覧可能なMediaに対する操作拒否として403相当を候補とする |
+| MemberによるCommunity管理操作 | 参加者はCommunityを閲覧できるが管理操作はAdministrator限定 | 既に閲覧可能なCommunityに対する操作拒否として403相当を候補とする |
+| 退会・除外後の過去URLからの取得 | 新しい閲覧許可・署名発行を禁止 | 現在のMembershipを再評価し、閲覧権限がなければ`NOT_FOUND`とする |
+| 無効・期限切れの招待URL | Invitation acceptを拒否。有効な招待URLに限りCommunity名を表示 | 招待の存在・期限情報をどこまで表示するか、招待画面とAPIの契約で別途決定 |
+
+- 上表の403／404はDomain・GraphQLの設計方針であり、APIの実装済み契約ではない。 「閲覧できないリソースは存在秘匿」「閲覧できるリソースに対する許可されない操作は権限不足」という共通規則を適用する。
+- APIは対象存在確認と権限判定の順序・公開エラーを統一し、存在しないIDと閲覧権限のないIDで不要な情報差が生じないようにする。WebはAPIの公開結果だけを表示し、独自の存在確認をしない。
+- 参照: [Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)。
+
+### 複数GraphQL Field Errorの画面表示
+
+- 認証失敗が含まれる場合は部分データを表示せず、認証状態を再確認して必要なら再ログインへ誘導する。
+- 画面の必須Fieldが失敗した場合は画面全体をエラー表示にする。独立した補助Fieldのみの失敗なら、認可上安全な部分データを残し、失敗した領域だけエラー表示する。
+- `errors[].path`と画面の必須／補助Fieldの対応は各Web Operationで定義する。`NOT_FOUND`と`FORBIDDEN`が混在する場合は秘匿対象の存在を推測できる情報を表示しない。GraphQL NullableとClient Cacheの挙動は実装時に検証する。
+
+### GraphQL公開エラーコードとAPI実装の差分
+
+[GraphQL契約](/system/api/graphql)には`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`等が既に定義されている。既存APIの`graph/handler.go`はこれらすべてを統一変換していないため、実装引き渡し時に差分を解消する。GraphQL実行時のHTTP Statusと各画面の必須／補助Field分類は引き続き検証対象とする。
+
+## 4. URL設計規約
+
+### Path命名
+
+- URLのSegmentは英語・小文字・kebab-caseとする。リソース名は原則複数形とする。
+- URLはリソース・機能を表し、見た目や内部Component名に依存させない。動的SegmentはNext.js App Routerの`[id]`形式で定義する。
+- この合意だけを理由に既存URLを一括変更しない。変更時の互換性・Redirectは個別に検討する。
+
+### リソース中心のURL階層
+
+- リソースを中心に一覧（`/resources`）、新規作成（`/resources/new`）、詳細（`/resources/[id]`）、編集（`/resources/[id]/edit`）を基本形とする。これらは構造の例であり、業務画面の具体的なURL割当ではない。
+- 明確なリソースの親子関係がある場合のみ階層を深くし、画面のメニューやComponentの構造をURL階層に転写しない。
+- 既存URLの変更は互換性とRedirectを確認した上で個別に判断する。
+
+### URL定義の責務と整合性
+
+- Next.js App Routerの`src/app`ファイル構成を実際にアクセス可能なURLの正本とする。
+- 既存の`src/constants/routes`と型定義・`resolveUri`は型安全なURL生成に活用する。タイトル・パンくず・ナビゲーション等の表示用メタデータはURL定義と責務を分け、管理方法の詳細は実装時に検討する。
+- `src/app`とルート定義の不一致、動的パラメータの対応とエンコードを自動テストで検出する。Route GroupはURLの一部として扱わない。
+- 既存の仕組みを即時廃止・一括変更せず、検証可能な範囲から段階的に整備する。
+
+### Search Paramsと`q`の使い分け
+
+- 一般的な検索・並び替え・ページングなど、意味が明確で個別に操作・共有する状態は、原則として個別のSearch Paramsを使用する。
+- 複雑な構造化状態を一括保存・復元する必要がある場合は、既存の`?q=...`方式を選択できる。項目数やネストの深さによる機械的な閾値は設けず、画面の利用目的に照らして判断する。
+- **個別のSearch Paramsを優先する目安**: URLの可読性・直接編集、外部連携、一部条件だけの更新、個別パラメータの共有が重要な場合。
+- **`q`を検討する目安**: 条件間の関連が強く、状態全体を一括更新・復元したい場合、構造化された条件のスキーマ・バージョンを一体として管理したい場合。
+- 複数の検索条件があるという理由だけでは`q`を採用しない。個別のSearch Paramsと`q`を併用する場合は責務を分け、同じ状態を重複保持しない。
+- `q`は暗号化ではない。Token、認証Code、個人情報などの機密値を含めない。URL長、入力検証、不正値・未知バージョンの扱いは実装前に検討する。
+- 画面固有のQuery Keyと既定値は、共通画面ならその詳細設計、業務画面なら業務画面詳細設計で定める。
+
+### URL正規化・互換性
+
+- 末尾SlashのないURLを正規形とし、Next.js標準の`trailingSlash: false`相当の挙動を利用する。独自Middlewareに同じ正規化を重複実装しない。現行`next.config.mjs`に明示設定はないため、実装時に設定要否を確認する。
+- 静的Pathは小文字で定義する。リクエストURL全体を一律小文字変換せず、動的SegmentのID等の大文字小文字を保持する。
+- URL変更時は旧URLから新URLへの明示的なRedirectを個別に検討し、恒久的な移行が確定している場合に恒久Redirectを使う。互換性のあるQueryは保持し、旧ブックマークや共有リンクへの影響を確認する。
+- 未知のPathは類似Pathへ推測Redirectせず404とする。認証用EndpointとAPI Routeには画面URLの規約を機械的に適用せず、それぞれの契約を優先する。
+- 既存URLの一括変更は本設計の合意だけでは実施しない。変更対象・移行方法・Redirectの終了条件は個別に決定する。
+
+### 動的Segment・識別子
+
+- Next.jsの動的Segmentは単一のIDなら`[id]`を基本形とする。同じURLに異なるリソースのIDが複数登場する場合は`[groupId]`／`[memberId]`など区別できる名前を用いる。
+- URLには原則としてAPI契約で公開可能かつ安定した識別子を使い、変更され得る表示名よりIDを優先する。UUID／ULID等の具体的な形式はAPI契約に従い、Web側で先行決定しない。
+- 動的パラメータのURL生成は共通関数でSegment単位の適切なエンコードを行い、呼び出し元での文字列連結を標準としない。現行`resolveUriPath()`は値をそのまま置換するため改善対象とする。
+- 受信時は必須値・形式を検証する。不正な識別子や存在しないリソースは原則404とし、正しい形式でもリソースへのアクセス権限はAPIで別途確認する。認証・認可エラーを一律404に置換しない。
+- 識別子の大文字小文字や形式をURL受信時に勝手に変換しない。Next.jsの`[id]`と既存URL定義の`:id`の表現差は、ルート整合性テストとURL生成関数で扱う。
+
+### 操作URL
+
+- 一覧は`/resources`、新規作成は`/resources/new`、詳細は`/resources/[id]`、編集は`/resources/[id]/edit`を基本形とする。これらは構造例であり、業務固有のURLを確定するものではない。
+- 新規作成・編集は直接アクセスとブラウザ履歴への対応を考慮し、独立したURLを基本とする。
+- 検索・絞り込みは一覧URLにSearch Paramsを付与し、個別Paramsと`q`の使い分け規約に従う。
+- 削除は原則として専用の画面URLを設けず、画面内操作と確認UIから実行する。削除確認を独立した画面にする必要がある場合は画面詳細設計で例外を検討する。
+- 削除その他の副作用を伴う処理をGETによる画面アクセスだけで実行しない。Server ActionやAPI等の変更用インターフェースで実施し、認証・認可と必要な入力検証を行う。
+- 具体的な業務操作のURL・操作後の遷移・確認UIの見た目は各画面の詳細設計で確定する。
+
+## 5. 遷移と状態の共通規約
+
+### マーケティングサイトとサービスの入口
+
+- マーケティングサイトとサービス本体は役割を分離する。将来のマーケティングサイトは製品紹介・料金案内等の静的コンテンツを中心とし、非公開S3バケットとCloudFrontによる公開を想定する。分離の実施時期、ドメイン、リポジトリ構成は未決定とする。
+- サービス側の`/`は入口・Redirect専用とし、ダッシュボードやメディア一覧など実際の画面には`/dashboard`等の固有URLを割り当てる。初期画面の暫定候補は現行`/dashboard`で、正式な遷移先は画面詳細設計で決定する。
+- **暫定構成**: `memoria-web`内の`/`に簡易トップページを設ける。未認証ユーザーにはこのページを表示し、認証済みユーザーは認証済み初期画面へRedirectする。トップページはサービス名・簡単な紹介・ログイン導線を中心とし、マーケティングサイト専用の別リポジトリ・別ドメインは現時点で設けない。
+- **将来の分離後**: サービス側の`/`は入口・Redirect専用とし、未認証ユーザーは独立したマーケティングサイトへ案内する。具体的なドメイン・Redirect方式・移行時期は分離時に決める。
+- 保護画面への直接アクセスはマーケティングサイトを経由させず、Auth0ログインへ誘導し、認証成功後は`/dashboard`へ遷移する。
+- ログアウト時はAuth0 SDKのログアウト処理でセッションを終了し、完了後はマーケティングサイトの公開トップページへ遷移する。具体的なSDKのLogout URL・Return URLは実装前に確認する。
+- 簡易トップページの見た目と将来の製品紹介・有料プラン等は別途画面設計で確定する。
+- **簡易トップページの最小機能**: サービス名、短い紹介、Auth0 Universal Loginにつながるログインボタンを表示する。利用規約・プライバシーポリシーへのリンクは必要に応じて設ける。料金表、詳細な製品紹介、お知らせ、問い合わせフォームは現時点の対象外とする。見た目は後続の画面設計で決定する。
+- **暫定構成での認証遷移**: 未認証の`/`アクセスでは簡易トップページを表示する。認証済みの`/`アクセスではサーバー側でSessionを確認して認証済み初期画面（当面`/dashboard`）へRedirectし、トップページの一瞬の表示を避ける。ログインボタンはAuth0 Universal Loginへ接続し、Memoria側にパスワード入力フォームを設けない。
+- **ログイン成功時**: 元のアクセス先に関係なく`/dashboard`へ遷移する。保護画面への未認証の直接アクセスでは、マーケティングページを経由せずAuth0ログインへ誘導する。
+- **暫定構成でのログアウト**: Auth0 SDKによるログアウト完了後、同じ`memoria-web`の公開トップページ`/`へ戻す。
+- マーケティングサイトは通常サービスのSessionを直接参照できないため、認証状態に応じた振り分けはサービス側で担うことを基本とする。
+
+### ログイン画面の基本構成
+
+- Memoriaのブランドを適用したAuth0 Universal Loginを使用し、ログインフォーム・認証処理・パスワード再設定・MFA等はAuth0が提供する機能を基本とする。
+- 現時点ではNext.jsアプリ内に独自のログインフォームやログイン案内ページを設けない。既存のAuth0標準画面はプロトタイプ上の選択であり、最終的なブランド表現ではない。
+- Memoria側のログイン導線からAuth0 SDKのログイン処理へ遷移し、認証完了後は固定の`/dashboard`へ遷移する。
+- Auth0 Universal Loginの具体的なカスタマイズ可能範囲・デザイン・運用上の制約は画面設計時に確認する。Next.js内の独自フォームは将来の選択肢として残すが、今回の実装対象には含めない。
+- Auth0 SDKの実際のLogin／Callback／LogoutのPathと、既存`/auth/login`・`/auth/logout`のルート定義との対応は実装前に確認する。
+
+- Server側の認証RedirectはServer側のNavigation APIを基本とし、Client側の利用者操作による遷移はNext.js Router／Linkを使用する。ブラウザHistoryの直接操作を標準手段にしない。
+- 共有可能な状態はURLで扱う既存方針を維持する。ただし具体的なKey、Default値、戻る操作の仕様は画面詳細設計に委ねる。
+- Redirect先の検証やURL生成を共通化する際は、画面固有のRoute一覧をこの基盤設計に固定しない。
+
+### 暫定トップページと認証境界の配置
+
+現行`memoria-web/develop`の`src/app/layout.tsx`は全体Provider、`src/app/(authenticated)/layout.tsx`はSession・GetMe・AppShellを担当する。現行`src/app/page.tsx`は確認時点で存在しない。`src/middleware.ts`は保護Pathを限定列挙し、`returnTo`にはPathnameのみを渡している。以下は実装方針であり、実装済みではない。
+
+```text
+src/app/
+  layout.tsx                         # 全体共通。認証必須のGetMeを置かない
+  page.tsx                           # /: ServerでSession判定
+  (authenticated)/
+    layout.tsx                       # Session確認・GetMe・AppShell
+    dashboard/page.tsx               # /dashboard: 暫定初期画面
+  global-error.tsx                   # Root Layout失敗時の最終Fallback
+  not-found.tsx                      # 共通404
+```
+
+- `src/app/page.tsx`はServer Componentとし、Sessionがあれば認証済み初期画面（暫定`/dashboard`）へServer Redirect、なければ簡易トップページを描画する。公開トップページに認証済みAppShell・GetMeを要求しない。
+- `(authenticated)/layout.tsx`は既存のSession確認・GetMe・AppShellを維持し、Sessionなしの`return null`を、元URLを保持しないSDKログインRedirectへ変更する。Layoutだけに認証を依存させず、保護データの取得地点でも確認する。
+- Middlewareの画面Routeは原則保護、公開ページ`/`を明示的Allowlistとする。Auth0 SDKのEndpoint、API Route、静的Assetは別区分にし、SDKの実際のPath・Matcherと照合する。公開`/`ではMiddlewareによるログイン強制をせず、Page側がSessionで表示を振り分ける。
+- ログインボタンはSDKのログイン導線に接続する。すべてのログイン成功後は暫定`/dashboard`へ遷移する。Logout完了後は公開`/`へ戻す。SDKのCallback／Logout設定と実際のEndpointは実装前に確認する。
+- 未認証の保護画面直接アクセスを公開`/`へ転送しない。Session切れ後も元画面へ戻さず、再ログイン成功後は`/dashboard`へ遷移する。
+- 確認対象: `/`の認証有無、`/dashboard`の認証有無、固定`/dashboard`遷移、ログアウト後の`/`、公開／保護の境界、認証ループ防止。画面デザインは別途レビューする。
+
+### 固定の認証後遷移先
+
+- 認証成功後は元のPath・Queryを保持せず、常に暫定`/dashboard`へ遷移する。正式な初期画面が画面詳細設計で確定したら固定の遷移先を変更する。
+- Memoria独自の`createLoginUrl()`、`validateReturnTo()`、`resolvePostLoginUrl()`は実装しない。SDKの認証処理・セッション管理を利用し、固定Redirectと認証ループ防止だけを実装する。
+- 外部からの`returnTo`指定があっても固定遷移先を上書きさせない。Auth0 SDK v4.27.0の`onCallback`を使用する場合は成功時に`/dashboard`へRedirectする。SDKの標準ログインEndpointに対する入口制御は実装時に検証する。
+
+### 認証エラー時の遷移と再試行
+
+- ログインのユーザーキャンセルは公開トップページ`/`へ戻す。SDKのキャンセル識別子を確認し、その他のエラーと区別する。
+- 認証失敗・Callbackエラーは公開画面`/auth/error`へ遷移し、再ログインとトップページへ戻る導線を設ける。Token・内部エラー・Callbackパラメータを画面へ露出しない。
+- セッション期限切れ時はログインへ誘導し、成功後は`/dashboard`へ遷移する。編集中の未保存データと元画面の復元は対象外とする。
+- 一時的な通信障害は再試行導線を提供し、無限リトライを行わない。
+- 認証エラー画面からの再ログインは新しいログインとして扱い、成功後は`/dashboard`へ遷移する。元URL保持用Cookieは導入しない。
+- エラー詳細はサーバーログで追跡する。SDKエラー分類とCallback Hookの接続は実装時に検証する。
+- テスト: キャンセル、Callback失敗、期限切れ、通信障害、再ログイン後の固定遷移、公開トップページへの復帰。
+
+### SDK v4.27.0のソース確認: 固定Callback遷移
+
+- Auth0公式`auth0/nextjs-auth0`タグ`v4.27.0`では`signInReturnToPath`と`onCallback`を設定でき、Callback Hookは認証トランザクションに保存された`ctx.returnTo`を受け取る。Memoriaは元画面復帰を採用しないため、この値を認証成功後の遷移先として使用しない。
+- `Auth0Client`の`signInReturnToPath`は`/dashboard`に設定し、`onCallback`の成功時は固定`/dashboard`へRedirectする。SDKのOAuth Callback・セッションCookie保存処理はそのまま利用する。エラー時はエラー分類に応じて公開`/`または`/auth/error`へ遷移する。
+- SDK標準の`toSafeRedirect()`は同一Originの絶対URLも許可するが、Memoriaは任意の`returnTo`を採用しない。SDKログインEndpointへの直接アクセスも含め、固定遷移が迂回されないことを実装時に検証する。
+- LogoutはSDK標準`/auth/logout`を利用し、App Base URLの公開`/`へ戻す。Login／Callback／Logout Endpointは独自の画面保護判定から除外し、SDK Middleware／Proxyを通す。
+- Lockfileで解決されたSDKバージョン、Next.js 16との互換性、Callbackエラー時のUX、セッションCookie保持をIntegration Testで確認する。
+
+### 実装詳細案: Auth0 Middleware／Next.js 16 Proxyの接続
+
+最新`memoria-web/develop`では`src/middleware.ts`が先に`auth.getSession(request)`を呼び、保護対象のみ独自Redirectし、それ以外で`auth.middleware(request)`を呼ぶ。保護対象は`/dashboard`、`/images`、`/settings`のPrefix判定。以下は実装変更前の設計案とする。
+
+- **SDK優先**: 認証Endpoint（標準Login／Callback／Logoutのほか、SDKが有効化するProfile／Access Token／Back-Channel Logout等）は独自の画面保護判定より先にSDKへ渡す。Auth0 SDK v4.27.0の`handler()`はHTTP Methodと設定済みRouteでEndpointを振り分けるため、単純な`/auth/**`一括除外だけで完結させない。アプリ公開画面`/auth/error`はSDK Endpointと別に分類する。
+- **広いMatcher**: Next.js内部Asset・静的ファイル等をMatcherから適切に除外しつつ、通常画面、Auth0 Endpoint、必要なAPIへのSDK Middleware到達を維持する。画面の認証Redirect対象とSDK Middlewareの実行対象を混同しない。SDKが返すSession更新Cookieを、Locale Cookie付与や独自Redirectで失わないことをIntegration Testで確認する。
+- **画面分類**: 公開`/`と`/auth/error`は画面用ログインRedirectを行わない。APIは画面用RedirectせずEndpointで認証・認可する。その他の画面（未知Pathを含む）は原則保護し、未認証なら`/auth/login`へ。認証後は固定`/dashboard`へ遷移する。
+- **実行順序案**: ①SDK認証Endpointの処理を優先、②通常リクエストにSDK Middlewareを適用、③画面分類・Session確認と必要なログインRedirect、④SDKが返したResponseにLocale Cookieを付与して返却。実際のSDKレスポンスの扱い、Next.js Redirect／Cookieの結合、`getSession(request)`の実行順序はテストで確認し、Session更新Cookieが消える実装は採用しない。
+- **Proxy移行**: Next.js 16の`src/proxy.ts`への移行を第一候補とするが、SDK v4.27.0の実際のMiddleware互換性、Node.js Runtime、既存CIでの動作を検証してから確定する。`src/middleware.ts`と`src/proxy.ts`を同時運用しない。
+- **境界テスト**: `/`、`/auth/error`、Login／Callback／Logout、`/api/graphql`、`/_next/**`、実際の公開Asset、`/dashboard`、未知Path、Prefix衝突、Session有無、Session更新Cookie、Locale Cookie、Callback失敗、ログインループ、固定`/dashboard`遷移を対象とする。
+
+### 実装詳細案: 認証境界の実装順序とCookie検証
+
+- SDK v4.27.0の`AuthClient.handler()`は認証Endpoint以外のリクエストで`NextResponse.next()`を返し、Rolling Sessionが必要ならそのResponseへSession Cookieを設定する。Memoriaが別の`NextResponse.redirect()`を作ると、この更新Cookieを引き継げない可能性がある。
+- 実装時は、SDK Endpointを最優先で委譲し、通常画面はSDK Middlewareが返すResponseと独自認証判定のResponseの関係を明示する。独自Redirectが必要な場合は、SDKのCookie／Cache-Control等を落とさない安全な合成方法をIntegration Testで確認する。Cookie Headerの単純連結や認証Cookieの手動再生成は行わない。
+- 公開`/`は未認証なら公開画面、認証済みならServer Pageで`/dashboard`へRedirectする。`/auth/error`は未認証でも表示する。保護画面はProxyと認証済みLayoutの二段階でSessionを確認し、データ取得地点で追加確認する。
+- 認証EndpointのMethod違い、SDKが有効化した追加Endpoint、`/auth/error`との衝突、`/api/graphql`の非Redirect、`/_next/**`と静的Assetの到達性、Locale CookieとRolling Session Cookieの共存を実装テストで検証する。
+- Next.js 16の`proxy.ts`移行を実施する場合は、実際のLockfileに解決されたSDKバージョンを確認し、Node.js Runtime／Matcher／Buildと実機で検証する。検証前にMiddlewareとProxyのどちらかを推測で固定しない。
+
+### 実装前調査: Auth0 SDKとNext.js 16の認証境界
+
+- 現行`memoria-web/develop`の`package.json`は`@auth0/nextjs-auth0: ^4.27.0`、`next: ^16.3.7`。`Auth0Client`は`src/lib/auth.ts`で初期化し、`src/middleware.ts`から`auth.middleware(request)`を呼ぶ。現行のログイン／ログアウト導線は`/auth/login`、`/auth/logout`を使用する。
+- Auth0 SDK公式リポジトリのREADME（main参照）では、標準のLogin `/auth/login`、Callback `/auth/callback`、Logout `/auth/logout`を案内している。Auth0管理画面ではAllowed Callback URLsに`{APP_BASE_URL}/auth/callback`、Allowed Logout URLsにアプリのBase URLを登録する。公式READMEのmainは導入バージョンと完全一致する保証がないため、実装時にlockfileと実環境で再確認する。
+- Next.js 16では`proxy.ts`が推奨され、`middleware.ts`は後方互換のため動作するが非推奨とされている。現行`src/middleware.ts`を継続するか`src/proxy.ts`へ移行するかは、導入中のAuth0 SDKと既存CIで検証して確定する。
+- Auth0 SDKはRolling Session等のため広いMatcherを推奨している。Auth0認証Endpointに到達する前にMemoria独自の保護判定で遮断しない。API Route／静的Assetは画面保護判定と分離し、SDK Middlewareを通す範囲はSDK推奨Matcherと整合させる。
+- SDKの`signInReturnToPath`既定値は`/`。今回の`/`は認証済みなら初期画面へRedirectするため既定値でも成立するが、復帰先の責務を明確にする観点から暫定`/dashboard`の明示設定可否を実装時に検討する。
+- 保護画面からのログインでも元Path＋Queryを保持しない。Callback成功時は固定`/dashboard`へ遷移する。
+- SDK公式READMEはLoginリンクの強制Prefetchを避けるよう案内している。簡易トップページのログイン導線は通常の`<a>`、またはPrefetchを無効化したLinkを基本とする。
+- 現行`src/lib/middleware/route.ts`は`/dashboard`、`/images`、`/settings`のみを`startsWith`で判定し、`returnTo`にはPathnameのみを保持する。「画面は原則保護・公開URLをAllowlist」「Segment境界を厳密に判定」「元Path＋Queryは保持しない」へ改修する。
+## 6. 基盤テスト方針
+
+- 未認証での保護対象アクセス、認証済みでの通過、期限切れSession、認証Callback後の固定`/dashboard`遷移を検証する。
+- 保護対象パスの境界条件、外部からの`returnTo`指定による固定遷移の迂回防止をテストする。
+- Layoutの共通ProviderとServer／Client境界、SegmentのLoading・Error・Not Foundを対象にする。
+- MiddlewareとServer Layoutで認証判定が不整合にならないことをIntegration Testで確認する。
+- 実装時は`memoria-web`の既存Vitest・CI規約に従い、E2Eの範囲は既存テスト構成を確認して決める。
+
+## 基本方針と後続の確認事項
+
+1. **認証の二段階チェック**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
+2. **保護対象の管理方法**: 画面Routeは原則保護し、認証不要の公開URLをAllowlistで管理する。Auth0 Endpoint・API Route・静的Assetは別区分とする。具体的なPath、Matcher、Locale処理は実装前に現行コードとSDK仕様を確認して確定する。
+3. **認証後の遷移**: 通常ログイン、未認証直接アクセス、期限切れ、エラー後の再試行のすべてで`/dashboard`へ統一する。元画面・未保存の編集状態は復元しない。
+4. **共通Error／Loadingの配置**: Rootの`global-error.tsx`／`not-found.tsx`、認証済み領域の子Segment用`error.tsx`、必要なSegment単位の`loading.tsx`を基本とする。認証済みLayout自身の失敗は親境界・認証エラー処理で扱う。
+
+認証・保護対象・固定認証後遷移・Error／Loading、URL命名・階層・定義管理・正規化・動的Segment・操作URLの方針は上記に従う。Auth0 SDKの接続、公開Path／Matcher、各画面の表示仕様など、具体的な実装詳細は実装前または画面詳細設計で確認する。実装作業は別Issueで管理する。
+
+## 関連
+
+- [Webアーキテクチャ](./index)
+- [Frontend実装規約](./implementation-conventions)
+- [画面・操作フロー詳細設計 Issue #18](https://github.com/hazuki3417/memoria-design/issues/18)
