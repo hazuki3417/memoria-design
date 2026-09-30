@@ -123,14 +123,14 @@ Bulk Mutationで一部Mediaだけが成立しないことはMutation全体のGra
 - 非公開リソースへの閲覧不可と不存在は同じ`NOT_FOUND`として公開する。閲覧可能なリソースへの操作権限不足は`FORBIDDEN`とする。認証失敗を存在秘匿404へ変換しない。
 - ErrorHandlerの単体テストに加え、GraphQL経由で`errors[].extensions.code`、公開Message、HTTP Status、内部情報非露出を検証する。複数Field ErrorやBulk item resultの契約を混同しない。
 
-### レビュー案: 複数GraphQL Field ErrorのWeb表示
+### 合意済み: 複数GraphQL Field ErrorのWeb表示（2026-09-30）
 
 GraphQLは`data`と`errors`が同時に返る場合があるため、Operation全体のエラーを1件に潰して判断しない。
 
 - 認証失敗を示す公開コードが含まれる場合は、対象Operationのデータを利用せず、認証状態を再確認して再ログインへ誘導する。
 - `NOT_FOUND`と`FORBIDDEN`が混在する場合、Operation全体の404／403へ単純変換せず、各`error.path`と画面に必須なFieldを照合する。秘匿対象の存在が推測できる部分データ・他のError文面を表示しない。
 - 一覧等の独立Fieldで安全な部分データが返った場合の表示可否は、Operation単位で定義する。Mutationの認証・認可失敗を部分成功として扱わず、既存のBulk item resultはPayload契約に従う。
-- **要合意**: 同一Operationで認証エラー以外の複数Errorが発生した際、必須Field失敗なら画面全体を失敗表示とし、独立Field失敗なら部分表示を許可する方針。GraphQL Error PathとNullable設計、Client Cacheの挙動を実装前に検証する。
+- **合意済み**: 同一Operationで認証エラー以外の複数Errorが発生した際、画面の必須Fieldが失敗した場合は画面全体をエラー表示とする。独立した補助Fieldのみが失敗した場合は、権限上安全な部分データの表示を許可する。認証失敗時は部分データを表示せず認証状態を再確認する。GraphQL Error PathとNullable設計、Client Cacheの挙動は実装前に検証する。
 
 ## Relay Connection
 
