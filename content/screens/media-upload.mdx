@@ -24,7 +24,9 @@ Personal / Communityで共通するUpload Interactionを使用し、違いは初
 
 Initial ReleaseではMedia UploadをMedia Browserとは独立した専用画面として提供します。Personal / CommunityのMedia画面から現在contextを維持して遷移します。既存`memoria-web`の`/images/new`と`ImageDropForm`・`ImageInputForm`は参考実装として扱い、既存route名やUpload API・Task管理の振る舞いをそのまま新仕様とはしません。
 
-専用画面ではfile追加、選択fileごとのpreview・validation、Upload開始、個別進捗・結果、失敗fileの再試行を一つの作業の中で確認できるようにします。初回リリースの具体的なroute、画面内の配置・responsive presentation、Upload後の遷移は後続のUI具体化で決定します。
+専用画面ではfile追加、選択fileごとのpreview・validation、Upload開始、個別進捗・結果、失敗fileの再試行を一つの作業の中で確認できるようにします。**単一画面・状態変化型**を採用し、準備画面と結果画面を別route・別stepとして分割しません。初期状態ではfile追加を主操作とし、file追加後にpreviewと事前Validationを提示します。Upload開始後は同じ画面で全体概要とfile単位の状態を更新し、成功済みMediaを維持しながら失敗fileのみ再試行できます。Media登録後の非同期ProcessingはUpload requestの成功と区別し、登録済みMediaへの導線を提供します。Group / Tag分類はUpload成立の必須入力としません。
+
+画面の基本的な情報順序はfile追加、選択fileのpreview・事前確認、Upload実行、全体進捗・個別結果とします。具体的なroute、画像一覧のpresentation、画面内の寸法・responsive対応、Upload中の画面離脱・復帰、Upload後の遷移は後続の詳細設計で決定します。既存Web componentの再利用は設計上の制約としません。
 
 ## 開始点 / Scope
 
