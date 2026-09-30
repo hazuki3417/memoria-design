@@ -160,6 +160,28 @@
 - 共有可能な状態はURLで扱う既存方針を維持する。ただし具体的なKey、Default値、戻る操作の仕様は画面詳細設計に委ねる。
 - Redirect先の検証やURL生成を共通化する際は、画面固有のRoute一覧をこの基盤設計に固定しない。
 
+### 実装設計案: 暫定トップページと認証境界の配置（レビュー待ち）
+
+現行`memoria-web/develop`の`src/app/layout.tsx`は全体Provider、`src/app/(authenticated)/layout.tsx`はSession・GetMe・AppShellを担当する。現行`src/app/page.tsx`は確認時点で存在しない。`src/middleware.ts`は保護Pathを限定列挙し、`returnTo`にはPathnameのみを渡している。以下は変更案であり、実装済みではない。
+
+```text
+src/app/
+  layout.tsx                         # 全体共通。認証必須のGetMeを置かない
+  page.tsx                           # /: ServerでSession判定
+  (authenticated)/
+    layout.tsx                       # Session確認・GetMe・AppShell
+    dashboard/page.tsx               # /dashboard: 暫定初期画面
+  global-error.tsx                   # Root Layout失敗時の最終Fallback
+  not-found.tsx                      # 共通404
+```
+
+- `src/app/page.tsx`はServer Componentとし、Sessionがあれば認証済み初期画面（暫定`/dashboard`）へServer Redirect、なければ簡易トップページを描画する。公開トップページに認証済みAppShell・GetMeを要求しない。
+- `(authenticated)/layout.tsx`は既存のSession確認・GetMe・AppShellを維持し、Sessionなしの`return null`を、元のPath・Queryを安全に保持したログインRedirectへ変更する。Layoutだけに認証を依存させず、保護データの取得地点でも確認する。
+- Middlewareの画面Routeは原則保護、公開ページ`/`を明示的Allowlistとする。Auth0 SDKのEndpoint、API Route、静的Assetは別区分にし、SDKの実際のPath・Matcherと照合する。公開`/`ではMiddlewareによるログイン強制をせず、Page側がSessionで表示を振り分ける。
+- ログインボタンはSDKのログイン導線に接続する。`returnTo`がないログイン成功時は暫定`/dashboard`、保護画面からのログイン時は検証済みの元Path・Queryへ戻す。Logout完了後は公開`/`へ戻す。SDKのCallback／Logout設定と実際のEndpointは実装前に確認する。
+- 未認証の保護画面直接アクセスを公開`/`へ転送しない。Session切れと不正な`returnTo`のケースも既存の認証復帰規約に従う。
+- 確認対象: `/`の認証有無、`/dashboard`の認証有無、Path＋Query復帰、ログアウト後の`/`、公開／保護の境界、認証ループ防止。画面デザインは別途レビューする。
+
 ## 6. 基盤テスト方針
 
 - 未認証での保護対象アクセス、認証済みでの通過、期限切れSession、認証Callback後の安全な復帰先を検証する。
