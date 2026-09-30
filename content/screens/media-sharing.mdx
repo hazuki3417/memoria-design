@@ -49,7 +49,7 @@ flowchart LR
 
 Personal MediaまたはそのMedia Detailから共有を開始した場合、共有するMediaを固定し、Userが現在参加しているCommunityから共有先を選択します。
 
-既に対象Mediaを共有しているCommunityは、新しい共有先として重複選択させません。既存の共有状態は確認できるようにします。
+単一Mediaの場合、既に共有済みのCommunityは新たな共有先として選択できない状態とし、既存の共有状態を確認できるようにします。複数Mediaの場合はCommunityを選択したうえでMediaごとの共有済み状態を評価し、未共有Mediaが残る場合だけ共有を実行できます。
 
 1 Media単位の共有に加え、Initial ReleaseではPersonal Media Browserで明示選択した複数のUser管理Mediaを、1つの参加中Communityへ一括共有できます。共有先Communityは1回のActionにつき1つとし、Mediaごとの共有relationは独立して成立します。
 
@@ -124,7 +124,7 @@ Personal起点では選択済みMediaを維持し、共有先Communityを選択�
 
 共有実行中は二重送信を防ぎ、ダイアログ内で進行状態を伝えます。**全件成功時**は簡潔な成功Feedbackを表示してダイアログを閉じ、開始元contextを維持します。**部分成功・全件失敗時**はダイアログを維持し、成功件数・失敗対象・可能な範囲の失敗理由と次のActionを継続して表示します。成功済み対象は再送せず、再試行可能な未成立対象だけを再試行できます。結果不明のrequestはServer側の成立状態を確認せず成功・失敗と断定せず、無条件に再送しません。
 
-選択中のCancelは共有relationを作成せずダイアログを閉じます。成立済みの共有はCancelやダイアログを閉じる操作によって取り消しません。失敗時に選択内容を可能な限り維持し、修正・再試行できるようにします。詳細なDialog寸法、検索・絞り込み、Compact presentation、Feedbackの具体的なComponentは後続のUI具体化で決定します。
+選択中のCancelは共有relationを作成せずダイアログを閉じます。成立済みの共有はCancelやダイアログを閉じる操作によって取り消しません。失敗時に選択内容を可能な限り維持し、修正・再試行できるようにします。具体的なpixel寸法・breakpoint、検索・絞り込みのComponent表現、Feedbackの具体的なComponentは後続のUI具体化で決定します。合意済みの検索条件・Compact presentation・結果表示のBehaviorは以下に従います。
 
 ### Personal起点の共有先Community選択
 
@@ -140,7 +140,7 @@ Community起点の共有ダイアログでは、Personal Mediaを新しい順に
 
 一覧はRelay Connectionによる無限ローディングとし、ページ番号によるPaginationは提供しません。検索・絞り込み変更時は該当条件のConnectionを取得し直し、既に明示選択したMediaは表示範囲外になっても保持します。検索結果と選択済みMediaは別々に管理し、検索・絞り込みの変更や追加読み込みを跨いで選択を維持します。ダイアログ内で開閉できる選択済み一覧から、検索結果に現在表示されていないMediaも確認・個別解除できるようにします。選択件数と共有Actionは大量選択時も見失わない位置に提示し、未取得Mediaを暗黙に選択しません。
 
-追加取得中・終端・追加取得失敗を区別し、失敗時には表示済みMediaと選択を保持して再試行できます。大量のMediaでもダイアログ内の選択・共有確定Actionに到達できるようにし、keyboard・支援技術でも追加読み込みを利用できるようにします。具体的なfetch size、cursor、検索条件、Compact presentationは後続のUI / GraphQL詳細設計で決定します。
+追加取得中・終端・追加取得失敗を区別し、失敗時には表示済みMediaと選択を保持して再試行できます。大量のMediaでもダイアログ内の選択・共有確定Actionに到達できるようにし、keyboard・支援技術でも追加読み込みを利用できるようにします。具体的なfetch size、cursor、検索条件のGraphQL引数・検索実装、Componentの詳細は後続のUI / GraphQL詳細設計で決定します。
 
 ### 共有処理中・結果表示・復旧操作
 
@@ -170,7 +170,7 @@ Media Sharingは独立したApplication contextを作りません。
 
 Personal起点ではPersonal context、Community起点では現在Community contextを維持します。Initial Releaseでは両起点とも**共通の共有ダイアログ**を採用し、起点に応じて既知の対象を固定します。Personal起点では選択済みMediaを固定して共有先Communityを選択し、Community起点では現在Communityを固定してPersonal Mediaを選択します。複数Mediaの明示選択にも同じダイアログで対応し、共有対象と共有先を確認してから実行します。入口ごとに専用画面へ遷移させず、共有成功後も元のcontextを維持します。
 
-共有ダイアログの共通した見出し・選択・確認・結果Feedbackを基本とし、選択対象の違いだけを起点に応じて変えます。Community起点のPersonal Media選択では、件数が多くても対象を探せるよう検索・絞り込みと複数選択への到達性を確保します。具体的なダイアログ寸法、Compact表示、選択済み対象の提示、検索・絞り込みの詳細は後続のUI設計で決定します。
+共有ダイアログの共通した見出し・選択・確認・結果Feedbackを基本とし、選択対象の違いだけを起点に応じて変えます。Community起点のPersonal Media選択では、件数が多くても対象を探せるよう検索・絞り込みと複数選択への到達性を確保します。具体的なダイアログ寸法・breakpointやComponentの詳細は後続のUI設計で決定します。合意済みのCompact表示、選択済み対象の確認、検索・絞り込みのBehaviorは上記の各節に従います。
 
 共有成功後に共有先Communityへ自動遷移することは要求しません。
 
