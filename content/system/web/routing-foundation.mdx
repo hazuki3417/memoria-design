@@ -45,6 +45,15 @@
 - URL保護判定に文字列の単純な前方一致を用いる場合、`/images`と`/images-extra`などの境界を区別する。Middlewareの保護対象一覧とRoute Groupの保護対象が乖離しない構成を検討する。
 - APIが最終的な業務認可を保証する。認証済みであっても個別リソースへのアクセスが許可されるとはみなさない。
 
+### 合意済み: 保護対象は原則保護・公開URLを例外登録
+
+- Middlewareが扱う画面Routeは原則認証必須とし、認証不要な画面Routeだけを明示的なAllowlistで管理する。将来追加する画面が未登録のまま公開されない構成とする。
+- Auth0のLogin／Callback／Logout等の認証用Endpointは、Auth0 SDKが要求するMiddleware処理を妨げないよう別区分で扱う。実際のPathとMatcherは現行SDK設定・Route構成を確認して確定する。
+- GraphQLプロキシ等のAPI Route、Next.js内部Asset、静的ファイルは画面RouteのAllowlistとは別に分類する。API Routeを画面用のログインRedirectに巻き込まず、各Endpointの認証・認可とエラー応答を独立して定義する。
+- Path判定はSegment境界を考慮した厳密な一致または明示的な子Path一致とし、単純な`startsWith`による意図しない一致を避ける。Route Group名はURLに現れないため、Middlewareの分類条件に使わない。
+- 未知の画面Pathに対しても認証確認を行うが、存在しないRouteの最終的な404処理はNext.jsに委ねる。認証不要な404表示の要否は公開ページ設計時に再検討する。
+- 具体的な公開Path一覧、Auth0 Endpoint、Matcherの除外条件、Locale付きPathの扱いは実装前の調査事項とし、現時点で未確認のPathを決め打ちしない。
+
 ## 3. エラーとLoading
 
 - `error.tsx`は対象Segment配下の回復可能なRender Errorを扱い、再試行と利用可能な共通UIを提供する。
@@ -70,7 +79,7 @@
 ## レビューで合意が必要な論点
 
 1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
-2. **保護対象の管理方法**: 現状は`/dashboard`、`/images`、`/settings`の前方一致であり、追加漏れと部分一致の懸念がある。認証不要の公開ページ／Auth0 Callback／静的資産／API Routeを区別し、保護対象を列挙する方式と、例外だけを列挙して原則保護する方式を比較する。Route GroupはURLに現れないため、Middlewareから自動判定できる前提にしない。Next.jsの実行環境制約も確認する。
+2. **保護対象の管理方法（基本方針は合意済み）**: 画面Routeは原則保護し、認証不要の公開URLをAllowlistで管理する。Auth0 Endpoint・API Route・静的Assetは別区分とする。具体的なPath、Matcher、Locale処理は実装前に現行コードとSDK仕様を確認して確定する。
 3. **認証復帰の仕様**: `returnTo`にQueryを保持するか、復帰先をどのタイミングで検証するか。
 4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
 
