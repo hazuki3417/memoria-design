@@ -166,7 +166,9 @@ Media自体を取得できない状態と、補助情報や個別Actionの一時
 
 Media Browser / Detailは独立したApplication contextを作りません。Personal Mediaまたは現在Community Mediaのcontextを維持します。
 
-Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一覧contextへ戻れるようにします。
+Initial ReleaseではMedia Detailをダイアログ方式で表示し、表示方式を変更するUser設定は提供しません。後続リリースではダイアログ方式と右ペイン方式をUser設定で切り替え可能にする方針とし、Personal / Communityで共通の表示設定を適用します。右ペイン方式ではMedia画像を上、詳細情報・Groups・Tags・操作を下に配置します。表示領域が不足する場合は設定にかかわらず適切な表示方式へ適応します。具体的な設定保存方式やbreakpointは後続設計で決定します。
+
+Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一覧context（検索・絞り込み・スクロール位置を含む）へ戻れるようにします。Groupsから開いた場合は選択中Groupの一覧contextを維持します。
 
 Detail内で前後Mediaへ移動してもApplication contextは変わりません。
 
@@ -178,7 +180,7 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - UploaderとCustodianを同一視しません。
 - UI上のAction availabilityをAPI側認可の代替にしません。
 - Browser / Detailの基本InteractionはPersonal / Communityで共通化し、scopeと認可差分を各Screen Specificationで定義します。
-- Grid / List、thumbnail size、modal / route等の具体的presentationをProduct仕様として固定しません。
+- Grid / List、thumbnail size等の具体的presentationは後続のUI具体化で決定します。Media DetailはInitial Releaseではダイアログ方式とし、後続で右ペイン方式と表示設定を追加する方針です。
 - Media Detailの1 Media分類に加え、Browserで明示選択した複数Mediaへ既存Group / Tagを一括適用できます。query結果全件を暗黙対象にしません。
 - Group作成とMedia分類を一つの必須操作として結合しません。
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
@@ -188,6 +190,6 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 
 Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在利用可能な主要Actionへ到達するCapabilityを維持します。
 
-Wideでは一覧とDetailまたはMediaと情報を同時に提示できますが必須ではありません。CompactではDetailを段階的な画面として提示する等、表示領域に合わせて構成を変更できます。
+Initial Releaseの基本表示はダイアログ方式とし、Compactでは画面領域に合わせたダイアログの表示方法を採用します。後続の右ペイン方式はWide等の十分な表示領域を前提とし、狭い画面では表示設定より利用可能な領域と操作性を優先します。
 
 Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。
