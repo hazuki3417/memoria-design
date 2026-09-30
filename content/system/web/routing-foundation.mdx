@@ -231,7 +231,15 @@
 
 - Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communityId]/dashboard`とする。`communityId`はAPI契約に従う安定した識別子とし、表示名に依存しない。
 - Context Switcherによる切り替えは対象ContextのDashboardへ遷移する。Community作成成功後も新規CommunityのDashboardへ進む。
-- Membership喪失時は当該Communityの保護データを表示せず、アクセス不可の案内画面を経由してPersonal Dashboardへ戻る導線を提供する。案内画面のPathと、APIが存在秘匿のため返す`NOT_FOUND`との区別は画面詳細設計で決定する。
+- Membership喪失時は当該Communityの保護データを表示せず、他のエラーと共通のエラー画面を表示する。Membership喪失・削除・存在秘匿などの原因を画面上で断定せず、Personal Dashboardへ戻る導線を提供する。APIが存在秘匿のため返す`NOT_FOUND`は内部的に区別し、画面上では同じ共通表示を用いる。
+
+### 共通エラー表示の統一
+
+- 認証済み領域では、存在しないURL・`NOT_FOUND`・`FORBIDDEN`・Membership喪失・回復不能な画面取得失敗について、発生元のページや原因別の専用画面を設けず、同一の共通エラー表示を使用する。具体的な表示文言は画面設計とVisual Reviewで確定するが、内部エラー、対象Communityの識別情報、閲覧可否や喪失理由は表示しない。
+- 画面の基本操作はPersonal Dashboard（`/dashboard`）へ戻る導線とする。再試行可能な通信障害等の内部判定と再試行制御は維持するが、原因別の詳細説明は表示しない。
+- APIエラーコードとHTTP応答の意味は変換・統合しない。`NOT_FOUND`の存在秘匿、`FORBIDDEN`の権限外操作、監視・ログ・テスト上の区別は維持し、利用者向けの表示だけを共通化する。
+- Sessionがない・失効した場合は共通エラー表示に留めず、既定の認証フローへ誘導する。Auth0 Callback等の公開認証エラー画面は認証境界の既存方針に従う。
+- Next.jsの`not-found.tsx`・`error.tsx`等は技術的な境界として必要に応じて維持してよいが、同一の表示コンポーネントと文言を共有し、ページ別・原因別の独自デザインを作らない。
 
 ## 5. 遷移と状態の共通規約
 
