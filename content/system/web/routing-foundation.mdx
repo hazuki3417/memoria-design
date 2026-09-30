@@ -137,6 +137,23 @@
 - **次の確認先**: Community／Mediaの認可仕様、APIのGraphQL SchemaとErrorHandler、既存のエラーテスト。Domainの情報秘匿要件と整合する共通エラー契約を別途合意してからAPI／Webの実装へ進む。
 - 参照: [API ErrorHandler](https://github.com/hazuki3417/memoria-api/blob/develop/graph/handler.go)、[API共通エラーコード](https://github.com/hazuki3417/memoria-api/blob/develop/internal/errors/common.go)。
 
+### Domain調査結果: Community／Mediaの情報秘匿境界（2026-09-30）
+
+[Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)を確認した。Community名・参加者・Group・Tag・Mediaは所属と操作権限に基づく非公開情報であり、Community外Userには内部情報を返さない。User管理MediaのOriginalはCustodianのみ、Community管理MediaのOriginalはAdministratorと参加中のUploader本人のみが取得できる。退会・除外後は新しい閲覧許可を発行しない。
+
+| 操作・主体 | 既存Domain要件 | エラー契約への設計上の含意 |
+| --- | --- | --- |
+| Community外UserによるCommunity詳細・参加者・Group・Tag参照 | Community内部情報を公開しない | 存在の有無を露出しない404相当の契約を候補とする |
+| 他人の非共有User管理Media・参加していないCommunityのMedia参照 | private by default。権限のないUserへMedia情報を返さない | 存在秘匿404相当を候補とする |
+| 参加中Memberによる、閲覧可能なMediaのOriginal取得 | Variant閲覧は可能だが、Original取得はCustodian／Administrator／対象Uploader等に限定 | 既に閲覧可能なMediaに対する操作拒否として403相当を候補とする |
+| MemberによるCommunity管理操作 | 参加者はCommunityを閲覧できるが管理操作はAdministrator限定 | 既に閲覧可能なCommunityに対する操作拒否として403相当を候補とする |
+| 退会・除外後の過去URLからの取得 | 新しい閲覧許可・署名発行を禁止 | 現在のMembershipを再評価し、内部情報を返さない。具体的なエラーコードは要合意 |
+| 無効・期限切れの招待URL | Invitation acceptを拒否。有効な招待URLに限りCommunity名を表示 | 招待の存在・期限情報をどこまで表示するか、招待画面とAPIの契約で別途決定 |
+
+- **上表の403／404は調査から導いた設計候補であり、APIの実装済み契約でも確定したDomain仕様でもない。** 「閲覧できないリソースは存在秘匿」「閲覧できるリソースに対する許可されない操作は権限不足」という共通規則を採用するか、ユーザーとの合意後に各Domain・APIの正本へ反映する。
+- APIは対象存在確認と権限判定の順序・公開エラーを統一し、存在しないIDと閲覧権限のないIDで不要な情報差が生じないようにする。WebはAPIの公開結果だけを表示し、独自の存在確認をしない。
+- 参照: [Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)。
+
 ## 4. URL設計規約
 
 ### 合意済み: Path命名
