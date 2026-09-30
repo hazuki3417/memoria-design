@@ -54,7 +54,7 @@
 - 未知の画面Pathに対しても認証確認を行うが、存在しないRouteの最終的な404処理はNext.jsに委ねる。認証不要な404表示の要否は公開ページ設計時に再検討する。
 - 具体的な公開Path一覧、Auth0 Endpoint、Matcherの除外条件、Locale付きPathの扱いは実装前の調査事項とし、現時点で未確認のPathを決め打ちしない。
 
-### 認証復帰（returnTo）の設計案・レビュー待ち
+### 合意済み: 認証復帰（returnTo）の基本仕様
 
 - 未認証で保護画面へアクセスした場合、元のPathとQueryを相対URLとして保持する。Fragment（#以降）はHTTPリクエストに送信されないため、Server側の復帰保証対象にしない。
 - 認証復帰先はアプリ内の安全なPathのみ許可する。外部Origin、プロトコル相対URL（`//example.com`）、Backslash等を使った迂回、制御文字、不正なEncoding、認証用Endpointへの循環Redirectを拒否する。
@@ -65,6 +65,16 @@
 - Open Redirect防止、二重Encoding、Query保持、期限切れSession、Callbackのループ防止を自動テストする。
 
 ## 3. エラーとLoading
+
+### 現行構成に基づく配置案（レビュー待ち）
+
+- Root LayoutはHTML、Locale、Mantine等の共通Providerを構築している。Rootの`global-error.tsx`はこのLayout自体が失敗した場合の最終Fallbackとして配置し、必要な`html`／`body`を自前で描画する。通常のProviderが使えることを前提にしない。
+- Rootの`not-found.tsx`はURL不一致時の共通404を担当する。認証済み領域で共通Shellを維持する必要が明確になった場合は、その領域にも局所的な404境界を追加する。
+- 認証済み領域の`error.tsx`は当該Layoutの**子Segment**の描画失敗を扱う。認証済みLayout自身のSession取得や`GetMe`失敗は同階層の`error.tsx`では捕捉できないため、親階層の境界と認証エラーの明示的な処理を分けて設計する。
+- `loading.tsx`は実際に待機が必要なSegment単位で設け、全画面一律には配置しない。認証済みLayoutのSession取得／`GetMe`待機を子階層の`loading.tsx`だけで解決できる前提にしない。必要に応じて親側のSuspense境界とProvider依存を検証する。
+- `notFound()`／`redirect()`は通常の例外表示と区別し、意図した404・認証遷移として扱う。`error.tsx`では機密情報を表示せず、再試行可能なケースに限り`reset()`を提供する。
+
+
 
 - `error.tsx`は対象Segment配下の回復可能なRender Errorを扱い、再試行と利用可能な共通UIを提供する。
 - `global-error.tsx`はRoot Layout自体の失敗に備える最終的な境界とする。
@@ -90,7 +100,7 @@
 
 1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
 2. **保護対象の管理方法（基本方針は合意済み）**: 画面Routeは原則保護し、認証不要の公開URLをAllowlistで管理する。Auth0 Endpoint・API Route・静的Assetは別区分とする。具体的なPath、Matcher、Locale処理は実装前に現行コードとSDK仕様を確認して確定する。
-3. **認証復帰の仕様（設計案・レビュー待ち）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
+3. **認証復帰の仕様（基本方針は合意済み）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
 4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
 
 上記の論点は未決定です。合意後に本書を確定し、実装作業は別Issueで管理します。
