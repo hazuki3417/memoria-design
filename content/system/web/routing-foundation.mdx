@@ -192,6 +192,16 @@ src/app/
 - 未認証で保護画面へ直接アクセスした場合、公開トップページを経由せずAuth0ログインへ遷移させる。
 - 実装上の具体的なCallback Hook・Middleware／Proxy連携は導入済みAuth0 SDKのAPIを確認して決定する。
 
+### 合意済み: `returnTo`の検証と共通関数
+
+- `returnTo`はアプリ内の相対URL（Path＋Query）のみを許可する。正常例は`/images?page=2`、`/groups/abc/edit`。Fragmentの保持は保証しない。
+- 外部の絶対URL（例: `https://example.com`）、Protocol-relative URL（`//example.com`）、認証処理への循環（`/auth/login`、`/auth/callback`等）、バックスラッシュ、制御文字、不正なPercent Encoding、二重エンコードによる検証回避を拒否する。拒否・未指定の場合は共通Fallback先`/dashboard`へ遷移する。
+- `createLoginUrl()`: 元のPath＋Queryを保持し、検証済みの復帰先を含むSDKログインURLを生成する。
+- `validateReturnTo()`: 入力を安全なアプリ内相対URLとして検証し、有効な場合だけPath＋Queryを返す。URLのデコード回数を境界ごとに明確にし、二重デコードによる検証回避を防止する。
+- `resolvePostLoginUrl()`: 検証済み`returnTo`を優先し、無効または未指定の場合は共通Fallback先`/dashboard`を返す。
+- Middleware／ProxyのログインRedirect生成時と認証Callback後の最終Redirect直前に、同じ検証規則を適用する。SDKのCallback Hookまたは標準復帰処理との接続方法は、導入バージョンのAPIを確認して確定する。独自OAuth Callbackを一から実装しない。
+- テストでは上記の許可／拒否例に加え、Path＋Query保持、URLの一重・二重Encoding、認証ループ、空文字、Fallbackを確認する。
+
 ### 実装前調査: Auth0 SDKとNext.js 16の認証境界（2026-09-30）
 
 - 現行`memoria-web/develop`の`package.json`は`@auth0/nextjs-auth0: ^4.27.0`、`next: ^16.3.7`。`Auth0Client`は`src/lib/auth.ts`で初期化し、`src/middleware.ts`から`auth.middleware(request)`を呼ぶ。現行のログイン／ログアウト導線は`/auth/login`、`/auth/logout`を使用する。
