@@ -109,7 +109,7 @@ Transport / Application errorは `errors[].extensions.code` をClientとの分�
 
 **閲覧可否に基づく公開エラー（合意済み）**: 存在しない対象と、現在主体に閲覧権限のない非公開対象は、どちらも`NOT_FOUND`とし、存在の違いを公開しない。現在主体が閲覧可能な対象に対する管理・Original download等の権限外操作は`FORBIDDEN`とする。認証主体を確定できない場合は`UNAUTHENTICATED`を優先する。認可は操作時点で再評価し、Webは追加の存在確認やコードの独自変換を行わない。
 
-**GraphQL Transport**: 上記は`errors[].extensions.code`の分類契約であり、GraphQL OperationのHTTP Statusを各コードの数値（403／404等）と同一にする契約ではない。GraphQL実行後のApplication Errorと、HTTP層で処理が拒否されるTransport Errorを区別する。HTTP Status、GraphQL response body、複数Field Errorの表示優先順位はAPI／Web実装契約の検証項目とする。
+**GraphQL Transport**: 上記は`errors[].extensions.code`の分類契約であり、GraphQL OperationのHTTP Statusを各コードの数値（403／404等）と同一にする契約ではない。GraphQL実行後のApplication Errorと、HTTP層で処理が拒否されるTransport Errorを区別する。HTTP StatusとGraphQL response bodyはAPI実装契約の検証項目とする。複数Field Errorの共通表示方針は後述の合意済み節に従い、画面ごとの必須／補助Field分類は画面詳細設計で定義する。
 
 field単位で修正可能なvalidation detailはGraphQL errorの `extensions` に安全なfield識別子を含められますが、DB constraint名や内部実装情報は公開しません。
 
