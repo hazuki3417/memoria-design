@@ -227,19 +227,25 @@
 - 削除その他の副作用を伴う処理をGETによる画面アクセスだけで実行しない。Server ActionやAPI等の変更用インターフェースで実施し、認証・認可と必要な入力検証を行う。
 - 具体的な業務操作のURL・操作後の遷移・確認UIの見た目は各画面の詳細設計で確定する。
 
+### Context別Dashboardの業務URL
+
+- Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communityId]/dashboard`とする。`communityId`はAPI契約に従う安定した識別子とし、表示名に依存しない。
+- Context Switcherによる切り替えは対象ContextのDashboardへ遷移する。Community作成成功後も新規CommunityのDashboardへ進む。
+- Membership喪失時は当該Communityの保護データを表示せず、アクセス不可の案内画面を経由してPersonal Dashboardへ戻る導線を提供する。案内画面のPathと、APIが存在秘匿のため返す`NOT_FOUND`との区別は画面詳細設計で決定する。
+
 ## 5. 遷移と状態の共通規約
 
 ### マーケティングサイトとサービスの入口
 
 - マーケティングサイトとサービス本体は役割を分離する。将来のマーケティングサイトは製品紹介・料金案内等の静的コンテンツを中心とし、非公開S3バケットとCloudFrontによる公開を想定する。分離の実施時期、ドメイン、リポジトリ構成は未決定とする。
-- サービス側の`/`は入口・Redirect専用とし、ダッシュボードやメディア一覧など実際の画面には`/dashboard`等の固有URLを割り当てる。初期画面の暫定候補は現行`/dashboard`で、正式な遷移先は画面詳細設計で決定する。
+- サービス側の`/`は入口・Redirect専用とし、ダッシュボードやメディア一覧など実際の画面には`/dashboard`等の固有URLを割り当てる。認証後の固定遷移先`/dashboard`はPersonal Dashboardとする。Community Dashboardは`/communities/[communityId]/dashboard`とする。
 - **暫定構成**: `memoria-web`内の`/`に簡易トップページを設ける。未認証ユーザーにはこのページを表示し、認証済みユーザーは認証済み初期画面へRedirectする。トップページはサービス名・簡単な紹介・ログイン導線を中心とし、マーケティングサイト専用の別リポジトリ・別ドメインは現時点で設けない。
 - **将来の分離後**: サービス側の`/`は入口・Redirect専用とし、未認証ユーザーは独立したマーケティングサイトへ案内する。具体的なドメイン・Redirect方式・移行時期は分離時に決める。
 - 保護画面への直接アクセスはマーケティングサイトを経由させず、Auth0ログインへ誘導し、認証成功後は`/dashboard`へ遷移する。
 - ログアウト時はAuth0 SDKのログアウト処理でセッションを終了し、完了後はマーケティングサイトの公開トップページへ遷移する。具体的なSDKのLogout URL・Return URLは実装前に確認する。
 - 簡易トップページの見た目と将来の製品紹介・有料プラン等は別途画面設計で確定する。
 - **簡易トップページの最小機能**: サービス名、短い紹介、Auth0 Universal Loginにつながるログインボタンを表示する。利用規約・プライバシーポリシーへのリンクは必要に応じて設ける。料金表、詳細な製品紹介、お知らせ、問い合わせフォームは現時点の対象外とする。見た目は後続の画面設計で決定する。
-- **暫定構成での認証遷移**: 未認証の`/`アクセスでは簡易トップページを表示する。認証済みの`/`アクセスではサーバー側でSessionを確認して認証済み初期画面（当面`/dashboard`）へRedirectし、トップページの一瞬の表示を避ける。ログインボタンはAuth0 Universal Loginへ接続し、Memoria側にパスワード入力フォームを設けない。
+- **暫定構成での認証遷移**: 未認証の`/`アクセスでは簡易トップページを表示する。認証済みの`/`アクセスではサーバー側でSessionを確認してPersonal Dashboard（`/dashboard`）へRedirectし、トップページの一瞬の表示を避ける。ログインボタンはAuth0 Universal Loginへ接続し、Memoria側にパスワード入力フォームを設けない。
 - **ログイン成功時**: 元のアクセス先に関係なく`/dashboard`へ遷移する。保護画面への未認証の直接アクセスでは、マーケティングページを経由せずAuth0ログインへ誘導する。
 - **暫定構成でのログアウト**: Auth0 SDKによるログアウト完了後、同じ`memoria-web`の公開トップページ`/`へ戻す。
 - マーケティングサイトは通常サービスのSessionを直接参照できないため、認証状態に応じた振り分けはサービス側で担うことを基本とする。
@@ -266,7 +272,7 @@ src/app/
   page.tsx                           # /: ServerでSession判定
   (authenticated)/
     layout.tsx                       # Session確認・GetMe・AppShell
-    dashboard/page.tsx               # /dashboard: 暫定初期画面
+    dashboard/page.tsx               # /dashboard: Personal Dashboard
   global-error.tsx                   # Root Layout失敗時の最終Fallback
   not-found.tsx                      # 共通404
 ```
@@ -274,13 +280,13 @@ src/app/
 - `src/app/page.tsx`はServer Componentとし、SessionがあればPersonal Dashboard（`/dashboard`）へServer Redirect、なければ簡易トップページを描画する。公開トップページに認証済みAppShell・GetMeを要求しない。
 - `(authenticated)/layout.tsx`は既存のSession確認・GetMe・AppShellを維持し、Sessionなしの`return null`を、元URLを保持しないSDKログインRedirectへ変更する。Layoutだけに認証を依存させず、保護データの取得地点でも確認する。
 - Middlewareの画面Routeは原則保護、公開ページ`/`を明示的Allowlistとする。Auth0 SDKのEndpoint、API Route、静的Assetは別区分にし、SDKの実際のPath・Matcherと照合する。公開`/`ではMiddlewareによるログイン強制をせず、Page側がSessionで表示を振り分ける。
-- ログインボタンはSDKのログイン導線に接続する。すべてのログイン成功後は暫定`/dashboard`へ遷移する。Logout完了後は公開`/`へ戻す。SDKのCallback／Logout設定と実際のEndpointは実装前に確認する。
+- ログインボタンはSDKのログイン導線に接続する。すべてのログイン成功後はPersonal Dashboardの`/dashboard`へ遷移する。Logout完了後は公開`/`へ戻す。SDKのCallback／Logout設定と実際のEndpointは実装前に確認する。
 - 未認証の保護画面直接アクセスを公開`/`へ転送しない。Session切れ後も元画面へ戻さず、再ログイン成功後は`/dashboard`へ遷移する。
 - 確認対象: `/`の認証有無、`/dashboard`の認証有無、固定`/dashboard`遷移、ログアウト後の`/`、公開／保護の境界、認証ループ防止。画面デザインは別途レビューする。
 
 ### 固定の認証後遷移先
 
-- 認証成功後は元のPath・Queryを保持せず、常に暫定`/dashboard`へ遷移する。正式な初期画面が画面詳細設計で確定したら固定の遷移先を変更する。
+- 認証成功後は元のPath・Queryを保持せず、常にPersonal Dashboardの`/dashboard`へ遷移する。
 - Memoria独自の`createLoginUrl()`、`validateReturnTo()`、`resolvePostLoginUrl()`は実装しない。SDKの認証処理・セッション管理を利用し、固定Redirectと認証ループ防止だけを実装する。
 - 外部からの`returnTo`指定があっても固定遷移先を上書きさせない。Auth0 SDK v4.27.0の`onCallback`を使用する場合は成功時に`/dashboard`へRedirectする。SDKの標準ログインEndpointに対する入口制御は実装時に検証する。
 
@@ -327,7 +333,7 @@ src/app/
 - Auth0 SDK公式リポジトリのREADME（main参照）では、標準のLogin `/auth/login`、Callback `/auth/callback`、Logout `/auth/logout`を案内している。Auth0管理画面ではAllowed Callback URLsに`{APP_BASE_URL}/auth/callback`、Allowed Logout URLsにアプリのBase URLを登録する。公式READMEのmainは導入バージョンと完全一致する保証がないため、実装時にlockfileと実環境で再確認する。
 - Next.js 16では`proxy.ts`が推奨され、`middleware.ts`は後方互換のため動作するが非推奨とされている。現行`src/middleware.ts`を継続するか`src/proxy.ts`へ移行するかは、導入中のAuth0 SDKと既存CIで検証して確定する。
 - Auth0 SDKはRolling Session等のため広いMatcherを推奨している。Auth0認証Endpointに到達する前にMemoria独自の保護判定で遮断しない。API Route／静的Assetは画面保護判定と分離し、SDK Middlewareを通す範囲はSDK推奨Matcherと整合させる。
-- SDKの`signInReturnToPath`既定値は`/`。今回の`/`は認証済みなら初期画面へRedirectするため既定値でも成立するが、復帰先の責務を明確にする観点から暫定`/dashboard`の明示設定可否を実装時に検討する。
+- SDKの`signInReturnToPath`既定値は`/`。今回の`/`は認証済みなら初期画面へRedirectするため既定値でも成立するが、復帰先の責務を明確にする観点からPersonal Dashboardの`/dashboard`の明示設定可否を実装時に検討する。
 - 保護画面からのログインでも元Path＋Queryを保持しない。Callback成功時は固定`/dashboard`へ遷移する。
 - SDK公式READMEはLoginリンクの強制Prefetchを避けるよう案内している。簡易トップページのログイン導線は通常の`<a>`、またはPrefetchを無効化したLinkを基本とする。
 - 現行`src/lib/middleware/route.ts`は`/dashboard`、`/images`、`/settings`のみを`startsWith`で判定し、`returnTo`にはPathnameのみを保持する。「画面は原則保護・公開URLをAllowlist」「Segment境界を厳密に判定」「元Path＋Queryは保持しない」へ改修する。
