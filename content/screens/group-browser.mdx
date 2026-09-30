@@ -140,7 +140,7 @@ Personalから開いた場合はPersonal Groupだけ、Communityから開いた�
 
 Group間relationを辿って別Groupを選択する場合も同じscopeを維持します。
 
-Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで扱い、Groupごとの専用詳細URLへの遷移を主要導線にしません。選択中GroupはURLのquery parameter等で復元・共有できるようにします。具体的なparameter名、split view等のpresentationはルーティング詳細設計・Visual Reviewで決定します。Compact / Medium / WideのいずれでもGroup選択からMediaへの到達を優先します。
+Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで扱い、Groupごとの専用詳細URLへの遷移を主要導線にしません。Personalの基本URLは`/groups`、Communityの基本URLは`/communities/[communityId]/groups`とします。選択中Groupは両Contextとも`groupId` query parameterで表現します（例: `/groups?groupId=abc`、`/communities/[communityId]/groups?groupId=abc`）。`groupId`には対象scope内の安定したGroup識別子を使用し、Group名やDAG上のpathを使用しません。URLの直接アクセス、reload、browser historyから選択状態を復元できるようにします。`groupId`がない場合はGroup一覧の未選択状態とします。split view等のpresentationはルーティング詳細設計・Visual Reviewで決定します。Compact / Medium / WideのいずれでもGroup選択からMediaへの到達を優先します。
 
 ## 制約
 
