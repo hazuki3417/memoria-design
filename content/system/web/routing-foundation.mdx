@@ -224,6 +224,17 @@ src/app/
 - LogoutはSDK標準`/auth/logout`を利用し、App Base URLの公開`/`へ戻す。Login／Callback／Logout Endpointは独自の画面保護判定から除外し、SDK Middleware／Proxyを通す。
 - Lockfileで解決されたSDKバージョン、Next.js 16との互換性、Callbackエラー時のUX、セッションCookie保持をIntegration Testで確認する。
 
+### 実装詳細案: Auth0 Middleware／Next.js 16 Proxyの接続（2026-09-30）
+
+最新`memoria-web/develop`では`src/middleware.ts`が先に`auth.getSession(request)`を呼び、保護対象のみ独自Redirectし、それ以外で`auth.middleware(request)`を呼ぶ。保護対象は`/dashboard`、`/images`、`/settings`のPrefix判定。以下は実装変更前の設計案とする。
+
+- **SDK優先**: 認証Endpoint（標準Login／Callback／Logoutのほか、SDKが有効化するProfile／Access Token／Back-Channel Logout等）は独自の画面保護判定より先にSDKへ渡す。Auth0 SDK v4.27.0の`handler()`はHTTP Methodと設定済みRouteでEndpointを振り分けるため、単純な`/auth/**`一括除外だけで完結させない。アプリ公開画面`/auth/error`はSDK Endpointと別に分類する。
+- **広いMatcher**: Next.js内部Asset・静的ファイル等をMatcherから適切に除外しつつ、通常画面、Auth0 Endpoint、必要なAPIへのSDK Middleware到達を維持する。画面の認証Redirect対象とSDK Middlewareの実行対象を混同しない。SDKが返すSession更新Cookieを、Locale Cookie付与や独自Redirectで失わないことをIntegration Testで確認する。
+- **画面分類**: 公開`/`と`/auth/error`は画面用ログインRedirectを行わない。APIは画面用RedirectせずEndpointで認証・認可する。その他の画面（未知Pathを含む）は原則保護し、未認証なら`/auth/login`へ。認証後は固定`/dashboard`へ遷移する。
+- **実行順序案**: ①SDK認証Endpointの処理を優先、②通常リクエストにSDK Middlewareを適用、③画面分類・Session確認と必要なログインRedirect、④SDKが返したResponseにLocale Cookieを付与して返却。実際のSDKレスポンスの扱い、Next.js Redirect／Cookieの結合、`getSession(request)`の実行順序はテストで確認し、Session更新Cookieが消える実装は採用しない。
+- **Proxy移行**: Next.js 16の`src/proxy.ts`への移行を第一候補とするが、SDK v4.27.0の実際のMiddleware互換性、Node.js Runtime、既存CIでの動作を検証してから確定する。`src/middleware.ts`と`src/proxy.ts`を同時運用しない。
+- **境界テスト**: `/`、`/auth/error`、Login／Callback／Logout、`/api/graphql`、`/_next/**`、実際の公開Asset、`/dashboard`、未知Path、Prefix衝突、Session有無、Session更新Cookie、Locale Cookie、Callback失敗、ログインループ、固定`/dashboard`遷移を対象とする。
+
 ### 実装前調査: Auth0 SDKとNext.js 16の認証境界（2026-09-30）
 
 - 現行`memoria-web/develop`の`package.json`は`@auth0/nextjs-auth0: ^4.27.0`、`next: ^16.3.7`。`Auth0Client`は`src/lib/auth.ts`で初期化し、`src/middleware.ts`から`auth.middleware(request)`を呼ぶ。現行のログイン／ログアウト導線は`/auth/login`、`/auth/logout`を使用する。
