@@ -75,9 +75,16 @@
 - `loading.tsx`とSuspenseは、実際に非同期処理があり待機表示が必要なSegmentで使用する。すべてのRouteへの一律配置はしない。
 - エラー表示にToken、内部Stack Trace、機密情報を露出しない。画面固有の文言やリトライ導線は各画面の詳細設計で決める。
 
-## 4. URL設計規約（検討中）
+## 4. URL設計規約
 
-- 命名規約案: 英語・小文字・kebab-case。リソース名は原則複数形とし、既存URLの一括変更はこの規約への合意だけでは実施しない。
+### 合意済み: Path命名
+
+- URLのSegmentは英語・小文字・kebab-caseとする。リソース名は原則複数形とする。
+- URLはリソース・機能を表し、見た目や内部Component名に依存させない。動的SegmentはNext.js App Routerの`[id]`形式で定義する。
+- この合意だけを理由に既存URLを一括変更しない。変更時の互換性・Redirectは個別に検討する。
+
+### 検討中: URL階層と定義管理
+
 - 動的Segmentの命名、識別子の表現、URL階層の深さ、操作をPathとQueryのどちらで表すかは個別に検討する。
 - Next.js App Routerの`[id]`等のファイル名と、現行`src/constants/routes`／`src/types/routes.ts`／`src/lib/url.ts`の`:id`表現の対応・重複管理を確認する。
 - 現行の`?q=`形式は共有可能な画面状態を符号化する仕組み。検索・ページング等の公開Query契約を含め、維持範囲と標準Search Paramsの使い分けを検討する。
@@ -105,7 +112,7 @@
 3. **認証復帰の仕様（基本方針は合意済み）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
 4. **共通Error／Loadingの配置（基本方針は合意済み）**: Rootの`global-error.tsx`／`not-found.tsx`、認証済み領域の子Segment用`error.tsx`、必要なSegment単位の`loading.tsx`を基本とする。認証済みLayout自身の失敗は親境界・認証エラー処理で扱う。
 
-認証・保護対象・認証復帰・Error／Loadingの4項目の基本方針は合意済みです。URL命名・構造・Query・互換性は今後レビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
+認証・保護対象・認証復帰・Error／Loadingの4項目の基本方針は合意済みです。URL命名は合意済みです。URL階層・定義管理・Query・互換性は今後レビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
 
 ## 関連
 
