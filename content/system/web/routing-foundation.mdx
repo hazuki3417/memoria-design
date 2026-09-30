@@ -161,6 +161,12 @@
 - APIは対象存在確認と権限判定の順序・公開エラーを統一し、存在しないIDと閲覧権限のないIDで不要な情報差が生じないようにする。WebはAPIの公開結果だけを表示し、独自の存在確認をしない。
 - 参照: [Community権限](/community/authorization)、[Mediaユースケース](/media/use-cases)、[Security・Privacy要求](/system/cross-cutting/security-privacy-requirements)。
 
+### 合意済み: 複数GraphQL Field Errorの画面表示（2026-09-30）
+
+- 認証失敗が含まれる場合は部分データを表示せず、認証状態を再確認して必要なら再ログインへ誘導する。
+- 画面の必須Fieldが失敗した場合は画面全体をエラー表示にする。独立した補助Fieldのみの失敗なら、認可上安全な部分データを残し、失敗した領域だけエラー表示する。
+- `errors[].path`と画面の必須／補助Fieldの対応は各Web Operationで定義する。`NOT_FOUND`と`FORBIDDEN`が混在する場合は秘匿対象の存在を推測できる情報を表示しない。GraphQL NullableとClient Cacheの挙動は実装時に検証する。
+
 ### 正本確認: GraphQL公開エラーコードは定義済み（2026-09-30）
 
 [GraphQL契約](/system/api/graphql)には`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`等が既に定義されている。上記の「正式名称が未決定」という記述はAPI実装との差分調査時点の記録であり、現在の設計上の未決定事項ではない。既存APIの`graph/handler.go`はこれらすべてを統一変換していないため、実装引き渡し時に差分を解消する。GraphQL実行時のHTTP Statusと複数Field Errorの表示優先順位は引き続き検証対象とする。
