@@ -115,9 +115,13 @@ Community contextではDashboard、Media、Groups、Tags、Membersを提供し�
 
 Contextを切り替えた場合、移動先contextのDashboardへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
 
+### Media中心のNavigation原則
+
+Userの主な関心と管理対象はMediaです。Groups・TagsはMediaの発見・整理のための手段であり、分類オブジェクト自体の詳細画面への遷移を目的化しません。Group一覧でGroupを選択した場合は、同じGroups画面内でそのGroupのMediaへ直接到達できる構成を基本とします。Group間relationや管理Actionは必要に応じて利用できるようにしつつ、Mediaへの到達を妨げません。この原則はPersonal・Communityに共通します。
+
 ### GroupsとTagsの独立性
 
-GroupsとTagsはPersonal・Community双方のContext Navigationで独立した項目として提供します。両者を「分類」という単一のNavigation項目にまとめません。各Context内でGroupsとTagsのデータ・操作を区別し、Context間で暗黙に共有しません。各項目の具体的なURL、一覧・詳細画面の構成は後続のScreen Specificationで定義します。
+GroupsとTagsはPersonal・Community双方のContext Navigationで独立した項目として提供します。両者を「分類」という単一のNavigation項目にまとめません。各Context内でGroupsとTagsのデータ・操作を区別し、Context間で暗黙に共有しません。Groupsは一覧と選択中GroupのMediaを同じ基本URLで扱い、選択状態をURLで復元可能にします。Tagsの画面内Interactionと各項目の具体的なURLは後続のScreen Specificationで定義します。
 
 ## Account Menu
 
