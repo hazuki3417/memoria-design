@@ -34,7 +34,8 @@
 - App RouterではClient Navigation中にLayoutが再利用され得るため、保護されたServer側データ取得、Server Action、Route Handlerなど実際のデータアクセス地点で必要な認証確認を行う。APIが最終的な業務認可を保証する。
 - Client側AuthGuardは補助的な表示・遷移制御に限定し、保護の唯一の根拠にしない。
 - 現行の認証済みLayoutのSessionなしで`null`を返す挙動は解消対象とし、Server側での明示的なRedirectを基本案とする。Redirect先、`returnTo`検証、ループ防止は認証復帰仕様の検討後に確定する。
-- GraphQL BFFの`src/app/api/graphql/route.ts`は現在リクエストHeaderを転送する実装である。認証境界の実装時には、認証方式と転送Headerの許可範囲を別途確認し、LayoutのSession確認だけで保護されたと扱わない。
+- GraphQLプロキシの主目的は、WebとAPIが異なるドメインでもブラウザからNext.jsの同一Originへアクセスさせ、ブラウザとAPI間のCORS設定への依存を減らすことである。認証をプロキシに集約すること自体は、この構成の目的ではない。
+- `src/app/api/graphql/route.ts`は現状、リクエストHeaderを転送する。プロキシ経由でもAPIが最終的な認証・認可を行う。認証方式と転送Headerの許可範囲、Cookieの扱いは実装時に確認する。LayoutのSession確認だけでAPIへのアクセスが保護されたと扱わない。
 
 
 - 既存のAuth0／Next.js BFF構成とHttpOnly Session Cookieを前提とし、TokenをURL・公開Client State・Logへ露出しない。
@@ -69,7 +70,7 @@
 ## レビューで合意が必要な論点
 
 1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
-2. **保護対象の管理方法**: Middleware側の一覧を継続するか、Route Groupとの乖離を防ぐ共通定義へ移行するか。Next.jsの実行環境制約も確認する。
+2. **保護対象の管理方法**: 現状は`/dashboard`、`/images`、`/settings`の前方一致であり、追加漏れと部分一致の懸念がある。認証不要の公開ページ／Auth0 Callback／静的資産／API Routeを区別し、保護対象を列挙する方式と、例外だけを列挙して原則保護する方式を比較する。Route GroupはURLに現れないため、Middlewareから自動判定できる前提にしない。Next.jsの実行環境制約も確認する。
 3. **認証復帰の仕様**: `returnTo`にQueryを保持するか、復帰先をどのタイミングで検証するか。
 4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
 
