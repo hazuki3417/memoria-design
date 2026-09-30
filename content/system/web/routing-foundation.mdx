@@ -54,6 +54,16 @@
 - 未知の画面Pathに対しても認証確認を行うが、存在しないRouteの最終的な404処理はNext.jsに委ねる。認証不要な404表示の要否は公開ページ設計時に再検討する。
 - 具体的な公開Path一覧、Auth0 Endpoint、Matcherの除外条件、Locale付きPathの扱いは実装前の調査事項とし、現時点で未確認のPathを決め打ちしない。
 
+### 認証復帰（returnTo）の設計案・レビュー待ち
+
+- 未認証で保護画面へアクセスした場合、元のPathとQueryを相対URLとして保持する。Fragment（#以降）はHTTPリクエストに送信されないため、Server側の復帰保証対象にしない。
+- 認証復帰先はアプリ内の安全なPathのみ許可する。外部Origin、プロトコル相対URL（`//example.com`）、Backslash等を使った迂回、制御文字、不正なEncoding、認証用Endpointへの循環Redirectを拒否する。
+- 認証に関わる一時Code、Token、State等を復帰先のQueryへ持ち込まない。既存の共有可能な画面状態（例: `?q=...`）を保持する。Query全体を保存する場合はサイズ上限と機密値の扱いを実装時に確認する。
+- `returnTo`の検証は生成時だけでなく、認証Callback後に実際にRedirectする直前にも行う。Auth0 SDKのCallback／Login処理と衝突しない受け渡し方法を現行SDKの実装・仕様に照らして確定する。
+- `returnTo`がない、不正、または復帰先が認証用Endpointである場合は安全な認証済み初期画面へ戻す。具体的なURLは画面詳細設計で確定する。
+- Session期限切れで保護画面を再要求した場合も同じ規則で復帰先を保持する。ただし、未保存Form入力などURLに存在しないClient Stateの復元は保証しない。
+- Open Redirect防止、二重Encoding、Query保持、期限切れSession、Callbackのループ防止を自動テストする。
+
 ## 3. エラーとLoading
 
 - `error.tsx`は対象Segment配下の回復可能なRender Errorを扱い、再試行と利用可能な共通UIを提供する。
@@ -80,7 +90,7 @@
 
 1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
 2. **保護対象の管理方法（基本方針は合意済み）**: 画面Routeは原則保護し、認証不要の公開URLをAllowlistで管理する。Auth0 Endpoint・API Route・静的Assetは別区分とする。具体的なPath、Matcher、Locale処理は実装前に現行コードとSDK仕様を確認して確定する。
-3. **認証復帰の仕様**: `returnTo`にQueryを保持するか、復帰先をどのタイミングで検証するか。
+3. **認証復帰の仕様（設計案・レビュー待ち）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
 4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
 
 上記の論点は未決定です。合意後に本書を確定し、実装作業は別Issueで管理します。
