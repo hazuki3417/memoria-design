@@ -91,6 +91,13 @@
 - 1つのGroupに複数の親を許可する
 - 自己参照と直接・間接の循環を拒否する
 
+## 認可拒否時の公開エラー（合意済み）
+
+- Custodian本人でも共有先Communityの有効な参加者でもないUserが非公開Mediaを要求した場合は、Mediaの存在を秘匿する404相当とする。
+- Variantを閲覧できるUserが、Original downloadや削除など本人に許可されない操作を要求した場合は403相当とする。共有先CommunityのAdministratorでもUser管理MediaのOriginal downloadは403相当とする。
+- 退会・除外等で閲覧権限を失った場合は、新しいVariant／Original配信許可を発行せず、非公開Mediaの存在を公開しない。認証Session失効時は認証エラーを優先する。
+- 実際のGraphQL公開エラーコードとHTTP Statusの対応はAPI共通契約で具体化する。
+
 ## 対象外
 
 | ユースケース | 理由 |
