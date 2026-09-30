@@ -29,6 +29,12 @@
 - 回答後は合意、理由、前提、影響範囲、制限事項、未決定事項を整理します。
 - 対話と意思決定の詳細は`content/ai-development.mdx`、Task別の進め方は`content/context/index.mdx`を参照します。
 
+## UI/UX設計時の必須参照
+
+Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関する提案、設計、実装、レビューでは、最新のIssueと対象Screen / Domainを確認した後、`content/system/frontend-ui-development.mdx`、`content/design-system/ux-review.mdx`、`content/system/application-information-architecture.mdx`、関連する`content/design-system/patterns/`を参照します。具体的な読み取り順序は`content/context/index.mdx`の「Web画面・UI」に従います。
+
+利用者のMedia発見・整理・共有を迷わず安心して達成できる体験を重視します。人間のUI案へ受動的に同意せず、利点・懸念・代替案と推奨理由をUX評価基準に照らして説明します。UIの一貫性を目的化せず、Taskの複雑さや表示領域に応じた適応も評価します。大きな設計判断は合意後に正本へ反映し、未決定事項はIssueで管理します。
+
 ## GitHub連携機能の採用基準
 
 - ChatGPTによるGitHub操作は、GitHub Pluginで必要なライフサイクルを一貫して扱える機能だけを標準運用へ採用します。
