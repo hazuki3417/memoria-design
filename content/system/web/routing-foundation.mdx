@@ -1,0 +1,73 @@
+# Webルーティング基盤設計（レビュー案）
+
+> 状態: レビュー案。画面固有のURL・遷移・業務権限は本書の対象外です。
+> 実装の正本: `memoria-web`。本書は2026-09-30時点の`develop`を参照した設計案です。
+
+## 目的と対象
+
+画面詳細設計に先行して、Next.js App Routerの共通基盤を定義します。対象はRoute Group／Layoutの責務、認証境界、エラー・Loading・Rendering、共通ナビゲーション規約、基盤テストです。具体的なURL、画面間の導線、検索パラメータのキー、業務認可、操作後の遷移先は画面詳細設計で決めます。
+
+## 現行実装の確認
+
+- `src/app/layout.tsx`: locale、共通Provider、HTMLとテーマを構成。
+- `src/app/(authenticated)/layout.tsx`: Server側でSessionを確認し、GraphQL `GetMe`を実行し、ユーザーProviderと共通AppShellを構成。Sessionがない場合は`null`を返す。
+- `src/app/(authenticated)/(library)/layout.tsx`: Client ComponentとしてContainerを配置。
+- `src/middleware.ts`: Sessionと保護対象パスを確認し、未認証時にログインへRedirect。
+- `src/lib/middleware/route.ts`: 保護対象を列挙し、`startsWith`で判定。`returnTo`には元のpathnameを設定。
+- `src/components/Auth/Csr/AuthGuard.tsx`: Client側でUser Contextを確認し、未認証時にログインへ遷移。
+
+現行実装の観察と、以下の設計案は区別します。現時点で`error.tsx`、`not-found.tsx`、`loading.tsx`の代表的な配置は確認できていません。別の階層やブランチを含めた網羅的な不存在確認ではありません。
+
+## 1. Route GroupとLayout
+
+- Route GroupはURLを決めるためではなく、共通Layout、認証境界などの技術的責務を共有するために使用する。
+- Root LayoutはHTML、locale、アプリ全体のProviderなど全ルート共通の責務を保持する。認証必須のデータ取得をRootへ移さない。
+- 認証済みLayoutはセッション確認、認証済み領域に必要な共通ProviderとShellを担当する。個別画面の業務データ取得や業務権限判定を持たない。
+- 子Layoutは共通表示領域など、複数画面で共有する構造が明確な場合に設ける。現行の`(library)`を将来のURL分類として固定しない。
+- Server Componentを基本とし、ブラウザAPI、イベント、Client専用Contextなどが必要な境界だけClient Componentにする。既存LayoutのClient指定を機械的に増やさない。
+
+## 2. 認証境界
+
+- 既存のAuth0／Next.js BFF構成とHttpOnly Session Cookieを前提とし、TokenをURL・公開Client State・Logへ露出しない。
+- Middlewareは認証前の早期Redirectを担い、認証済みLayoutはServer側のSession確認を担う。Client側のGuardのみを保護の根拠にしない。
+- 未認証時に空画面（`null`）だけを返す状態を最終仕様とせず、Server側でのRedirectまたは明示的な失敗処理に統一する方針を検討する。
+- `returnTo`はアプリ内の安全な相対パスに限定し、外部URLへのOpen Redirectを防止する。クエリ文字列の保持範囲、期限切れ時の再認証、Callback後の復帰先は別途確認する。
+- URL保護判定に文字列の単純な前方一致を用いる場合、`/images`と`/images-extra`などの境界を区別する。Middlewareの保護対象一覧とRoute Groupの保護対象が乖離しない構成を検討する。
+- APIが最終的な業務認可を保証する。認証済みであっても個別リソースへのアクセスが許可されるとはみなさない。
+
+## 3. エラーとLoading
+
+- `error.tsx`は対象Segment配下の回復可能なRender Errorを扱い、再試行と利用可能な共通UIを提供する。
+- `global-error.tsx`はRoot Layout自体の失敗に備える最終的な境界とする。
+- `not-found.tsx`は存在しないRoute／リソースに対する404表示を扱う。認証・認可失敗を無条件に404へ置換しない。
+- `loading.tsx`とSuspenseは、実際に非同期処理があり待機表示が必要なSegmentで使用する。すべてのRouteへの一律配置はしない。
+- エラー表示にToken、内部Stack Trace、機密情報を露出しない。画面固有の文言やリトライ導線は各画面の詳細設計で決める。
+
+## 4. 遷移と状態の共通規約
+
+- Server側の認証RedirectはServer側のNavigation APIを基本とし、Client側の利用者操作による遷移はNext.js Router／Linkを使用する。ブラウザHistoryの直接操作を標準手段にしない。
+- 共有可能な状態はURLで扱う既存方針を維持する。ただし具体的なKey、Default値、戻る操作の仕様は画面詳細設計に委ねる。
+- Redirect先の検証やURL生成を共通化する際は、画面固有のRoute一覧をこの基盤設計に固定しない。
+
+## 5. 基盤テスト方針
+
+- 未認証での保護対象アクセス、認証済みでの通過、期限切れSession、認証Callback後の安全な復帰先を検証する。
+- 保護対象パスの境界条件、URL Encoding、不正な`returnTo`、外部URL指定をテストする。
+- Layoutの共通ProviderとServer／Client境界、SegmentのLoading・Error・Not Foundを対象にする。
+- MiddlewareとServer Layoutで認証判定が不整合にならないことをIntegration Testで確認する。
+- 実装時は`memoria-web`の既存Vitest・CI規約に従い、E2Eの範囲は既存テスト構成を確認して決める。
+
+## レビューで合意が必要な論点
+
+1. **認証の二段階チェック**: Middlewareの早期RedirectとServer Layoutの最終チェックを併用するか。現行の`null`応答をどの段階でRedirectへ変更するか。
+2. **保護対象の管理方法**: Middleware側の一覧を継続するか、Route Groupとの乖離を防ぐ共通定義へ移行するか。Next.jsの実行環境制約も確認する。
+3. **認証復帰の仕様**: `returnTo`にQueryを保持するか、復帰先をどのタイミングで検証するか。
+4. **共通Error／Loadingの配置**: Rootと認証済み領域のどちらに境界を置くか、現行のProvider構成と照合して決定する。
+
+上記の論点は未決定です。合意後に本書を確定し、実装作業は別Issueで管理します。
+
+## 関連
+
+- [Webアーキテクチャ](./index)
+- [Frontend実装規約](./implementation-conventions)
+- [画面・操作フロー詳細設計 Issue #18](https://github.com/hazuki3417/memoria-design/issues/18)
