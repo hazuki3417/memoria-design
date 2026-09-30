@@ -50,6 +50,23 @@
 - 未知の画面Pathに対しても認証確認を行うが、存在しないRouteの最終的な404処理はNext.jsに委ねる。認証不要な404表示の要否は公開ページ設計時に再検討する。
 - 具体的な公開Path一覧、Auth0 Endpoint、Matcherの除外条件、Locale付きPathの扱いは実装前の調査事項とし、現時点で未確認のPathを決め打ちしない。
 
+### 設計案: 公開・保護ページの境界（2026-09-30）
+
+| 区分 | Path・対象 | 未認証時の扱い |
+| --- | --- | --- |
+| 公開ページ | `/`、`/auth/error` | 表示可。公開`/`は認証済みの場合のみ`/dashboard`へServer Redirect |
+| SDK認証Endpoint | `/auth/login`、`/auth/callback`、`/auth/logout`および導入SDKが追加するEndpoint | Memoria独自の画面保護判定から除外し、SDKへ処理を委譲 |
+| API | `/api/**`（現行`/api/graphql`を含む） | 画面用ログインRedirectを行わず、各EndpointとAPIで認証・認可・エラー応答を制御 |
+| 静的・内部Asset | `/_next/**`、実際の静的Asset、`favicon.ico`等 | 画面用ログインRedirectの対象外。SDK MiddlewareのMatcher除外範囲はSDK推奨に従う |
+| その他の画面 | `/dashboard`、`/images`、`/settings`、将来追加する画面、未知の画面Path | 原則認証必須。未認証なら直接Auth0ログインへ。成功後は`/dashboard` |
+
+- 画面保護の判定は公開Pathの完全一致と、SDK／API／AssetのSegment境界を考慮した分類で実装する。`/auth/error-extra`、`/apiary`、`/images-other`等を意図せず例外にしない。
+- SDK認証Endpointの一覧・Matcherは、導入済みAuth0 SDKの実際のRouteと照合する。独自の画面保護判定から除外しても、Rolling SessionのためSDK Middlewareを通す範囲はSDK推奨の広いMatcherを維持する。
+- 未認証の未知の画面Pathもログインへ誘導し、認証後に同じ未知Pathへ戻さない。認証済みで未知Pathにアクセスした場合はNext.jsの404へ委譲する。公開の未知Pathを未認証のまま404にするかは別途決定する。
+- Server LayoutでSessionを再確認し、保護されたデータアクセス地点で認証確認する。画面分類だけでAPIの認可を代替しない。
+- 実装前に`memoria-web`のNext.js 16／Auth0 SDKのMatcher、Locale Cookie、API Route、静的Assetの実Pathを確認する。公開Pathの追加は明示的な設計レビュー対象とする。
+- テスト: 公開`/`と`/auth/error`、認証Endpointの到達性、APIの非Redirect、Assetの到達性、保護画面と未知画面、Prefix衝突、認証済み／未認証、ログイン成功後の固定`/dashboard`遷移。
+
 ### 合意済み: 認証後の遷移と編集状態の扱い
 
 - 通常ログイン、未認証での保護画面直接アクセス、セッション期限切れ後の再ログイン、認証エラー画面からの再ログインのいずれも、認証成功後は暫定初期画面`/dashboard`へ遷移する。元画面のPath・Queryを認証をまたいで保持しない。
@@ -181,7 +198,7 @@ src/app/
 - Middlewareの画面Routeは原則保護、公開ページ`/`を明示的Allowlistとする。Auth0 SDKのEndpoint、API Route、静的Assetは別区分にし、SDKの実際のPath・Matcherと照合する。公開`/`ではMiddlewareによるログイン強制をせず、Page側がSessionで表示を振り分ける。
 - ログインボタンはSDKのログイン導線に接続する。すべてのログイン成功後は暫定`/dashboard`へ遷移する。Logout完了後は公開`/`へ戻す。SDKのCallback／Logout設定と実際のEndpointは実装前に確認する。
 - 未認証の保護画面直接アクセスを公開`/`へ転送しない。Session切れ後も元画面へ戻さず、再ログイン成功後は`/dashboard`へ遷移する。
-- 確認対象: `/`の認証有無、`/dashboard`の認証有無、Path＋Query復帰、ログアウト後の`/`、公開／保護の境界、認証ループ防止。画面デザインは別途レビューする。
+- 確認対象: `/`の認証有無、`/dashboard`の認証有無、固定`/dashboard`遷移、ログアウト後の`/`、公開／保護の境界、認証ループ防止。画面デザインは別途レビューする。
 
 ### 合意済み: 固定の認証後遷移先
 
