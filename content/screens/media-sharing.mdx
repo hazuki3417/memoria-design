@@ -197,6 +197,37 @@ Compactのヘッダーでは共有Taskと閉じる操作に到達できるよう
 
 閉じる・検索・絞り込み・選択・選択解除・追加読み込み・共有確定はtouchとkeyboardで操作でき、focusの移動・復帰と読み上げ可能な状態表示を確保します。失敗・部分成功時には同じCompactダイアログ内で対象・理由・再試行Actionを継続して確認できるようにします。
 
+## UXレビューと受入テスト
+
+Initial Releaseの共有ダイアログは、Personal / Communityの両起点で既知の対象を固定し、選択・確認・共有・復旧を同じTaskとして完了できることを確認します。以下はProduct上の受入条件であり、特定のGraphQL契約・Component・Test frameworkを要求しません。
+
+### 主要なUX確認
+
+- Personal起点では起点の明示選択を維持し、Community選択・変更に応じて新規共有対象と既存共有を再評価します。Community起点では共有先を固定し、検索・Group / Tag filter・追加読み込みを跨いで明示選択を維持します。
+- 選択総数と新規共有の実行件数を混同せず、共有済み・実行不可のMediaを誤って送信しません。共有先の参加者全員が閲覧できること、Custodianが変わらないことを実行前に確認できます。
+- 結果は新規成功・既存共有・再試行可能な失敗・再試行不可能な失敗・結果不明を区別し、確定した成功と不明な結果を混同しません。再試行は未成立と確認でき、現在も共有可能な対象だけに限ります。
+- 部分成功・全件失敗では修正に必要な情報とActionを同じダイアログ内に維持し、Notificationだけで失敗理由を伝えません。Membership喪失など操作継続不能時はBlocking Errorとして安全なNavigationを案内します。
+- Compactでは全画面ダイアログ、Medium / Wideでは中央配置を基本とし、両起点で対象・共有先・実行Action・結果と復旧Actionに到達できます。keyboard・touch・支援技術から同じTaskを実行でき、状態を色だけで表しません。
+
+### 代表的な受入テストシナリオ
+
+| ID | 起点・条件 | 操作 | 期待結果 |
+| --- | --- | --- | --- |
+| SH-01 | Personal、1 Media、未共有Community | 共有先を選び実行 | 共有対象・閲覧範囲・Custodian不変を確認でき、成功後はPersonal contextに留まる |
+| SH-02 | Personal、5 Media選択、うち2 Mediaは選択先へ共有済み | Communityを選択 | 選択5件・新規共有3件・既存共有2件を区別し、既存共有は再送しない |
+| SH-03 | Personal、複数Media | Communityを切り替える | Media選択を維持し、新しいCommunityに対する共有済み状態と実行件数を再評価する |
+| SH-04 | Personal、選択Mediaすべて共有済み、または参加中Communityなし | 共有先を確認 | 状態と次のActionが分かり、対象なしでは共有を実行できない |
+| SH-05 | Community、Personal Media多数 | 検索、Group / TagのAND filter、追加読み込み、選択済み一覧で個別解除 | 検索結果外も含む明示選択を維持し、未取得Mediaは暗黙に選択しない |
+| SH-06 | Community、追加読み込みに失敗 | 再試行 | 表示済みMediaと選択を維持し、keyboard・支援技術でも再試行できる |
+| SH-07 | 両起点、複数Media、一部だけ共有成立 | 結果を確認し未成立対象を再試行 | 新規成功・既存共有・失敗を区別し、成功済み対象を再送しない |
+| SH-08 | 両起点、送信後の通信断 | 結果照合、照合不能時の離脱、再度開く | 結果を推測表示せず、未成立と確認するまで再送せず、再開時に現在状態を再評価する |
+| SH-09 | 両起点、処理が長時間継続 | ダイアログから明示的に離脱 | 離脱できるが送信済みrequestの取消しを約束せず、再開時に状態確認する |
+| SH-10 | 両起点、処理中にMedia削除・Custody変更・Membership喪失 | 結果と復旧Actionを確認 | 成立済みの他Mediaを取り消さず、共有不可対象を除外し、操作継続不能時は安全なNavigationを提示する |
+| SH-11 | Compact、両起点、部分成功 | 選択・結果確認・再試行・閉じる操作 | 全画面内でTaskを完了でき、focus・読み上げ・非色依存表示が成立する |
+| SH-12 | Medium / Wide、両起点 | 同じ主要Flowを実行 | 中央配置ダイアログでも対象確認・実行・結果・復旧に到達できる |
+
+実装段階では、選択・状態分類・件数集計・再試行対象の判定をInteraction Testの対象とし、両起点の主要Flowと通信断からの復旧を重要なE2E候補とします。Compact / Medium / Wideの代表状態はStorybook・Accessibility検査・Human Visual Reviewで確認します。具体的な長時間処理の判定時間、API照合手段、Component、viewport寸法は後続の詳細設計で決定します。
+
 ## Navigation
 
 Media Sharingは独立したApplication contextを作りません。
