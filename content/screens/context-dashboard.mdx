@@ -1,0 +1,43 @@
+# Context Dashboard
+
+## 目的
+
+Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把握し、主要機能へ移動する入口とします。Media Browserの閲覧・絞り込み・一括操作をDashboardへ移さず、各専用画面へ案内します。
+
+## Personal Dashboard
+
+- URL: `/dashboard`。認証・User登録完了後の標準entry。
+- 本人がCustodianであるMediaのうち、最近のMediaを表示します。Communityへ共有済みのMediaも、本人がCustodianである限りPersonalの対象です。
+- 最近のMediaから該当Mediaの詳細とPersonal Media一覧へ移動できます。
+- Personal Media一覧、Groups、Context Switcherによる参加中Communityへの移動を、主要機能への入口として提供します。Uploadの開始はPersonal Media画面から行い、DashboardにUpload入口を設けません。
+- 最近のMediaがない場合は空状態とPersonal Media一覧への入口を提供します。DashboardにUpload入口は表示しません。
+
+## Community Dashboard
+
+- URL: `/communities/[communityId]/dashboard`。`communityId`はAPI契約に従う安定識別子です。
+- 現在のCommunityで閲覧可能な最近のMediaを表示します。User管理Mediaの共有とCommunity管理Mediaを含め、Custodianと共有の既存権限を変更しません。
+- 最近のMediaから該当Mediaの詳細と当該CommunityのMedia一覧へ移動できます。
+- Community Media一覧、Groups、Membersへの入口を提供します。ManagementはAdministratorに限り表示します。Uploadは権限に応じてCommunity Media画面から開始し、Dashboardには入口を設けません。
+- 閲覧可能なMediaがない場合は空状態とCommunity Media一覧への入口を提供します。
+
+## 共通の状態・権限
+
+- 最近のMediaは、各ContextのMedia Browserと整合する新しい順の安定した並びを基本とします。Personal・Communityの双方で最大12件を取得・表示します。12件未満なら存在する件数だけを表示し、12件を超える場合は各ContextのMedia一覧へ案内します。Thumbnailの配置、更新タイミングはUI具体化時に決定します。
+- LoadingとMediaが0件のEmptyを区別します。取得失敗では空一覧として扱わず、既存の共通エラー表示方針に従います。
+- Contextごとに閲覧権限を再評価します。Membership喪失時は当該Communityの保護データを継続表示せず、詳細な原因を示さない共通エラー表示へ移ります。
+- Dashboardは独自の閲覧権限を導入せず、Media・Groups・Tag操作・Members等の既存権限を尊重します。
+- Compact / Medium / Wideのいずれでも、現在Context、最近のMedia、Media一覧および主要機能への到達性を維持します。具体的なlayoutはStorybookとVisual Reviewで決定します。
+
+## Initial Releaseと後続リリース
+
+- Initial ReleaseにはPersonal・Community双方の最近のMedia（最大12件）と主要機能への入口を含めます。DashboardにはUpload入口を設けず、Uploadは各ContextのMedia画面から開始します。
+- Media件数等の統計、および最近の活動履歴はInitial Releaseに含めず、後続リリースで必要性・API負荷・Privacyを検討します。
+- 統計・活動履歴の取得APIをDashboardの初回実装の前提としません。
+
+## 後続の詳細設計
+
+- Thumbnailの具体的なpresentation、補助情報、空状態の文言。
+- DashboardからのMedia Detail遷移のpresentationと、権限に応じた表示差。
+- 必要なGraphQL Operationと既存Media Browserとの取得契約の整合。
+
+関連: [Application Information Architecture](/system/application-information-architecture)、[Personal Media](/screens/personal-media)、[Media Browser / Detail](/screens/media-browser-detail)、[Frontend UI Development](/system/frontend-ui-development)。

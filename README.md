@@ -51,6 +51,10 @@ npm run build
 
 環境構成、依存関係の管理、Web・APIの結合確認は[ローカル開発環境](./content/local-development.mdx)を参照してください。
 
+## タスク別の正本への到達
+
+設計・実装・レビュー・調査を始める際は、[Context map](./content/context/index.mdx)の「すべてのタスクに共通する参照手順」と対象タスクの読み取り順序を使用してください。対象のDomain / Screen / Systemに加え、変更の影響に応じた横断方針と所有Repositoryの最新schema・実装・テストを確認します。Context mapは正本への索引であり、仕様の複製ではありません。
+
 ## 最初に読む資料
 
 1. [プロダクトビジョン・設計原則](./content/product-vision.mdx)

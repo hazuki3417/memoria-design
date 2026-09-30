@@ -76,7 +76,7 @@ Memoria Design Systemは、最初から完成したComponent catalogとして設
 
 `memoria-web` ではMantineをUI実装のFoundationとして継続利用します。
 
-Mantineが既に提供するComponent、theme scale、interaction等を理由なく再実装しません。Memoria固有の要求を実現できない場合に限り、拡張または独自実装を検討します。
+Mantineが既に提供するComponent、theme scale、interaction等を理由なく再実装しません。Media DetailのTag入力はfree textを要件とし、WebではMantine `TagsInput`の利用を想定します。既存Tagの候補選択を必須にせず、未登録名の入力からTag作成・付与へ進めます。Memoria固有の要求を実現できない場合に限り、拡張または独自実装を検討します。
 
 ### 外部Design System
 
@@ -113,11 +113,13 @@ Memoriaは、機能を減らすことで単純に見せるのではなく、利�
 
 Visual Designはシンプルかつコンテンツ中心とし、UI自体がMediaより過度に主張しないことを重視します。一方で、操作性、feedback、interaction quality等はUI/UX上の重要な品質として扱います。
 
+画面設計・提案・Visual Reviewでは[UX設計・レビュー基準](/design-system/ux-review)を適用し、主要Taskの導線、入力、Feedback、失敗からの復旧、一貫性と画面固有の適応、Accessibilityを確認します。外部サービスとの差別化は見た目の独自性だけで判断せず、Mediaの発見・整理・共有を少ない迷いと手間で達成できるか、実装後の利用者FeedbackとTask評価で検証します。
+
 ### UX Principles
 
 Memoriaの画面設計、AIによるUI生成、Visual Reviewでは次の原則を共通の判断軸として利用します。
 
-1. **Content First**: Mediaや利用者のデータを主役とし、UI自体は必要以上に主張しません。
+1. **Content First / Media First**: Userが最も関心を持ち、管理する対象はMediaです。GroupsはMediaの発見・閲覧・整理を支える手段とし、Groupの専用詳細画面を経由させる等、Mediaへの到達を不必要に遅らせるNavigationを避けます。一方、将来のTags管理画面はMedia閲覧ではなく、表記ゆれの修正と検索語彙の整備を目的に設計します。画面ごとのUserの動機を優先し、すべての画面へ一律にMedia中心の構成を強制しません。Mediaや利用者のデータを主役とし、UI自体は必要以上に主張しません。
 2. **Progressive Disclosure**: 利用者が現在必要な情報と操作を優先し、高度または低頻度なものは必要な文脈で提示します。
 3. **Contextual Action**: 操作は対象や現在の状態との関係を理解しやすい場所に提示し、画面全体へ無秩序にActionを並べません。
 4. **Predictable Interaction**: 同じ意味や操作には一貫したPatternを利用し、理由なく一般的なWeb UIの慣習から逸脱しません。
@@ -173,3 +175,9 @@ UI品質の検証は、それぞれの検査手段が適した責務を担当し
 
 具体的な変更検知方法、GitHub Actions構成、代表viewport、Browser matrixは `memoria-web` のtest infrastructure設計で決定します。
 
+
+## Collectionの読み込みとNavigation
+
+Memoria Webでは、一覧にページ番号を表示して移動するページ送り型Paginationを提供せず、**Relay Connectionを利用した無限ローディング**を標準とします。適用対象はMedia一覧に限らず、追加読み込みが必要なCollection全般です。各画面の具体的な取得条件・順序・空状態は対象ScreenとGraphQL契約で定義します。
+
+追加読み込み中・終端・追加取得失敗を識別し、失敗時には表示済みItem・選択・検索・絞り込み・スクロール位置を可能な限り維持して再試行できるようにします。検索・絞り込み・並び順の変更時は該当条件のConnectionを取得し直しますが、明示選択済みItemを意図せず解除しません。未取得Itemを暗黙に選択する操作は提供しません。Viewportへの到達だけに依存せず、keyboard・支援技術でも追加取得と状態を利用できるようにします。具体的なcursor、fetch size、cache policy、virtualizationは実装詳細設計で決定します。

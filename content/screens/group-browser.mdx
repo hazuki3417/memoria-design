@@ -2,13 +2,13 @@
 
 ## 概要
 
-PersonalまたはCommunity contextで、現在scopeのMedia Groupを検索・閲覧し、Groupを中心に分類関係とMediaを確認する画面です。
+PersonalまたはCommunity contextで、現在scopeのMedia Groupを検索・閲覧し、Groupを手がかりに目的のMediaを素早く発見し、必要に応じてGroupの分類関係を確認する画面です。
 
 > 実装状況: 既存のmemoria-webにはGroup名検索、flatなGroup一覧、選択したGroupのMedia表示があります。本仕様で定義するPersonal / Community scope、DAG relation、Community roleによる管理権限には差分があります。
 
 ## 目的
 
-Userがfolder treeやDAG全体を理解することを要求されず、現在scopeのGroupを名前から発見し、選択したGroupを中心として関連Groupと分類されたMediaを確認できるようにします。
+Userがfolder treeやDAG全体を理解することを要求されず、現在scopeのGroupを名前から発見し、Groupを選択すると同じ画面の中で分類されたMediaへ直接到達でき、必要に応じて関連Groupも確認できるようにします。Group詳細画面への段階的な遷移を主要導線にしません。
 
 PersonalとCommunityで同じGroup interaction modelを利用し、Application contextによって対象scopeと管理権限だけを切り替えます。
 
@@ -48,13 +48,13 @@ Group間relationのDAG構造例は[Media Group - Group同士の関係](/media/gr
 
 Userは現在scopeのGroupをGroup名のfree textで検索できます。
 
-検索はGroup DAGの特定階層やrootだけを対象にせず、現在scopeのGroup全体を対象とします。検索結果からGroupを選択し、そのGroupを中心とした情報へ進めます。
+検索はGroup DAGの特定階層やrootだけを対象にせず、現在scopeのGroup全体を対象とします。検索結果からGroupを選択すると、同じGroups画面でそのGroupのMediaを確認できます。
 
 検索のmatching algorithmやAPI pagination方式等の実装契約は本Screen Specificationでは固定しません。
 
 ### Groupを選択する
 
-一覧または検索結果からGroupを選択し、そのGroupの所属関係とMediaを確認できます。
+一覧または検索結果からGroupを選択すると、同じGroups画面内でそのGroupのMediaを優先して確認でき、必要に応じて所属関係も確認できます。
 
 Groupを開いた経路によって正規pathが変わることはなく、選択したGroup自体を現在の対象として扱います。
 
@@ -100,7 +100,7 @@ Group Browserでは選択したGroupへ分類済みのMediaを確認できます
 
 ### Groupあり
 
-現在scopeのGroupを発見・選択できます。Groupを選択すると、そのGroupを中心としたrelationとMediaを確認できます。
+現在scopeのGroupを発見・選択できます。Groupを選択すると、同じ画面でそのGroupのMediaを優先して確認し、relationも参照できます。
 
 管理権限を持つUserだけがGroup構造を変更するActionを利用できます。
 
@@ -140,7 +140,7 @@ Personalから開いた場合はPersonal Groupだけ、Communityから開いた�
 
 Group間relationを辿って別Groupを選択する場合も同じscopeを維持します。
 
-Groupをどのrouteやsplit view / dedicated viewで表現するかは固定しません。既存実装のsplit viewは実装上の参考例として扱い、Compact / Medium / Wideに適したpresentationを選択できます。
+Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで扱い、Groupごとの専用詳細URLへの遷移を主要導線にしません。Personalの基本URLは`/groups`、Communityの基本URLは`/communities/[communityId]/groups`とします。選択中Groupは両Contextとも`groupId` query parameterで表現します（例: `/groups?groupId=abc`、`/communities/[communityId]/groups?groupId=abc`）。`groupId`には対象scope内の安定したGroup識別子を使用し、Group名やDAG上のpathを使用しません。URLの直接アクセス、reload、browser historyから選択状態を復元できるようにします。`groupId`がない場合はGroup一覧の未選択状態とします。split view等のpresentationはルーティング詳細設計・Visual Reviewで決定します。Compact / Medium / WideのいずれでもGroup選択からMediaへの到達を優先します。
 
 ## 制約
 
@@ -158,6 +158,6 @@ Groupをどのrouteやsplit view / dedicated viewで表現するかは固定し�
 
 表示領域や入力方式が変わっても、Groupの一覧、名前検索、Group選択、relationの確認、および権限のあるGroup管理Capabilityを維持します。
 
-Wideでは一覧と選択Groupの情報を同時に提示することもできますが、split viewを必須にしません。Compactでは段階的なnavigation等へpresentationを変更できます。
+Wideでは選択中GroupのMediaを主領域、関連Groupを補助領域とする2カラムを基本構成とします。Mediaの閲覧を優先し、関連Groupには「このGroupの所属先」と「このGroupに所属するGroup」を区別して表示します。Group一覧・検索から選択中Groupへアクセスできる導線を維持します。Compact / Mediumでの具体的な配置、カラム幅、折りたたみの有無・初期状態は後続のUI具体化・Visual Reviewで決定し、現段階では固定しません。CompactでもGroup選択後に別の専用詳細画面を経由せず、Mediaへ速やかに到達できるpresentationとします。
 
 Group名検索、Group選択、管理Action、relation navigationをhoverだけに依存させず、touchとkeyboardでも主要Capabilityへ到達できるようにします。

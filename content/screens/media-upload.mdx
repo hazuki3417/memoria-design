@@ -20,6 +20,14 @@ Personal / Communityで共通するUpload Interactionを使用し、違いは初
 - [Community Media](/screens/community-media)
 - [Media Browser / Detail](/screens/media-browser-detail)
 
+## 画面構成
+
+Initial ReleaseではMedia UploadをMedia Browserとは独立した専用画面として提供します。Personal / CommunityのMedia画面から現在contextを維持して遷移します。既存`memoria-web`の`/images/new`と`ImageDropForm`・`ImageInputForm`は参考実装として扱い、既存route名やUpload API・Task管理の振る舞いをそのまま新仕様とはしません。
+
+専用画面ではfile追加、選択fileごとのpreview・validation、Upload開始、個別進捗・結果、失敗fileの再試行を一つの作業の中で確認できるようにします。**単一画面・状態変化型**を採用し、準備画面と結果画面を別route・別stepとして分割しません。初期状態ではfile追加を主操作とし、file追加後にpreviewと事前Validationを提示します。Upload開始後は同じ画面で全体概要とfile単位の状態を更新し、成功済みMediaを維持しながら失敗fileのみ再試行できます。Media登録後の非同期ProcessingはUpload requestの成功と区別し、登録済みMediaへの導線を提供します。Group / Tag分類はUpload成立の必須入力としません。
+
+画面の基本的な情報順序はfile追加、選択fileのpreview・事前確認、Upload実行、全体進捗・個別結果とします。具体的なroute、画像一覧のpresentation、画面内の寸法・responsive対応、Upload中の画面離脱・復帰、Upload後の遷移は後続の詳細設計で決定します。既存Web componentの再利用は設計上の制約としません。
+
 ## 開始点 / Scope
 
 ### Personal
@@ -169,7 +177,11 @@ Upload開始前は選択したfileを削除して作業を中止できます。
 
 Upload開始後、既にServer側でMedia登録が成立したMediaを「cancel」によって暗黙削除しません。Upload requestの通信cancelと、成立済みMediaの削除は別操作です。
 
-複数Uploadの実行中に画面遷移・reload・network切断が発生した場合の再接続・状態復元は、idempotencyとserver-side observable stateを前提にGraphQL / Frontend contractで具体化します。client memoryだけを正本にしません。
+Initial ReleaseではUpload開始前の未送信fileが残る状態、およびUpload中・待機中のfileが残る状態で画面内Navigationを行う場合、作業が失われる可能性を確認してから離脱します。Upload中は未完了requestが中断される可能性を伝え、成立済みMediaをcancelや離脱によって暗黙削除しません。Browserのreload・tab close等は環境が許す範囲で標準の離脱確認を利用し、確実な表示を保証しません。
+
+Media登録が完了しServer側の画像Processingだけが残っている場合、Upload画面への滞在を必須とせずMedia Browserへ移動できます。Media BrowserでもProcessing中・terminal failureを識別できるようにします。
+
+Initial Releaseでは画面離脱後もfile送信を継続するbackground Uploadを必須要件としません。画面遷移・reload・network切断が発生した場合、Serverで登録済みのMediaと未確定requestの状態をidempotencyおよびserver-side observable stateで照合し、結果不明のfileを無条件に自動再送して重複登録しません。具体的な離脱guard、復帰・再試行UI、request識別・照合方法はGraphQL / Frontend詳細設計で決定し、client memoryだけを正本にしません。
 
 ## 状態 / Concurrency
 

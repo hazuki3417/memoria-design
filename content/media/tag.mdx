@@ -105,13 +105,13 @@ PersonalではUser本人、CommunityではAdministratorだけが削除できま�
 
 ## Media分類Interaction
 
-Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除の主要な入口とします。
+Initial Releaseでは1 Media単位のMedia DetailをTag付与・解除、および未登録Tag作成の主要な入口とします。Tag付けはfree text入力を基本とし、入力したTag名ごとに現在scopeの既存Tagを完全一致で再利用し、未登録なら作成してMediaへ付与します。既存Tag候補の補完は入力支援として提供できますが、候補からの選択を必須にしません。Web実装ではMantine `TagsInput`を利用する想定とします。`TagsInput`でEnter等により入力を確定しても、その時点ではTag本体の作成・Media relationの変更を行いません。確定したTag名はMedia Detail内の未保存の編集状態として保持し、UserがMediaへのTag変更を保存したときに初めて反映します。キャンセル時は未保存のTag名・付与解除の変更を破棄し、未登録Tagを作成しません。
 
-Media Detailでは現在scopeで対象Mediaに付与されているTagを確認できます。分類権限があるUserは現在scopeの既存Tagを付与・解除できます。
+Media Detailでは現在scopeで対象Mediaに付与されているTagを確認できます。分類権限があるUserは現在scopeの既存Tagを付与・解除でき、未登録のTag名を入力した場合は新規作成して付与できます。
 
 Personal contextではPersonal Tagだけ、Community contextでは現在CommunityのCommunity Tagだけを扱います。
 
-CommunityではAdministratorとMemberがTagを利用でき、必要なTagが存在しない場合は新しいCommunity Tagを作成できます。Tag作成とMediaへの付与を一つのpresentationで連続して行えるかは実装上のInteractionとして選択できますが、作成とrelation追加はdomain上別の結果として扱います。
+CommunityではAdministratorとMemberがTagを利用でき、MediaへのTag付けで未登録名を入力した場合は新しいCommunity Tagを作成して付与できます。作成とrelation追加はdomain上別の結果として扱います。
 
 Initial ReleaseではMedia Detailの1 Media操作に加え、Media Browserで明示選択した複数Mediaへ同じ既存Tagを一括付与・解除できます。bulk操作でもMediaごとに現在scope・可視性・Membership / roleを再検証し、部分成功を許容します。Tag新規作成とbulk付与は一つのdomain operationへ結合しません。
 
@@ -127,13 +127,19 @@ Media Browserでは、現在scopeのTagを条件として現在contextで閲覧�
 
 複数Tagを指定した場合はAND条件とし、選択したすべてのTagが付与されているMediaだけを表示します。Tagを追加するほど結果集合は同じか狭くなり、すべてのTag filterを解除すると現在contextの通常Media一覧へ戻ります。OR切替や複雑な検索式はInitial Releaseでは提供しません。具体的なquery、cursor、index契約はこのsemanticsを満たす形でAPI contractとして決定します。
 
-## Tag管理
+## 初回リリースの提供範囲
 
-Personal / Communityとも、現在scopeに存在するTagを確認できる軽量な管理領域を提供できます。
+初回リリースではTags専用画面を設けません。Media DetailでTag入力を確定した時点では未保存の編集状態にとどめます。Userが変更を保存したとき、現在scopeに同じ保存名のTagがあれば再利用し、未登録ならTagを新規作成して対象Mediaに付与します。作成と付与はdomain上別の結果として扱い、作成済みでも付与に失敗した場合は成功として表示しません。既存Tagの付与・解除とMedia BrowserでのTag絞り込みを提供します。
+
+Tag本体の独立した作成画面、rename、削除、統合は初回リリースではUser向けに提供しません。既存のdomain上のrename・削除semanticsと権限は将来のため維持し、初回リリースのUIからは実行させません。
+
+## 後続リリースのTag管理
+
+将来のTags専用画面は、Tag表記のばらつきや重複した意味の語彙を発見・整理し、検索の利便性を維持することを目的とします。現在scopeのTagを確認できる管理領域を検討します。
 
 Tagは階層やrelationを持たないため、Group BrowserのようなGroup-centered DAG navigationやgraph表現を導入しません。
 
-管理領域では少なくともTag名を識別でき、権限に応じて作成、rename、削除へ到達できるようにします。Media件数等は識別や影響理解の補助情報として提示できますが、必須情報や具体的presentationとして固定しません。
+後続リリースの管理領域では少なくともTag名を識別でき、権限に応じて作成、rename、削除へ到達できるようにします。Media件数等は識別や影響理解の補助情報として提示できますが、必須情報や具体的presentationとして固定しません。
 
 Tagの発見方法、sort、検索、pagination等の具体的な一覧contractは利用規模とAPI contractに合わせて決定します。
 
@@ -164,7 +170,7 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 - scope内Tag数、MediaあたりTag数の具体的上限
 - Tag一覧のsort、検索、pagination契約
 - GraphQL Operation名、Input / Payload、error表現
-- Tag作成とMedia付与を連続操作する場合の具体的presentation
+- Mantine `TagsInput`によるfree text入力時の補完・候補表示、保存Actionの具体的presentation
 - filter結果全件を暗黙対象にするquery-based bulk Tag操作や、複数Tagを同時に複数Mediaへ適用する高度なmatrix操作
 
 自動Tag付け、AI分類、Custody transfer時のTag移行はInitial Release対象外です。
