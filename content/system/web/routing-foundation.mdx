@@ -1,11 +1,11 @@
 # Webルーティング基盤設計（レビュー案）
 
-> 状態: レビュー案。画面固有のURL・遷移・業務権限は本書の対象外です。
+> 状態: レビュー案。業務固有の画面URL・遷移・業務権限は本書の対象外です。共通画面は表示確認を必要としない仕様から先行して設計します。
 > 実装の正本: `memoria-web`。本書は2026-09-30時点の`develop`を参照した設計案です。
 
 ## 目的と対象
 
-画面詳細設計に先行して、Next.js App Routerの共通基盤を定義します。対象はRoute Group／Layoutの責務、認証境界、エラー・Loading・Rendering、共通ナビゲーション規約、基盤テストです。具体的なURL、画面間の導線、検索パラメータのキー、業務認可、操作後の遷移先は画面詳細設計で決めます。
+画面詳細設計に先行して、Next.js App Routerの共通基盤を定義します。対象はRoute Group／Layoutの責務、認証境界、エラー・Loading・Rendering、共通ナビゲーション規約、基盤テストです。業務固有のURL・導線・検索パラメータのキー・業務認可・操作後の遷移先は業務画面の詳細設計で決めます。共通画面のURL・責務・状態遷移・コンポーネント契約は、表示確認を必要としない範囲で先行して設計します。見た目と操作感はコンポーネントを実装し、表示可能な環境でレビューして確定します。
 
 ## 現行実装の確認
 
@@ -75,13 +75,22 @@
 - `loading.tsx`とSuspenseは、実際に非同期処理があり待機表示が必要なSegmentで使用する。すべてのRouteへの一律配置はしない。
 - エラー表示にToken、内部Stack Trace、機密情報を露出しない。画面固有の文言やリトライ導線は各画面の詳細設計で決める。
 
-## 4. 遷移と状態の共通規約
+## 4. URL設計規約（検討中）
+
+- 命名規約案: 英語・小文字・kebab-case。リソース名は原則複数形とし、既存URLの一括変更はこの規約への合意だけでは実施しない。
+- 動的Segmentの命名、識別子の表現、URL階層の深さ、操作をPathとQueryのどちらで表すかは個別に検討する。
+- Next.js App Routerの`[id]`等のファイル名と、現行`src/constants/routes`／`src/types/routes.ts`／`src/lib/url.ts`の`:id`表現の対応・重複管理を確認する。
+- 現行の`?q=`形式は共有可能な画面状態を符号化する仕組み。検索・ページング等の公開Query契約を含め、維持範囲と標準Search Paramsの使い分けを検討する。
+- 末尾Slash、大文字小文字、URL変更時のRedirect、既存ブックマークとの互換性を規約化する。
+- 業務固有のPath割当は業務画面設計で扱う。共通画面のPath・遷移は表示確認に依存しない範囲で先行して設計する。
+
+## 5. 遷移と状態の共通規約
 
 - Server側の認証RedirectはServer側のNavigation APIを基本とし、Client側の利用者操作による遷移はNext.js Router／Linkを使用する。ブラウザHistoryの直接操作を標準手段にしない。
 - 共有可能な状態はURLで扱う既存方針を維持する。ただし具体的なKey、Default値、戻る操作の仕様は画面詳細設計に委ねる。
 - Redirect先の検証やURL生成を共通化する際は、画面固有のRoute一覧をこの基盤設計に固定しない。
 
-## 5. 基盤テスト方針
+## 6. 基盤テスト方針
 
 - 未認証での保護対象アクセス、認証済みでの通過、期限切れSession、認証Callback後の安全な復帰先を検証する。
 - 保護対象パスの境界条件、URL Encoding、不正な`returnTo`、外部URL指定をテストする。
@@ -89,14 +98,14 @@
 - MiddlewareとServer Layoutで認証判定が不整合にならないことをIntegration Testで確認する。
 - 実装時は`memoria-web`の既存Vitest・CI規約に従い、E2Eの範囲は既存テスト構成を確認して決める。
 
-## レビューで合意が必要な論点
+## 合意済みの基本方針と残る論点
 
 1. **認証の二段階チェック（合意済み）**: Middlewareによる早期RedirectとServer LayoutのSession確認を併用する。データアクセス地点でも認証を確認する。現行の`null`応答は解消対象とし、具体的なRedirect先と復帰処理は論点3で決める。
 2. **保護対象の管理方法（基本方針は合意済み）**: 画面Routeは原則保護し、認証不要の公開URLをAllowlistで管理する。Auth0 Endpoint・API Route・静的Assetは別区分とする。具体的なPath、Matcher、Locale処理は実装前に現行コードとSDK仕様を確認して確定する。
 3. **認証復帰の仕様（基本方針は合意済み）**: 元のPathとQueryを保持し、生成時とCallback後のRedirect直前に安全なアプリ内Pathとして検証する。SDKとの接続方式、サイズ制限、安全なFallback先は実装前に確定する。
 4. **共通Error／Loadingの配置（基本方針は合意済み）**: Rootの`global-error.tsx`／`not-found.tsx`、認証済み領域の子Segment用`error.tsx`、必要なSegment単位の`loading.tsx`を基本とする。認証済みLayout自身の失敗は親境界・認証エラー処理で扱う。
 
-4項目の基本方針は合意済みです。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
+認証・保護対象・認証復帰・Error／Loadingの4項目の基本方針は合意済みです。URL命名・構造・Query・互換性は今後レビューします。Auth0 SDKの具体的な接続、公開Path／Matcher、`returnTo`のサイズ制限・Fallback先、各画面の表示仕様は実装前または画面詳細設計で確定します。実装作業は別Issueで管理します。
 
 ## 関連
 
