@@ -120,7 +120,9 @@ Membershipを失って現在Community context自体を利用できない場合�
 
 Media Sharingは独立したApplication contextを作りません。
 
-Personal起点ではPersonal context、Community起点では現在Community contextを維持します。選択UIをdialog、drawer、dedicated route等のどのpresentationで実装するかは固定しません。
+Personal起点ではPersonal context、Community起点では現在Community contextを維持します。Initial Releaseでは両起点とも**共通の共有ダイアログ**を採用し、起点に応じて既知の対象を固定します。Personal起点では選択済みMediaを固定して共有先Communityを選択し、Community起点では現在Communityを固定してPersonal Mediaを選択します。複数Mediaの明示選択にも同じダイアログで対応し、共有対象と共有先を確認してから実行します。入口ごとに専用画面へ遷移させず、共有成功後も元のcontextを維持します。
+
+共有ダイアログの共通した見出し・選択・確認・結果Feedbackを基本とし、選択対象の違いだけを起点に応じて変えます。Community起点のPersonal Media選択では、件数が多くても対象を探せるよう検索・絞り込みと複数選択への到達性を確保します。具体的なダイアログ寸法、Compact表示、選択済み対象の提示、検索・絞り込みの詳細は後続のUI設計で決定します。
 
 共有成功後に共有先Communityへ自動遷移することは要求しません。
 
