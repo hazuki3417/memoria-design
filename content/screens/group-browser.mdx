@@ -141,6 +141,8 @@ Group作成権限がある場合は分類体系を作り始められるActionへ
 
 Mediaが0件のGroupも正常なGroupとして一覧・検索対象に含めます。
 
+選択中Groupのaggregate Mediaが0件の場合はMedia表示領域を空白のままにせず、現在のGroupに表示対象Mediaがないことを明示します。同様にdirect parentまたはdirect childが0件の場合も、relation情報の領域で該当relationがないことを明示します。これらは正常に取得できた0件状態として、読み込み中・取得失敗と区別します。
+
 ### 検索結果なし
 
 Group自体が存在しないEmpty状態と区別し、現在の検索条件に一致するGroupがないことを示します。検索条件を変更または解除してGroup一覧へ戻れるようにします。
