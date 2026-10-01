@@ -51,6 +51,10 @@ Userは現在scopeのGroupをGroup名のfree textで検索できます。
 
 検索はGroup DAGの特定階層やrootだけを対象にせず、現在scopeのGroup全体を対象とします。検索結果からGroupを選択すると、同じGroups画面でそのGroupのMediaを確認できます。
 
+Group検索状態と現在のGroup選択状態は独立して扱います。Group Aを選択した後に検索条件を変更し、Group Aが現在の検索結果から外れても、選択中GroupとそのMedia表示を解除しません。検索結果から別のGroup Bを選択した時点で選択対象をBへ切り替え、検索を解除してAが再び一覧へ現れた場合はAが選択中であればその状態を通常どおり表現します。
+
+Group検索の取得・追加取得に失敗しても、既に成立している選択中GroupとそのMedia Collectionを破棄しません。検索領域で失敗を示して再試行できるようにします。Group選択を解除するのは、明示的に選択を閉じた場合、別Groupを選択した場合、選択中Groupの削除・利用不能化等、選択状態そのものに作用する出来事を基本とします。
+
 検索のmatching algorithmやAPI pagination方式等の実装契約は本Screen Specificationでは固定しません。
 
 ### Groupを選択する
