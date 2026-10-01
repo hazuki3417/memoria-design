@@ -90,9 +90,8 @@ Groupが複数の所属先を持てるため、Groupには一意なrootやbreadc
 - 所属Groupを持たないGroupを許可する
 - 1 scopeに作成できるGroupは1,000件までとする
 - 1 Groupが直接所属できるGroupは10件までとする
-- DAGの深度は20段までとする
-- 1 Groupが直接所属できるGroupは10件までとする
 - 1 Groupに直接所属するGroupも10件までとする
+- DAGの深度は20段までとする
 
 自己参照だけでなく複数段の循環も禁止し、serviceまたはDBで循環検出を保証します。
 
