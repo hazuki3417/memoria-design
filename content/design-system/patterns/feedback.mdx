@@ -53,7 +53,6 @@ Operation Feedbackには成功、情報、warning、error等の表現を利用�
 - Blocking Errorでは、現在の操作を継続できないことと、可能であれば次に取れる行動を明確にします。
 - feedbackは色だけに依存して意味を伝えません。
 - Notification library、Component API、表示秒数、画面上のpixel位置等の実装詳細は規定しません。
-
 ## 共通Visual Design（Visual Review方針）
 
 Notificationとページ内Feedbackは、User Profile試作のBlockedでページ内表示しているMantine Alertそのものをvisual基準とし、Notificationでも同じAlertを内容として表示する形を試作します。Notification標準のcard外観をAlert風に近づけるのではなく、共通のAlertを表示先によって使い分けます。また、、同じ意味のfeedbackを別の見た目にしないよう、severityごとのicon・配色・枠線・角丸・余白・title/bodyの文字階層を共通化します。表示先に応じて、閉じるButton・再試行・安全なNavigation等の補助Actionの有無を切り替えます。すべての表示に同じActionを強制しません。
@@ -65,3 +64,4 @@ Notificationとページ内Feedbackは、User Profile試作のBlockedでペー�
 - severityは表示先とは独立して決めます。一時的な失敗と操作不能を同じerror色へ固定せず、Userが取れる行動と状況に応じて区別します。
 
 この節はvisualとinteractionの方針であり、共通Component API・Notification library・表示秒数・pixel値はWeb実装とVisual Reviewで決定します。
+
