@@ -104,4 +104,8 @@ Userに非同期cleanupの完了を画面上で待つことは要求しません
 
 「次へ」を押したとき、対応不要なステップは自動的にskipします。skipしたステップは完了チェックと区別して「対象なし」と表示し、「戻る」でも通過しません。最初から4項目を表示することで、対応不要と判定された確認事項も明示します。第2段階の選択変更時には第3段階の名称確認状態を再評価します。データ取得に失敗した場合は先へ進めず、再試行・中断を可能にします。Auth0再認証と削除の最終確定はStepper外の後続処理として扱い、プロトタイプでは実行しません。
 
-Storybookの統合プロトタイプは `memoria-web/src/components/AccountDeletionImpactPrototype/AccountDeletionImpactPrototype.tsx` を正本とします。旧Community単独プロトタイプは統合前の比較用であり、新しい導線では使用しません。
+Storybookの統合プロトタイプは `memoria-web/src/components/AccountDeletionImpactPrototype/AccountDeletionImpactPrototype.tsx` を正本とします。旧Community単独プロトタイプは削除済みで、統合版に一本化しています。
+
+### 操作ボタンの配置
+
+Stepperが左から右へ進む方向と一致させ、各段階の操作ボタンは左側に「キャンセル」「戻る」、右側に「次へ」等の前進操作を配置します。初期段階は左側に「キャンセル」、右側に「次へ」または「再試行」を配置します。最終確認では右端に再認証への操作を置き、最終削除確定の破壊的操作は赤色と明示的なラベルで区別します。狭い画面でも後退操作と前進操作の位置関係を維持します。
