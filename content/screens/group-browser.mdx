@@ -56,7 +56,7 @@ Userは現在scopeのGroupをGroup名のfree textで検索できます。
 
 一覧または検索結果からGroupを選択すると、同じGroups画面内でそのGroupのMediaを優先して確認でき、必要に応じて所属関係も確認できます。
 
-Groupを開いた経路によって正規pathが変わることはなく、選択したGroup自体を現在の対象として扱います。
+Group選択はGroups画面内でMediaの探索対象を切り替えるInteractionとして扱い、Application Navigation Stateには昇格させません。選択状態は画面内のLocal Interaction Stateとして保持し、Groupを切り替えるたびにURLやbrowser historyを更新しません。
 
 ### Groupを作成する
 
@@ -146,9 +146,7 @@ Group Browserは[Application Information Architecture](/system/application-infor
 
 Personalから開いた場合はPersonal Groupだけ、Communityから開いた場合は現在CommunityのGroupだけを扱います。Groupを選択してもApplication contextは変更しません。
 
-Group間relationを辿って別Groupを選択する場合も同じscopeを維持します。
-
-Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで扱い、Groupごとの専用詳細URLへの遷移を主要導線にしません。Personalの基本URLは`/groups`、Communityの基本URLは`/communities/[communityId]/groups`とします。選択中Groupは両Contextとも`groupId` query parameterで表現します（例: `/groups?groupId=abc`、`/communities/[communityId]/groups?groupId=abc`）。`groupId`には対象scope内の安定したGroup識別子を使用し、Group名やDAG上のpathを使用しません。URLの直接アクセス、reload、browser historyから選択状態を復元できるようにします。`groupId`がない場合はGroup一覧の未選択状態とします。split view等のpresentationはルーティング詳細設計・Visual Reviewで決定します。Compact / Medium / WideのいずれでもGroup選択からMediaへの到達を優先します。
+Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで扱い、Groupごとの専用詳細URLへの遷移を主要導線にしません。Personalの基本URLは`/groups`、Communityの基本URLは`/communities/[communityId]/groups`とします。選択中GroupはGroups画面内のLocal Interaction Stateとして扱い、`groupId`等のquery parameterを選択状態の正本にはしません。reloadやGroups画面への再入場ではGroup未選択の状態から開始します。Group選択の履歴をbrowser historyへ積まず、GroupsというNavigation destinationの内部でMediaを探索するInteractionとして扱います。split view等のpresentationはルーティング詳細設計・Visual Reviewで決定します。Compact / Medium / WideのいずれでもGroup選択からMediaへの到達を優先します。
 
 ## 制約
 
