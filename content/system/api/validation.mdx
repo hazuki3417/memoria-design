@@ -8,6 +8,19 @@ MemoriaではValidationを独立した万能Layerとして扱いません。制�
 
 Validationの配置を「最初に検出できる場所」や実装上の共通化しやすさだけで決定しません。各ruleについて、何を守るか、なぜ必要か、誰が意味を所有するか、実行時に何が最終保証するかを確認します。
 
+## 境界値を明示する原則
+
+Userや外部Clientから受け付ける文字列、collection、file、request等には、Systemが安全かつ予測可能に扱える有限の境界を原則として定義します。文字数、件数、size、pagination、rate等、Resource消費やProduct上の操作可能範囲に影響する値を「実装上たまたま通る範囲」のままにしません。
+
+- Product上意味を持つ上限は対象Domainの正本文書で定義する
+- Security・Resource保護の上限は外部境界の正本文書で定義する
+- DB column幅やFramework / Libraryのdefault値を、そのままProduct上限の根拠にしない
+- 上限を設けないことが適切な値は、その判断を暗黙にせず、理由と保証方法を明示する
+- UIだけで制限せず、意味を所有するDomainまたはAPI等の信頼境界で最終的に保証する
+- 境界値にはtestを用意し、上限値と上限超過を検証する
+
+同種のFieldであっても、用途と変更理由が異なる場合は同じ数値へ機械的に統一しません。nickname、Community名、Group名、Tag名等は、それぞれのDomainで用途に応じた具体値を決定します。
+
 ## Ruleの所有者と保証機構
 
 Ruleの**意味上の所有者**と、並行実行や永続化を含めてそのRuleを守るための**保証機構**を分けて考えます。
