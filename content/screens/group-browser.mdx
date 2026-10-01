@@ -141,6 +141,14 @@ Group自体が存在しないEmpty状態と区別し、現在の検索条件に�
 
 Group一覧または選択したGroupの情報を取得できない場合、Emptyや検索結果なしと混同させず、取得に失敗した対象を伝えて再試行できるようにします。
 
+### 選択中Groupが利用不能になった
+
+自分で選択中Groupを削除した場合、またはrefetch・Action結果等によって選択中Groupが削除済み・利用不能であることをWebが認識した場合は、Group選択を解除し、そのGroupを基準とするaggregate Media Collectionを破棄してGroups画面の未選択状態へ戻します。Group一覧も認識できている最新状態へ更新します。
+
+自分で削除した場合は削除成功としてFeedbackし、別User等による外部変更を後から認識した場合はGroupが利用できなくなったことをFeedbackします。別Userによる削除・変更をリアルタイムに検知することは要求せず、Webが変更を認識するまでは既に取得済みの表示が一時的に残ることを許容します。
+
+Group単体の利用不能とApplication context自体の利用不能を区別します。Community Membership喪失等によって現在Community contextを利用できなくなった場合はGroups画面の未選択状態へ留まらず、[Application Information Architecture](/system/application-information-architecture)に従って利用可能な安全なApplication destinationへ移動します。
+
 ### 権限変更
 
 CommunityでAdministratorからMemberへroleが変更された場合、Group閲覧と既存Groupを使ったMedia分類Capabilityは維持し、Group作成・rename・削除・Group間relation管理を継続実行させません。
