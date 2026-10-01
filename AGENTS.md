@@ -64,6 +64,7 @@ Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関す�
 - 開発再開時、イテレーションの開始・終了時、複数PRのマージ後、構成変更後には、親子Issue、関連PR、GitHub Actions、資料pathを横断的に棚卸しします。
 - 完了を確認した項目だけをチェックし、未達条件があるIssueはOpenを維持します。人間が先行完了を許可した場合は、理由と後続Issueを記録します。
 - ReadyとDoneの基準、詳細な進め方は`content/development-process.mdx`を参照します。
+- 対象Capabilityが`content/design-coverage.mdx`へ登録されている場合は、作業開始・再開時にCoverageを確認し、Evidenceから正本を参照します。CoverageのState変更候補は提示できますが、Ready / Validatedへの移行など重要な状態変更は人間との合意後に反映します。
 
 ## GitHub上の記述言語
 

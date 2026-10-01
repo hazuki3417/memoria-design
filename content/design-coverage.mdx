@@ -1,0 +1,185 @@
+# Design Coverage Map
+
+## 目的
+
+Design Coverage Mapは、Memoriaの反復的な設計において、各Capabilityをどの観点まで探索・具体化しているかを可視化するための設計状態管理です。人間とAIが作業開始時に同じ現在地を把握し、未探索、探索中、次工程へ進める状態、具体化を通じて検証済みの状態を区別します。
+
+Coverageは設計品質の採点、完了率、優先順位、網羅性の保証には使用しません。すべての領域を同じ深さまで設計することも要求しません。仕様本文、作業Backlog、実装状態をCoverage Mapへ複製せず、それぞれの正本を参照します。
+
+## 責務
+
+| 情報 | 正本 |
+| --- | --- |
+| Productの要求・仕様・設計 | Domain / Screen / System設計書 |
+| 未解決の作業・受け入れ条件 | Issue |
+| 実装と実行可能な契約 | 所有Repositoryのcode・schema・test |
+| 設計探索の現在地 | Design Coverage Map |
+
+Coverage Mapは「何を実装するか」を管理するBacklogではなく、「どこまで設計判断を進めているか」を示す索引です。
+
+## Coverageの単位
+
+Coverageは `Domain → Capability` の二階層で整理し、StateはCapability単位の各Aspectへ設定します。
+
+DomainはMedia、Community、UserなどのProduct domainを表します。Capabilityは、利用者価値または独立して設計・実装・検証できる振る舞いを基準に分割します。Domain全体を一つのCoverage行にまとめず、Upload、Browser、Membershipなど、設計状態の差を意味のある単位で確認できる粒度にします。
+
+単一操作や画面部品まで機械的に細分化しません。Capabilityの追加・削除・大幅な粒度変更は、人間と合意してから行います。
+
+## Coverage Aspect
+
+| Aspect | 確認する内容 |
+| --- | --- |
+| Concept | 用語、責務、境界、主要概念、不変条件 |
+| Use Case | Actor、目的、前提、主要フロー、結果 |
+| UX / UI | 導線、画面、Interaction、状態、Feedback |
+| Contract | GraphQL / API、非同期I/O、外部Service、Component間などの契約 |
+| Data | 論理・物理モデル、永続化、constraint、Lifecycle、整合性 |
+| Quality / Edge Cases | Error、境界値、Security、Privacy、性能、競合、再試行、復旧など |
+
+すべてのCapabilityで各Aspectに同量の文書を要求しません。対象の複雑さとriskに応じ、次工程で重要な判断を推測しなくてよい状態を基準にします。
+
+## State
+
+| State | 意味 |
+| --- | --- |
+| Unexplored | このAspectについて意図的な設計探索をまだ十分に行っていない |
+| Exploring | 探索・設計を開始しているが、次工程で人間による重要な設計判断が必要 |
+| Ready | 想定する次工程を、重要な仕様を推測せず進められるだけの設計判断が揃っている |
+| Validated | Readyな設計をPrototype、実装、test等の具体物で検証し、得られたFeedbackを設計へ反映している |
+
+Stateは成熟度の点数や一方向の進捗ではありません。具体化によって前提が崩れた場合は、`Validated → Exploring`、`Ready → Exploring` のように戻します。
+
+`Ready` は設計の完成を意味しません。「現在想定する次工程へ進むために十分である」ことを意味します。将来の最適化や現在の次工程に影響しない判断が残っていても、それだけでReadyを妨げません。
+
+`Validated` は実装が存在するだけでは成立しません。具体化から得たFeedbackを確認し、必要な設計修正を正本へ反映した状態とします。
+
+## Stateの根拠
+
+各Aspectは必要に応じて次の補助情報を持ちます。
+
+### Evidence
+
+Stateを判断する根拠となる正本への参照です。Domain / Screen / System設計、Issue、PR、実装、test等を参照できます。
+
+`Ready` と `Validated` にはEvidenceを必須とします。Coverage Mapへ仕様本文を複製せず、AIと人間は必要な判断時にEvidence先の最新状態を確認します。
+
+### Blocking
+
+`Exploring` から `Ready` へ進めない重要な未決定事項を記載します。TODO一覧として使用せず、「なぜReadyではないか」を説明する範囲に限定します。
+
+独立して追跡すべき作業はIssueを正本とし、BlockingからそのIssueを参照します。
+
+### Deferred
+
+意図的に探索または判断を後回しにしている場合に使用します。DeferredはStateとは別の情報であり、`Unexplored` または `Exploring` の状態を隠しません。
+
+Deferredには次を記載します。
+
+- Reason: なぜ現在は探索しないのか
+- Revisit: どの条件を満たしたら再検討するのか
+- Tracking: 独立した作業が存在する場合のIssue等への参照。任意
+
+固定日付や経過期間を必須にしません。Deferredが長期間継続していることだけを理由に優先順位を変更しません。
+
+## 表現方法
+
+初期運用では、単一のMDX内に人間が俯瞰できるCoverage Mapと、必要なDetailsを記載します。構造化YAML / JSONや専用rendererは、実運用で必要性を確認するまで導入しません。
+
+Coverage MapのStateを設計探索状態の正本とし、DetailsはEvidence、Blocking、Deferredを補足します。Detailsはすべてのcellへ機械的に作成せず、根拠や未決定事項を説明する必要がある箇所だけ記載します。
+
+### Coverage Map
+
+| Domain | Capability | Concept | Use Case | UX / UI | Contract | Data | Quality / Edge Cases |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| - | - | Unexplored | Unexplored | Unexplored | Unexplored | Unexplored | Unexplored |
+
+この表は形式例であり、初期導入時に全Domain / Capabilityを完全に棚卸しすることを要求しません。実際のCoverageは必要な範囲から追加します。
+
+### Detailsの形式
+
+```text
+Domain / Capability / Aspect
+State: Exploring
+
+Evidence:
+- 正本への参照
+
+Blocking:
+- Readyへ進むために必要な重要判断
+  - Tracking: Issue #...
+
+Deferred:
+- Reason: 現在探索しない理由
+- Revisit: 再検討する条件
+- Tracking: Issue #...（必要な場合）
+```
+
+## AI支援開発での参照
+
+AIは設計・実装・レビューの開始または再開時、対象CapabilityがCoverage Mapに存在する場合は次の順序で利用します。
+
+1. 対象Capabilityと各AspectのStateを確認する
+2. Evidenceから対象作業に必要な正本を読む
+3. `Exploring` の場合はBlockingを確認し、未決定の重要仕様を推測で補完しない
+4. Deferredがある場合はRevisit条件と今回の作業が一致するか確認する
+5. Coverage MapのStateだけを仕様の代わりに使用しない
+
+Coverage MapにCapabilityがないことは、そのCapabilityが存在しないことや設計不要であることを意味しません。対象作業で必要になった場合は正本を調査し、Coverageへの追加候補を提示します。
+
+## 更新ルール
+
+Coverageは文書の一行変更ごとに更新せず、設計状態に意味のある変化が生じたイベントで見直します。
+
+主な契機は次のとおりです。
+
+- 設計作業の開始・再開
+- 重要な設計判断の合意
+- 設計PRの作成前
+- Prototype・実装・test等による検証後
+- Issueまたはイテレーションの完了時
+- Capability、Domain、主要Use Caseの変更時
+- 複数の関連PRを統合した後
+- DeferredのRevisit条件を満たしたとき
+
+AIは設計・Issue・PR・実装の変更からState、Evidence、Blocking、Deferredの変更候補を検出して提示します。
+
+次の変更は人間との合意後に確定します。
+
+- `Exploring → Ready`
+- `Ready → Validated`
+- `Ready / Validated → Exploring`
+- Capabilityの追加・削除・大幅な粒度変更
+- Coverage Aspectの追加・削除
+- 優先順位上の意味を持つDeferredの設定・解除
+
+合意済みStateを変えず、明確な正本へのEvidenceを追加・修正するだけの変更は、通常の設計更新として扱えます。
+
+## 棚卸し
+
+Coverageの棚卸しは固定周期ではなく、既存のIssue・イテレーション棚卸しと同様にイベント駆動で行います。
+
+棚卸しでは次を確認します。
+
+1. StateとEvidenceが最新の正本と一致しているか
+2. Blockingがすでに解消されていないか
+3. 新しいBlockingが発生していないか
+4. DeferredのRevisit条件を満たしていないか
+5. Ready / Validatedを維持できるか
+6. 新たに扱っているCapabilityがMapから漏れていないか
+
+AIは未探索やDeferredを事実として提示しますが、Coverageだけを根拠に作業の優先順位を決定しません。優先順位はProductの目的、Release範囲、Issue、現在のGoalを踏まえて人間が判断します。
+
+## 初期運用と見直し
+
+最初から完全なCoverage管理を構築しません。Memoriaの通常の設計・実装で利用し、実際に必要になった情報だけを追加します。
+
+初期運用では次を行いません。
+
+- Coverageの数値スコア化
+- 全Capabilityの完全な棚卸しを導入条件にすること
+- Coverage専用Issueの機械的な作成
+- YAML / JSONとの二重管理
+- Coverageだけを根拠とする優先順位付け
+- 固定期間によるDeferredの警告
+
+実運用後、イテレーションの振り返りまたはCoverage棚卸しで、Aspect、State、Capability粒度、補助情報、更新コスト、AIの参照方法が有効か見直します。構造化データや自動検証は、その必要性が確認された場合に別途設計します。
