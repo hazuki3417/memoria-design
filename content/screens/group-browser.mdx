@@ -31,7 +31,9 @@ Groupごとに名称を識別できるようにします。Media件数や代表t
 
 ### 選択したGroup
 
-Groupを選択した状態では、Mediaを主要contentとして扱い、少なくとも次を確認できるようにします。
+Groupを選択した状態では、Mediaを主要contentとして扱います。HeaderではGroup identityと操作領域を分け、Group名、aggregate Media総件数、および現在利用可能なGroup管理Actionと選択を閉じるActionへ到達できるようにします。Personal / Communityで同じ基本layoutを使用し、contextごとに別のHeader構造を作りません。権限がないGroup管理Actionは非表示とし、非表示Actionのための透明なplaceholderや空き領域を予約しません。表示対象Actionが0件から複数件まで変化しても成立するlayoutとします。
+
+少なくとも次を確認できるようにします。
 
 - Group名
 - このGroupが所属するGroup
@@ -77,9 +79,9 @@ Groupは名称だけで成立でき、Mediaや所属先Groupがない状態で�
 
 ### Group名を変更する
 
-Personal contextではUser本人、Community contextではAdministratorがGroup名を変更できます。
+Personal contextではUser本人、Community contextではAdministratorがGroup名を変更できます。Group Browser内の小さなDialogで名称変更を行い、別のGroup編集画面へ遷移しません。
 
-renameしてもGroup identity、Media relation、Group間relationを維持します。
+renameしてもGroup identity、Media relation、Group間relationを維持します。成功後はDialogを閉じ、Group一覧、選択中Group Header等で同じGroupを表している名称へ反映します。
 
 ### Group間relationを管理する
 
@@ -103,9 +105,15 @@ Groupにparent / child relationが0件の状態も正常として扱います。
 
 Personal contextではUser本人、Community contextではAdministratorがGroupを削除できます。
 
-削除前に、対象GroupによるMedia分類と他Groupとのrelationが削除される一方、Media本体と他Group本体は削除されないことを理解できる確認を提供します。Group名の再入力は要求しません。
+削除はdestructive ActionとしてConfirmation Dialogで確認します。対象Group名を示し、対象GroupによるMedia分類とparent / child relationが削除される一方、Media本体と他Group本体は削除されないことを理解できるようにします。Group名の再入力は要求しません。
 
-削除によってDAGが途切れても、Systemは他Group間のrelationを自動生成して再接続しません。
+削除によってDAGが途切れても、Systemは他Group間のrelationを自動生成して再接続しません。削除結果が確定するまでは重複実行を防ぎます。成功したGroupが現在選択中であれば選択を解除し、aggregate Media Collectionを破棄してGroups画面の未選択状態へ戻り、成功Feedbackを示します。失敗した場合は成立済みの選択中GroupとMedia表示を不必要に破棄せず、失敗理由に応じたFeedbackを示します。
+
+### 選択中Groupの操作
+
+選択中GroupのHeaderから、現在利用可能なGroup管理Actionとしてrename、Group間relation管理、削除へ到達できるようにします。Group間relation管理は本仕様のrelation編集Dialogを開きます。選択を閉じるActionはGroup管理権限とは独立した画面操作として常に利用でき、実行するとGroup選択を解除して未選択状態へ戻ります。Group選択はURLやbrowser historyの正本ではないため、選択を閉じてもNavigation historyを変更しません。
+
+PersonalではUser本人にGroup管理Actionを提供し、CommunityではAdministratorに提供します。Community Member等、Group管理Capabilityを持たないUserには管理Actionをdisabled表示するのではなく非表示とします。権限による表示数の差を吸収するための透明なdummy Actionやplaceholderは使用しません。Capability自体は存在するものの現在状態・constraintによって一時的に実行できないActionの表現は、各Actionの状態設計に従います。
 
 ### Media分類
 
