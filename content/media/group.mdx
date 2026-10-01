@@ -43,8 +43,9 @@ Group名はscope内でGroupを識別する名称です。
 - 別scopeでは同じGroup名を許可する
 - 大文字・小文字、全角・半角、内部の連続空白等をSystemが自動統合しない
 - renameにも同じ名称規則と重複判定を適用する
+- Group名はtrim後100文字以内とする
 
-最大文字数等の具体的な入力上限は、API / DB契約を具体化するときにUIとStorageの都合ではなくProduct上必要な制約として確定します。
+100文字はGroupを一覧・検索・relation選択で人が識別する名称として十分な表現幅を確保しつつ、極端に長い名称をProductとして受け付けないための上限です。DB column幅やUI layoutから逆算した値ではなく、Product上の入力制約として扱います。作成とrenameの双方へ同じ上限を適用します。
 
 ## Mediaとの関係
 
@@ -159,7 +160,6 @@ TagとGroupは併用でき、どちらもアクセス制御には使用しませ
 
 次はGroupのdomain semanticsを変更せず、関連設計を進める段階で確定します。
 
-- Group名の最大文字数等、具体的な入力上限
 - Group一覧queryのcursor paginationと検索matchingの具体的なAPI契約
 - Group作成時に所属先Groupを同時指定できるか等の操作上のshortcut
 - Group側から任意のMedia集合を選ぶ分類Interactionや、filter結果全件を対象にするquery-based bulk operation
