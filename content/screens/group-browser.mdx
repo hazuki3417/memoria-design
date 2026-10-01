@@ -23,7 +23,7 @@ PersonalとCommunityで同じGroup interaction modelを利用し、Application c
 
 現在scopeに存在するGroupをflatな一覧として提示します。
 
-Groupごとに名称を識別できるようにします。Media件数や代表thumbnail等はGroupを識別する補助情報として提示できますが、特定の件数・枚数・layoutをProduct仕様として固定しません。
+Groupごとに名称を識別できるようにします。Media件数や代表thumbnail等はGroupを識別する補助情報として提示できますが、特定の枚数・layoutをProduct仕様として固定しません。Collectionの件数を提示する場合は、取得済み件数ではなく現在のscope・検索条件に一致するGroup総件数を表示します。
 
 一覧はDAG上のroot Groupだけに限定しません。所属先Groupの有無にかかわらず、現在scopeに存在するすべてのGroupを検索・発見できるようにします。
 
@@ -31,12 +31,13 @@ Groupごとに名称を識別できるようにします。Media件数や代表t
 
 ### 選択したGroup
 
-Groupを選択した状態では、少なくとも次を確認できるようにします。
+Groupを選択した状態では、Mediaを主要contentとして扱い、少なくとも次を確認できるようにします。
 
 - Group名
 - このGroupが所属するGroup
 - このGroupに所属するGroup
-- このGroupへ分類されているMedia
+- このGroup自身およびすべてのdescendant Groupへ分類されているMediaを重複排除したCollection
+- 上記Media Collectionの総件数
 
 Groupには一意なrootやpathが存在しないため、folder breadcrumbを現在位置やGroup identityとして表示することを前提にしません。
 
@@ -56,7 +57,11 @@ Userは現在scopeのGroupをGroup名のfree textで検索できます。
 
 一覧または検索結果からGroupを選択すると、同じGroups画面内でそのGroupのMediaを優先して確認でき、必要に応じて所属関係も確認できます。
 
-Group選択はGroups画面内でMediaの探索対象を切り替える操作として扱います。選択状態は画面内で保持し、Groupを切り替えるたびにURLやbrowser historyを更新しません。
+Group選択はGroups画面内でMediaの探索対象を切り替える操作として扱います。選択したGroup自身への直接分類に加え、すべてのdescendant Groupへ分類されているMediaを再帰的に含め、複数のGroupやDAG上の複数経路から到達する同一Mediaは1件として重複排除します。Mediaは標準のMedia Browserと同様に作成日時の降順で提示します。選択状態は画面内で保持し、Groupを切り替えるたびにURLやbrowser historyを更新しません。
+
+選択GroupのMedia Collectionには追加の検索・Filterを提供しません。Groupを選択すること自体をMedia集合を発見・絞り込む主要なInteractionとし、選択後に恒常的な追加検索・Filterが必要になる場合は、機能を重ねて補う前にGroup構造・分類方法・Group BrowserのDiscovery UXが適切かを見直します。Mediaそのものを検索・Tag等で絞り込んで発見する責務はMedia Browserが担います。
+
+Media CollectionはRelay Connectionによる無限ローディングとし、表示する件数は現在取得済みMedia数ではなく、選択Group自身とすべてのdescendantsから得られる重複排除後のMedia総件数とします。
 
 ### Groupを作成する
 
@@ -102,7 +107,7 @@ AdministratorとMemberを含む現在scopeで分類権限を持つUserは、既�
 
 Initial Releaseでは[Media Browser / Detail](/screens/media-browser-detail)のMedia Detailを、Mediaを既存Groupへ追加・除外する主要な入口とします。
 
-Group Browserでは選択したGroupへ分類済みのMediaを確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類はMedia Browserで明示選択したMedia集合から実行し、同じ既存Groupへの追加・除外を適用します。
+Group Browserでは選択したGroup自身およびすべてのdescendant Groupへ分類済みのMediaを重複排除して確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類はMedia Browserで明示選択したMedia集合から実行し、同じ既存Groupへの追加・除外を適用します。
 
 ## 状態
 
@@ -166,4 +171,4 @@ Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで�
 
 Wideでは選択中GroupのMediaを主領域、関連Groupを補助領域とする2カラムを基本構成とします。Mediaの閲覧を優先し、関連Groupには「このGroupの所属先」と「このGroupに所属するGroup」を区別して表示します。relation編集DialogではWide時に選択中Groupを中心としてparents / childrenを左右に配置する構成を基本とします。Group一覧・検索から選択中Groupへアクセスできる導線を維持します。Compact / Mediumでの具体的な配置、カラム幅、折りたたみの有無・初期状態は後続のUI具体化・Visual Reviewで決定し、現段階では固定しません。CompactでもGroup選択後に別の専用詳細画面を経由せず、Mediaへ速やかに到達できるpresentationとします。
 
-Group名検索、Group選択、管理Action、relation navigationをhoverだけに依存させず、touchとkeyboardでも主要Capabilityへ到達できるようにします。
+Group名検索、Group選択、管理Action、relation情報の確認をhoverだけに依存させず、touchとkeyboardでも主要Capabilityへ到達できるようにします。
