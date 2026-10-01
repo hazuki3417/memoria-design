@@ -45,6 +45,18 @@ Groupには一意なrootやpathが存在しないため、folder breadcrumbを�
 
 Group間relationのDAG構造例は[Media Group - Group同士の関係](/media/group#group同士の関係)を参照します。このScreenではDAG全体をgraphとして表示することを要求せず、選択Groupを中心に直接relationを確認します。
 
+### Group metadata
+
+選択中Groupのrelation情報はMediaより低い優先度の補助情報として扱い、このGroupのdirect parentsとdirect childrenだけを確認できるようにします。descendant全体はaggregate Media Collectionの成立条件には利用しますが、metadataとして再帰的なDAGを展開しません。
+
+metadataに表示するparent / child GroupはGroup Navigationの入口にせず、選択対象を切り替えるclickableなGroup一覧として扱いません。別Groupを探索・選択する責務はGroup discoveryが担います。relation metadataは現在Groupの構造を理解するための情報に限定し、DAG traversal UIへ発展させません。
+
+relation metadata自体をinline編集UIにはしません。relationを変更する場合はHeaderのRelations Actionからrelation編集Dialogへ進み、閲覧と編集の責務を分離します。
+
+direct parents / direct childrenはそれぞれ最大10件のため、metadata表示ではPaginationや追加読み込みを提供せず全件を確認できるようにします。0件の場合は正常なEmpty stateとして該当relationがないことを明示します。
+
+MediaがRelay Connectionによる無限ローディングであるため、metadataをMedia Collectionの物理的な末尾へ配置することは要求しません。Mediaより低い情報優先度を維持したうえで、固定領域、折りたたみ等の具体的presentationはUI具体化・Visual Reviewで決定します。
+
 ## 操作
 
 ### Groupを検索する
