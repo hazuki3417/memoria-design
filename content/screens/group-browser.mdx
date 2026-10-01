@@ -50,7 +50,7 @@ Userは現在scopeのGroupをGroup名のfree textで検索できます。
 
 検索はGroup DAGの特定階層やrootだけを対象にせず、現在scopeのGroup全体を対象とします。検索結果からGroupを選択すると、同じGroups画面でそのGroupのMediaを確認できます。
 
-検索のmatching algorithmやAPI pagination方式等の実装契約は本Screen Specificationでは固定しません。
+検索のmatching algorithmやAPI pagination方式、Group間relation追加候補の取得契約は本Screen Specificationでは重複定義せず、[GraphQL契約](/system/api/graphql)を正本とします。
 
 ### Groupを選択する
 
