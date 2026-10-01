@@ -614,10 +614,22 @@ input ScopeInput {
 extend type Query {
   mediaGroups(scope: ScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
   mediaGroup(id: ID!): MediaGroup
+  mediaGroupParentCandidates(
+    groupId: ID!
+    search: String
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): MediaGroupConnection!
 }
 ```
 
-`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、[Issue #131](https://github.com/hazuki3417/memoria-design/issues/131)で同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
+`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補は `mediaGroupParentCandidates(groupId:)` で取得します。対象Groupの保存済み所属からscopeを確定するため `ScopeInput` は要求しません。結果には同一scopeのGroupのうち、対象Group自身、既存の直接所属先、追加すると循環するGroupを含めません。検索・sort・paginationは通常のGroup一覧と同じ規則（大文字・小文字を区別するname部分一致、name ASC・同名時ID ASC、opaque cursor）を使用します。表示用の `MediaGroup.parents` / `children` を編集候補判定の代替にはしません。
+
+`mediaGroupParentCandidates` はrelation編集専用Queryであり、PersonalではUser本人、CommunityではAdministratorだけが利用できます。対象Groupが存在しない、または現在Userから閲覧できない場合は `NOT_FOUND`、閲覧可能だがrelation管理権限がない場合は `FORBIDDEN`、検索・pagination引数が契約違反の場合は `VALIDATION` とします。
+
+候補一覧は各Query実行時点の状態から計算し、複数pageにまたがるDAGのsnapshot一貫性は保証しません。候補取得後にGroup名・relation・権限等が変化する可能性があるため、`addMediaGroupRelation` は実行時点のscope・認可・自己参照・重複・循環を必ず再検証します。候補取得時には追加可能でもMutation時点で成立しなくなったrelationは `CONFLICT` とします。DAG全体graph取得を主要契約にしません。
 
 ### Command
 
