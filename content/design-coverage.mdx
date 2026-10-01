@@ -91,9 +91,38 @@ Coverage MapのStateを設計探索状態の正本とし、DetailsはEvidence、
 
 | Domain | Capability | Concept | Use Case | UX / UI | Contract | Data | Quality / Edge Cases |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| - | - | Unexplored | Unexplored | Unexplored | Unexplored | Unexplored | Unexplored |
+| Media | Group | Ready | Ready | Ready | Exploring | Ready | Ready |
 
 この表は形式例であり、初期導入時に全Domain / Capabilityを完全に棚卸しすることを要求しません。実際のCoverageは必要な範囲から追加します。
+
+### Media / Group
+
+#### Concept / Use Case / UX / UI / Data / Quality / Edge Cases
+
+State: Ready
+
+Evidence:
+- [Media Group](/media/group)
+- [Media関連ユースケース](/media/use-cases)
+- [Media論理データモデル](/media/data-model)
+- [Media物理データモデル](/media/physical-data-model)
+- [Mediaの整合性とTransaction](/media/consistency-transactions)
+- [Group一覧・詳細](/screens/group-browser)
+- [Issue #42](https://github.com/hazuki3417/memoria-design/issues/42)
+
+#### Contract
+
+State: Exploring
+
+Evidence:
+- [Media Group](/media/group)
+- [GraphQL API](/system/api/graphql)
+- [Issue #42](https://github.com/hazuki3417/memoria-design/issues/42)
+
+Blocking:
+- Group固有のGraphQL Operation、Input / Payload、relation fieldとGroup名検索matchingの具体契約を確定する
+  - Tracking: [Issue #42](https://github.com/hazuki3417/memoria-design/issues/42)
+
 
 ### Detailsの形式
 
