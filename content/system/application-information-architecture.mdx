@@ -117,7 +117,7 @@ Userの主な関心と管理対象はMediaです。GroupsはMediaの発見・整
 
 ### GroupsとTagsの責務
 
-GroupsはPersonalで`/groups`、Communityで`/communities/[communityId]/groups`を基本URLとします。Group選択は分類オブジェクト自体へのNavigationではなく、Groups画面内でMediaの探索対象を切り替えるLocal Interaction Stateとして扱います。選択中Groupをquery parameter等のURL stateへ昇格させず、Group切り替えの履歴をbrowser historyへ積みません。初回リリースではTags専用画面と独立Navigationを設けません。MediaへのTag入力時、現在scopeに同名Tagがあれば再利用し、未登録なら作成して付与します。既存Tagの解除とTagによるMedia絞り込みもMedia内で提供します。Tag本体のrename・削除・統合は後続リリースへ送ります。将来のTags専用画面は、Media表示より表記ゆれや語彙の整備を中心目的とします。
+GroupsはPersonalで`/groups`、Communityで`/communities/[communityId]/groups`を基本URLとします。Group選択は分類オブジェクト自体へのNavigationではなく、Groups画面内でMediaの探索対象を切り替える操作として扱います。選択中Groupは画面内で保持し、query parameter等のURLへ反映せず、Group切り替えの履歴をbrowser historyへ積みません。初回リリースではTags専用画面と独立Navigationを設けません。MediaへのTag入力時、現在scopeに同名Tagがあれば再利用し、未登録なら作成して付与します。既存Tagの解除とTagによるMedia絞り込みもMedia内で提供します。Tag本体のrename・削除・統合は後続リリースへ送ります。将来のTags専用画面は、Media表示より表記ゆれや語彙の整備を中心目的とします。
 
 ## Account Menu
 
