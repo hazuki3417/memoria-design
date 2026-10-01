@@ -2,42 +2,356 @@
 
 ## 概要
 
-> 実装状況: Next.js、React、Apollo Client、feature構成、Biome、Vitest、Storybookは既存実装があります。状態管理の統一、GraphQL生成規約、主要画面の契約と認証境界には差分があります。
+Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Form、Interaction、生成Code、Testの共通判断を定義します。具体的なroute、GraphQL Operation、script、設定は `memoria-web` を正本とします。UIの意味、要求、状態、操作、Navigation、Design Systemは[Frontend UI設計・開発方針](/system/frontend-ui-development)と各Screen Specificationを正本とします。
 
-memoria-webにおける状態管理、component、GraphQL、form、生成codeの共通判断を定義します。具体的なroute、operation、script、設定は実装Repositoryを正本とします。
+既存の `memoria-web` 実装は再利用候補・参考情報であり、それ自体を要求やArchitectureの正本とはみなしません。新しい設計に適合する実装は再利用し、適合しない実装は変更または廃止できます。既存実装を一括移行するための大規模Refactorは前提にせず、変更対象ごとに判断します。
 
-## 状態管理
+## Architecture Principles
 
-| 状態 | 所有者 |
+Memoria WebはPure Clean ArchitectureやPure Vertical Slice Architectureをそのまま適用しません。Product Featureを変更と凝集の主要単位としつつ、Feature内部と外部Integrationの責務・依存境界を明示します。
+
+- Product設計を実装より優先し、既存Codeから要求を逆算しません。
+- Feature / Capabilityを主要な変更・凝集単位とします。
+- Vertical Sliceとして配置しても、すべての責務をFeatureへ閉じ込めません。UI、Application Logic、GraphQL Integration、Pure Product Judgmentを区別します。
+- 共通化は実際の再利用または横断責務が確認されてから行い、将来利用を予測した抽象化を行いません。
+- Next.js、React、Mantine、Apollo Client等のFrameworkやLibraryは実装基盤であり、Product Architectureそのものにはしません。Framework非依存化だけを目的とした抽象化も行いません。
+- Stateにはauthoritative ownerを定め、同じ意味のStateを複数の仕組みで独立して所有しません。
+- Testabilityは責務分離の結果として得るものとし、Testだけを目的としたLayerを追加しません。
+
+## Application Structure
+
+Top-level directoryは「どの種類のCodeか」ではなく「誰がその責務を所有するか」を表します。
+
+```text
+src/
+├── app/
+├── features/
+├── ui/
+└── infrastructure/
+```
+
+### `app`
+
+Next.jsのentry、routing、layout、page、route-level loading/error等を担当します。Product/Application Logicを蓄積する場所にはしません。route parameter等のNext.js固有入力をFeatureへ渡すことはできます。
+
+### `features`
+
+Media、Community、Account等のProduct Capabilityを所有します。Feature固有のUI、Interaction、State接続、Pure Logic、GraphQL Operation等を近接配置します。
+
+Feature間の直接依存は原則として避けます。複数Featureで同じCodeが必要になっても、再利用性だけを理由に `shared` / `common` へ移動しません。同一のProduct Conceptが独立した責務として存在する場合は、そのConcept自身をownerとして昇格させます。
+
+### `ui`
+
+Memoria Design Systemと、特定Featureに依存しないUI primitive / patternの実装を所有します。Featureで複数回利用されるだけでは `ui` へ移しません。Product semanticsを持つComponentはFeatureに留めます。
+
+`ui` から `features` へ依存しません。
+
+### `infrastructure`
+
+GraphQL Client、認証Integration、環境設定等、外部SystemやFrameworkとのIntegrationを所有します。`infrastructure` からProduct Featureへ依存しません。
+
+`shared`、`common` はTop-level directoryとして設けません。また `utils`、`lib`、`hooks`、`types`、`constants` のようなCode形態だけを表すTop-level directoryを標準化しません。既存分類に収まらない真の横断責務が見つかった場合は、実例に基づいて新しいArchitecture Boundaryを検討します。
+
+## Feature内部構成
+
+すべてのFeatureへ `domain/application/infrastructure/presentation` 等の固定Layerを作成しません。一方、Featureごとに同じ名前を異なる意味で使用することも避けます。
+
+> Directoryの存在を全Featureで統一するのではなく、Directory名と分類規則の意味をWeb全体で統一します。
+
+例:
+
+```text
+features/
+└── media/
+    ├── browser/
+    │   ├── components/
+    │   ├── hooks/
+    │   └── ...
+    └── detail/
+        ├── components/
+        └── ...
+```
+
+単純なFeatureではProduct namespace直下に配置し、複雑になった場合だけSliceを追加します。空のDirectoryや将来利用を想定したDirectoryを機械的に作成しません。
+
+`components/` はFeature/Slice固有Componentの配置に利用できます。`hooks/` はReact固有Hookが複数存在して分類価値がある場合に利用します。`types` や `utils` を雑多な置き場として作成せず、型・関数はownerと利用箇所へ近接配置します。
+
+## Component Architecture
+
+Componentは概念上、次の責務に分けます。これらを固定Directoryや固定Layerとして機械的に作成する必要はありません。
+
+- **Feature / Slice Component**: `MediaCard`、`MediaGrid` 等、Product semanticsを持つUI。
+- **Screen / Composition Component**: Feature外部のStateやIntegrationとFeature内部を接続し、画面またはSliceを構成するComponent。
+- **UI Component / Pattern**: `src/ui` が所有するFeature非依存のUI。
+
+依存の基本形は次のとおりです。
+
+```text
+                app
+                 │
+                 ▼
+              features
+              /      \
+             ▼        ▼
+            ui   infrastructure
+             │
+             ▼
+          Mantine
+```
+
+Componentは再利用性とTestabilityのためGraphQL / Apolloを知りません。Feature ComponentはMedia等のProduct semanticsを知ることができますが、Generated GraphQL Type、Query shape、Apollo Hookへ直接依存しません。
+
+Component分割は「将来再利用できるか」ではなく、独立した責務、State、Interaction、Visual Review、Testの境界があるかで判断します。意味のないJSX断片化と巨大Componentの双方を避けます。
+
+### Composition Root
+
+各Feature / Sliceの代表ComponentをComposition Rootとして利用できます。`Container`、`Presenter`、`Composition` 等の専用命名やDirectoryは標準化しません。
+
+Composition RootはGraphQL、Mapper、React State、Pure Logic、Feature Component等を接続し、下位Componentへ外部Integrationの詳細を漏らさない責務を持ちます。`page.tsx` はNext.js entryとして薄く保ち、Product LogicやGraphQL Interactionを蓄積しません。
+
+Composition Rootが肥大化した場合は、新しい抽象Layerを先回りして追加するのではなく、責務に応じてPure Logic、Mapper、Custom Hook、Componentへ分離します。
+
+## Logic Isolation
+
+Product/Applicationの判断、変換、Validation、State Transition、Derived State等でReactを必要としないものはPure TypeScriptとして実装し、React、Mantine、Apollo、DOMなしでUnit Testできる状態を基本とします。
+
+```text
+Component
+    ↓
+Custom Hook（React接続が必要な場合）
+    ↓
+Pure Logic
+```
+
+Custom HookはComponentからLogicを隠すための汎用的な移動先ではありません。React State、Lifecycle、Contextとの接続そのものが責務である場合に使用します。Reactを必要としない責務はPure TypeScriptを優先します。
+
+`useEffect` は外部Systemとの同期を主目的とし、導出可能な表示StateをEffectから再生成しません。`useMemo`、`useCallback` は意味的な責務分離の手段として使用せず、必要性がある場合に利用します。
+
+## State Ownership
+
+Stateの保存先をLibraryから決めず、まずauthoritative sourceとlifecycle / scopeを決定します。
+
+| State | Authoritative owner / mechanism |
 | --- | --- |
-| GraphQL server state | Apollo Client |
-| formの入力・検証・送信状態 | React Hook Form |
-| local UI state | ReactのuseState・useReducer |
-| route、共有可能な検索条件 | Next.js Router・search params |
-| 限定的なcomponent間共有 | React Context |
+| 永続的なProduct Data | Backend / GraphQL API |
+| GraphQL Remote StateのFrontend表現 | Apollo Client |
+| Formの編集中State | React Hook Form |
+| Navigation・共有可能なScreen State | URL / Next.js |
+| 一時的なInteraction State | React local state |
+| React subtreeで共有する依存・State | React Context |
+| Judgment、Transition、Derived State | Pure TypeScript |
 
-Apollo cache内のserver stateをReact stateへ重複保存しません。Redux、Zustand、Jotai、Recoilなどの追加global state libraryは、標準手段で管理できない具体的な要求が生じるまで採用しません。
+Apollo cacheはBackend Product DataのFrontend表現であり、最終authorityではありません。Query Dataを理由なくReact Stateへ複製しません。
 
-## ComponentとReact
+Form draftとServer上の保存済み値のように意味が異なるStateは重複とはみなしません。React Hook Formは編集中の値を所有し、保存後のauthorityはBackendへ移ります。
 
-機能を中心にcomponentを配置し、Presentation／Container／ViewModelの固定Layerを強制しません。custom hookは複数箇所で共有する振る舞いがある場合に導入します。
+URL Stateは「保持できるから」ではなく、そのStateがNavigation上Screenを識別し、共有・bookmark・reload・history復元するProduct上の意味を持つ場合に使用します。
 
-useEffectは外部systemとの同期を主目的とし、導出可能な表示stateをeffectから再生成しません。useMemo、useCallback、optimistic updateは計測された性能問題または必要な利用体験がある場合に限定します。
+Redux、Zustand、Jotai、Recoil等のGeneric State Managerは標準採用しません。将来、React標準API等では責務を適切に表現できない具体的要求が生じた場合はArchitecture判断として再検討できます。
 
-## GraphQLとApollo
+## Derived StateとInteractivity
 
-GraphQL operationとfragmentは対象featureの近くへ配置し、componentが必要なfieldを明示します。schema由来の型はCodegenで生成し、手書きや生成物の手編集を行いません。
+操作可否はComponentやApolloが独立して所有するStateではなく、Permission、Pending、Validation、Product State、Selection等のauthoritative stateから導出します。
 
-API dataへのアクセスはGraphQLとApollo Clientへ集約します。Mutation後は正確性を優先し、必要であればrefetchQueriesから始めます。複雑なcache更新は、利用体験や転送量の問題が具体化した場合だけ導入します。
+```text
+Authoritative States
+ ├ Permission
+ ├ Pending
+ ├ Validation
+ ├ Product State
+ └ Selection
+        ↓
+   Pure derivation
+        ↓
+Interaction availability
+```
+
+`canDelete`、`canSubmit` 等の判断にProduct/Application上の意味がある場合はPure Logicとして表現できます。`disabled` と `readOnly` は同義とはみなさず、Product meaningに応じて使い分けます。
+
+## Server / Client Boundary
+
+Server Componentを最大化すること自体を目的にしません。Server / ClientはBusiness Layerではなくexecution environmentの境界です。
+
+Product FeatureのGraphQL Remote Stateは **Client Apolloをdefault** とします。Server Queryを毎回対等な選択肢として比較せず、Serverで処理する明確な責務がある場合に採用します。
+
+Server側の代表的な責務は次のとおりです。
+
+- authentication / session
+- server-only credential
+- Application Shellの初期化
+- Clientへ到達する前に必要なredirect / navigation decision
+- Browserへ公開してはならない処理
+
+Media Browser、Media Detail、Group Browser、Settings、Form、Search、Mutation等の通常のProduct FeatureはClient Apolloを基本とします。
+
+Server initial fetchからApolloへhydrateする構成を標準化しません。ServerとClientで同一Remote Stateを二重所有し、cache synchronizationを複雑化させないためです。将来、明確な価値があるFeatureでは例外を設計できます。
+
+Client ComponentはInteraction、Client State、Browser API、Client-only runtimeが必要な範囲へ配置します。Error解消だけを目的に `"use client"` を上位へ移動しません。
+
+## GraphQL Integration
+
+Apollo ClientはGraphQL Remote Stateを扱うspecialized infrastructureです。Product/Application LogicやGraphQLと無関係なUI StateをApollo cacheへ持たせません。
+
+### GraphQL Boundary
+
+```text
+GraphQL / Apollo
+      │
+      ▼
+Generated Type
+      │
+      │ boundary / mapping
+      ▼
+Feature Model
+      │
+      ├── Pure Logic
+      └── Components
+```
+
+ComponentとPure Product/Application LogicへGenerated GraphQL Typeを漏らしません。境界は必須ですが、Mapper fileやFeature Model fileを機械的に作成する必要はありません。単純な変換はComposition内で行えます。変換に独立した意味、再利用性、Test価値が生じた場合はPure Mapperとして分離します。
+
+Generated Apollo Hookを常にCustom Hookで包みません。単純なCompositionでは直接利用できます。Pagination、Refetch、Mutation、Cache、Lifecycle等のReact接続自体が独立した責務になった場合にCustom Hookを検討します。
+
+### OperationとFragmentのownership
+
+GraphQL Operationは取得Entityではなく、そのOperationを必要とするProduct Use Case / Feature / Sliceが所有します。`*.graphql` sourceをFeatureの近くへ配置し、GraphQLという技術分類だけを理由に全Operationを一箇所へ集約しません。
+
+Fragmentも自動的な共有GraphQL Componentとはみなしません。Fieldの重複だけでは共有せず、同じsemantic contractが存在する場合に最も狭い共通Product ownerへ配置します。巨大なEntity共通Fragmentを作成してFeature間を結合しません。
+
+FragmentはComponentの最終Modelではなく、FeatureがBackendへ要求するGraphQL側のField Contractとして利用できます。Generated Fragment TypeもComponentへ直接渡しません。
+
+### SchemaとGenerated Code
+
+GraphQL API契約のSource of Truthは `memoria-api/schemas/graphql/` です。Web側Schemaはその契約のlocal mirrorであり、Webが独立して所有するSchemaではありません。
+
+目標配置は次のとおりです。
+
+```text
+src/
+├── features/
+│   └── .../*.graphql
+└── infrastructure/
+    └── graphql/
+        ├── schema/
+        ├── generated/
+        ├── client.ts
+        └── cache.ts
+```
+
+`src/infrastructure/graphql/schema/` はAPI-owned contract mirror、`src/infrastructure/graphql/generated/` はmachine-owned artifactとして扱います。Generated Codeは手編集しません。生成物内部の構造やFile sizeを人間向けArchitectureの判断材料にはしません。
+
+Generated Codeへ依存できるのはCompositionやMapper等のGraphQL BoundaryにいるCodeに限定し、Feature ComponentやPure Logicへ漏らしません。
+
+API SchemaからWeb Schema mirrorへの同期・drift検出方法は実装運用上の独立課題として扱い、推測で同期方式を固定しません。
+
+### MutationとCache
+
+Mutation後はBackend authorityとの整合性と実装の単純さを優先します。
+
+1. Mutation responseによるApollo normalized cacheの自然な更新を優先する。
+2. 十分でない場合は明示的なcache updateを検討する。
+3. Query semanticsをClientで安全に再現することが複雑な場合は、affected queryをrefetchする。
+
+Refetchは失敗した最適化ではなく、複雑なClient-side cache semanticsより正確性を優先する有効な選択肢です。
+
+Optimistic Updateは標準適用しません。利用体験上の価値があり、Server結果を高い確度で予測でき、rollbackが明確な場合に利用します。認可、部分成功、競合が重要な操作ではServer responseを優先します。
+
+## Query UI State
+
+Apolloの `loading`、`error`、`data`、`networkStatus` をそのままComponentのUI Contractにはしません。Feature BoundaryでProduct / UI上の意味へ解釈します。
+
+FeatureごとにInitial Loading、Content、Empty、Refresh、Load More、Not Found、Forbidden等の必要なStateを定義し、汎用 `AsyncState<T>` を先回りして全Featureへ強制しません。
+
+既に有効なProduct DataやUser Interaction Stateが存在する場合、後続のRefresh、Load More、Mutation等のPending / Failureだけを理由に破棄しません。Collection追加取得失敗時の詳細は[Frontend UI設計・開発方針](/system/frontend-ui-development)に従います。
+
+Empty Stateは単なる `data.length === 0` ではなく、空のLibrary、検索結果なし等のProduct contextに応じて解釈します。
+
+## MutationとError Interpretation
+
+ComponentはApollo Mutation Stateや `ApolloError` を直接UI Contractとして扱いません。Composition等のFeature BoundaryでServer response、cache/refetch、Feature State、Feedbackを調整します。
+
+Technical ErrorとUser-facing presentationを直接対応付けません。同じAuthorization Errorでも、画面自体を利用できない場合、編集中に権限を失った場合、Bulk Actionの一部だけ失敗した場合ではProduct上の意味とFeedbackが異なります。
+
+巨大な共通 `AppError` hierarchyを先に作らず、Feature固有のError interpretationから始めます。複数Featureで本当に同じsemantic contractが確認された場合だけ共通Conceptへ昇格させます。
+
+Backendの生Error messageをそのままUser向け標準表示には使用しません。Authorization、Validation、Conflict、Not Found、Partial Failure、Unexpected Failure等をFeature contextで解釈します。
+
+## Interaction & Feedback
+
+InteractionはApolloやReact Hook Formのtechnical stateではなく、Userから見たlifecycleとして設計します。
+
+```text
+User Intent
+    ↓
+Action
+    ↓
+Pending
+    ↓
+Result
+ ┌──┴───┐
+Success Failure
+    ↓       ↓
+State Update / Feedback
+    ↓
+Ready for next interaction
+```
+
+各Feature / Screenでは少なくともTrigger、Pending presentation、Interaction availability、Success、Failure、既存Stateの維持、Recovery / Retryを検討します。
+
+Pendingは原則として操作対象に最も近い場所で表現します。画面全体を操作不能にするのは、操作中に画面全体の整合性を維持できない場合に限定します。
+
+既に成立しているUI Stateを、後続通信のPending / Failureだけを理由に破棄しません。Initial Load failureでは画面のError Stateになり得ますが、RefreshやLoad Moreのfailureでは既存Contentを維持し、必要なFeedbackとRetryを提供します。
+
+UIの変化そのものがSuccessを十分に伝える場合、追加Notificationを機械的に重ねません。
+
+Feedback presentationはError typeだけで決めず、Userがその情報をどこで、どの程度継続して必要とするかで判断します。
+
+- Field: 特定入力に対する問題
+- Inline: 特定操作・局所領域に継続的に関係する情報
+- Notification: 一時的な操作結果
+- Page-level Alert: 現在の画面を利用するうえで継続して認識すべき状態
+- Blocked / Error State: 画面の主目的そのものを成立させられない状態
+
+具体的なFeedbackのvisual / behavioral patternはDesign Systemが所有し、本ArchitectureではState lifecycle、ownership、interpretation boundaryを定義します。
 
 ## Formと認証
 
-form stateはReact Hook Formへ一元化し、Client側validationは利用者支援として扱います。最終的なvalidationと認可はAPIが保証し、server validation errorをform上の対応fieldへ反映します。
+Form StateはReact Hook Formへ一元化し、Client側Validationは利用者支援として扱います。最終的なValidationと認可はAPIが保証し、Server Validation ErrorをFeature contextで解釈して対応Field等へ反映します。
 
-認証はNext.jsがHttpOnly session Cookieを保持し、必要なAccess TokenをAPI呼び出しへ渡すBFF寄りの構成を基本とします。tokenをBrowserの公開state、URL、logへ露出しません。具体的な認証設定は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)とUser設計に従います。
+認証はNext.jsがHttpOnly Session Cookieを保持し、必要なAccess TokenをAPI呼び出しへ渡すBFF寄りの構成を基本とします。TokenをBrowserの公開State、URL、Logへ露出しません。具体的な認証設定は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)とUser設計に従います。
+
+## Testing Architecture
+
+TestはCoverage数値のためではなく、責務に適した方法でBehavior、Contract、不変条件、失敗を確認します。
+
+| 対象 | 主な検証 |
+| --- | --- |
+| Pure Logic | Vitest Unit Test |
+| 意味のあるMapper / Transformation | Vitest Unit Test |
+| React Adapter / Custom Hook | React接続自体にTest価値がある場合に検証 |
+| Feature Component | Storybook、Interaction / Component Test |
+| UI Component / Pattern | Storybook、Accessibility、Visual Review |
+| 重要なUser Flow | Playwright E2E |
+
+Pure LogicのUnit TestではReact、Mantine、Apollo、DOMを必要としない状態を基本とします。Testは対象Codeへ近接配置します。
+
+StorybookはProduct Specificationではなく、実装を独立して観察・検証するための実行可能なExampleです。Visual Regression Test、Accessibility、Human Visual Review、E2Eの役割は[Frontend UI設計・開発方針](/system/frontend-ui-development)と[テスト設計](/test-design)に従います。
+
+## Implementation Conventions
+
+- `types.ts`、`constants.ts`、`utils.ts` をCode種別だけを理由に巨大な共有置き場へしません。
+- Pure FunctionをCustom Hookへ変換しません。
+- Apollo、Generated GraphQL Type、React Hook Form等の実装詳細を下位Componentへ漏らしません。
+- Feature AからFeature Bへの直接依存を原則として避けます。
+- 複数箇所で利用されるだけではFeature Componentを `ui` へ移しません。
+- Frameworkから独立させること自体を目的に抽象化しません。
+- FrontendへRepository、Service、Gateway等のLayerを機械的に導入しません。
+- Barrel exportはArchitecture Boundaryを表現する目的がある場合に利用し、import短縮だけを目的に全Directoryへ導入しません。
+- Generated Codeを直接編集しません。
+- 新しいDirectory分類を導入する場合、その名称と意味をWeb全体で一貫させます。
 
 ## 命名と品質
 
-componentはPascalCase、hookはuseで始め、variableとfunctionはcamelCaseとします。GraphQL operation名はPascalCaseとし、fragmentは所有componentと対象typeが識別できる名称にします。
+ComponentはPascalCase、Hookは `use` で始め、variableとfunctionはcamelCaseとします。GraphQL Operation名はPascalCaseとし、Fragment名はsemantic ownerと対象が識別できる名称にします。
 
-TypeScriptのstrictな型検査を基本とし、anyを避け、外部から受け取る未知の値はunknownから絞り込みます。formatとlintには既存のBiomeを使用し、同じ責務のESLintやPrettierを追加前提にしません。検証は[テスト設計](/test-design)とGitHub Actionsのquality gateに従います。
+TypeScriptのstrictな型検査を基本とし、`any` を避け、外部から受け取る未知の値は `unknown` から絞り込みます。FormatとLintには既存のBiomeを使用し、同じ責務のESLintやPrettierを追加前提にしません。検証は[テスト設計](/test-design)とGitHub ActionsのQuality Gateに従います。
