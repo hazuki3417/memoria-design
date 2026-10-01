@@ -103,7 +103,7 @@ Groupが複数の所属先を持てるため、Groupには一意なrootやbreadc
 
 Groupは名称だけで成立できます。作成時点で所属先Groupを持つことを必須にしません。
 
-所属先の指定を作成と同時に行えるかはUI上の利便性として決定できますが、Group成立のdomain条件にはしません。
+Group作成時は名称だけを入力して成立させます。所属先Groupの追加は作成後のGroup relation管理として別操作で行い、Group作成とrelation追加を一つの必須操作へ結合しません。
 
 ### rename
 
@@ -166,8 +166,6 @@ TagとGroupは併用でき、どちらもアクセス制御には使用しませ
 次はGroupのdomain semanticsを変更せず、関連設計を進める段階で確定します。
 
 - Group一覧queryのcursor paginationと検索matchingの具体的なAPI契約
-- Group作成時に所属先Groupを同時指定できるか等の操作上のshortcut
-- Group側から任意のMedia集合を選ぶ分類Interactionや、filter結果全件を対象にするquery-based bulk operation
 - GraphQL Operation名、Input / Payload、error表現
 
 Group全体をgraphとしてvisualizeする機能、Groupの作成者ownership、folder固有のmove semanticsはInitial Releaseの前提にしません。
