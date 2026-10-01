@@ -86,3 +86,7 @@ Communityまたは選択可能なMember等、判断に必要な情報を取得�
 表示領域や入力方式が変わっても、対象Community全体の解決状況を把握し、Communityごとに解決方法を選択できるCapabilityを維持します。
 
 対象Communityが多い場合でも、未解決のCommunityを見失わず、すべての必要な判断を完了できるようにします。具体的な一覧表現やlayoutは実装で決定します。
+
+## Visual Design（Visual Review方針）
+
+Communityへの影響は同一ページ内のMantine Stepperで段階を切り替えます。第1段階「管理状態の解消」では最後のAdministratorであるCommunityを一覧し、それぞれの保持・後任指定または削除を選択します。すべて解決済みになるまで「次へ」は無効です。削除を選択したCommunityがない場合は第2段階をskipし、最終Reviewへ進みます。第2段階へ進んだ後に戻っても選択内容は保持し、変更されたCommunityの名称確認は再評価します。前の影響確認へ戻る操作とFlow全体のキャンセルを区別します。実際の管理権限移譲・削除はこの画面では実行しません。
