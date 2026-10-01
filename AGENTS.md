@@ -35,6 +35,10 @@
 
 Context mapとAGENTSは参照経路であり、設計本文を複製しません。正本の追加・移動・変更では必要な索引と相互linkを同じPRで更新します。設計と実装、複数正本、会話上の合意が矛盾する場合は差異を報告し、重大な判断は人間との合意後に更新します。作業再開時や変更操作の結果が不明な場合は最新状態をreadで確認してから続行し、重複writeを避けます。
 
+## GitHub変更操作前の必須参照
+
+タスクの種類にかかわらず、branch・commit・PRを作成または更新する前に、`content/context/index.mdx`の「GitHub変更操作の事前確認」と`content/branch-strategy.mdx`の「PRの状態」を確認します。PR作成時は人間がDraftを明示したかを確認し、指示がなければ通常PRを作成します。Visual Reviewや試作であることを理由にDraftへ変更しません。具体的な運用ルールはブランチ運用規約を正本とします。
+
 ## UI/UX設計時の必須参照
 
 Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関する提案、設計、実装、レビューでは、最新のIssueと対象Screen / Domainを確認した後、`content/system/frontend-ui-development.mdx`、`content/design-system/ux-review.mdx`、`content/system/application-information-architecture.mdx`、関連する`content/design-system/patterns/`を参照します。具体的な読み取り順序は`content/context/index.mdx`の「Web画面・UI」に従います。
