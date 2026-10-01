@@ -35,7 +35,7 @@ Auth0で認証済みだがMemoria Userとして未登録の利用者が、Memori
 
 ### 登録せずに終了する
 
-利用者はMemoriaへの登録を確定せずに終了できます。この操作ではMemoria Userを作成せず、MemoriaとAuth0のsessionを終了して公開側へ戻します。
+利用者はMemoriaへの登録を確定せずに終了できます。「終了」を選択した場合は、nicknameの変更有無にかかわらず確認Dialogを表示します。Dialogの利用者向け本文は「登録せずに終了すると、ログアウトしてトップページに戻ります。」とし、認証基盤の名称は表示しません。「戻る」と「終了」を提示します。内部処理ではMemoriaとAuth0のsessionを終了します。前者では入力中のnicknameを保持して登録画面に戻り、後者を確定した場合だけMemoria Userを作成せずにLogoutして公開側へ戻します。
 
 ブラウザを閉じる等の暗黙的な離脱は、この明示的な終了操作とはみなしません。Auth0 sessionが残った状態で再びMemoriaへアクセスし、引き続き未登録である場合はRegistrationへ誘導します。
 
@@ -89,6 +89,12 @@ Login / Registration前後のreturn destinationと認証後のoperation再開に
 - 登録前はUpload、Community作成、参加申請を許可しません。
 - 同じissuer・subjectに対応するMemoria Userを重複作成しません。
 - 認証主体を一意に解決できない場合は登録を拒否します。
+
+## Visual Design（Visual Review方針）
+
+User Profile更新画面と同じフォーム・Field Error・Alert／Notificationのvisual表現を基準とします。登録画面固有の差分は見出し・説明、主Action「登録」、副Action「終了」、および終了確認Dialogです。新規登録では保存済み基準値との差分判定を適用せず、nicknameが有効であれば初期値のまま登録できます。
+
+登録中は重複操作を防ぎ、再試行可能な失敗では入力を保持します。継続不能な問題は一時的なNotificationだけに依存せず、ページ内Alertとして提示します。認証情報を確認できないBlocked状態では、タイトルを「登録できませんでした」、本文を「認証情報を確認できませんでした。もう一度ログインしてください。」とし、失敗した操作と確認できた理由・次の行動を分けて伝えます。登録成功はUser Profile更新のSavedと同じSuccessのOperation Feedbackとして扱い、共通のMantine Alertを内包したNotificationで提示します。登録完了のためだけに別外観のページ内Alertを追加しません。登録成功後は保持された安全な復帰先または標準入口へ遷移します。画面試作では実際のNavigationを行わず、Success Notificationを確認できるようにします。
 
 ## Responsive対応
 
