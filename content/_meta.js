@@ -15,6 +15,7 @@ export default {
   "technology-stack": "技術スタック",
   "-- Development": {"type":"separator","title":"開発・運用"},
   "development-process": "アジャイル開発",
+  "design-coverage": "Design Coverage Map",
   "local-development": "ローカル開発",
   "test-design": "テスト設計",
   "ci-cd": "CI/CD",
