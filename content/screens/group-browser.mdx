@@ -109,7 +109,9 @@ AdministratorとMemberを含む現在scopeで分類権限を持つUserは、既�
 
 Initial Releaseでは[Media Browser / Detail](/screens/media-browser-detail)のMedia Detailを、Mediaを既存Groupへ追加・除外する主要な入口とします。
 
-Group Browserでは選択したGroup自身およびすべてのdescendant Groupへ分類済みのMediaを重複排除して確認できますが、Group側から別のMedia選択UIを提供することはInitial Releaseの必須Capabilityとしません。複数Mediaの一括分類はMedia Browserで明示選択したMedia集合から実行し、同じ既存Groupへの追加・除外を適用します。
+Group Browserでは選択したGroup自身およびすべてのdescendant Groupへ分類済みのMediaを重複排除して確認し、1件のMediaから共通のMedia Detailへ進めます。一方、Mediaの複数選択やMedia集合に対するbulk Actionは提供しません。Group BrowserはMediaをGroup起点で発見・閲覧できるようにしつつ、画面自身が提供する管理操作はGroupの作成・rename・relation管理・削除等のGroup操作に限定します。
+
+Mediaを複数選択して分類・共有・削除等を行う操作は、Mediaを主体とするMedia Browserの責務とします。複数Mediaの一括分類はMedia Browserで明示選択したMedia集合から実行し、同じ既存Groupへの追加・除外を適用します。Group Browserから開いたMedia Detailでは、利用元Screenを理由にActionを制限せず、Media Detail共通仕様に従って現在context・対象Media・権限から1 Media単位のAction availabilityを導出します。
 
 ## 状態
 
