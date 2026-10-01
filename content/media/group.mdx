@@ -91,7 +91,8 @@ Groupが複数の所属先を持てるため、Groupには一意なrootやbreadc
 - 1 scopeに作成できるGroupは1,000件までとする
 - 1 Groupが直接所属できるGroupは10件までとする
 - DAGの深度は20段までとする
-- 1 Groupに直接所属するGroup数には独立した上限を設けず、scope内Group数と各Groupの直接所属先数によって間接的に制限する
+- 1 Groupが直接所属できるGroupは10件までとする
+- 1 Groupに直接所属するGroupも10件までとする
 
 自己参照だけでなく複数段の循環も禁止し、serviceまたはDBで循環検出を保証します。
 
@@ -129,16 +130,16 @@ Group削除によって途切れたDAGをSystemが自動的に再接続しませ
 
 ## Group relationの操作
 
-Group間relationは、対象Groupから「このGroupの所属先Group」を管理する操作として扱います。
+Group間relationは、対象Groupを中心に「このGroupが所属するGroup」と「このGroupに所属するGroup」の双方を管理する操作として扱います。
 
 Group詳細では少なくとも次の関係を確認できるようにします。
 
 - このGroupが所属するGroup
 - このGroupに所属するGroup
 
-Initial Releaseではrelation編集の主要方向を「このGroupの所属先を追加・解除する」に統一します。逆方向のrelationも情報として確認できますが、同じrelationに異なる編集概念を増やすことは前提としません。
+Initial Releaseでは、選択中Groupを基準として所属先Group（parents）と所属Group（children）の双方を同じrelation編集Interactionから追加・解除できます。Userは個別の追加・解除Commandを順番に実行するのではなく、編集後のrelation状態をDraftとして構成し、保存時に追加・解除の差分をまとめて反映します。
 
-所属先追加では同一scopeのGroupだけを候補とし、自分自身、既にrelationが存在するGroup、追加すると循環するGroupを選択可能な候補として扱いません。UIで事前に選択を防いでも、APIは現在状態を再検証して自己参照・重複・循環を拒否します。
+relation先の検索対象は同一scopeのGroupに限定します。検索結果からGroup自体を除外することで制約を表現せず、対象Groupとの各方向について現在のrelation状態と追加可否を識別できるようにします。自己参照、既存relation、循環、深度、直接relation数上限等により追加できない方向はActionを無効化し、Userが理由を確認できるようにします。UIで事前に選択を防いでも、APIは保存時の現在状態を再検証して制約違反を拒否します。
 
 relation解除は指定したrelationだけを削除します。他のGroup relationやMedia relationには影響せず、解除後に所属先が0件になっても正常です。GroupやMedia本体を削除しないため、Group削除と同等の強い破壊的確認は要求しません。
 
