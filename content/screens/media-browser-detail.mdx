@@ -124,6 +124,10 @@ bulk deleteは不可逆操作なので、実行前に選択件数と削除が復
 
 ### Contextに応じたその他のActionを実行する
 
+Media Detailが提供するProduct Actionは、Media Browser、Group Browser等のどのScreenからDetailを開いたかによって個別に定義しません。同じMedia Detail Capabilityを利用し、現在のApplication context、対象Mediaの状態・Custody、Membership / role等のProduct / Application ruleからAction availabilityを一貫して導出します。
+
+利用元Screenは、Detailを開いたCollectionの順序、前後Navigation、Detailを閉じた際の復帰先や維持する一覧状態等のBrowser contextを提供しますが、認可・業務上のAction availabilityの正本にはしません。同じApplication context、同じMedia、同じUser状態であれば、利用元Screenが異なることだけを理由にProduct Actionの可否を変えません。
+
 Detailから利用できるActionは現在contextとdomain上の権限に従います。
 
 Personalでは共有・共有解除、Original download、削除等、Communityでは権限のあるOriginal download・削除・共有解除等へ到達できます。
