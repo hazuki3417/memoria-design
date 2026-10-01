@@ -92,3 +92,16 @@ Userに非同期cleanupの完了を画面上で待つことは要求しません
 - 各段階を独立Screen、同一Screen内のstep、Dialog等のどのUI表現にするかは、このFlowでは規定しません。
 - 最終確定前であれば削除を開始せず、UserがFlowを中断できるようにします。
 - 削除確定後は同期的なcleanup完了を待たず、DELETINGへの遷移をもってMemoriaの利用を終了します。
+
+## 画面構成：固定4ステップ（Visual Review合意）
+
+アカウント削除の影響確認から最終Reviewまでを、同一ページ内のMantine Stepperで表現します。Stepperは操作量だけでなく、削除に伴う確認事項の全体像を示すため、次の4ステップを常に同じ順序で表示します。
+
+1. 削除されるデータ（必須）
+2. 管理状態の解消（最後のAdministratorであるCommunityがある場合のみ操作）
+3. 削除対象の確認（Communityの削除を選択した場合のみ操作）
+4. 最終確認（必須）
+
+「次へ」を押したとき、対応不要なステップは自動的にskipします。skipしたステップは完了チェックと区別して「対象なし」と表示し、「戻る」でも通過しません。最初から4項目を表示することで、対応不要と判定された確認事項も明示します。第2段階の選択変更時には第3段階の名称確認状態を再評価します。データ取得に失敗した場合は先へ進めず、再試行・中断を可能にします。Auth0再認証と削除の最終確定はStepper外の後続処理として扱い、プロトタイプでは実行しません。
+
+Storybookの統合プロトタイプは `memoria-web/src/components/AccountDeletionImpactPrototype/AccountDeletionImpactPrototype.tsx` を正本とします。旧Community単独プロトタイプは統合前の比較用であり、新しい導線では使用しません。
