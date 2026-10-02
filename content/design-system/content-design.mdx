@@ -1,0 +1,293 @@
+# Content Design
+
+## 目的
+
+MemoriaのContent Designは、UI上の言葉を説明文ではなくインターフェースの一部として設計するための共通方針です。
+
+文章を自然に整えること自体を目的とせず、利用者が現在の状態を理解し、必要な判断を行い、次の行動を選択し、操作の結果を予測・確認できる状態を作ります。
+
+中心原則は次のとおりです。
+
+> プロダクトが知っていることを書くのではなく、利用者が次の判断をするために必要なことを書く。
+
+Contentの品質は文字数の少なさだけでは評価しません。読んだあとに、利用者が判断するための疑問や不確実性がどれだけ減るかを重視します。
+
+## 適用範囲と正本
+
+この文書は、ButtonやMenu等のAction label、見出し、説明、Instruction、Validation、Feedback、Empty State、Loading / Processing、Permission、Confirmation等、利用者へ意味を伝えるUI上のContentに適用します。
+
+責務は次のように分離します。
+
+- **Content Design**: 何を、どのような言葉で伝えるか。
+- **Design System Pattern**: どこに、どのようなUI・振る舞いで提示するか。
+- **Screen Specification**: その画面で何を伝える必要があるか。
+- **Ubiquitous Language**: Memoriaにおける概念と標準用語。
+- **Web implementation**: React / Mantine等による具体的なUI実装。
+
+プロダクト共通の概念と標準用語は[ユビキタス言語](/ubiquitous)を正本とし、この文書へ複製しません。個別画面の情報、状態、Action、制約は対象Screen Specificationを正本とします。
+
+## Content Design Principles
+
+### 言葉をインターフェースとして設計する
+
+UI textは、完成したUIへ後から説明を付け足すものではありません。利用者が何を理解し、判断し、実行する必要があるかをUI設計と同時に考えます。
+
+Actionを具体的に表せる場合は、抽象的な「OK」「はい」「実行」より「変更を保存」「削除する」等、実行されるActionを理解できるlabelを優先します。
+
+### 利用者に必要な情報を選ぶ
+
+システムが保持している情報をそのまま表示せず、利用者の現在の目的と判断に必要な情報を選択します。
+
+内部状態を説明すること自体を目的にせず、それによって利用者の操作やデータがどういう状態になったかへ変換します。実装詳細は、利用者の判断に必要な場合だけ提示します。
+
+### 利用者に推論させない
+
+判断に必要な情報を利用者自身に補完させません。システムが条件を把握しており、その条件が次の判断に必要なら具体的に伝えます。
+
+一方、画面上の対象やActionから既に明らかな情報を文章で重複させません。短さではなく、必要な推論と認知負荷を減らすことを優先します。
+
+### 利用者との対話として書く
+
+UI textを独立した文章ではなく、利用者のActionや現在の状況に対するシステムの応答として扱います。
+
+「保存したい」というActionへの結果は「保存しました」のように利用者の操作へ対応させ、SUCCESS等の内部的な抽象状態へ置き換えません。
+
+### 利用者を評価しない
+
+利用者の入力や操作を「正しい / 間違っている」と評価せず、目的を達成するための条件を示します。
+
+「無効な入力です」ではなく、確認できている条件に応じて「8文字以上で入力してください」のように表現します。
+
+### 分かっている範囲を正確に伝える
+
+事実と推測を区別します。原因を特定できていない失敗を「ネットワークエラーです」等と断定しません。
+
+操作結果自体が確認できない場合も成功または失敗を推測せず、「保存されたか確認できませんでした」のように不確実であること自体を正確に伝えます。
+
+## 情報設計
+
+文章を書く前に、利用者が何を知る必要があるかを判断します。
+
+### User Question
+
+状況に応じて、主に次の疑問を評価します。
+
+- **Outcome**: 何が起きたか。
+- **State**: 現在どの状態にいるか。
+- **Reason**: なぜそうなったか。
+- **Recovery**: 次に何ができる、または何をすべきか。
+- **Consequence**: このActionを実行すると何が起きるか。
+
+すべての疑問へ毎回回答する必要はありません。判断やActionを妨げる疑問、誤った判断につながる疑問、不安につながる疑問を優先し、単なる好奇心にしか影響しない情報は必要性を確認します。
+
+Action実行前はConsequenceとConstraint、実行後はOutcome、State、必要なReasonとRecoveryを中心に評価します。判断に必要な情報は、可能な限り判断の前に提示します。
+
+### Information Type
+
+伝える情報は主に次の種類として整理します。
+
+- **Result**: 何が起きたか。
+- **Impact**: 利用者のデータ、状態、操作へどのような影響があるか。
+- **Cause**: なぜ起きたか。
+- **Action**: 次に実行できる、または必要なAction。
+- **Constraint**: 操作を成立させる条件や制約。
+
+すべてを固定順序で並べません。現在のUser Questionに必要な情報だけを選択します。
+
+Resultは結果がUIから明らかでない場合に伝えます。ImpactはResultだけでは安全に推測できない場合に伝えます。Causeは確認できており、理解や次のActionに役立つ場合だけ伝えます。原因を知っていることと表示することは同義ではありません。Actionは次の行動がUI全体から明らかでない場合に伝えます。Constraintは、可能であれば失敗後ではなくAction実行前に提示します。
+
+Content単体ではなく、周囲のlabel、状態、Navigation、Feedbackを含むUI全体で十分な情報があるかを評価します。
+
+## Voice & Tone
+
+MemoriaのVoiceは状況によらず次の性質を維持します。
+
+### Calm
+
+落ち着いて伝え、システム自身の感情を不要に表現しません。通常の成功で過度な祝福、絵文字、感嘆符を既定にしません。これらを絶対禁止とはせず、明確なUX上の意図がある場合だけ使用します。
+
+### Concise
+
+短くすること自体を目的にせず、判断に必要な情報を残して不要な情報を取り除きます。「エラーが発生しました」のように短くても利用者の疑問を減らさないContentは十分とはみなしません。
+
+### Concrete
+
+可能な範囲で対象、結果、条件を具体的に表現します。ただし、具体性を高めるために確認できていない原因や影響を作りません。ConcreteとAccurateが衝突する場合は正確性を優先します。
+
+### Neutral
+
+利用者の能力、判断、入力を評価しません。システム側も過度に自己評価せず、通常の成功で過度に喜び、通常の失敗で過度に謝罪しません。
+
+### Tone
+
+Voiceを維持したまま、状況に応じて情報量と注意の強さを調整します。
+
+- **Normal**: 通常状態や一般的な成功。必要な情報を簡潔に伝える。
+- **Informative**: Error、Permission、Empty State等。理解やRecoveryに必要な説明を追加する。
+- **Cautious**: 削除等の重要・不可逆なAction。簡潔さよりConsequenceの理解を優先する。
+
+## Content RoleとWriting Rules
+
+UI上のContentは主に次の役割として扱います。
+
+### Instruction
+
+利用者に必要なActionを伝えます。Actionが実際に必要な場合は「〜してください」を使用できます。「〜できます」はCapabilityや選択肢を表すために使用し、必須Actionを柔らかく見せる目的では置き換えません。
+
+本文中の直接的な命令形は既定にしません。一方、「ファイルを選択」のようなAction labelは命令文とは区別します。
+
+### Description
+
+状態、条件、意味、影響を説明します。基本的に事実を簡潔なです・ます調で表現します。
+
+### Action
+
+Button、Menu等では実行するActionそのものをlabelにします。「保存する」「削除する」「戻る」「キャンセル」のように、押した結果を予測できる表現を優先します。
+
+「OK」「はい」「いいえ」「実行」「確定」等の抽象labelは、具体的なActionを表せる場面では使用しません。情報を閉じるだけで意味のあるActionが他にない等、抽象labelが曖昧さを生まない場合まで一律に禁止しません。
+
+対象名をlabelへ含めるかはUI全体で判断します。「保存する」で対象が明らかなら「コミュニティ設定を保存する」と重複させる必要はありません。
+
+### Feedback
+
+システムから利用者への応答として、成立した結果を「〜しました」、成立しなかった結果を「〜できませんでした」等で伝えます。
+
+成功したことが画面遷移や状態変化から十分明らかな場合、成功message自体を省略できます。Feedbackを出すことを目的にせず、Outcome等の不確実性を解消する必要があるかで判断します。
+
+### 文体と表記
+
+システムからの説明、Instruction、Feedbackは原則として簡潔なです・ます調を使用します。Action labelや見出しには文末表現を強制しません。
+
+過度に丁寧な「ご入力いただけますでしょうか」等を既定にせず、丁寧さのために文章を複雑にしません。謝罪はErrorの定型句にせず、プロダクト側の問題によって利用者へ意味のある不利益を与え、謝意を示す必要がある場合に限定して検討します。
+
+句読点、感嘆符、疑問符は役割に応じて使用します。確認を必ず疑問文とYes / Noにする必要はありません。不可逆なActionではConsequenceを事実として示し、具体的なAction labelで判断できる構成を優先します。
+
+## Vocabulary & Mechanics
+
+プロダクト概念と標準用語は[ユビキタス言語](/ubiquitous)を使用します。同じ概念へ理由なく同義語を使い分けません。
+
+内部のclass、API、DB、status等の名称とUser-facing termは分離できます。実装識別子が存在することだけを理由にUIへ露出させません。
+
+Action vocabularyは結果の違いを表現します。例えば「削除」は対象自体を利用できない状態にするActionとして扱い、関係だけを取り除いて対象が残る場合は「外す」「解除」等、実際のConsequenceに合う語を選択します。具体的な標準語はUbiquitous Languageと対象Domainを正本とします。
+
+日時、timezone、数値、件数、file size、単位、duration、URL、email、全角・半角、英数字周辺のspace等の詳細な表記規則は、Productまたはlocalization上の必要性が確認された時点で追加します。初版では未確認の規則を先回りして固定しません。
+
+## Content Patterns
+
+Patternは定型文ではなく、その状況で解消すべきUser Questionを表します。Toast、Dialog、Inline等のdelivery mechanismとは分離します。
+
+### Validation
+
+利用者を評価するのではなく、目的を達成するためのConstraintを理解できるようにします。「無効です」「入力エラーです」で終わらせず、確認できている条件を具体的に示します。
+
+既知のConstraintを事前に提示できる場合は、失敗後だけに表示するよりAction前に理解できる設計を優先します。
+
+### Error / Failure
+
+Errorの存在を知らせること自体を目的にせず、Outcome、State、必要なReason、Recoveryを理解できるようにします。
+
+Resultを示し、必要に応じてImpact、Cause、Actionを追加します。Causeが不明なら推測せず、利用者が実行可能なRecoveryがない場合は無理に再試行を促しません。
+
+### Success
+
+成功messageは常に表示するものではありません。結果がUIから明らかでなく、利用者がOutcomeを確認する必要がある場合に提示します。
+
+### Confirmation / Destructive Action
+
+「本当に〜しますか？」を定型として使用せず、実行前にConsequenceと必要なConstraintを理解して判断できるようにします。
+
+不可逆性、影響範囲、誤操作時の損失が大きい場合にConfirmationの必要性を評価します。容易なUndoで安全に復旧できる場合は、Confirmationを増やすより実行後のUndoが適切な場合もあります。
+
+### Empty State
+
+正常に取得できた結果が0件である状態と、取得できなかった状態を区別します。
+
+初期状態でまだ作成されていないInitial Empty、検索・Filter条件に一致しないFiltered Emptyを区別し、必要な次のActionを提示します。取得失敗や権限不足を「データがありません」と表現しません。
+
+### Permission / Not Found
+
+利用できないActionまたは対象を示し、理由が確認できていて判断に役立つ場合は具体的に伝えます。利用者自身では変更できない権限に対して、実行不能なRecoveryを案内しません。
+
+Security上PermissionとNot Foundを区別してよいかはContentだけで決定せず、Security・Domain設計を正本とします。HTTP 404等の技術状態をそのままUser-facing contentへ翻訳しません。
+
+### Loading / Processing
+
+処理中であることと、利用者が待つ必要があるか、画面を離れてよいかを必要に応じて伝えます。
+
+短いLoadingでskeletonやprogress UIだけで状態が十分理解できる場合は文章を追加しません。「しばらくお待ちください」は利用者が実際にその場で待つ必要がある場合だけ使用します。Background processingでは必要に応じて「画面を閉じても処理は続きます」等のImpactを伝えます。
+
+### Connectivity / Offline
+
+接続状態を確認できている場合だけOfflineやConnectivityをCauseとして伝えます。一般的なrequest失敗を自動的に「ネットワークエラー」と表現しません。
+
+### Partial Failure
+
+成功と失敗が混在する場合は、全体を単純な成功または失敗へ丸めません。必要に応じて「10件中8件をアップロードしました。2件はアップロードできませんでした。」のように成立した範囲を伝えます。
+
+### Unknown State
+
+操作結果自体を確認できない場合は、成功または失敗を断定しません。「コミュニティが削除されたか確認できませんでした」のように、確認できていない対象と状態を明示します。
+
+## Feedback Patternとの関係
+
+Feedbackの表示場所とinteractionは[Feedback Pattern](/design-system/patterns/feedback)を正本とします。
+
+Field Error、Form Error、Operation Feedback、Blocking Errorの分類はFeedback Patternに従い、この文書ではそれぞれのContentをどう設計するかを規定します。
+
+Feedbackのtitleやbodyを設計する場合も固定templateへ当てはめません。対象や失敗した操作が表示位置から明らかな場合は冗長なtitleを追加せず、User QuestionとUI全体から必要なResult、Impact、Cause、Action、Constraintを選択します。
+
+## Examples & Anti-patterns
+
+Examplesは定型文としてコピーするためではなく、原則の適用方法を示すために使用します。
+
+| Before | After | 主な理由 |
+| --- | --- | --- |
+| エラーが発生しました。 | 変更を保存できませんでした。 | 抽象的なsystem stateではなくResultを示す |
+| 無効な値です。 | 1〜100の数字を入力してください。 | 評価ではなくConstraintを示す |
+| はい / いいえ | 削除する / キャンセル | ActionとConsequenceをlabelから判断できる |
+| 🎉 プロジェクトの作成が完了しました！ | プロジェクトを作成しました。 | 不要な感情表現を除き、Resultを簡潔に示す |
+| ネットワークエラーです。 | 保存できませんでした。もう一度お試しください。 | Causeを確認できない場合に断定しない |
+
+次の表現や設計は既定として避けます。ただし語そのものを絶対禁止するのではなく、文脈上必要な情報を満たしているかで判断します。
+
+- 「エラーが発生しました」「問題が発生しました」「正常に処理されました」等の抽象状態だけで終える。
+- 具体的なActionを表せる場面で「OK」「はい」「いいえ」だけを使用する。
+- API、token、HTTP status等、判断に不要な内部実装を露出する。
+- 確認できていないCauseを断定する。
+- 「無効」「誤り」等で利用者を評価し、達成条件を示さない。
+- 通常の成功や失敗へ過度な祝福、謝罪、感情表現を加える。
+- UIから明らかな情報を繰り返し、認知負荷を増やす。
+- 必要なRecovery、Consequence、Constraintを欠いたまま短さを優先する。
+- Outcomeが不明なのに成功または失敗を断定する。
+- 同じ概念へ理由なく異なる用語を使用する。
+
+Exampleは先回りして網羅しません。AIが繰り返し判断を誤る、Reviewで繰り返し議論になる、またはMemoria固有の重要な判断が確認された場合に追加します。
+
+## AIによる設計・レビュー
+
+AIはユーザー向け文言を新規作成・変更するとき、文章生成から始めず、次の順序で判断します。
+
+1. **Context**: 利用者は何をしようとしているか。Action前か後か。現在何が起きているか。
+2. **User Question**: Outcome / State / Reason / Recovery / Consequenceのうち何を知る必要があるか。
+3. **Information**: Result / Impact / Cause / Action / Constraintのうち何を伝える必要があるか。
+4. **Content Role**: Instruction / Description / Action / Feedbackのどの役割か。
+5. **Voice & Tone**: Calm / Concise / Concrete / Neutralを維持し、Normal / Informative / Cautiousを選ぶ。
+6. **Expression**: Ubiquitous Languageとこの文書に従って具体的な文言へする。
+
+文言を具体的にするために、設計、API契約、実装等から確認できないCause、Impact、Recoveryを作りません。重要な情報が不足し、Product上の判断が必要な場合は推測で補完せず、人間との設計判断または未解決Issueとして扱います。
+
+AI Reviewでは文言単体ではなくUI全体を対象にし、少なくとも次を確認します。
+
+1. **必要性**: 利用者の判断に必要なContentか。不要な文章を追加していないか。
+2. **十分性**: 判断に必要なOutcome / State / Reason / Recovery / Consequenceが不足していないか。
+3. **正確性**: 確認できていないCause、Result、Impactを断定していないか。
+4. **具体性**: Error、Problem、Invalid、OK等の抽象表現だけに依存していないか。
+5. **一貫性**: Voice、Content Role、Ubiquitous Language、対象Screen / Domainの用語と整合しているか。
+
+機械的に検出できる表現上の問題と、文脈判断が必要なContent Reviewは分離します。将来lintを導入する場合も、lintだけで「この情報が必要か」「Recoveryが実行可能か」「Confirmationが必要か」等を判断したことにはしません。
+
+## 設計・実装時の参照順序
+
+Contentを含むUIを設計・実装・レビューする場合は、[Context map](/context)のWeb画面・UIの読み取り順序に従い、少なくとも対象Screen / Domain、[Frontend UI設計・開発方針](/system/frontend-ui-development)、[UX設計・レビュー基準](/design-system/ux-review)、このContent Design、関連Pattern、[ユビキタス言語](/ubiquitous)を確認します。
+
+個別画面で得られた文言を機械的に共通ルールへ昇格させません。複数画面へ再利用できる判断、または明らかな横断要件として確認されたものだけをこの文書へ反映します。
