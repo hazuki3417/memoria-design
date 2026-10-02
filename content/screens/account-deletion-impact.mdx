@@ -33,7 +33,9 @@ Userは提示された自身のdataへの影響を確認し、account削除Flow�
 
 ### 削除を中止する
 
-Userはaccount削除を開始せずにFlowを終了できます。Communityへの対応等、このFlow内で行った選択または入力がある場合は、中止によってそれらが破棄されることを確認してからFlowを終了します。まだ破棄される選択・入力がない場合は確認を挟みません。中止によってUser、Media、Community等のdataを変更しません。
+Userはaccount削除を開始せずにFlowを終了できます。Communityへの対応等、このFlow内で行った選択または入力がある場合は、中止によってそれらが破棄されることを確認してからFlowを終了します。
+
+Communityへの対応で表示する「解決済み / 未解決」の状態と件数は、最後のAdministratorである等、account削除前にUserの判断が必要なCommunityだけを対象とします。通常のMemberとしての退会や、他にAdministratorがいるため自動的に退会できるCommunityは、Userによる解決Actionを必要としないため解決状態の対象外とし、件数にも含めません。判断が必要なCommunityがない場合は解決状態のBadge自体を表示しません。まだ破棄される選択・入力がない場合は確認を挟みません。中止によってUser、Media、Community等のdataを変更しません。
 
 ## 状態
 
