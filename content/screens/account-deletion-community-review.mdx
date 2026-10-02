@@ -94,3 +94,7 @@ Community Resolutionへ戻って選択を変更した場合は、最新の削除
 表示領域や入力方式が変わっても、削除対象全体とCommunityごとの影響を把握し、それぞれの名称確認を完了できるCapabilityを維持します。
 
 対象Communityが多い場合でも未確認対象を見失わず、同じReviewの中で確認作業を完了できるようにします。具体的な一覧表現やlayoutは実装で決定します。
+
+## Visual Design（Visual Review方針）
+
+Communityへの影響ページのMantine Stepper第2段階「削除対象の確認」として表示します。第1段階で削除を選択したCommunityだけを一覧し、参加者数、Community管理Media件数、他UserのMediaも削除される警告、Community名入力欄を各対象に表示します。すべての名称確認が完了するまで最終Reviewへ進めません。第1段階へ戻って対応方針を変更でき、変更された対象の確認状態は再評価します。削除対象が0件ならこの段階はskipします。Storybook試作は画面遷移・API・実際の削除を行いません。
