@@ -41,7 +41,7 @@ Context mapとAGENTSは参照経路であり、設計本文を複製しません
 
 ## UI/UX設計時の必須参照
 
-Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関する提案、設計、実装、レビューでは、最新のIssueと対象Screen / Domainを確認した後、`content/system/frontend-ui-development.mdx`、`content/design-system/ux-review.mdx`、`content/system/application-information-architecture.mdx`、関連する`content/design-system/patterns/`を参照します。具体的な読み取り順序は`content/context/index.mdx`の「Web画面・UI」に従います。
+Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関する提案、設計、実装、レビューでは、最新のIssueと対象Screen / Domainを確認した後、`content/system/frontend-ui-development.mdx`、`content/design-system/ux-review.mdx`、`content/design-system/content-design.mdx`、`content/system/application-information-architecture.mdx`、関連する`content/design-system/patterns/`を参照します。具体的な読み取り順序は`content/context/index.mdx`の「Web画面・UI」に従います。
 
 利用者のMedia発見・整理・共有を迷わず安心して達成できる体験を重視します。人間のUI案へ受動的に同意せず、利点・懸念・代替案と推奨理由をUX評価基準に照らして説明します。UIの一貫性を目的化せず、Taskの複雑さや表示領域に応じた適応も評価します。大きな設計判断は合意後に正本へ反映し、未決定事項はIssueで管理します。
 
@@ -114,6 +114,7 @@ Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関す�
 - 入力検証と冪等性は`content/system/api/validation.mdx`、`content/system/api/idempotency.mdx`を正本とします。
 - table定義、状態遷移、権限、Transactionは所有domainにだけ記載し、他domainは責務境界と正本へlinkします。
 - プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。
+- UI上の文章設計、Voice & Tone、Content Role、共通のContent Patternは`content/design-system/content-design.mdx`を正本とします。
 - 技術一覧は`content/technology-stack.mdx`へ記載します。
 - 性能、容量、可用性、backup、保持期間、監視の共通基準は`content/system/cross-cutting/non-functional-requirements.mdx`を正本とします。
 - システム設計は`content/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
