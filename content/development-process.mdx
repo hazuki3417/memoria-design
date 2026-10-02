@@ -68,6 +68,19 @@ Issueをイテレーションへ入れる前に、少なくとも目的、対象
 9. 未完了項目を再評価し、理由と後続Issueを記録してBacklogへ戻す
 10. Processと技術上の学びを振り返り、具体的な改善Taskを決める
 
+### Web実装のPR作成前フォーマット
+
+ChatGPTが`memoria-web`を実装する場合、ChatGPTの実行環境ではBiome formatterを実行できないことを前提に、PR作成前に人間のローカル環境でformatを適用します。未formatの変更をPRへ継続的に積み上げ、既知のBiome違反によってQuality Gateを失敗させる運用は行いません。
+
+1. 最新の`develop`を確認し、作業branchを作成する。この時点ではPRを作成しない。
+2. ChatGPTは作業branch上でTaskの実装を進める。
+3. PRへ進められる一区切りまで実装したら、ChatGPTは追加実装を止め、人間へローカル環境で`devbox shell`に入り`npm run format`を実行するよう依頼する。
+4. 人間はformat結果を確認し、必要な変更をcommitして作業branchへpushする。
+5. 人間からpush完了の連絡を受けた後、ChatGPTはGitHub上の作業branchを再取得し、最新状態とformat反映後のcommitを確認する。
+6. 確認後に通常のPRを作成し、GitHub ActionsのQuality Gateで検証する。
+
+format依頼後はPR作成前の実装freezeとして扱います。追加修正が発生した場合は、その修正後に再度formatを依頼し、pushされた最新状態を確認してからPRを作成します。ChatGPTは実際にformatterを実行していない状態を「format済み」と報告しません。
+
 ## 中断と再開
 
 不定期開発では、開発速度より再開コストを下げることを重視します。作業を中断する場合は、イテレーションIssueへCheckpointを記録します。
