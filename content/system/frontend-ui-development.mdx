@@ -66,6 +66,26 @@ UIデザインと実装を完全に分離した工程にはせず、実際のRea
 
 最終的なVisual Approvalは人間が行います。
 
+### 詳細設計中のPrototypeとPR境界
+
+Storybookのinteractive prototypeを使ったVisual Reviewは、詳細設計を確定するための設計作業として扱います。Prototypeが一通り表示・操作できることや、作業branch上でcommitがまとまったことだけを、PR作成へ進む条件とはしません。
+
+詳細設計中は、必要に応じて `memoria-web` の作業branchへprototypeをcommitし、人間とのVisual Reviewと修正を継続できます。この段階では通常の実装Taskにおける「実装の一区切り」と同一視せず、PRを作成しません。
+
+UI詳細設計では原則として次の順序で進めます。
+
+1. Screen Specificationと関連する要求・Design Systemを確認する。
+2. Storybook上にinteractive prototypeを作成し、作業branchへ必要な変更をcommitする。
+3. 人間がVisual Reviewし、情報階層、presentation、interaction、responsive behaviorを調整する。
+4. 合意した重要な判断を `memoria-design` のScreen Specification、Design System、関連設計へ反映する。
+5. 未解決事項がある場合はIssueへ記録し、詳細設計として残す範囲を明確にする。
+6. 人間と詳細設計の完了を確認する。
+7. その後にPR作成前のformat等、通常のPR準備へ進み、PRを作成する。
+
+したがって、prototypeの作成・修正中は「Visual Reviewのための作業branch」、詳細設計完了後は「Review・統合する変更」として扱います。一般的な小さなPRによる継続統合よりも、詳細設計のためにprototypeを反復している間はこの境界を優先します。
+
+ChatGPTはprototype完成、commit作成、Story追加などを独自にPR作成の許可と解釈しません。詳細設計完了前にPRを作成する必要がある場合は、人間からそのTaskについて明示的な指示を受けます。
+
 Visual Reviewで得られた判断をすべてDesign Systemへ追加するのではなく、複数の画面で再利用する価値がある原則・PatternだけをDesign Systemへ昇格させます。
 
 ## Design System
