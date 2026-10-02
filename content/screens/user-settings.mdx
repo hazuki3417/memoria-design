@@ -1,0 +1,124 @@
+# User Settings
+
+## 概要
+
+ACTIVE User本人が、現在のPersonal / Community contextから独立してProfile、表示・操作のPreference、利用状況、account lifecycleを確認・管理する設定画面です。
+
+SettingsはApplication Shell内のUser-scopedな領域として扱います。特定contextの設定ではなく、Account Menuから到達するUser本人の設定を集約します。
+
+## 目的
+
+- User本人に関する設定と確認先を一つのSettings領域へ集約する。
+- Profile、Preference、利用状況、account lifecycleという異なる責務を、Settings内Navigationで明確に分離する。
+- Account Menuへ個別のProfileや削除Actionを重複して配置せず、Application全体のNavigation階層を予測可能にする。
+
+## 関連仕様
+
+- [Application Information Architecture](/system/application-information-architecture)
+- [User Profile](/screens/user-profile)
+- [Account Deletion Flow](/screens/account-deletion-flow)
+- [Editable Form Pattern](/design-system/patterns/editable-form)
+- [Feedback Pattern](/design-system/patterns/feedback)
+
+## Information Architecture
+
+Initial ReleaseのSettingsは次の4領域で構成します。
+
+1. **プロフィール**: Memoriaで使用するProfileを確認・変更する。
+2. **環境設定**: 表示とPreviewの動作を変更する。
+3. **利用状況**: Storage使用量、Media統計、Upload上限を確認する。
+4. **アカウント**: account lifecycleに関する操作へ進む。
+
+通知設定はInitial ReleaseのSettingsに含めません。
+
+Settings内NavigationはApplication Context Navigationとは別のlocal navigationです。Settingsの各領域を移動してもPersonal / Community contextを切り替える操作とは扱いません。
+
+## プロフィール
+
+Profileの意味、validation、保存、失敗時の復旧は[User Profile](/screens/user-profile)を正本とします。
+
+Initial Releaseの編集対象はnicknameのみです。Profile変更は明示的に保存するEditable Formとして扱い、Preferenceの即時反映とは操作モデルを混在させません。
+
+## 環境設定
+
+Initial Releaseでは次を提供します。
+
+- 日付形式
+- ファイルサイズの単位
+- Previewで最後のMediaから最初のMediaへ戻る動作
+- Previewを開いたときに詳細情報を表示する動作
+
+Preferenceは設定ごとに即時反映します。Settings全体またはPreference全体を確定するSave / Cancel Actionは設けません。
+
+変更要求中は同一設定の結果が不明瞭にならないようにし、Serverで保存が成立していない値を確定済みとして扱いません。保存に失敗した場合は最後に確認できている値へ戻し、[Feedback Pattern](/design-system/patterns/feedback)に従って失敗を伝えます。短時間に連続して変更した場合も、古い応答で新しい選択を上書きしません。
+
+具体的な選択肢はAPI契約を正本とし、Webだけに未対応の値を追加しません。
+
+## 利用状況
+
+利用状況はread-onlyです。Initial Releaseでは次を確認できるようにします。
+
+### ストレージ
+
+- 使用量
+- 利用可能な総容量
+- 全体に対する使用割合
+
+容量と割合の関係を理解できる表現を用います。特定のChart Componentは仕様として固定しません。
+
+### Media
+
+- 全Mediaの件数と使用量
+- APIが提供するMedia typeごとの件数と使用量
+
+件数と使用量を同じ分類軸で比較できるようにし、情報量に対して不要なChartを増やしません。
+
+### アップロード
+
+- 1回のUploadで扱えるMedia数の上限
+- 1 Mediaあたりのサイズ上限
+- 対応形式
+
+APIが提供するlimitを表示し、Clientに固定値を別の正本として持ちません。
+
+利用状況の取得中、取得失敗、0件・0使用量を区別します。取得失敗を0として表示しません。
+
+## アカウント
+
+Account領域はaccount lifecycleに関する低頻度Actionを扱います。Initial ReleaseではAccount Deletion Flowへの入口を提供します。
+
+入口のAction labelは **「アカウントを削除する」** とします。このAction自体では削除を実行せず、[Account Deletion Flow](/screens/account-deletion-flow)へ進み、削除対象とCommunityへの影響を段階的に確認します。
+
+Auth0が管理するemail、password、external identity等をMemoria Settingsのaccount情報として表示・編集しません。Memoriaが保持しない認証情報をSettings用に複製しません。
+
+## Navigation
+
+Settingsは[Application Information Architecture](/system/application-information-architecture)のAccount Menuから到達します。Account MenuはSettingsとlogoutへの入口を持ち、Profileやaccount削除への個別入口を重複して設けません。
+
+Wide / Mediumでlocal navigationを常時表示する場合、Application ShellのContext Navigation Drawerが開いている間はApplication Navigationを前面に表示し、背後のSettings local navigationと同時に操作対象として見せません。Drawerを閉じた場合はSettingsの選択領域と編集状態を維持します。
+
+Profileに未保存変更がある状態でSettings内の別領域やApplication Navigationへ移動する場合は[Editable Form Pattern](/design-system/patterns/editable-form)の破棄確認に従います。即時反映済みPreferenceとread-onlyのUsageには未保存変更としての離脱確認を要求しません。
+
+## Content Design
+
+Settingsは操作対象とActionを短く直接表現します。見出しから自明な説明や、同じ意味を繰り返す補足文を追加しません。
+
+説明は、設定名だけでは変更結果が予測しにくい場合、不可逆・重要な影響を理解する必要がある場合、または次のActionの意味を補足する場合に使用します。Action labelは確認画面の存在を説明する文ではなく、Userが開始する目的を表します。
+
+## Responsive Behavior
+
+Compact / Medium / Wideのいずれでも、4つのSettings領域へ移動し、それぞれのCapabilityを利用できることを維持します。
+
+表示領域が狭い場合はlocal navigationを常時サイドメニューとして表示することを要求しません。Select、Menu、Drawer等の具体的presentationはVisual Design / 実装で決定できますが、現在のSettings領域を理解でき、他領域へkeyboard / touchでも移動できる必要があります。
+
+Application NavigationとSettings local navigationが同時に狭い表示領域を占有して主要contentを圧迫しないようにします。
+
+## Visual Design
+
+SettingsはApplication Shellを共有し、Settings専用の独立Headerを設けません。
+
+Wide / MediumのSettings local navigationはApplication Navigationと同系統のNavigation表現を使用し、各領域をiconとlabelで識別できるようにします。選択中の領域は色だけに依存せず判別可能にします。
+
+Contentは単一カラムを基本とし、Section、必要な説明、content / actionの順に情報階層を作ります。すべてをCardへ囲うことや、read-only dataを一律にChart化することは要求しません。Card、Divider、Chart等は情報のまとまりや比較を明確にする場合に使用します。
+
+具体的なpixel幅、icon glyph、Mantine Component、spacingは実装とVisual Reviewで決定します。
