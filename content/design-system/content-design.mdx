@@ -94,9 +94,13 @@ Action実行前はConsequenceとConstraint、実行後はOutcome、State、必�
 
 すべてを固定順序で並べません。現在のUser Questionに必要な情報だけを選択します。
 
+情報の重要度と表示順序は分けて判断します。例えばAction実行前のConsequenceが重要でも、そのConsequenceを理解するためにStateやReasonが前提となる場合は、理解に必要な前提を先に提示します。Information Typeの優先度を、そのまま文章やUI上の固定順序として扱いません。
+
 Resultは結果がUIから明らかでない場合に伝えます。ImpactはResultだけでは安全に推測できない場合に伝えます。Causeは確認できており、理解や次のActionに役立つ場合だけ伝えます。原因を知っていることと表示することは同義ではありません。Actionは次の行動がUI全体から明らかでない場合に伝えます。Constraintは、可能であれば失敗後ではなくAction実行前に提示します。
 
 Content単体ではなく、周囲のlabel、状態、Navigation、Feedbackを含むUI全体で十分な情報があるかを評価します。
+
+関連するContent同士の対応関係もUI全体で評価します。集計と個別項目の状態、Stepperと画面見出し、InstructionとAction等、同じ状態や概念を関連付けて理解するContentでは、単独の言い換えによってその対応を弱めないようにします。異なる表現にする場合は、それぞれの役割や意味が異なることを確認します。
 
 ## Voice & Tone
 
@@ -282,7 +286,8 @@ AI Reviewでは文言単体ではなくUI全体を対象にし、少なくとも
 2. **十分性**: 判断に必要なOutcome / State / Reason / Recovery / Consequenceが不足していないか。
 3. **正確性**: 確認できていないCause、Result、Impactを断定していないか。
 4. **具体性**: Error、Problem、Invalid、OK等の抽象表現だけに依存していないか。
-5. **一貫性**: Voice、Content Role、Ubiquitous Language、対象Screen / Domainの用語と整合しているか。
+5. **一貫性**: Voice、Content Role、Ubiquitous Language、対象Screen / Domainの用語と整合しているか。集計と個別状態、Stepperと画面見出し等、関連するContent同士の対応を不必要に崩していないか。
+6. **情報順序**: 重要な情報を機械的に先頭へ置かず、利用者が理解するために必要なStateやReason等の前提を含め、自然な順序で提示しているか。
 
 機械的に検出できる表現上の問題と、文脈判断が必要なContent Reviewは分離します。将来lintを導入する場合も、lintだけで「この情報が必要か」「Recoveryが実行可能か」「Confirmationが必要か」等を判断したことにはしません。
 
