@@ -201,6 +201,16 @@ Memoriaの共通UI ComponentとしてComponent化したものは、原則とし�
 
 画面固有のCompositionや内部実装上の小さなComponentまで機械的に個別Storyを要求するものではありません。Design Systemまたは複数画面から利用する共通UI Componentとして昇格させる場合に、このStorybook要件を適用します。
 
+### Design DocumentとStorybookの責務
+
+Design Documentは、UI/UX上の判断、利用条件、意味、制約、Patternの選択基準を正本として保持します。Componentの具体的な見た目、visual state、variation、responsive behavior、interaction state等、実装と同期して確認すべきvisual contractはStorybookへ寄せ、Storyを **executable visual specification** として扱います。
+
+Design DocumentへComponent API、pixel値、実装上のlayout detail、Storybookで直接確認できるvariationを重複して記録しません。これらを文書化する必要がある場合も、Design上の判断理由や守るべき制約を記述し、具体的な現行表現はStorybookを参照します。
+
+一方、Storybookだけでは表現しにくい「なぜそのPatternを使うか」「どのsurfaceを選択するか」「どの状態を継続して提示する必要があるか」等のUX判断はDesign Documentに残します。Screen Specificationは、そのScreenがどのPattern / ComponentをどのProduct contextで組み合わせるかを所有します。
+
+この分担により、Design Documentを実装Component Catalogとして肥大化させず、visual contractの二重管理を避けます。共通UI Componentを変更する場合は、実装だけでなく対応するStoryも同じ変更単位で更新し、Design上の判断自体が変わる場合にDesign Documentも更新します。
+
 各検査を必須化する範囲は、test asset、実行時間、安定性を確認しながら段階的に拡大します。Visual Regression Testの基準画像は、意図した変更であることを人間が確認してから更新します。
 
 具体的な変更検知方法、GitHub Actions構成、代表viewport、Browser matrixは `memoria-web` のtest infrastructure設計で決定します。
