@@ -48,13 +48,19 @@ Related Use Casesでは、`media/use-cases.mdx` 等の既存Use Caseを明示的
 
 Screen SpecificationはUIが満たすべき意味と振る舞いを記述し、特定のlayout、pixel値、Mantine Component、Dialog / Drawer / Page等のpresentationを実現方法として固定しません。presentation自体がProduct要件となる例外では、その必要性と制約を仕様上説明します。またStorybookのStory一覧を仕様へ複製しません。Storyや実装側から対応するScreen Specificationを参照できる関係を基本とします。
 
-## UI設計・レビュー時のSource of Truth確認
+## UI設計・実装・レビューのSource of Truth解決プロセス
 
-画面の詳細設計、Visual Prototypeの実装、UI Reviewを行う際は、会話上の直前の判断や一般的なUI/UX知識だけを根拠にせず、作業開始時に `memoria-design` の最新状態を確認します。
+画面の詳細設計、Visual Prototypeの実装、UI実装、UI Reviewは、関連するSource of Truthを解決してから開始します。これは必要に応じて行う確認ではなく、UI作業の標準プロセスです。
 
-確認対象は、対象画面のScreen Specification、Frontend UI設計・開発方針を含む関連するUX Principles / Patterns / Design System、および対象機能に関係する既存仕様です。これらを確認したうえで設計・実装・Reviewを行い、Memoria側に定義済みの方針を外部Design Systemや一般論で上書きしません。
+各作業の開始時に、GitHubの最新状態から少なくとも対象Screen Specification、関連Domain設計、Frontend UI設計・開発方針、UX設計・レビュー基準、関連するDesign System Pattern / Issueを特定して確認します。既存実装を変更する場合は、これらに加えて `memoria-web` の最新実装を確認します。会話上の直前の判断、過去に取得した内容、既存Web Component、一般的なUI/UX知識だけを正本の代わりにしません。
 
-外部Design Systemや一般的なUI/UX guidelineは、Memoria側で未定義の論点を検討するReferenceとして利用できます。採用する場合も、Memoriaのユースケースに適する理由を確認し、再利用可能な判断として確定した場合にのみMemoria自身のDesign Systemへ反映します。
+必要な設計情報が定義されていない場合は、未定義のまま推測して実装へ進まず、設計上の論点として明確化します。既存の原則から一意に導けない重要な判断は選択肢とtrade-offを提示して人間と合意し、合意した内容を適切なScreen Specification、Domain設計、Pattern等へ反映してから後続作業の前提とします。
+
+必要なSource of Truthが存在するはずなのに場所を特定できない、link切れ、構造上発見しにくい、取得できない等の理由で参照できない場合は、参照不能を通常状態として迂回しません。文書構造、navigation、link、repository状態等の原因を確認し、参照可能な状態へ修復します。修復できない場合は、確認済み事項と不足情報を明示し、推測で設計・実装・Reviewを継続しません。
+
+UI具体化では解決済みの正本を基準にPrototypeまたは実装を作成します。Review時にも最新の正本を再確認し、主要Taskについて[UX設計・レビュー基準](/design-system/ux-review)の評価手順を適用します。Reviewで新しい判断が生じた場合は、画面固有の判断か再利用可能な原則・Patternかを分類し、適切な正本へ戻します。未解決事項はIssueで追跡します。
+
+外部Design Systemや一般的なUI/UX guidelineは、Memoria側で未定義の論点を検討するReferenceとして利用できます。Memoriaに定義済みの方針を外部の一般論で上書きせず、採用する場合はMemoriaのUser Taskと制約に適する理由を確認します。
 
 ## AIを利用したUI開発
 
