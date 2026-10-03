@@ -229,3 +229,16 @@ Compact / Medium / Wideで複数fileの選択、問題fileの識別、Upload開�
 Wideでは複数fileのpreviewや状態を同時に一覧表示できます。Compactでは1件ずつ詳細を展開する等、presentationを変更できます。
 
 drag and dropだけを唯一のfile入力方法にせず、touch / keyboardを含む利用環境からUploadを開始できるようにします。
+
+## UI具体化
+
+Uploadは単一画面内でfile追加領域、作業summary / 共通操作、file一覧、実行Actionを構成します。file追加はdrag & dropとfile pickerの双方を提供し、file追加後も上限へ達するまで追加できます。
+
+file一覧ではpreview、file名、validation状態、Upload状態、Processing状態、個別Actionを確認できるようにします。UI上では少なくとも未送信、client validation error、送信中、Media登録成功・Processing中、Processing完了、Upload失敗、Processing terminal failure、結果不明を区別し、Serverから取得できない進捗率を推測表示しません。
+
+Initial ReleaseではUpload時にTag編集を提供します。TagをUpload成功の必須条件にはせず、Group分類はMedia登録後のMedia Detail / Browser bulk分類を主要Flowとします。複数fileへ共通Tagを入力するUIとfile単位入力の具体的な適用方法は、後続のUI詳細設計で決定します。
+
+全fileの送信結果が確定した後も同一画面で結果確認を維持し、自動的にMedia Browserへ遷移しません。Userの明示ActionでMedia Browserへ戻れるようにします。Personal Uploadは`/media/upload`、Community Uploadは`/communities/[communityId]/media/upload`を使用します。
+
+Wideでは複数fileを一覧しながらsummaryと実行Actionを確認できる構成とし、Compactではpreviewよりfile名・状態・問題理由・Actionの識別を優先します。Upload実行Actionをstickyにするか通常flow内に置くか等の具体的visual値はStorybook / Human Visual Reviewで決定します。
+
