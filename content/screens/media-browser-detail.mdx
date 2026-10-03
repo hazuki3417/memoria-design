@@ -146,9 +146,21 @@ Personalでは共有・共有解除、Original download、削除等、Community�
 
 現在contextにMediaが存在しないことを明示します。Mediaを追加するActionはPersonal / Community Mediaそれぞれの仕様に従います。
 
+### Browser: Filter結果0件
+
+Tag filter適用後に一致するMediaが0件の場合は、現在contextにMedia自体が存在しないEmptyと区別します。適用中のfilterを認識できる状態を維持し、Tag filterの変更または解除へ到達できるようにします。Media追加をfilter結果0件からの主要な復旧Actionにはしません。
+
 ### Browser: 読み込み失敗
 
 Emptyと混同せず、一覧取得に失敗したことを示して再試行できるようにします。
+
+### Browser: 追加読み込み中・追加読み込み失敗
+
+追加読み込み中も表示済みMedia、現在のTag filter、選択状態では明示選択集合を維持します。追加取得失敗時もCollection全体をErrorへ置き換えず、表示済みMediaを利用できる状態のまま再試行へ到達できるようにします。終端へ到達した場合は追加読み込み中と誤認させる継続的なloading表示を残しません。
+
+### Browser: 選択中
+
+選択中は現在のCollection条件を固定し、Tag filterを変更できないようにします。選択件数と現在実行可能なbulk Actionを確認でき、thumbnail操作でMediaを明示選択・解除できます。選択を終了すると明示選択集合を破棄して通常の閲覧状態へ戻ります。
 
 ### Browser / Detail: 画像処理失敗
 
@@ -208,7 +220,7 @@ Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在
 
 Initial Releaseの基本表示はダイアログ方式とし、Compactでは画面領域に合わせたダイアログの表示方法を採用します。後続の右ペイン方式はWide等の十分な表示領域を前提とし、狭い画面では表示設定より利用可能な領域と操作性を優先します。
 
-Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。
+Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。選択状態では選択件数とbulk Actionを表示領域が狭い場合も見失わないpresentationへ適応し、選択状態を色だけで表現しません。追加読み込みと失敗時の再試行もviewportへの到達だけに依存させず、keyboard・支援技術から利用できるようにします。
 
 ## UI具体化
 
