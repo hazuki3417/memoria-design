@@ -350,6 +350,19 @@ StorybookはProduct Specificationではなく、実装を独立して観察・�
 - Generated Codeを直接編集しません。
 - 新しいDirectory分類を導入する場合、その名称と意味をWeb全体で一貫させます。
 
+### Source Codeの自動編集と改行
+
+AI、GitHub API、script等を利用してSource Codeを作成・更新する場合、tool呼び出し用のescape表現と、実際にfileへ書き込むSource Codeを区別します。
+
+- 改行が必要な箇所へ、文字列としての `\\n` や `\\r\\n` をSource Codeへ埋め込みません。file contentには実際の改行文字を書き込みます。
+- 複数行のSource Codeを組み立てる場合は、可能な限りmultiline textをそのままwriteし、既存Codeへescape済み文字列を連結する方法を避けます。
+- search / replaceで複数行を挿入する場合、replacementへescape表現がそのまま残らないことを確認します。
+- Source Codeへのwrite後は、成功responseだけで完了とせず、変更したfileを再取得またはlocalで確認し、意図しないliteral escape sequence、構文崩れ、重複挿入がないことを確認します。
+- 同じ方法で複数fileを生成・更新した場合、1件でescapeや構文の問題が見つかった時点で、同じ方法を使用した変更も確認対象とします。
+- format / lint / typecheck等のQuality Gateを実行できる環境では、変更完了を報告する前に対象変更へ適切な検査を実行します。実行できない場合は未実施であることを明示し、write後のSource確認を最低限行います。
+
+これらはLF / CRLFの選択を新たに定義する規則ではなく、自動編集時のserializationによってSource Codeへ意図しないescape文字列を混入させないための実装規約です。
+
 ## 命名と品質
 
 ComponentはPascalCase、Hookは `use` で始め、variableとfunctionはcamelCaseとします。GraphQL Operation名はPascalCaseとし、Fragment名はsemantic ownerと対象が識別できる名称にします。
