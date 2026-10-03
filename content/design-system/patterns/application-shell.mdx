@@ -1,0 +1,73 @@
+# Application Shell
+
+## Purpose
+
+Application Shellは、認証後Applicationの各Screenに共通するApplication-level UIを提供します。
+
+Screen固有のlayoutやlocal navigationを共通化することではなく、[Application Information Architecture](/system/application-information-architecture)で定義したContext Switcher、Context Navigation、Account Menuを一貫したUIとして提供し、Screen間でApplication-level UIが分岐・複製されることを防ぎます。
+
+## When to Use
+
+認証後の通常Application Screenで使用します。
+
+User Registration等、通常Applicationへ入る前のFlowや、認証前Screenには適用しません。Settings等が独自のlocal navigationを持つ場合も、そのlocal navigationはScreen側の責務としてApplication Shellの内側へ配置します。
+
+## Responsibilities
+
+Application Shellは次を所有します。
+
+- Application Header
+- Application Navigationの開閉
+- 現在contextの表示とContext Switcher
+- 現在contextに対応するContext Navigation
+- Account Menu
+- Screen contentを配置するmain領域
+- Application-level UIに共通するresponsive / accessibility behavior
+
+Application Shellは次を所有しません。
+
+- Screen固有のPage Header、Section、form、collection等
+- Settings Navigation等のlocal navigation
+- URL構造そのもの
+- GraphQL queryやdomain dataの取得
+- authorization rule
+- Screen固有のrouting state
+
+## ContextとRoutingの境界
+
+現在contextのSource of TruthはURLとし、Application Shell独自の永続的なcontext stateを持ちません。
+
+Application側ではadapter層がURL、取得済みdata、authorization等をApplication Shellが表示できる状態へ変換します。Application Shellは具体的なURLを組み立てず、Context選択やNavigation選択等のUser actionを意味的なcallbackとしてadapterへ通知します。
+
+これにより、Application Shellのvisual / interaction ComponentはNext.js routingやGraphQLへ直接依存せず、Storybookでも表示状態とcallbackを与えて独立して検証できます。
+
+## Component Boundary
+
+実装上のpublic boundaryはApplication Shellとし、Application Header、Context Switcher、Account Menu、Application Navigation等はまずShell内部Componentとして扱います。
+
+内部Componentは、Application Shell以外でも独立して再利用する必要性が確認された場合にpublicな共通Componentへの昇格を検討します。見た目が似ていることだけを理由に先回りして公開しません。
+
+Application Shellへ渡す状態は巨大な単一modelへ集約せず、context、navigation、user等の意味的に独立した責務へ分割します。具体的なReact propsや型定義は `memoria-web` をSource of Truthとします。
+
+## Local Navigationとの関係
+
+Application NavigationとScreen local navigationは別のNavigation責務です。
+
+Application NavigationをDrawer等の一時的なsurfaceとして表示する場合、Settings Navigation等のlocal navigationを置換せず、その前面へ表示します。Application Navigationを閉じた後はScreen側のlocation / stateを維持します。
+
+## Responsive Behavior
+
+Compact / Medium / Wideで具体的なpresentationが変化しても、Application IAで定義された次のCapabilityを維持します。
+
+- 現在contextを理解できる
+- contextを切り替えられる
+- 現在contextの主要領域へ移動できる
+- Account Menuへ到達できる
+- Screen固有のlocal navigationとApplication Navigationを区別できる
+
+## Constraints
+
+- Application ShellはScreen種別を判定してScreen固有UIを生成しません。
+- Context切り替え後の遷移先等、Navigationの意味はApplication IAに従います。
+- UIでNavigation itemを非表示・無効化することはAPI authorizationの代替になりません。
+- Mantineが提供するaccessible primitiveを優先し、keyboard、touch、focus visibilityを維持します。
