@@ -43,6 +43,7 @@ Initial Releaseの編集対象はnicknameのみです。Profile変更は明示�
 
 Initial Releaseでは次を提供します。
 
+- 表示テーマ
 - 日付形式
 - ファイルサイズの単位
 - Previewで最後のMediaから最初のMediaへ戻る動作
@@ -52,7 +53,9 @@ Preferenceは設定ごとに即時反映します。Settings全体またはPrefe
 
 変更要求中は同一設定の結果が不明瞭にならないようにし、Serverで保存が成立していない値を確定済みとして扱いません。保存に失敗した場合は最後に確認できている値へ戻し、[Feedback Pattern](/design-system/patterns/feedback)に従って失敗を伝えます。短時間に連続して変更した場合も、古い応答で新しい選択を上書きしません。
 
-具体的な選択肢はAPI契約を正本とし、Webだけに未対応の値を追加しません。
+表示テーマは `システム` / `ライト` / `ダーク` を提供し、変更は他のPreferenceと同様に即時反映します。テーマの永続化方式はInitial ReleaseのSettings設計では固定せず、永続化が必要になった時点でUser Preference APIまたはClient側storage等の責務を別途検討します。
+
+APIで管理するPreferenceの具体的な選択肢はAPI契約を正本とし、Webだけに未対応の値を追加しません。
 
 ## 利用状況
 
