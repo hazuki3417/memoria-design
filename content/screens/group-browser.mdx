@@ -206,6 +206,7 @@ Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで�
 - GroupはfolderではなくDAGとしてrelationを持つ分類概念です。
 - Group discoveryはflatな一覧を基本とし、DAG全体のgraph visualizationを主要Interactionにしません。
 - Groupに一意なrootやbreadcrumb pathを仮定しません。
+- Group名は1〜100文字とします。文字数はUTF-8 byte数ではなく、Userが1文字として認識するUnicode grapheme cluster単位で数えます。
 - Group名は同一scope内で重複できません。
 - Personal Groupと各Community Groupは独立したscopeです。
 - CommunityではAdministratorだけがGroup構造を管理し、Memberは既存Groupを利用したMedia分類だけを行えます。
