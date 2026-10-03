@@ -21,6 +21,12 @@
 - 意味のある未保存変更が存在し、その編集内容を失うNavigationを利用者が行う場合は、変更を破棄して離脱するか確認します。変更を基準値まで戻した場合や、更新成功後は未保存変更として扱いません。
 - 同じ意味の変更確定操作は、適用する画面間で一貫した振る舞いにします。
 
+### Dialogでの終了Action
+
+Editable FormをDialogで提示し、明示的なキャンセルActionを提供する場合は、同じ意味でDialogを閉じる右上のclose Actionを重複して提示しません。利用者が編集を確定せず終了する経路を必要以上に増やさず、キャンセルActionへ意味を集約します。
+
+編集DialogからConfirmation等の一時的な判断へ進む場合、元の編集contextを破棄する必要がなければDraftを保持したままConfirmationを上位に提示できます。Confirmationをキャンセルした場合は、保持した編集contextへ戻れるようにします。Confirmation自体には元の編集Taskの確定Actionを混在させません。
+
 ## Variations
 
 変更対象となるfield数、validation条件、更新単位、成功・失敗時のfeedback方法は、対象となるUse CaseやScreen Specificationに応じて異なります。
