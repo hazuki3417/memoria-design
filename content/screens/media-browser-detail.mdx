@@ -24,7 +24,9 @@ Personal MediaとCommunity Mediaで共通するBrowser / Detail interactionを�
 
 Media Browserでは画像のvisual contentを主要な識別情報として提示します。
 
-通常状態では新しいMediaから順に発見できるようにします。Media一覧の標準順序はMediaの作成日時の降順とし、同時刻等でも安定して継続取得できることをAPI contractで保証します。
+通常状態では新しいMediaから順に発見できるようにします。Media一覧の順序はMediaの作成日時の降順に固定し、Initial ReleaseではUserが並び順を変更するsort Actionを提供しません。同時刻等でも安定して継続取得できることをAPI contractで保証します。
+
+Initial ReleaseのMedia Browserではfree textによるMedia検索を提供せず、現在scopeのTagによる絞り込みだけをCollection条件として提供します。複数Tagの条件は[Media Tag](/media/tag)に従います。
 
 file名、Uploader、Custodian等をすべてのMediaへ常時表示することは要求しません。対象Mediaを識別し、誤操作を防ぐために必要な補助情報だけをpresentationに応じて提示できます。
 
@@ -54,7 +56,7 @@ BrowserからMediaを選択すると、そのMediaをDetailとして閲覧でき
 
 Initial Releaseでは、整理・共有・削除を複数Mediaへ適用するための複数選択も提供します。bulk対象はUserがBrowser上で明示的に選択したMedia ID集合だけとし、現在のfilter結果全件、未読込page、将来追加されるMedia等を暗黙に含めません。「条件に一致するすべてを選択」のようなquery-based bulk operationはInitial Releaseでは提供しません。
 
-Detailのpresentationをmodal、overlay、split view、dedicated routeのいずれかへ固定しません。表示領域と入力方式に適したpresentationを選択できます。
+Initial ReleaseのMedia DetailはBrowser上のDialogとして表示します。表示領域と入力方式に応じたDialog内の具体的なpresentationはResponsive対応とUI具体化に従います。
 
 ### 前後のMediaへ移動する
 
@@ -144,9 +146,21 @@ Personalでは共有・共有解除、Original download、削除等、Community�
 
 現在contextにMediaが存在しないことを明示します。Mediaを追加するActionはPersonal / Community Mediaそれぞれの仕様に従います。
 
+### Browser: Filter結果0件
+
+Tag filter適用後に一致するMediaが0件の場合は、現在contextにMedia自体が存在しないEmptyと区別します。適用中のfilterを認識できる状態を維持し、Tag filterの変更または解除へ到達できるようにします。Media追加をfilter結果0件からの主要な復旧Actionにはしません。
+
 ### Browser: 読み込み失敗
 
 Emptyと混同せず、一覧取得に失敗したことを示して再試行できるようにします。
+
+### Browser: 追加読み込み中・追加読み込み失敗
+
+追加読み込み中も表示済みMedia、現在のTag filter、選択状態では明示選択集合を維持します。追加取得失敗時もCollection全体をErrorへ置き換えず、表示済みMediaを利用できる状態のまま再試行へ到達できるようにします。終端へ到達した場合は追加読み込み中と誤認させる継続的なloading表示を残しません。
+
+### Browser: 選択中
+
+選択中は現在のCollection条件を固定し、Tag filterを変更できないようにします。選択件数と現在実行可能なbulk Actionを確認でき、thumbnail操作でMediaを明示選択・解除できます。選択を終了すると明示選択集合を破棄して通常の閲覧状態へ戻ります。
 
 ### Browser / Detail: 画像処理失敗
 
@@ -172,11 +186,11 @@ Media自体を取得できない状態と、補助情報や個別Actionの一時
 
 Media Browser / Detailは独立したApplication contextを作りません。Personal Mediaまたは現在Community Mediaのcontextを維持します。
 
-Media Browserの基本URLはPersonalで`/media`、Communityで`/communities/[communityId]/media`とします。Media Detailを開いた状態をURLへ反映するかどうか、反映する場合の`mediaId`等のquery parameterや直接リンクの扱いは、画面layout・interactionの詳細設計時に決定します。`mediaId` query parameter案は参考情報であり、Initial Releaseの確定仕様ではありません。ダイアログ方式だからURLを使わない、または右ペイン方式だからURLを使うとは規定しません。
+Media Browserの基本URLはPersonalで`/media`、Communityで`/communities/[communityId]/media`とします。Initial ReleaseではMedia Detailを開いた状態をURL stateへ反映せず、`mediaId`等のquery parameterやDetailへの直接リンクを提供しません。Detail Dialogのopen / closeはBrowser上の一時的なUI stateとして扱います。後続リリースでDetail presentationを拡張する際に、Detail URLやhistory連携の必要性を改めて検討できます。
 
 Initial ReleaseではMedia Detailをダイアログ方式で表示し、表示方式を変更するUser設定は提供しません。後続リリースではダイアログ方式と右ペイン方式をUser設定で切り替え可能にする方針とし、Personal / Communityで共通の表示設定を適用します。右ペイン方式ではMedia画像を上、詳細情報・Groups・Tags・操作を下に配置します。表示領域が不足する場合は設定にかかわらず適切な表示方式へ適応します。具体的な設定保存方式やbreakpointは後続設計で決定します。
 
-Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一覧context（検索・絞り込み・スクロール位置を含む）へ戻れるようにします。Groupsから開いた場合は選択中Groupの一覧contextを維持します。
+Detailを閉じる、またはBrowserへ戻る場合、可能な限り元の一覧context（Tag絞り込み・スクロール位置を含む）へ戻れるようにします。Groupsから開いた場合は選択中Groupの一覧contextを維持します。
 
 Detail内で前後Mediaへ移動してもApplication contextは変わりません。
 
@@ -196,7 +210,9 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 
 ## Collectionの読み込み
 
-Media Browserの一覧はRelay Connectionによる無限ローディングを使用し、ページ番号によるPaginationを提供しません。検索・絞り込み・並び順の変更に対応するConnectionを取得し、追加取得中・終端・追加取得失敗を区別します。追加取得に失敗しても表示済みMediaと明示選択を維持し、再試行できるようにします。DetailからBrowserへ戻る場合は検索・絞り込み・スクロール位置を可能な限り復元します。未取得Mediaを暗黙にBulk選択せず、keyboard・支援技術からも追加取得に到達できるようにします。
+Media Browserの一覧はRelay Connectionによる無限ローディングを使用し、ページ番号によるPaginationを提供しません。閲覧状態ではTag絞り込みの変更に対応するConnectionを取得し、追加取得中・終端・追加取得失敗を区別します。並び順はMedia作成日時の降順に固定します。追加取得に失敗しても表示済みMediaと明示選択を維持し、再試行できるようにします。DetailからBrowserへ戻る場合はTag絞り込み・スクロール位置を可能な限り復元します。未取得Mediaを暗黙にBulk選択せず、keyboard・支援技術からも追加取得に到達できるようにします。
+
+選択状態ではTag絞り込みを変更できないようにし、選択開始時のCollection条件を固定します。追加読み込みは同じCollection条件の継続として利用でき、追加取得されたMediaをUserが明示的に選択できます。選択状態を終了して閲覧状態へ戻るときは明示選択集合を破棄します。
 
 ## Responsive対応
 
@@ -204,15 +220,19 @@ Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在
 
 Initial Releaseの基本表示はダイアログ方式とし、Compactでは画面領域に合わせたダイアログの表示方法を採用します。後続の右ペイン方式はWide等の十分な表示領域を前提とし、狭い画面では表示設定より利用可能な領域と操作性を優先します。
 
-Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。
+Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhoverだけに依存させず、touchとkeyboardでも到達できるようにします。選択状態では選択件数とbulk Actionを表示領域が狭い場合も見失わないpresentationへ適応し、選択状態を色だけで表現しません。追加読み込みと失敗時の再試行もviewportへの到達だけに依存させず、keyboard・支援技術から利用できるようにします。
 
 ## UI具体化
 
 Media Browserは正方形thumbnailによるgridを基本とし、実際にBrowserへ割り当てられたcontainer幅へ追従して列数を自動調整します。Compact / Medium / Wideごとの固定列数はProduct仕様にせず、Detail Pane等で同じviewport内の利用可能幅が変化した場合もgridを再構成できるようにします。Browserでは正方形thumbnail Variantを使用し、Media Detailでは元画像のaspect ratioを維持します。
 
-Browser toolbarでは「閲覧」と「選択」を明示的に切り替えます。閲覧を通常状態とし、thumbnail操作でDetailを開きます。選択状態ではthumbnail操作で明示選択集合を更新し、selection UI、選択件数、適用可能なbulk Actionを提示します。selection UIは通常状態へ常設しません。filter変更や追加読み込みを跨いでも明示選択済みMediaは維持し、未取得Mediaを暗黙に選択対象へ含めません。
+Browser toolbarでは「閲覧」と「選択」を明示的に切り替えます。閲覧を通常状態とし、thumbnail操作でDetailを開きます。閲覧状態では現在scopeのTag filter、現在Application contextで利用可能なMedia追加Action、選択状態への入口へ到達できるようにします。Initial ReleaseではMedia検索とsort ActionをBrowser toolbarへ提供しません。
+
+選択状態ではthumbnail操作で明示選択集合を更新し、selection UI、選択件数、適用可能なbulk Actionを提示します。selection UIは通常状態へ常設しません。選択中はTag filterを変更できず、選択対象となるCollection条件を固定します。同じ条件での追加読み込みを跨いでも明示選択済みMediaは維持し、追加取得Mediaを暗黙に選択対象へ含めません。「条件に一致するすべてを選択」のようなquery-based選択は提供しません。閲覧状態へ戻るときは選択集合を破棄します。
+
+BrowserのProduct ActionはPersonal / Communityごとに別のInteraction modelを持たせず、HeaderのContext Switcherで選択されている現在Application contextを基準に導出します。対象Mediaの状態・Custody・Membership / role等によって一部Actionを実行できない場合は、その現在状態をAction availabilityへ反映します。CommunityではMediaを追加する方法としてCommunityへの直接Uploadと自身のPersonal Mediaからの共有の双方へ明確に到達でき、Custodianが異なる結果を理解できるようにします。両Actionを並列表示するか一つの追加入口から分岐させるか等の具体的presentationはStorybookとVisual Reviewで決定します。
 
 Initial ReleaseのMedia DetailはBrowser上のDialogとして表示します。Wide / MediumではMedia画像を主領域、情報・分類・Actionを補助領域としてAdaptiveに配置し、情報領域はWideを含めて開閉可能とします。十分な表示領域があるWideでは展開状態を基本とし、Mediumでは画像領域とのバランスに応じて初期状態・幅を調整します。Compactでは画面全体を使うDialogを基本とし、画像と情報を横方向へ圧縮せず縦方向へ適応します。
 
-Detailを開いてもBrowserの検索・filter・読み込み済みCollection・明示選択・可能な範囲のscroll位置を保持します。Detail内の前後移動は利用元Collectionの順序を使用し、必要な場合はRelay Connectionを追加取得します。close後は可能な限り起点thumbnailへfocusを戻します。
+Detailを開いてもBrowserのTag filter・読み込み済みCollection・可能な範囲のscroll位置を保持します。Detail内の前後移動は利用元Collectionの順序を使用し、必要な場合はRelay Connectionを追加取得します。close後は可能な限り起点thumbnailへfocusを戻します。
 
