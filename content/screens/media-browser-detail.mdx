@@ -110,7 +110,7 @@ bulk Actionは一つのUser意図として開始しますが、各Mediaの結果
 複数選択中は、選択集合のすべてに意味があり、現在Userが実行可能なbulk Actionだけを提示します。Initial Releaseでは次をbulk対象に含めます。
 
 - 既存Groupへの追加・除外
-- Mantine `TagsInput`を想定したfree textでのTag編集。入力確定は未保存の編集状態とし、保存Action時に既存Tagを再利用、未登録Tagを作成して付与する。既存Tagの解除も保存時に反映し、キャンセル時は変更を破棄する
+- 選択Mediaの編集。Browser上ではTagのbulk追加・解除を直接提供せず、Media Uploadの更新版画面へ遷移して選択Mediaを編集する
 - User管理Mediaの1 Communityへの共有
 - Media削除
 
@@ -118,7 +118,7 @@ bulk操作はUI上では一つの意図として開始できますが、domain�
 
 実行時には各MediaについてACTIVE状態、現在scopeでの可視性、Custody、Membership / role、対象Group / Tag / Community等を再検証します。成功・失敗はMedia単位で識別でき、部分成功時は成功済み変更を維持したまま失敗対象と理由を確認・再試行できるようにします。
 
-Group / Tag bulk classificationでは1回のActionにつき1つの既存GroupまたはTagを対象にし、選択Mediaへ同じrelation変更を適用します。Group / Tagの新規作成とbulk分類を一つのdomain operationへ結合しません。
+Group bulk classificationでは1回のActionにつき1つの既存Groupを対象にし、選択Mediaへ同じrelation変更を適用します。Groupの新規作成とbulk分類を一つのdomain operationへ結合しません。Tagの編集はBrowser上のbulk Actionとして直接提供せず、Media Uploadの更新版画面へ引き継いで行います。
 
 bulk sharingでは共有先Communityを1つ固定し、選択集合のうち操作者本人がCustodianであるUser管理Mediaだけを対象にします。Community管理Mediaや既にそのCommunityへ共有済みのMediaを新しい共有relationとして成立させません。
 
@@ -203,7 +203,7 @@ Detail内で前後Mediaへ移動してもApplication contextは変わりませ�
 - UI上のAction availabilityをAPI側認可の代替にしません。
 - Browser / Detailの基本InteractionはPersonal / Communityで共通化し、scopeと認可差分を各Screen Specificationで定義します。
 - Grid / List、thumbnail size等の具体的presentationは後続のUI具体化で決定します。Media DetailはInitial Releaseではダイアログ方式とし、後続で右ペイン方式と表示設定を追加する方針です。
-- Media Detailの1 Media分類に加え、Browserで明示選択した複数Mediaへ既存Group / Tagを一括適用できます。query結果全件を暗黙対象にしません。
+- Media Detailの1 Media分類に加え、Browserで明示選択した複数Mediaへ既存Groupを一括適用できます。Tag編集を含む選択Mediaの編集はMedia Uploadの更新版画面へ引き継ぎます。query結果全件を暗黙対象にしません。
 - Group作成とMedia分類を一つの必須操作として結合しません。
 - Uploadのfile選択、進捗、Variant生成等のInteractionは別途Media Upload設計で定義します。
 - Tagは[Media Tag](/media/tag)に従い、1 Media単位のMedia Detailを付与・解除の主要入口とし、Media Browserでは現在scopeのTagによる絞り込みを提供します。
@@ -228,7 +228,7 @@ Media Browserは正方形thumbnailによるgridを基本とし、実際にBrowse
 
 Browser toolbarでは「閲覧」と「選択」を明示的に切り替えます。閲覧を通常状態とし、thumbnail操作でDetailを開きます。閲覧状態では現在scopeのTag filter、現在Application contextで利用可能なMedia追加Action、選択状態への入口へ到達できるようにします。Initial ReleaseではMedia検索とsort ActionをBrowser toolbarへ提供しません。
 
-選択状態ではthumbnail操作で明示選択集合を更新し、selection UI、選択件数、適用可能なbulk Actionを提示します。selection UIは通常状態へ常設しません。選択中はTag filterを変更できず、選択対象となるCollection条件を固定します。同じ条件での追加読み込みを跨いでも明示選択済みMediaは維持し、追加取得Mediaを暗黙に選択対象へ含めません。「条件に一致するすべてを選択」のようなquery-based選択は提供しません。閲覧状態へ戻るときは選択集合を破棄します。
+選択状態ではthumbnail操作で明示選択集合を更新し、selection UI、選択件数、適用可能なbulk Actionを提示します。Selection toolbarではGroup分類、編集、共有、削除へ到達でき、編集は選択MediaをMedia Uploadの更新版画面へ引き継ぎます。Tagの追加・解除をBrowser内の独立したbulk Actionとしては提供しません。selection UIは通常状態へ常設しません。選択中はTag filterを変更できず、選択対象となるCollection条件を固定します。同じ条件での追加読み込みを跨いでも明示選択済みMediaは維持し、追加取得Mediaを暗黙に選択対象へ含めません。「条件に一致するすべてを選択」のようなquery-based選択は提供しません。閲覧状態へ戻るときは選択集合を破棄します。
 
 BrowserのProduct ActionはPersonal / Communityごとに別のInteraction modelを持たせず、HeaderのContext Switcherで選択されている現在Application contextを基準に導出します。対象Mediaの状態・Custody・Membership / role等によって一部Actionを実行できない場合は、その現在状態をAction availabilityへ反映します。CommunityではMediaを追加する方法としてCommunityへの直接Uploadと自身のPersonal Mediaからの共有の双方へ明確に到達でき、Custodianが異なる結果を理解できるようにします。両Actionを並列表示するか一つの追加入口から分岐させるか等の具体的presentationはStorybookとVisual Reviewで決定します。
 
