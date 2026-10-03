@@ -113,3 +113,10 @@ Context Switcher、Context Navigation、Account Menuの責務は[Application Inf
 表示領域や入力方式が変わっても、Mediaの閲覧、Upload、共有、分類、権限のあるdownload・削除というCapabilityを維持します。
 
 Grid / List、thumbnail size、Actionのpresentation等は固定せず、Compact / Medium / WideでMediaを識別し主要Actionへ到達できることを優先します。重要なActionをhoverだけに依存させません。
+
+## UI具体化
+
+Personal Mediaでは共通Media Browserを主領域とし、Context固有ActionとしてUploadとCommunity共有への入口を提供します。通常状態ではMedia discoveryを優先し、Uploadへ明確に到達できるようにします。Community共有は1 MediaではDetail、複数MediaではBrowserのbulk Actionから共通Media Sharingへ進みます。
+
+Mediaが存在しないEmptyでは最初のMediaをUploadするActionを主導線とします。filter適用後の0件はMedia自体が存在しないEmptyと区別し、filter解除・変更へ導きます。
+
