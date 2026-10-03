@@ -201,6 +201,18 @@ Memoriaの共通UI ComponentとしてComponent化したものは、原則とし�
 
 画面固有のCompositionや内部実装上の小さなComponentまで機械的に個別Storyを要求するものではありません。Design Systemまたは複数画面から利用する共通UI Componentとして昇格させる場合に、このStorybook要件を適用します。
 
+### Human Visual Review前の実行可能性Gate
+
+Visual Prototypeを含むUI変更をHuman Visual Reviewへ渡す場合、確認者が実行時errorやsource破損の調査を行わず、意図したUI/UXの確認から開始できる状態をReview開始条件とします。
+
+実装をcommitしたこと自体をReview可能とはみなしません。変更後はGitHub上の最新sourceを再取得してwrite結果を確認し、変更範囲に応じたformat / lint / type check / build等の静的・構文検査を実行します。StorybookをReview surfaceとする変更では、対象Storyが少なくとも正常に描画でき、初期表示とReview対象の主要interactionへ到達できることを確認してからReviewを依頼します。
+
+AIまたは開発者がsourceを直接更新した場合も同じGateを適用します。文字列置換、生成処理、remote API経由の更新等では、literal escape、閉じtagの不整合、import破損等が混入し得るため、write APIの成功だけを変更成功の根拠にしません。更新後のsource再取得と機械的検査を完了条件に含めます。
+
+検査に失敗した状態ではHuman Visual Reviewを依頼せず、まず実装を修正します。環境上の理由等で必要な検査を実行できない場合は、実行できた検査、未確認事項、Reviewへの影響を明示し、動作確認済みであるかのように扱いません。
+
+このGateはHuman Visual Reviewを自動検査へ置き換えるものではありません。機械的に検出可能な破損をReview前に除去し、人間の確認をVisual Design、Interaction、Responsive Behavior、UX判断へ集中させるための前提条件です。
+
 ### Design DocumentとStorybookの責務
 
 Design Documentは、UI/UX上の判断、利用条件、意味、制約、Patternの選択基準を正本として保持します。Componentの具体的な見た目、visual state、variation、responsive behavior、interaction state等、実装と同期して確認すべきvisual contractはStorybookへ寄せ、Storyを **executable visual specification** として扱います。
