@@ -205,6 +205,8 @@ Application Shellのような横断UIは、Navigation、Context Switcher、Accou
 
 表示Policyのwrapperはstateやeffectを持たず、表示対象外ではDOMを生成しない単純な境界とします。大量描画されるComponentと同様の先行最適化は行わず、性能上の問題が実測された場合はpure functionを直接利用する等、Compositionを維持したまま最適化できる構造を保ちます。
 
+Web frontendでは、本体利用可能なUI ComponentとVisual Prototypeの所在を分離します。本体利用可能なComponentは`src/components`、Visual PrototypeおよびPrototype専用adapterは`src/prototypes`へ配置します。依存方向は`src/prototypes`から`src/components`を基本とし、本体ComponentからPrototype moduleへ依存させません。Prototype専用の共通compositionも`src/components`へ置かず、`src/prototypes`内で共有します。
+
 分離そのものを目的にはしません。独立した仕様・変更理由・test価値を持たない細かなJSXやlogicまで機械的に分割し、追跡costを増やすことは避けます。
 
 ## 要求から実装への接続
