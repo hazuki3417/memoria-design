@@ -64,9 +64,39 @@ Issueをイテレーションへ入れる前に、少なくとも目的、対象
 5. 設計、実装、test、結合確認を行い、小さなPRを作成する
 6. PRのマージ前にIssueの受け入れ条件とチェックリストを実績に基づいて更新する
 7. 人間の確認後にPRを`develop`へ統合し、関連IssueのOpen／Closedが実態と一致することを確認する
-8. Goalと受け入れ条件に対して成果をReviewする
-9. 未完了項目を再評価し、理由と後続Issueを記録してBacklogへ戻す
-10. Processと技術上の学びを振り返り、具体的な改善Taskを決める
+8. 対象成果物の主要部分が概ね揃った段階でConsistency Reviewを行い、Use Case、設計、Visual Prototype、実装・testの整合性を確認する
+9. Goalと受け入れ条件に対して成果をReviewする
+10. 未完了項目を再評価し、理由と後続Issueを記録してBacklogへ戻す
+11. Processと技術上の学びを振り返り、具体的な改善Taskを決める
+
+## Consistency Review
+
+要求・Use Case、設計、Visual Prototype、実装・testは個別に完成度を確認するだけでなく、対象Capabilityについて成果物が概ね揃った時点で相互の整合性を確認します。この確認をConsistency Reviewと呼び、次工程へ進むための形式的な一方向Gateではなく、具体化によって見つかった不整合を上流・下流の正本へFeedbackするための横断Reviewとして扱います。
+
+Consistency Reviewは作業途中の細かな変更ごとには実施しません。対象としている成果物の主要部分が概ね揃い、個別修正より横断的な照合から得られるFeedbackの価値が高くなった時点で行います。代表的な実施契機は次のとおりです。
+
+| 対象 | Reviewを行う目安 | 主な照合先 |
+| --- | --- | --- |
+| Use Case | Actor、目的、主要フロー、結果、主要な例外・対象外の洗い出しが概ね終わったとき | Product目的、Domain semantics、関連Use Case、Release範囲 |
+| 設計 | Use Caseを実現するDomain / Screen / System設計と主要な状態・制約・例外の具体化が概ね終わったとき | Use Case、関連設計、認可・Data・Contract・Quality |
+| Visual Prototype | 対象業務を達成するために必要な主要画面、状態、Interaction、Feedbackの表現が概ね揃ったとき | Use Case、Screen Specification、Design System、Responsive / Accessibility |
+| 実装 | 対象Capabilityの主要な実装とtestが揃い、結合して振る舞いを確認できるようになったとき | Use Case、設計、Visual Prototype、API / Data契約、test |
+
+Reviewでは、成果物が存在することだけを確認しません。上流で定義したUser Goal、Actor、前提、主要フロー、状態、制約、認可、Feedback、Error / Edge Caseが下流で欠落・変質していないか、下流の具体化で新たに判明した制約や不自然なUXが上流へ反映されているかを確認します。設計書とPrototypeの見た目を機械的に一致させることを目的とせず、同じProduct intentとcontractを表現しているかを基準にします。
+
+不整合を発見した場合は、どちらか一方を自動的に正しいものとして合わせません。現在のProduct目的と各正本を確認し、不整合の原因を特定したうえで、必要な要求・設計・Prototype・実装・testを同じ判断へ揃えます。Product上の重要な判断が必要な場合は人間と合意してから変更します。
+
+Review時点で確定できない事項、現在の作業範囲では解決しない事項、別の成果物やPhaseが揃ってから判断すべき事項は、その場のTODOや会話だけに残しません。独立して追跡可能なIssueを作成し、少なくとも次を記録します。
+
+- 未解決の論点または必要なTask
+- 現時点で確定・実施しない理由
+- 影響するCapability、設計、Prototype、実装
+- 再検討または着手する条件・タイミング
+- 関連するIssue、PR、設計書
+
+後続Issueへ分離したこと自体を解決とは扱いません。現在のIncrementを完了できるかは、その未解決事項が現在のUser Goal・受け入れ条件・安全性を阻害するかで判断します。阻害する場合はBlockingとして現在の作業に残し、阻害しない場合だけ明示的なDeferred workとして後続へ送ります。
+
+Consistency Reviewの結果は、対象IssueまたはイテレーションIssueのReview結果、必要な設計変更、後続Issueへ反映します。Design Coverage Mapの対象Capabilityが存在する場合は、Review結果をEvidence、Blocking、DeferredおよびStateの見直し材料として使用します。特に、成果物を具体化しただけで自動的にValidatedとはせず、整合性を確認し、得られたFeedbackを正本へ反映したことを確認してからState変更を判断します。
 
 ### Web実装のPR作成前フォーマット
 
