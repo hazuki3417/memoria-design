@@ -26,7 +26,7 @@ Initial ReleaseではMedia UploadをMedia Browserとは独立した専用画面�
 
 専用画面ではfile追加、選択fileごとのpreview・validation、Upload開始、個別進捗・結果、失敗fileの再試行を一つの作業の中で確認できるようにします。**単一画面・状態変化型**を採用し、準備画面と結果画面を別route・別stepとして分割しません。初期状態ではfile追加を主操作とし、file追加後にpreviewと事前Validationを提示します。Upload開始後は同じ画面で全体概要とfile単位の状態を更新し、成功済みMediaを維持しながら失敗fileのみ再試行できます。Media登録後の非同期ProcessingはUpload requestの成功と区別し、登録済みMediaへの導線を提供します。Group / Tag分類はUpload成立の必須入力としません。
 
-画面の基本的な情報順序はfile追加、選択fileのpreview・事前確認、Upload実行、全体進捗・個別結果とします。具体的なroute、画像一覧のpresentation、画面内の寸法・responsive対応、Upload中の画面離脱・復帰、Upload後の遷移は後続の詳細設計で決定します。既存Web componentの再利用は設計上の制約としません。
+画面の基本的な情報順序はfile追加、選択fileのpreview・事前確認、Upload実行、全体進捗・個別結果とします。route、画像一覧のpresentation、responsive対応、Upload中の画面離脱、Upload後の遷移は本仕様の後段およびVisual Prototypeで具体化します。request識別・復帰時のserver-side照合等、実データ接続を必要とするBehaviorはGraphQL / Frontend詳細設計で確定します。既存Web componentの再利用は設計上の制約としません。
 
 ## 開始点 / Scope
 
@@ -236,7 +236,7 @@ Uploadは単一画面内でfile追加領域、作業summary / 共通操作、fil
 
 file一覧ではpreview、file名、validation状態、Upload状態、Processing状態、個別Actionを確認できるようにします。UI上では少なくとも未送信、client validation error、送信中、Media登録成功・Processing中、Processing完了、Upload失敗、Processing terminal failure、結果不明を区別し、Serverから取得できない進捗率を推測表示しません。
 
-Initial ReleaseではUpload時にTag編集を提供します。TagをUpload成功の必須条件にはせず、Group分類はMedia登録後のMedia Detail / Browser bulk分類を主要Flowとします。複数fileへ共通Tagを入力するUIとfile単位入力の具体的な適用方法は、後続のUI詳細設計で決定します。
+Initial ReleaseではUpload時にTag編集を提供します。TagをUpload成功の必須条件にはせず、Group分類はMedia登録後のMedia Detail / Browser bulk分類を主要Flowとします。Visual Prototypeでは、明示選択したfileへ共通Tagを追加・除去・置換する操作と、file単位のTag編集を同一画面で提供します。実データ接続時のTag候補取得・mutation contractはGraphQL / Frontend詳細設計で確定します。
 
 全fileの送信結果が確定した後も同一画面で結果確認を維持し、自動的にMedia Browserへ遷移しません。Userの明示ActionでMedia Browserへ戻れるようにします。Personal Uploadは`/media/upload`、Community Uploadは`/communities/[communityId]/media/upload`を使用します。
 
