@@ -184,6 +184,24 @@ Phaseは順序を整理するための境界であり、要求工程、設計工
 - 一時的な分岐を永続的な二重実装にしないため、削除条件と削除Taskを定義する
 - Phase途中のcodeもCI、test、認可、data整合性の基準を緩和しない
 
+## Visual Prototypeと本体実装の責務境界
+
+Visual Prototypeは使い捨てのmockとして扱わず、本体で利用可能なUIと振る舞いを先行して具体化・検証するconsumerとして扱います。Prototypeで必要になったcodeであっても、Prototype固有の事情に依存しない責務は本体から利用できる品質と依存方向で実装します。
+
+分離の判断は再利用回数だけでは行いません。次のいずれかに該当し、独立した仕様・変更理由・検証価値を持つ場合は、UI Component、custom hook、pure function、configuration等への分離を検討します。
+
+- 独立した表示、interaction、responsive behaviorを持ち、Storybookで単体検証する価値がある
+- React stateやeffectを伴う一まとまりの振る舞いとして、Componentから分離することで状態管理を検証しやすくなる
+- validation、filter、状態遷移、派生値計算等をReact非依存のpure functionとして表現できる
+- 複数consumerが同じ仕様として参照すべきlabel、icon、構成、制約等のconfigurationである
+- 現時点で再利用されなくても、責務を分離することでtestを疎結合にできる
+
+Reactに依存しない処理は、不要にcustom hookへ包まずpure functionとして表現することを優先します。Componentは表示とinteraction、hookはReact固有のstate/effect、pure functionは入力から出力を導くlogicという依存境界を基本とします。
+
+一方、固定fixture、Storybookのreview state、API成功・失敗の模倣、Prototypeだけの画面遷移等はPrototype adapter側へ残し、本体利用可能なmoduleへ混在させません。Prototypeはこれらのadapterから本体利用可能なComponent、hook、pure function、configurationへ入力を与える構造にします。
+
+分離そのものを目的にはしません。独立した仕様・変更理由・test価値を持たない細かなJSXやlogicまで機械的に分割し、追跡costを増やすことは避けます。
+
 ## 要求から実装への接続
 
 すべての要求を一括して確定してから設計へ進みません。機能または利用者価値ごとに、次の順序で進めます。
