@@ -21,6 +21,7 @@ export default {
   "community-media": "Community Media",
   "media-browser-detail": "Media一覧・詳細",
   "media-upload": "Media Upload",
+  "media-update": "Media Update",
   "media-sharing": "Media共有",
   "group-browser": "Group一覧・詳細"
 }
