@@ -184,6 +184,33 @@ Phaseは順序を整理するための境界であり、要求工程、設計工
 - 一時的な分岐を永続的な二重実装にしないため、削除条件と削除Taskを定義する
 - Phase途中のcodeもCI、test、認可、data整合性の基準を緩和しない
 
+## Visual Prototypeと本体実装の責務境界
+
+Visual Prototypeは使い捨てのmockとして扱わず、本体で利用可能なUIと振る舞いを先行して具体化・検証するconsumerとして扱います。Prototypeで必要になったcodeであっても、Prototype固有の事情に依存しない責務は本体から利用できる品質と依存方向で実装します。
+
+分離の判断は再利用回数だけでは行いません。次のいずれかに該当し、独立した仕様・変更理由・検証価値を持つ場合は、UI Component、custom hook、pure function、configuration等への分離を検討します。
+
+- 独立した表示、interaction、responsive behaviorを持ち、Storybookで単体検証する価値がある
+  - この条件でUI Componentとして分離したものは、原則として同時にStorybook Storyを用意し、主要な表示状態とinteractionを単体で確認可能にする
+- React stateやeffectを伴う一まとまりの振る舞いとして、Componentから分離することで状態管理を検証しやすくなる
+- validation、filter、状態遷移、派生値計算等をReact非依存のpure functionとして表現できる
+- 複数consumerが同じ仕様として参照すべきlabel、icon、構成、制約等のconfigurationである
+- 現時点で再利用されなくても、責務を分離することでtestを疎結合にできる
+
+Reactに依存しない処理は、不要にcustom hookへ包まずpure functionとして表現することを優先します。Componentは表示とinteraction、hookはReact固有のstate/effect、pure functionは入力から出力を導くlogicという依存境界を基本とします。
+
+UI Componentへ含める見た目は、そのComponent自身の意味、状態、interactionを表現する装飾に限定します。区切り線、外側の余白、隣接要素との位置関係等、親layoutや他Componentとの関係によって成立する装飾は子Componentへ内包せず、Composition Rootまたはlayoutを所有する親Componentの責務として扱います。StorybookではComponent単体の責務が確認できる状態を基本とし、親layout由来の装飾を単体Storyへ持ち込みません。
+
+一方、固定fixture、Storybookのreview state、API成功・失敗の模倣、Prototypeだけの画面遷移等はPrototype adapter側へ残し、本体利用可能なmoduleへ混在させません。Prototypeはこれらのadapterから本体利用可能なComponent、hook、pure function、configurationへ入力を与える構造にします。
+
+Application Shellのような横断UIは、Navigation、Context Switcher、Account Menu等の具体的な子要素をShell本体へ固定せず、呼び出し側をComposition Rootとして注入・配置できる構造を基本とします。利用状態によってChrome要素の表示可否が変わる場合は、Shell自身へ画面固有の分岐を埋め込まず、React非依存の表示Policyを正本とし、必要に応じて軽量なwrapper Componentから利用します。これにより本体layoutは必要な部品を直接構成し、PrototypeはPrototype adapterで標準構成を再利用できます。
+
+表示Policyのwrapperはstateやeffectを持たず、表示対象外ではDOMを生成しない単純な境界とします。大量描画されるComponentと同様の先行最適化は行わず、性能上の問題が実測された場合はpure functionを直接利用する等、Compositionを維持したまま最適化できる構造を保ちます。
+
+Web frontendでは、本体利用可能なUI ComponentとVisual Prototypeの所在を分離します。本体利用可能なComponentは`src/components`、Visual PrototypeおよびPrototype専用adapterは`src/prototypes`へ配置します。依存方向は`src/prototypes`から`src/components`を基本とし、本体ComponentからPrototype moduleへ依存させません。Prototype専用の共通compositionも`src/components`へ置かず、`src/prototypes`内で共有します。
+
+分離そのものを目的にはしません。独立した仕様・変更理由・test価値を持たない細かなJSXやlogicまで機械的に分割し、追跡costを増やすことは避けます。
+
 ## 要求から実装への接続
 
 すべての要求を一括して確定してから設計へ進みません。機能または利用者価値ごとに、次の順序で進めます。
