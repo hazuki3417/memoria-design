@@ -48,7 +48,7 @@ Groupへの追加・除外は本Screenの対象外です。Media単体・複数M
 
 ## Media Uploadとの関係
 
-Media UploadとMedia Updateは別のUser Goalを持つScreenですが、Tag編集部分は共通Capabilityとして扱います。
+Media UploadとMedia Updateは、Mediaを新規登録するか既存Mediaを更新するかというライフサイクルは異なりますが、Mediaへ設定する情報を編集するCapabilityは共通です。登録・更新の違いを理由にMedia設定UIを分岐させず、同じ設定UIを両Screenから利用します。
 
 Media Upload固有:
 
@@ -76,7 +76,7 @@ Media Update固有:
 - Media単位のTag編集
 - validationと未保存変更の表示
 
-共通化はScreen全体を同一Componentへ統合することを意味しません。file登録に固有な状態をMedia Updateへ持ち込まず、Tag編集として独立した責務を持つUI / state / pure logicを両Screenから利用できる構造を基本とします。
+共通化はScreen全体を同一Componentへ統合することを意味しません。file登録や既存Media取得、登録・保存結果などライフサイクル固有の処理は各Screenが担当し、その前後で利用するMedia設定UIは同一のComponent / state / pure logicを利用する構造を基本とします。UploadとUpdateのUIを意図的に似せるのではなく、設定対象と編集Capabilityが同じである結果として同じUIになります。
 
 ## 複数Mediaの編集
 
