@@ -191,6 +191,7 @@ Visual Prototypeは使い捨てのmockとして扱わず、本体で利用可能
 分離の判断は再利用回数だけでは行いません。次のいずれかに該当し、独立した仕様・変更理由・検証価値を持つ場合は、UI Component、custom hook、pure function、configuration等への分離を検討します。
 
 - 独立した表示、interaction、responsive behaviorを持ち、Storybookで単体検証する価値がある
+  - この条件でUI Componentとして分離したものは、原則として同時にStorybook Storyを用意し、主要な表示状態とinteractionを単体で確認可能にする
 - React stateやeffectを伴う一まとまりの振る舞いとして、Componentから分離することで状態管理を検証しやすくなる
 - validation、filter、状態遷移、派生値計算等をReact非依存のpure functionとして表現できる
 - 複数consumerが同じ仕様として参照すべきlabel、icon、構成、制約等のconfigurationである
