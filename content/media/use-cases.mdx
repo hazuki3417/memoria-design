@@ -79,11 +79,31 @@
 - 管理主体の委譲は初回Release対象外とする。
 - 詳細なaccount削除flowは[Userユースケース](/user/use-cases)を正本とする。
 
-### MediaをGroupへ追加・除外する
+### MediaをGroupへ分類する
 
+MediaをGroupへ分類する目的は、Mediaを物理的なfolderへ移動することではなく、Userが意味のあるまとまりを付与し、後からGroupを手がかりにMediaを発見・整理できるようにすることです。
+
+#### 1件のMediaを分類する
+
+- UserはMediaの内容を確認しながら、そのMediaを後から発見する手がかりとなる既存Groupへ追加できる
 - 1つのMediaを複数Groupへ追加できる
-- 追加・除外でCustodianと共有範囲を変更しない
-- Groupから除外してもMedia本体を削除しない
+- 現在所属しているGroupを確認し、誤分類や不要になったdirectなMedia–Group relationを個別に解除できる
+- Groupから除外する操作は、そのGroupとのdirect relationだけを解除する。他Groupへの所属やdescendant経由でaggregate Collectionへ含まれる関係を暗黙に変更しない
+
+#### 複数Mediaをまとめて分類する
+
+- UserはMedia Browserで同じまとまりとして整理したい複数Mediaを明示選択し、同じ既存Groupへまとめて追加できる
+- bulk分類の主要User Goalは、関連するMedia群へ共通の分類を効率よく付与することとする
+- 誤分類の判断はMediaごとの内容と現在の所属関係を確認して行うことが多いため、Initial ReleaseではGroupからのbulk除外を主要Capabilityとしない
+- bulk追加時にすでに対象Groupへ所属しているMediaが含まれていてもrelationを重複作成せず、未所属Mediaだけに必要なrelationを追加する
+
+#### 分類を修正する
+
+- UserはMedia Detailで現在のdirect Group所属を確認し、誤っている、または不要になったrelationをMedia単位で解除できる
+- 「現在見ているGroupのaggregate CollectionからMediaを見えなくすること」と「特定のdirect Media–Group relationを解除すること」を同一操作として扱わない
+- descendant Groupへの所属によってMediaがaggregate Collectionへ含まれている場合、ancestor Groupとのrelation解除を装ってdescendant relationを暗黙に変更しない
+
+追加・除外によってCustodian、共有範囲、Media本体は変更しません。Groupからすべてのdirect relationを解除してもMedia本体は削除しません。
 
 ### Media Groupを関連付ける
 
