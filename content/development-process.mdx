@@ -98,6 +98,73 @@ Review時点で確定できない事項、現在の作業範囲では解決し�
 
 Consistency Reviewの結果は、対象IssueまたはイテレーションIssueのReview結果、必要な設計変更、後続Issueへ反映します。Design Coverage Mapの対象Capabilityが存在する場合は、Review結果をEvidence、Blocking、DeferredおよびStateの見直し材料として使用します。特に、成果物を具体化しただけで自動的にValidatedとはせず、整合性を確認し、得られたFeedbackを正本へ反映したことを確認してからState変更を判断します。
 
+## Consistency Review
+
+要求、設計、Visual Prototype、実装、testは個別に完成度を確認するだけでなく、同じUser Goal、Use Case、Product contractを表現しているかを横断的に確認します。この確認をConsistency Reviewと呼びます。
+
+Consistency Reviewは各工程を一度だけ通過するWaterfall型のGateではありません。対象作業について主要な要素が概ね出揃い、個別の細部修正よりも成果物間の不整合を発見する価値が高くなった時点で実施します。Review後に設計変更や新しい知見が生じた場合は、必要な範囲で再度実施します。
+
+### 実施タイミング
+
+対象CapabilityまたはGoalについて、少なくとも次の節目をReview候補とします。
+
+- Use Case: Actor、目的、主要フロー、結果、主要な例外・対象外の洗い出しが概ね完了したとき
+- 設計: Use CaseをもとにDomain、Screen、System等の主要判断と、次工程に必要な詳細設計が概ね揃ったとき
+- Visual Prototype: UserがGoalを達成するために必要な画面、状態、主要Interaction、Feedbackを一通り具体化したとき
+- 実装: 対象Goalの主要なcode、contract、testが揃い、結合確認へ進める状態になったとき
+- 統合前後: 複数の設計・Prototype・実装PRをまたいで一つのCapabilityを成立させる場合に、全体としての整合性を確認する必要があるとき
+
+「すべて完成するまでReviewしない」運用にはしません。主要な構造が揃い、Reviewで見つかった不整合をまだ安全に修正できる時点を選びます。
+
+### 確認内容
+
+Consistency Reviewでは対象成果物を最新のGitHub正本から読み直し、少なくとも次を照合します。
+
+1. User GoalとUse Caseが、設計・Prototype・実装で同じ意味を維持しているか
+2. Actor、scope、権限、前提条件、主要フロー、結果、対象外が成果物間で矛盾していないか
+3. Domain semanticsとScreen上の表現・Interactionが一致しているか
+4. Visual Prototypeが、対象Use Caseを達成するために必要な画面、状態、操作、Feedbackを表現しているか
+5. 実装のroute、contract、data、認可、状態遷移、error handlingが合意済み設計を維持しているか
+6. testが重要なUse Case、制約、failure / edge caseを検証しているか
+7. 上流変更が下流成果物へ、具体化から得たFeedbackが上流設計へ反映されているか
+8. Design Coverage MapのState、Evidence、Blocking、DeferredがReview結果と一致しているか
+
+Reviewは文書同士の文言一致を目的にしません。同じUser GoalとProduct semanticsを各成果物の責務に応じて正しく具体化できていることを確認します。
+
+### 不整合の扱い
+
+不整合を発見した場合は、どの成果物を正しいものと仮定するかを実装都合で決めません。Product要求と最新の合意済み設計を確認し、必要に応じて人間と判断したうえで正本を修正します。
+
+Reviewで解消できる不整合は対象作業の中で調整し、関連する設計、Prototype、実装、testを同期します。修正によって別成果物の前提が変わる場合は、その成果物も再確認します。
+
+### Review時点で確定できない課題
+
+Consistency Reviewまたは通常の設計・実装過程で、現在の作業時点では判断材料、依存成果物、実画面、Routing、外部契約等が不足して確定できない事項が判明した場合、暗黙のTODOや会話上の申し送りだけで保持しません。
+
+独立して追跡する必要がある課題はIssueを作成し、少なくとも次を記録します。
+
+- 判明した課題と、現在確定できない理由
+- 影響するUser Goal、Use Case、設計または実装
+- 現時点で確定していることと未決定事項
+- 再検討する条件または適切な対応タイミング
+- 関連する設計、PR、Issue
+- 後続作業で確認すべき受け入れ条件または論点
+
+後続Issueを作成したことだけを理由に元の成果物を不完全なまま完了扱いにしません。現在のGoalに必要な判断なら元の作業で解消し、現在のGoalを成立させたまま後続へ延期できる事項だけをIssueへ分離します。
+
+Design Coverage MapでDeferredまたはBlockingとして表現する価値がある場合は、IssueをTracking先として参照し、CoverageとBacklogの責務を分離します。
+
+### Review結果
+
+Consistency Reviewの結果は、対象Issue、PR、またはイテレーションIssueのReview記録から追跡できるようにします。専用の恒久台帳は作成しません。
+
+Review後は次のいずれかを明確にします。
+
+- 整合しており、次の具体化・実装・統合へ進める
+- 不整合を修正し、関連成果物を同期した
+- 現時点では確定できない課題をIssueへ分離し、再検討条件を記録した
+- 重要な不整合または未決定事項が残るため、次工程へ進まず設計・要求へ戻す
+
 ### Web実装のPR作成前フォーマット
 
 ChatGPTが`memoria-web`を実装する場合、ChatGPTの実行環境ではBiome formatterを実行できないことを前提に、PR作成前に人間のローカル環境でformatを適用します。未formatの変更をPRへ継続的に積み上げ、既知のBiome違反によってQuality Gateを失敗させる運用は行いません。
