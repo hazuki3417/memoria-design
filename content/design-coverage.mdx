@@ -81,53 +81,25 @@ Deferredには次を記載します。
 
 固定日付や経過期間を必須にしません。Deferredが長期間継続していることだけを理由に優先順位を変更しません。
 
-## 表現方法
+## 表現方法と正本
 
-初期運用では、単一のMDX内に人間が俯瞰できるCoverage Mapと、必要なDetailsを記載します。構造化YAML / JSONや専用rendererは、実運用で必要性を確認するまで導入しません。
+Design Coverageの仕組み、Aspect、State、判定基準、更新ルールは本ドキュメントを正本とします。各Domain / Capabilityの現在のCoverage状態はGitHub Issueを正本として管理します。
 
-Coverage MapのStateを設計探索状態の正本とし、DetailsはEvidence、Blocking、Deferredを補足します。Detailsはすべてのcellへ機械的に作成せず、根拠や未決定事項を説明する必要がある箇所だけ記載します。
+初期運用ではDomain単位に1つのCoverage Issueを基本とし、そのDomainで実際に設計・実装対象となっているCapabilityから必要な範囲を追加します。Domain内のCapabilityが増え、一つのIssueではReview・更新が困難になった場合だけ、Capability群または個別Capabilityへ分割します。すべてのCapabilityに機械的にIssueを作成しません。
 
-### Coverage Map
+Coverage Issueでは、Capabilityごとに各AspectのStateを俯瞰できる表を持ちます。必要な箇所だけEvidence、Blocking、Deferredを補足します。Product仕様本文やBacklogをCoverage Issueへ複製しません。
 
-| Domain | Capability | Concept | Use Case | UX / UI | Contract | Data | Quality / Edge Cases |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Media | Group | Ready | Ready | Ready | Exploring | Ready | Ready |
+例:
 
-この表は形式例であり、初期導入時に全Domain / Capabilityを完全に棚卸しすることを要求しません。実際のCoverageは必要な範囲から追加します。
+| Capability | Concept | Use Case | UX / UI | Contract | Data | Quality / Edge Cases |
+| --- | --- | --- | --- | --- | --- | --- |
+| Group | Ready | Ready | Exploring | Exploring | Ready | Ready |
+| Browser | Ready | Ready | Exploring | Unexplored | Ready | Exploring |
 
-### Media / Group
-
-#### Concept / Use Case / UX / UI / Data / Quality / Edge Cases
-
-State: Ready
-
-Evidence:
-- [Media Group](/media/group)
-- [Media関連ユースケース](/media/use-cases)
-- [Media論理データモデル](/media/data-model)
-- [Media物理データモデル](/media/physical-data-model)
-- [Mediaの整合性とTransaction](/media/consistency-transactions)
-- [Group一覧・詳細](/screens/group-browser)
-- [Issue #42](https://github.com/hazuki3417/memoria-design/issues/42)
-
-#### Contract
-
-State: Exploring
-
-Evidence:
-- [Media Group](/media/group)
-- [GraphQL API](/system/api/graphql)
-- [Issue #42](https://github.com/hazuki3417/memoria-design/issues/42)
-
-Blocking:
-- Group固有のGraphQL Operation、Input / Payload、relation fieldとGroup名検索matchingの具体契約を確定する
-  - Tracking: [Issue #42](https://github.com/hazuki3417/memoria-design/issues/42)
-
-
-### Detailsの形式
+各Capability / Aspectの補足が必要な場合は次の形式を基本とします。
 
 ```text
-Domain / Capability / Aspect
+Capability / Aspect
 State: Exploring
 
 Evidence:
@@ -143,17 +115,31 @@ Deferred:
 - Tracking: Issue #...（必要な場合）
 ```
 
+### Issueとの責務分担
+
+Coverage Issue自体は通常の実装Backlogではなく、設計探索の現在地を示す状態管理Issueです。Openであることを「未完了Taskがある」という意味には使用せず、対象DomainのCoverageを継続して管理する間はOpenを維持できます。
+
+独立して解決・実装すべきBlockingやDeferred workは別Issueを正本とし、Coverage IssueからTracking先として参照します。Coverage表のcellや補足記述をTODO checklistの代わりに使用しません。
+
+Coverage Issueの更新だけでProduct仕様を変更したことにはなりません。設計判断は対応するDomain / Screen / System設計へ反映し、実装状態は所有Repositoryのcode・schema・testを正本とします。
+
+### 初期移行
+
+本ドキュメント内に置いていたCoverage Mapの例や個別Domainの状態は、Coverageの形式を説明する例としてのみ扱います。実際の現在状態はDomain Coverage Issueを作成した時点からそのIssueを正本とします。
+
+既存のCoverage関連Issueやtraceability Issueを自動的にDomain Coverage Issueへ読み替えません。目的と責務が異なるため、必要なDomainからCoverage Issueを新設し、既存IssueはEvidenceまたはTracking先として参照します。
+
 ## AI支援開発での参照
 
-AIは設計・実装・レビューの開始または再開時、対象CapabilityがCoverage Mapに存在する場合は次の順序で利用します。
+AIは設計・実装・レビューの開始または再開時、対象CapabilityがDomain Coverage Issueに存在する場合は次の順序で利用します。
 
 1. 対象Capabilityと各AspectのStateを確認する
 2. Evidenceから対象作業に必要な正本を読む
 3. `Exploring` の場合はBlockingを確認し、未決定の重要仕様を推測で補完しない
 4. Deferredがある場合はRevisit条件と今回の作業が一致するか確認する
-5. Coverage MapのStateだけを仕様の代わりに使用しない
+5. Coverage IssueのStateだけを仕様の代わりに使用しない
 
-Coverage MapにCapabilityがないことは、そのCapabilityが存在しないことや設計不要であることを意味しません。対象作業で必要になった場合は正本を調査し、Coverageへの追加候補を提示します。
+Coverage IssueにCapabilityがないことは、そのCapabilityが存在しないことや設計不要であることを意味しません。対象作業で必要になった場合は正本を調査し、Coverageへの追加候補を提示します。
 
 ## 更新ルール
 
