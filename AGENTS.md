@@ -1,200 +1,75 @@
 # AGENTS.md
 
+## このファイルの役割
+
+このファイルは、Memoriaで作業するAI Agentが正しいSource of Truthへ到達するための最小Bootstrapです。Product仕様、設計判断、GitHub運用、開発プロセス、実装規約の本文をここへ複製しません。
+
+詳細な規範は所有する文書を参照し、Taskごとの読み取り順序は `content/context/index.mdx` を使用します。
+
 ## リポジトリの責務
 
-このリポジトリはMemoriaのプロダクト設計とアーキテクチャに関する正本です。Memoriaは以下のリポジトリで構成されます。
+`memoria-design` はMemoriaのProduct設計、Architecture、横断的な設計判断のSource of Truthです。
 
-- `memoria-web`: Next.js Webアプリケーション
-- `memoria-api`: Go GraphQL API
-- `memoria-design`: このNextraドキュメントサイト
-- `memoria-IaC`: AWS CDKによるインフラストラクチャ
+- `memoria-web`: Next.js Web Application
+- `memoria-api`: Go GraphQL API、Media Worker、Outbox Publisher
+- `memoria-design`: Product / System Design
+- `memoria-IaC`: AWS Infrastructure
 
-設計資料は合意された最新の設計を本文に記載し、実装との差分は各ページの概要直下へ引用ブロックで記載します。
+GraphQL / SQL schema、生成設定、package設定、repository固有の実装規則など実行可能なContractは、所有する実装repositoryをSource of Truthとします。正本の境界は `content/documentation-policy.mdx` を参照します。
 
-`memoria-api`はGraphQL API、Media Worker、Outbox Publisherを同じリポジトリで所有し、実行processと責務を分離します。初期の実行基盤はEC2とDockerを使用し、ECS/Fargateは将来的な移行先として扱います。Media自体に管理主体を埋め込まず、`media_custodies`でUserまたはCommunityの管理関係を保持します。OriginalはAPI経由でObject Storageへ保存し、画像一覧と詳細表示は共通の幅別WebP Variantを使用します。非同期処理はPostgreSQLのTransactional OutboxとRedis Streamsで接続し、APIからRedisへ直接publishしません。Communityへ直接uploadしたUploader本人は、Community参加中に限り自分のMediaを削除し、Originalをdownloadできます。User管理MediaのCommunity共有はCustodianを変更せず、管理主体の委譲と通知機能は初回Release対象外です。Communityの参加、招待、権限、退会、削除の正本は`content/community/`です。
+## 作業開始時の必須手順
 
-## 開発主体とAIの位置付け
+設計、実装、レビュー、調査、Issue整理を開始または再開するときは、次の順で確認します。
 
-- Memoriaの開発主体と最終判断者は人間です。
-- Windows、WSL2、Devboxによるローカル開発を主要な開発環境として維持します。
-- ChatGPTとGitHub連携は、人間による調査、要件整理、設計、実装、レビューを支援するために使用します。
-- 手動開発とAI支援を利用した開発には、同じ設計規約、テスト、CI、レビュー、承認基準を適用します。
-- ChatGPTの実行環境では成果物のbuild、test、静的解析、構文検証を実行しません。実行による品質確認はPR作成後のGitHub Actionsへ委譲します。
-- ChatGPTは依存関係の不足やbuild未実行を作業の停止理由にせず、変更内容とGitHub Actionsの状態を報告します。
-- AIによる提案や操作は、人間の明示的な要件・許可・最終確認に従います。
-- 人間の提案へ受動的に同意せず、Senior Engineerの観点から妥当性、前提、risk、矛盾、過剰設計を評価します。
-- 懸念がある場合は変更前に指摘し、代替案、trade-off、推奨案を示します。
-- 事実、推測、未確認事項を区別し、懸念がない場合も妥当と判断した前提を簡潔に示します。
-- 複数の論点は番号を付け、依存関係の強い順に一つずつ扱います。
-- 回答後は合意、理由、前提、影響範囲、制限事項、未決定事項を整理します。
-- 対話と意思決定の詳細は`content/ai-development.mdx`、Task別の進め方は`content/context/index.mdx`を参照します。
+1. 最新のIssue、PR、対象branchと、現在のTaskで人間と合意した要求を確認する。
+2. `content/context/index.mdx` からTaskに対応する読み取り順序を選ぶ。
+3. Domain / Screen / Systemを所有する設計書と、影響する横断設計を確認する。
+4. schema、設定、code、test、CIに関わる判断では、所有する実装repositoryの最新状態を確認する。
+5. 設計と実装、複数の正本、Task要求の間に差異があれば、推測で解消せず差異を明示する。
 
-## 全タスク共通の正本参照
+過去の会話、AI生成要約、古いIssueやPRだけを根拠に現在状態を判断しません。
 
-設計・実装・レビュー・調査・Issue管理の開始時は、最新のIssue・PR・対象branchを確認し、`content/context/index.mdx`の「すべてのタスクに共通する参照手順」と該当するタスク別読み取り順序を適用します。Domain / Screen / Systemの所有する設計書を特定し、変更の影響に応じてSecurity・Privacy、認可、整合性、冪等性、Lifecycle、UX、非機能要件、テスト、運用の横断的な正本を確認します。実行可能なschema・設定・コード・テストは所有Repositoryの最新状態を正本とします。
+## 判断に利用する情報
 
-Context mapとAGENTSは参照経路であり、設計本文を複製しません。正本の追加・移動・変更では必要な索引と相互linkを同じPRで更新します。設計と実装、複数正本、会話上の合意が矛盾する場合は差異を報告し、重大な判断は人間との合意後に更新します。作業再開時や変更操作の結果が不明な場合は最新状態をreadで確認してから続行し、重複writeを避けます。
+情報の優先順位と矛盾時の扱いは `content/context/index.mdx#情報の優先順位` を唯一の定義とします。このファイルや他のAgent向け文書へ別の優先順位を定義しません。
 
-## GitHub変更操作前の必須参照
+設計文書は intended behavior、実行可能なschema・設定・code・testは actual behavior / executable contract を表します。両者が矛盾する場合は、一方を自動的に優先して変更せず、差異を確認して必要な判断を人間へ求めます。
 
-タスクの種類にかかわらず、branch・commit・PRを作成または更新する前に、`content/context/index.mdx`の「GitHub変更操作の事前確認」と`content/branch-strategy.mdx`の「PRの状態」を確認します。PR作成時は人間がDraftを明示したかを確認し、指示がなければ通常PRを作成します。Visual Reviewや試作であることを理由にDraftへ変更しません。具体的な運用ルールはブランチ運用規約を正本とします。
+## AI Agentの行動規範
 
-## UI/UX設計時の必須参照
+人間が開発主体かつ最終判断者です。AI Agentの姿勢、専門的Feedback、対話、合意後の実行、安全境界、GitHub連携の規範は `content/ai-development.mdx` をSource of Truthとします。
 
-Webの画面・導線・フォーム・Dialog・Feedback・Responsiveに関する提案、設計、実装、レビューでは、最新のIssueと対象Screen / Domainを確認した後、`content/system/frontend-ui-development.mdx`、`content/design-system/ux-review.mdx`、`content/design-system/content-design.mdx`、`content/system/application-information-architecture.mdx`、関連する`content/design-system/patterns/`を参照します。具体的な読み取り順序は`content/context/index.mdx`の「Web画面・UI」に従います。
+特に次を守ります。
 
-利用者のMedia発見・整理・共有を迷わず安心して達成できる体験を重視します。人間のUI案へ受動的に同意せず、利点・懸念・代替案と推奨理由をUX評価基準に照らして説明します。UIの一貫性を目的化せず、Taskの複雑さや表示領域に応じた適応も評価します。大きな設計判断は合意後に正本へ反映し、未決定事項はIssueで管理します。
+- 重要な設計判断や不可逆な変更を勝手に決定しない。
+- 人間の案へ受動的に同意せず、risk、矛盾、trade-off、過剰設計を評価する。
+- 合意した長期的な判断は、許可された範囲で所有するSource of Truthへ実際に反映する。
+- 未解決の課題はIssueで管理し、設計本文へ未決定事項を採用済み仕様として混在させない。
+- write操作の結果が不明な場合は同じ操作を再実行せず、最新状態をreadして確認する。
+- write後はSource of Truthを再取得し、変更が実際に反映されたことを確認する。
 
-## GitHub連携機能の採用基準
+## GitHub変更操作
 
-- ChatGPTによるGitHub操作は、GitHub Pluginで必要なライフサイクルを一貫して扱える機能だけを標準運用へ採用します。
-- Pluginで未対応の操作を`gh`、GitHub Web UI、独自MCPで補完することを通常運用の前提にしません。
-- GitHub ProjectsとMilestonesは使用しません。Pluginの対応範囲が拡張された場合に再検討します。
-- 設計・開発の進捗は親Issue、子Issue、チェックリスト、Open／Closedで管理します。
-- Issueには目的、対象リポジトリ、成果物、受け入れ条件、関連資料を記載します。
-- 詳細な理由と運用方法は`content/ai-development.mdx`、タスク時の読み取り順序は`content/context/index.mdx`を参照します。
+branch、commit、PR、merge等の具体的な運用は `content/branch-strategy.mdx`、AI Agentによる操作許可と標準workflowは `content/ai-development.mdx` をSource of Truthとします。変更操作の前には `content/context/index.mdx#github変更操作の事前確認` を適用します。
 
-## 開発プロセス
+PRのmerge、Release、本番環境への操作など、追加の明示的許可が必要な操作へ承認範囲を推測で拡張しません。
 
-- Memoriaはウォーターフォールではなく、Goalを単位とするイテレーション型のアジャイル開発を採用します。
-- 開発頻度が不定期であるため固定期間を設けず、イテレーションIssueへGoal、対象、対象外、Checkpoint、Review、振り返りを記載します。3イテレーション完了後に運用を見直します。
-- 機能単位で要求を合意して設計・実装へ進み、すべての要求完了を待つ一括工程にはしません。
-- IssueをProduct Backlogとして扱い、イテレーションGoal、対象、対象外、受け入れ条件を明示します。
-- 大規模機能は利用者価値または独立して検証できる境界でPhaseへ分割し、各Phase内で要求確認、設計、実装、検証を行います。
-- 工程別のPhase、長期Feature branch、巨大PRを前提にしません。
-- 各Phaseは既存機能を壊さず`develop`へ統合可能にし、未公開部分は到達不能な構成、Feature flag、後方互換な契約などで無効化します。
-- Issueのチェックリストは実績と照合し、完了した項目だけを`[x]`へ更新します。未完了項目は理由と後続Issueを記録します。
-- PRのマージ前に受け入れ条件とチェックリストを更新し、マージ後にIssueのOpen／Closedが実態と一致することを確認します。
-- 開発再開時、イテレーションの開始・終了時、複数PRのマージ後、構成変更後には、親子Issue、関連PR、GitHub Actions、資料pathを横断的に棚卸しします。
-- 完了を確認した項目だけをチェックし、未達条件があるIssueはOpenを維持します。人間が先行完了を許可した場合は、理由と後続Issueを記録します。
-- ReadyとDoneの基準、詳細な進め方は`content/development-process.mdx`を参照します。
-- 対象Capabilityが`content/design-coverage.mdx`へ登録されている場合は、作業開始・再開時にCoverageを確認し、Evidenceから正本を参照します。CoverageのState変更候補は提示できますが、Ready / Validatedへの移行など重要な状態変更は人間との合意後に反映します。
+## 設計・実装変更
 
-## GitHub上の記述言語
+文書の配置、所有、記載粒度は `content/documentation-policy.mdx` と `content/design-document-templates.mdx`、開発プロセスとDoneの基準は `content/development-process.mdx` を参照します。
 
-- Memoriaの全リポジトリで、人間またはAIが作成するIssueのタイトル・本文、PRのタイトル・本文、手動コミットメッセージは原則として日本語で記述します。コメントやレビューも原則として日本語を使用します。
-- コミットのtype・scope、ブランチ名、リポジトリ名、コマンド、ファイルパス、コード識別子、固有の技術名は英語などの原表記を維持できます。
-- Dependabotなどの自動生成メッセージと、GitHubが自動生成するmerge commitは例外とします。外部との連携で英語が必要な場合は、必要な範囲で英語を使用できます。
-- コミットの具体的な書式は`content/commit-message.mdx`を正本とします。
+既存実装のComponent化、責務分離、共通化、refactoringでは、明示的な仕様変更の合意がない限り、既存の仕様、表示、layout、interaction、state表現、Responsive Behaviorを不変条件として扱います。Task固有の実装規約はContext mapから対象repository / SystemのSource of Truthへ到達して確認します。
 
-## ブランチ運用
+## Contextを変更するとき
 
-- `main`は本番リリース可能な安定版を表します。通常の開発作業や直接pushは行いません。
-- `develop`は日常開発の統合先であり、このリポジトリの既定ブランチとして扱います。
-- `feature/*`、`fix/*`、`docs/*`、`refactor/*`、`chore/*`は最新の`develop`から作成し、PRのbaseを`develop`にします。
-- 通常リリースは`develop`から`main`へのPRで行い、人間が差分と検証結果を確認して承認します。
-- 緊急修正の`hotfix/*`だけは`main`から作成し、`main`への反映後に同じ修正を`develop`へ同期します。
-- `master`は使用しません。存在する場合は`main`との差分を確認して`main`へ統合した後、参照や未完了PRがないことを確認して廃止します。
-- ステージング・テスト専用ブランチは設けません。必要になった環境はブランチではなくデプロイ設定で分離します。
-- 詳細な共通規約は`memoria-design/content/branch-strategy.mdx`を参照します。
-- 手動で作成するコミットは`content/commit-message.mdx`に従い、typeを付けた日本語タイトルを使用します。
-- 作業branch内のcommit数と粒度は固定しません。複数commitを許容し、一つへまとめるためだけの追加操作を行いません。
-- GitHubなどが自動生成するmerge commitは、日本語でなくても構いません。
-- 正式なバージョンとReleaseは`content/versioning.mdx`に従い、各リポジトリで独立して管理します。
-- PRは原則として通常の状態で作成し、Draftは人間が明示的に指示した場合だけ使用します。
-- 通常PRは受け入れ条件と変更内容を確認し、レビュー可能な状態で作成します。ChatGPT経由のbuild・test結果はPR作成後にGitHub Actionsで確認します。
-- PRのマージには、原則として通常のmerge commitを使用します。squash mergeまたはrebase mergeは、明示的な理由と合意がある場合だけ使用します。
-- 作業ブランチへ派生元の更新を取り込む場合は、原則としてrebaseを使用します。`develop`を作業ブランチへmergeしません。
-- rebase後にリモートの作業ブランチを更新する必要がある場合は、本人だけが使用するブランチであることを確認し、`--force-with-lease`を使用します。
-- 共有ブランチである`main`と`develop`はrebaseまたはforce pushしません。
+Agent向けContextを追加・変更するときは、同じ規則を複数箇所へ複製しません。
 
-## ドキュメント構成
+- `AGENTS.md`: Bootstrapと参照経路だけを所有する。
+- `content/context/index.mdx`: Task routingと情報優先順位だけを所有する。
+- `content/ai-development.mdx`: AI支援開発の行動規範を所有する。
+- `content/development-process.mdx`: Iteration、Issue、Ready / Doneを所有する。
+- `content/branch-strategy.mdx`: branch / PR / merge運用を所有する。
+- `content/documentation-policy.mdx`: 文書のSource of Truth境界と配置を所有する。
+- Domain / Screen / System文書: Product / System仕様そのものを所有する。
 
-- 初回Releaseの範囲、成功条件、対象外、優先順位は`content/first-release.mdx`を正本とします。Product全体の将来対象と初回Releaseの必須機能を区別します。
-- 独立したProduct domainは`content/<domain>/`へ配置し、Media、Community、Userを同じ階層で管理します。
-- 各domainは概要、ユースケース、必要な権限、論理モデル、物理モデル、レコードパターン、整合性とTransaction、設計判断の順に整理します。
-- 各ページの章立て、情報の粒度、表形式は`content/design-document-templates.mdx`を正本とし、作成・更新時に適用します。
-- ID、日時、命名、constraint、indexなどの共通DB規約は`content/system/data/physical-model-conventions.mdx`へ集約し、domain文書へ複製しません。
-- Security・Privacyの保護対象、脅威、metadata、残存risk、対象外は`content/system/cross-cutting/security-privacy-requirements.mdx`を正本とします。
-- 認証・認可・Privacy、Transaction・競合制御、削除・Lifecycle、実行時の信頼性の共通方針は`content/system/cross-cutting/`へ集約します。
-- BackendとGraphQLの実装規約は`content/system/api/implementation-conventions.mdx`、`content/system/api/graphql-implementation.mdx`を正本とします。
-- Frontend状態管理と実装規約は`content/system/web/implementation-conventions.mdx`を正本とし、静的解析には既存のBiomeを使用します。
-- PostgreSQL・RedisのEC2上での自己運用とmigrationは`content/system/data/postgresql-redis-operations.mdx`、`content/system/data/schema-migration.mdx`を正本とします。
-- 初期のEC2・Docker・EBS・SSM運用は`content/system/infrastructure/ec2-runtime-operations.mdx`を正本とし、RDS、ElastiCache、ECS/Fargateを初期の必須構成にしません。
-- 入力検証と冪等性は`content/system/api/validation.mdx`、`content/system/api/idempotency.mdx`を正本とします。
-- table定義、状態遷移、権限、Transactionは所有domainにだけ記載し、他domainは責務境界と正本へlinkします。
-- プロダクト共通の語彙は`content/ubiquitous.mdx`へ記載します。
-- UI上の文章設計、Voice & Tone、Content Role、共通のContent Patternは`content/design-system/content-design.mdx`を正本とします。
-- 技術一覧は`content/technology-stack.mdx`へ記載します。
-- 性能、容量、可用性、backup、保持期間、監視の共通基準は`content/system/cross-cutting/non-functional-requirements.mdx`を正本とします。
-- システム設計は`content/system/`へ記載し、「全体構成 → Web → API → データ・ストレージ → インフラストラクチャ → 横断設計」の順で整理します。
-- GraphQL・DBなど実行可能なschemaは所有する実装リポジトリを正本とし、`content/system/`には設計上の意味と責務境界を記載します。
-- アジャイル開発とイテレーション運用は`content/development-process.mdx`へ記載します。
-- 人間中心のAI支援開発規約は`content/ai-development.mdx`へ記載します。
-- 文書の配置・正本・更新責任は`content/documentation-policy.mdx`へ記載します。
-- AI contextの参照順序は`content/context/`へ記載します。
-- リポジトリ構成とアーキテクチャは`content/system/`へ記載します。
-- ローカル開発の共通構成は`content/local-development.mdx`へ記載します。
-- コミットメッセージ規約は`content/commit-message.mdx`へ記載します。
-- Semantic VersioningとReleaseの規約は`content/versioning.mdx`へ記載します。
-- 主要なページは`content/_meta.js`へ追加します。
-- ルートのサイドメニューは「プロダクト → システム設計 → 開発・運用 → ドキュメント・記録」の順にします。
-- 各カテゴリ内は「概要 → ユースケース・主要概念 → 詳細設計 → 設計判断」の順を基本とします。
-- ページ追加時は対象階層の`_meta.js`へ明示的に追加し、ファイル名の辞書順や作成順に依存しません。
-- 人間向けの構成は、プロダクト概要、用語・ユースケース、全体構成、詳細設計、開発・運用の順を基本とします。
-- Context mapはタスク別の索引として扱い、人間向けナビゲーションの代わりにしません。
-- ページ名と先頭見出しは単独で内容を識別できる名称にし、単独の「概要」を避けます。
-- 設計書は最新の設計だけを本文に記載し、実装との差分は各ページの「概要」直下へ引用ブロックで記載します。
-
-簡潔な文章、明確な所有者、実装を所有するリポジトリへの参照を優先します。関係性の理解に有効な場合はMermaidを使用し、正しいMDX構文を維持します。
-
-概要設計だけで実装判断が残る場合は、論理・物理ER、table constraint、具体的なレコードパターン、操作前後の変化、transaction、競合制御、外部I/Oとの整合性、失敗時処理、test観点を追加します。すべての機能へ同じテンプレートを強制せず、複雑さとriskに応じて必要な詳細設計を作成します。
-
-## ローカル開発環境と検証
-
-標準環境はWindowsホスト、WSL2 Ubuntu、VS Code、Devboxです。詳細は`content/local-development.mdx`を参照します。
-
-- リポジトリはUbuntu側で開き、プロジェクトコマンドはUbuntu上のDevbox内で実行します。
-- Windowsホストから直接npm、Node.js、Goなどのプロジェクトコマンドを実行しません。
-- `node_modules`をWindows、macOS、他のLinux環境からコピーまたは共有しません。
-- npmパッケージは`package.json`と`package-lock.json`、DevboxのNode.jsは`devbox.json`と`devbox.lock`で管理します。
-- Nextra 4はApp Routerを使用し、本文を`content/`、routeとlayoutを`app/`、サイドメニュー順を各階層の`_meta.js`で管理します。
-- `memoria-web`と`memoria-api`の結合確認では、別々のターミナルとDevboxで両方を起動し、Windowsのブラウザから`localhost`へアクセスします。
-
-```sh
-devbox shell
-npm ci
-npm run build
-```
-
-依存関係が不足する場合は手動導入を標準手順にせず、責務に応じて`package.json`・`package-lock.json`または`devbox.json`・`devbox.lock`へ記録します。
-
-上記のcommandは人間がローカル環境で作業する場合の手順です。ChatGPTは自身の実行環境で依存関係の導入、build、test、代替的な構文検証を行わず、対象repositoryのGitHub Actionsへ検証を委譲します。
-
-## 作業規約
-
-1. 仕様として記載する前に、関連するMemoriaリポジトリで実装状況を確認します。
-2. 未決定事項を採用済みの設計へ混在させません。
-3. アーキテクチャ判断では、背景、決定、影響、対象リポジトリ、移行方法を記録します。
-4. シークレット、本番識別子、AWSアカウント番号、非公開の運用データを資料へ記載しません。
-5. 横断変更ではリポジトリごとにPRを分け、プロダクトレベルの変更から相互リンクします。
-6. プロダクトに関するドキュメントは日本語で記載します。リポジトリ名、コマンド、ファイルパス、コード識別子、固有の技術名は原表記を維持できます。
-7. 実装リポジトリへ設計内容を複製せず、このリポジトリの正本へリンクします。実行可能なschema・設定・コマンドは所有リポジトリを正本とします。
-8. AI contextには設計内容を複製せず、正本のパス、読み取り順序、タスク固有の制約を記載します。
-9. 新しいプロダクト用語は、対象設計と同じ変更で`content/ubiquitous.mdx`へ追加します。
-10. draw.io、SVG、旧MDXを移行・削除する前に、属性、関連、多重度、constraint、データパターン、操作順序、例外、意図、非対応理由が最新設計へ統合されていることを確認します。
-11. 実装を開始する設計では、開発者が重要な仕様判断を推測する状態を残しません。
-12. Screen SpecificationではInformation、Action、State、Navigation上の意味、制約、Responsiveで維持するCapabilityを定義し、`Dialog`、`Drawer`、`Modal`、`Page`、`Sidebar`、`split view`等のpresentation、Component構成、layout、visual designを原則として固定しません。presentation自体がProduct要件の場合だけ理由を明記して例外とします。既存実装やDesign System Patternの存在だけを固定理由にしません。
-
-## コードレビュー規則
-
-- 差異を明記せず、現在のGraphQLスキーマ、永続化モデル、インフラストラクチャと矛盾する資料を指摘します。
-- Web、API、設計、インフラストラクチャ間の所有範囲が不明確になる変更を指摘します。
-- ユビキタス言語へ反映されていない新しいプロダクト用語を指摘します。
-- シークレット、過剰な権限、安全策のない不可逆操作を含むデプロイ・セキュリティ手順を指摘します。
-- 対象リポジトリ、互換性、移行上の影響が不足したアーキテクチャ判断を指摘します。
-- 実装に必要なtable constraint、データパターン、transaction、競合・失敗時処理が未定義の設計を指摘します。
-- 性能目標、容量上限、timeout、保持期間、backup、監視が非機能要件の正本と一致しない変更を指摘します。
-- Goalとして完了・検証できない巨大Issue、工程別Phase、長期Feature branchを前提とする計画を指摘します。
-- APIのDomain・Use CaseからGraphQL、DB、Object Storageなど外側の詳細へ依存する設計を指摘します。
-- 元資料を削除する変更では、詳細情報が最新設計へ完全に移行されているか確認します。
-- 人間の責任範囲をAIへ移す記述や、ローカル開発を副次的に扱う記述を指摘します。
-- Windowsホストからの直接実行、OS間の`node_modules`共有、依存関係の未記録など、標準ローカル環境の再現性を損なう手順を指摘します。
-- Screen Specificationが、Product要件上の理由なくDialog / Drawer / Modal / Page / Sidebar / split view等のpresentationを固定している変更を指摘します。
-- 日本語で統一されていないプロダクト資料を指摘します。
-- 内容を識別できないページ名、状態が不明な設計、プロダクト概要より先に技術詳細を要求するナビゲーションを指摘します。
-- `_meta.js`のカテゴリ、セパレーター、表示順がドキュメント管理方針と一致しない変更を指摘します。
-- 手動コミットのtype・日本語タイトル・破壊的変更表現がコミットメッセージ規約と一致しない場合は指摘します。
-- リポジトリ間のバージョン統一や、`develop`への正式タグなど、バージョニング規約と一致しないリリース操作を指摘します。
-- 完了済みの受け入れ条件が未チェックのまま、または未完了項目が理由・後続Issueなしでチェック済みになっている場合は指摘します。
-- フォーマットとbuild可否は機械的な検証へ任せます。
+新しい規則を追加する前にownerを一つ決め、他の入口からはlinkだけを追加します。時点依存の進行状況や一時的なBaselineを恒久的なBootstrap規則へ混在させません。
