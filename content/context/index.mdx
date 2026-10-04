@@ -10,14 +10,18 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 ## 情報の優先順位
 
-1. 現在のIssueまたは会話で人間が合意した要件
-2. 承認済みの最新設計書
-3. 所有リポジトリにある実行可能なschema・設定・実装・テスト
-4. 対象リポジトリの`AGENTS.md`とREADME
-5. 過去のIssue・PR
-6. AIが生成した要約
+判断に利用する情報は次の順で扱います。この優先順位はAgent向けContext全体で唯一の定義とし、`AGENTS.md`や`ai-development.mdx`へ別の順序を複製しません。
 
-上位と下位が矛盾する場合は差異を報告し、人間の判断を求めます。
+1. 現在のTaskで人間と明示的に合意した要求
+2. `memoria-design`の該当Owner Documentにある承認済みの最新設計
+3. 所有repositoryにある実行可能なschema・設定・code・test
+4. 現在のIssue・PRにあるTask固有の情報
+5. 過去のIssue・PR
+6. AIが生成した要約や過去の会話Context
+
+この順序は、設計と実装が矛盾したときに設計へ機械的に合わせる規則ではありません。設計文書は intended behavior、実行可能なContractと実装は actual behavior を表すため、2と3に差異がある場合は不整合として明示し、原因と影響を確認します。仕様変更、設計修正、実装修正のどれが必要かを推測で決めず、重要な判断は人間との合意後に所有するSource of Truthへ反映します。
+
+`AGENTS.md`はBootstrap、Context mapはroutingであり、Product仕様や実装より上位の仕様Source of Truthとして扱いません。
 
 ## すべてのタスクに共通する参照手順
 
@@ -57,11 +61,9 @@ GitHubでbranch・commit・PRを作成または更新する前に、タスク別
 
 この表は探索の入口です。実際の変更が他の分野に影響する場合は、その正本も追加で確認します。
 
-## ChatGPT作業時の共通制約
+## AI支援開発の共通規範
 
-ChatGPTは成果物のbuild、test、静的解析、構文検証を自身の実行環境で行いません。変更内容と設計の整合性を確認してPRを作成し、実行による検証をGitHub Actionsへ委譲します。依存関係の導入や代替検証commandの探索を作業条件にしません。
-
-作業branchのcommit数と粒度は固定せず、複数commitを許容します。一つのcommitへまとめるためだけの操作は不要です。詳細は[AI支援開発](/ai-development)と[ブランチ運用](/branch-strategy)を参照してください。
+AI Agentの実行環境、検証、commit、対話、安全境界などの行動規範は[AI支援開発](/ai-development)をSource of Truthとします。branch / PR / mergeの具体的な運用は[ブランチ運用](/branch-strategy)を参照します。Context mapにはこれらの規則本文を複製しません。
 
 ## 共通して読む情報
 
