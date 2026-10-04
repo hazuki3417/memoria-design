@@ -28,15 +28,14 @@ Media Browserでは画像のvisual contentを主要な識別情報として提�
 
 Initial ReleaseのMedia Browserではfree textによるMedia検索を提供せず、現在scopeのTagによる絞り込みだけをCollection条件として提供します。複数Tagの条件は[Media Tag](/media/tag)に従います。
 
-file名、Uploader、Custodian等をすべてのMediaへ常時表示することは要求しません。対象Mediaを識別し、誤操作を防ぐために必要な補助情報だけをpresentationに応じて提示できます。
+Media BrowserではMediaのtitleやOriginal file名を表示上の識別情報として使用しません。Uploader、Custodian等もすべてのMediaへ常時表示することは要求しません。対象Mediaのvisual contentを主要な識別情報とし、誤操作を防ぐために必要な補助情報だけをpresentationに応じて提示できます。
 
 ### Media Detail
 
 Media Detailでは選択したMedia自体を主役として表示します。
 
-必要に応じて次の情報を確認できるようにします。
+Media DetailでもMediaのtitleやOriginal file名は通常の表示情報として提示しません。Mediaそのもののvisual contentを中心に、必要に応じて次の補助情報を確認できるようにします。
 
-- Original file名
 - Original file size
 - 画像のwidth / height
 - Upload日時
