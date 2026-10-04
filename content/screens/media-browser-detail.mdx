@@ -216,7 +216,7 @@ Media Browserの一覧はRelay Connectionによる無限ローディングを使
 
 ## Responsive対応
 
-Compact / Medium / WideでMediaを発見し、1件を詳しく閲覧し、現在利用可能な主要Actionへ到達するCapabilityを維持します。
+Compact / Medium / Wideで、Mediaを発見し、1件を詳しく閲覧し、現在利用可能な主要Product Actionへ到達するUser Goalを維持します。表示領域ごとに補助的なviewer Capabilityを機械的に一致させることは要求しません。
 
 Initial Releaseの基本表示はダイアログ方式とし、Compactでは画面領域に合わせたダイアログの表示方法を採用します。後続の右ペイン方式はWide等の十分な表示領域を前提とし、狭い画面では表示設定より利用可能な領域と操作性を優先します。
 
@@ -234,7 +234,7 @@ BrowserのProduct ActionはPersonal / Communityごとに別のInteraction model�
 
 Initial ReleaseのMedia DetailはBrowser上のfull-screen Dialogとして表示します。既存ImageDetailModalのviewer interactionを基礎に現在のApplication Shellへ適応し、画像viewer背景は透明、画像はDialogのheader / footerおよび展開中の情報領域を除いた利用可能領域を最大表示領域としてaspect ratioを維持して表示します。Wide / MediumではMedia画像を主領域、情報・分類・Actionを補助領域としてAdaptiveに配置し、情報領域はWideを含めて開閉可能とします。十分な表示領域があるWideでは展開状態を基本とし、Mediumでは画像領域とのバランスに応じて初期状態・幅を調整します。Compactでは画面全体を使い、画像と情報を横方向へ圧縮せず情報領域を画像の下へ配置します。情報領域の開閉はWide / Mediumでは横方向、Compactでは縦方向のslideとfadeを伴うtransitionとします。情報領域内の主要Actionは下部へ配置し、情報本文が増えた場合もAction位置を安定させます。
 
-Detail viewerでは前後Mediaへの移動時に移動方向が分かる短いslide / fade transitionを使用します。画像の回転、zoom in / out、100%へのzoom resetを提供し、zoomは50–300%の範囲でslider、段階操作、候補選択および数値直接入力から変更できます。回転resetは累積回転角を逆向きにanimationせず即時に0度へ戻します。Compactを含む各表示領域でもこれらのCapability自体は維持し、狭い領域でのcontrol presentationは実装時に適応させます。
+Detail viewerでは前後Mediaへの移動時に移動方向が分かる短いslide / fade transitionを使用します。Wide / Mediumでは画像の回転、zoom in / out、100%へのzoom resetを提供し、zoomは50–300%の範囲でslider、段階操作、候補選択および数値直接入力から変更できます。回転resetは累積回転角を逆向きにanimationせず即時に0度へ戻します。CompactではMedia閲覧、前後移動、Detailの終了、情報確認、現在利用可能な主要Product Actionへの到達を優先し、Wide / Medium向けの精密なzoom controlとrotation controlを必須Capabilityとしません。画像拡大がCompactで必要となる場合は、desktop向けcontrolをそのまま移植せず、touch等の入力環境に適したinteractionを別途検討します。
 
 Detailを開いてもBrowserのTag filter・読み込み済みCollection・可能な範囲のscroll位置を保持します。Detail内の前後移動は利用元Collectionの順序を使用し、必要な場合はRelay Connectionを追加取得します。close後は可能な限り起点thumbnailへfocusを戻します。
 
