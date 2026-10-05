@@ -6,7 +6,7 @@
 
 本ページはInitial ReleaseでWeb Clientから利用するGraphQLの型、Query、Mutation、認可、error、pagination、非同期状態の契約を定義します。APIはschema、Webはoperation・fragment・生成型を所有します。resolver、DataLoader、schema進化、Access Token、GraphQL Errorの実装規約は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照します。
 
-12項目のうち、5（Original download transport）と6（Account deletionの再認証binding）は詳細設計を要します。それ以外のGraphQL契約は `memoria-api/schemas/graphql/` へ実行可能SDLとして反映します。5・6の暫定SDLは実装対象の契約に含めず、当該仕様が確定するまで実装対象から除外します。Product / domain semanticsは変更しません。
+GraphQL I/Fは現時点のProduct / Domain契約から確定できる範囲を実行可能SDLへ引き渡します。Original downloadは既存Security / Storage契約に従い単一Mediaの短期署名URL発行まで確定しています。Account deletionの再認証bindingだけはAuth0 / BFFとのSecurity境界が未確定のため、論理契約を維持しつつ具体SDLの確定を保留します。Product / domain semanticsは変更しません。
 
 ## 契約原則
 
@@ -644,6 +644,7 @@ type DeleteMediaPayload {
 
 type MediaOriginalDownload {
   url: String!
+  expiresAt: DateTime!
 }
 
 extend type Query {
@@ -659,7 +660,9 @@ User Custody MediaはCustodian本人が削除できます。Community Custody Me
 
 削除受付はMediaを `DELETING` へ遷移させ、Object Storage削除等の非同期cleanupを開始します。通常一覧からはACTIVE Mediaだけを返します。削除Mutationは非同期cleanup完了を待たず、受付済み状態を返します。再送による副作用重複を避けるため `idempotencyKey` を要求します。
 
-Original downloadも同じ権限規則を適用し、短時間利用可能なdownload URL等のdelivery情報だけを返します。Storage keyは公開しません。
+Original downloadも同じ権限規則を適用します。Initial Releaseの単一Media downloadは、Query実行時に現在権限を再評価したうえでOriginalへ到達する期限付き署名URLと `expiresAt` を返します。署名期限はSecurity / Storage正本どおり発行から5分です。Storage key、bucket名、署名生成情報は公開せず、URLをlog / traceへ記録しません。権限喪失後は新しいURLを発行しませんが、発行済みURLは期限まで利用可能な残存riskを既存Security契約どおり許容します。
+
+複数MediaのOriginal一括download / ZIP生成はInitial ReleaseのこのGraphQL契約へ含めません。将来提供する場合は非同期生成、部分認可、一時archive lifecycleを別途設計します。
 
 ## Group
 
@@ -1123,7 +1126,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。Dashboardも専用Queryを作らず `first: 12` で同じConnectionを利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
 - User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte scalarは実装引き渡し前に確定する。
 - Community削除はCommunity管理Mediaの存在を `CONFLICT` 条件にせず、`ACTIVE → DELETING` とMedia削除Lifecycleを実装する。
-- `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、schemaの実装引き渡し対象から除外する。
+- `mediaOriginalDownload` は単一Mediaの5分署名URL + `expiresAt` を実装引き渡し対象とする。複数Media ZIPはInitial Release対象外とする。Account deletionの `reviewToken` / `reauthenticationProof` に依存するSDLだけはSecurity binding確定まで実装引き渡し対象から除外する。
 - 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
 ## レビュー時の要判断事項
@@ -1134,11 +1137,11 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 2. **scope Input表現（確定）**: `ScopeType` enum（`PERSONAL` / `COMMUNITY`）を明示する。共通 `ScopeInput` をGroup / Tagの取得・作成で使用し、HTTP Image Uploadのcustody指定も同じenumと検証規則を使用する。`COMMUNITY` は `communityId` 必須、`PERSONAL` は指定禁止とし、不整合は `VALIDATION`。
 3. **Bulk result表現（確定）**: 共有・共有解除・Group分類・Tag分類に専用のitem result型を設ける。状態の意味は共通 `BulkItemStatus`（`SUCCEEDED` / `ALREADY_APPLIED` / `FAILED`）で統一し、各resultは `mediaId` / `status` / `errorCode` を持つ。操作固有の結果fieldは必要になった時点で個別に追加する。
 4. **Invitation secret返却（確定）**: APIが完全な招待URLを生成し、Administrator向け `CommunityInvitation.url` で返す。Web ClientはURLを組み立てない。招待URLはsecretとして取り扱い、非Administrator向けQueryへ公開しない。
-5. **Original download契約（保留）**: 認可・ドメイン要件は維持するが、短期URL、別download endpoint、複数画像ZIP生成・一時保存等のtransport詳細は未確定。現在の `mediaOriginalDownload` SDLは検討用の暫定案であり、実装確定契約には含めない。
+5. **Original download契約（確定）**: Initial Releaseの単一Media Original downloadは `mediaOriginalDownload(mediaId:)` で認可後に5分の期限付き署名URLと `expiresAt` を返す。Storage keyは公開しない。複数Media ZIPはInitial Release対象外とし、将来別契約で設計する。
 6. **Account deletion binding（保留）**: 削除前の再認証とReview内容へのbinding要件は維持するが、Auth0再認証の証明方法・保持方法・有効期限は未確定。現在の `reviewToken` / `reauthenticationProof` は論理上の暫定表現であり、実装確定契約には含めない。
 7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
 8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
-9. **Group relation detailとモデルfield（確定）**: Group Browser画面仕様に従い、`MediaGroup.parents` / `children` / `media` を独立したRelay Connectionとして公開する。Group間relationの追加候補検索は別契約とし、候補の絞り込みと循環禁止はAPI側でも再検証する。
+9. **Group relation editor契約（確定）**: `MediaGroup.parents` / `children` / `media` を表示用Connectionとして公開し、編集候補は `mediaGroupRelationCandidates` から現在relationとParent / Child各方向のAction availabilityを取得する。保存は `updateMediaGroup` でnameとrelation Draft差分を1つのUser intentとして送信し、relation changeは部分成功を許容する。APIは最新DAGに対してcycle・深度・直接relation数上限を再検証する。
 10. **Media scope固有分類取得とモデルfield（確定）**: Group詳細の関連Connectionと同様に、Media詳細の直接関連情報は `Media.groups(scope:)` / `Media.tags(scope:)` の独立したRelay Connectionとして取得する。scopeは必須とし、現在scopeでのMedia可視性を検証する。Group / Tag本体の一覧・検索・管理は独立Query、Communityの子fieldにはしない。
 11. **Upload transport（確定）**: ファイル本体は同じmemoria-api内の専用HTTP upload endpointで受信し、必要最小限のcustody情報とidempotency keyも同じrequestで受け取る。GraphQLはMediaの取得・分類・共有・削除・Processing状態取得を担当する。既存Redis Streamsによる非同期処理基盤を再利用し、HTTP endpointとGraphQLはApplication Use Caseおよび認証・認可規則を共有する。具体的なHTTP routeとrequest / response形式は詳細設計で確定する。
 12. **整数scalar（確定）**: Initial ReleaseのOriginal file size上限128 MiB、画像寸法・Variant size等の現在の上限をGraphQL標準の32-bit signed `Int` で表現する。`BigInt` / custom integer scalarは導入しない。将来2,147,483,647を超える値を公開する要件が生じた場合は、該当fieldのscalarとClient互換性を別途設計する。
