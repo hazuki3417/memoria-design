@@ -62,7 +62,7 @@ GraphQLはDBの外部キーをそのまま公開するのではなく、Client�
 
 ```graphql
 scalar DateTime
-# User Usageの累積byte値向け候補。公開表現はImplementation Detail確定後に実行可能SDLへ引き渡す。
+# 64-bit signed integer。GraphQL responseでは10進文字列としてserializeし、Clientも文字列から安全にparseする。
 scalar Int64
 
 enum CommunityRole {
@@ -261,7 +261,7 @@ extend type Mutation {
 
 `updateUserPreferences` は複数のaccount同期Preferenceを1つのモデル更新I/Fとして部分更新します。Inputは少なくとも1 fieldを指定し、未指定fieldは現在値を維持します。明示的な `null` は設定値として受理せず `VALIDATION` とします。Personal Accentは `#RRGGBB` を受理し、他のPreferenceと同様に成功時の保存済み `UserPreferences` を返します。連続する即時保存はWebがrequestを直列化し、保存中の変更を必要に応じてcoalesceして最新のUser intentを次requestとして送ります。APIにPreference versionやClient sequenceを追加せず、各Mutationは受信時の入力をatomicに保存します。
 
-`User.usage` はUser Settings > Usageで必要な現在の総Media件数とStorage Usageを返します。Storageは現在使用中のbyte数と、その時点でUserへ適用されているeffective limitを返し、Plan / Quota等の算出モデルをGraphQL契約へ露出しません。使用率・残容量・表示単位への変換はWebで導出します。累積Storage値は32-bit `Int` の範囲を超え得るため、既存APIに存在する `Int64` を契約候補として記載しますが、Usageを実行可能SDLへ引き渡す前にscalarの公開表現をImplementation Detailとして確定します。
+`User.usage` はUser Settings > Usageで必要な現在の総Media件数とStorage Usageを返します。Storageは現在使用中のbyte数と、その時点でUserへ適用されているeffective limitを返し、Plan / Quota等の算出モデルをGraphQL契約へ露出しません。使用率・残容量・表示単位への変換はWebで導出します。累積Storage値は32-bit `Int` の範囲を超え得るため、既存APIに存在する `Int64` を使用します。JavaScriptのsafe integer境界へ依存しないよう、GraphQL responseでは符号付き64-bit整数を10進文字列としてserializeし、Inputへ将来使用する場合も同じ10進文字列表現を受理します。Webは生成型上もnumberとして扱わず、表示・計算時にBigInt等の安全な表現へ変換します。
 
 ## Community
 
@@ -1124,7 +1124,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - 既存APIの `scalar Upload` と `scalar Int64` は既存schemaに存在するが、新しいMedia upload transportは専用HTTP endpoint、Initial ReleaseのMedia size/dimension fieldは標準 `Int` とする。既存scalarの削除はこの契約だけを根拠に行わない。
 - Group relationの表示は `MediaGroup.parents` / `children` / `media` を使用する。関連追加の候補検索は表示用Connectionと別の契約が必要であり、候補の絞り込み・DAG循環禁止をAPIで再検証する。
 - Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。Dashboardも専用Queryを作らず `first: 12` で同じConnectionを利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
-- User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte scalarは実装引き渡し前に確定する。
+- User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte値は `Int64` を使用し、wire上は10進文字列として扱う。
 - Community削除はCommunity管理Mediaの存在を `CONFLICT` 条件にせず、`ACTIVE → DELETING` とMedia削除Lifecycleを実装する。
 - `mediaOriginalDownload` は単一Mediaの5分署名URL + `expiresAt` を実装引き渡し対象とする。複数Media ZIPはInitial Release対象外とする。Account deletionの `reviewToken` / `reauthenticationProof` に依存するSDLだけはSecurity binding確定まで実装引き渡し対象から除外する。
 - 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
@@ -1150,6 +1150,6 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 14. **Community Accent lifecycle（確定）**: AccentはUser × Community settingとして `Community.mySettings` から取得する。Membership作成と同一transactionで初期生成し、退会・除外時に削除する。再参加時は過去値を復元せず新規生成する。
 15. **即時保存ordering（確定）**: Accent / Preferenceの連続変更はWebがrequestを直列化し、保存中の変更をcoalesceして最新意図を次requestへ送る。APIへClient sequence / versionを追加しない。
 16. **Media Update / UploadのTag保存（確定）**: 画面専用の最終Tag集合Mutationは追加せず、Tag作成とTag分類CommandをWeb Operationが編成する。各Mutationは独立transactionとし、部分失敗後はServerの成立済み状態を再取得して差分を再評価する。
-17. **Usageの意味契約（確定、scalarのみ保留）**: APIは総Media件数、Storage使用byte数、その時点のeffective limitを返す。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値のscalarは32-bit `Int` を使用せず、実行可能SDLへの引き渡し前に確定する。
+17. **Usage契約（確定）**: APIは総Media件数、Storage使用byte数、その時点のeffective limitを返す。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値は既存 `Int64` scalarを使用し、wire上は10進文字列としてserializeする。
 
 これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。5・6の詳細設計はIssueで追跡し、対象のSDLは詳細設計後に引き渡します。
