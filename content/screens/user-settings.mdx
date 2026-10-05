@@ -2,126 +2,221 @@
 
 ## 概要
 
-ACTIVE User本人が、現在のPersonal / Community contextから独立してProfile、表示・操作のPreference、利用状況、account lifecycleを確認・管理する設定画面です。
+User Settingsは、現在のPersonal / Community contextに依存しないUser本人の設定を扱う画面です。
 
-SettingsはApplication Shell内のUser-scopedな領域として扱います。特定contextの設定ではなく、Account Menuから到達するUser本人の設定を集約します。
-
-## 目的
-
-- User本人に関する設定と確認先を一つのSettings領域へ集約する。
-- Profile、Preference、利用状況、account lifecycleという異なる責務を、Settings内Navigationで明確に分離する。
-- Account Menuへ個別のProfileや削除Actionを重複して配置せず、Application全体のNavigation階層を予測可能にする。
-
-## 関連仕様
-
-- [Application Information Architecture](/system/application-information-architecture)
-- [User Profile](/screens/user-profile)
-- [Account Deletion Flow](/screens/account-deletion-flow)
-- [Editable Form Pattern](/design-system/patterns/editable-form)
-- [Feedback Pattern](/design-system/patterns/feedback)
+Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界と、Initial Releaseで確定したPreferences / Usageを定義します。
 
 ## Information Architecture
 
-Initial ReleaseのSettingsは次の4領域で構成します。
+Settingsは次の領域を持ちます。
 
-1. **プロフィール**: Memoriaで使用するProfileを確認・変更する。
-2. **環境設定**: 表示とPreviewの動作を変更する。
-3. **利用状況**: Storage使用量、Media統計、Upload上限を確認する。
-4. **アカウント**: account lifecycleに関する操作へ進む。
+- **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
+- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
+- **Usage**: User本人の利用状況に関する情報を確認する。Initial ReleaseではStorage Usageと総Media件数を提供する。Upload制約一覧はUsageへ常設せず、User input制約のSystem方針に従って各Capabilityの操作contextで必要に応じて提示する。
+- **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
-通知設定はInitial ReleaseのSettingsに含めません。
+SettingsはCommunity管理設定とは分離します。Community contextを利用中でもPersonal contextへ切り替えずAccount Menuから直接到達でき、Settings内の値は現在のCommunityによって変化しません。
 
-Settings内NavigationはApplication Context Navigationとは別のlocal navigationです。Settingsの各領域を移動してもPersonal / Community contextを切り替える操作とは扱いません。
+Settings内NavigationのHeader / Sidebar / Tabs / Drawer等の具体presentationは固定せず、viewportに応じて適切なComponentを選択します。
 
-## プロフィール
+## Preferences
 
-Profileの意味、validation、保存、失敗時の復旧は[User Profile](/screens/user-profile)を正本とします。
+### Appearance
 
-Initial Releaseの編集対象はnicknameのみです。Profile変更は明示的に保存するEditable Formとして扱い、Preferenceの即時反映とは操作モデルを混在させません。
+Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。Language / LocaleとTimezoneはApplicationとして扱える境界を持ちますが、Initial ReleaseではUserが変更する設定項目として表示しません。
 
-## 環境設定
+#### Theme
 
-Initial Releaseでは次を提供します。
+ApplicationのTheme preferenceとして次の3状態を提供します.
 
-- 表示テーマ
-- 日付形式
-- ファイルサイズの単位
-- Previewで最後のMediaから最初のMediaへ戻る動作
-- Previewを開いたときに詳細情報を表示する動作
+| Preference | Behavior |
+| --- | --- |
+| System | OS / browserが公開するcolor scheme preferenceに追従する |
+| Light | System preferenceに関係なくLight themeを使用する |
+| Dark | System preferenceに関係なくDark themeを使用する |
 
-Preferenceは設定ごとに即時反映します。Settings全体またはPreference全体を確定するSave / Cancel Actionは設けません。
+初期値は **System** とします。
 
-変更要求中は同一設定の結果が不明瞭にならないようにし、Serverで保存が成立していない値を確定済みとして扱いません。保存に失敗した場合は最後に確認できている値へ戻し、[Feedback Pattern](/design-system/patterns/feedback)に従って失敗を伝えます。短時間に連続して変更した場合も、古い応答で新しい選択を上書きしません。
+System選択中にOS / browserのcolor schemeが変化した場合は、reloadや再選択を要求せずApplicationの実効Themeを追従させます。Light / Darkを明示選択している場合はSystem preferenceの変化でThemeを変更しません。
 
-表示テーマは `システム` / `ライト` / `ダーク` を提供し、変更は他のPreferenceと同様に即時反映します。テーマの永続化方式はInitial ReleaseのSettings設計では固定せず、永続化が必要になった時点でUser Preference APIまたはClient側storage等の責務を別途検討します。
+### 変更Behavior
 
-APIで管理するPreferenceの具体的な選択肢はAPI契約を正本とし、Webだけに未対応の値を追加しません。
+Appearanceの選択は明示的なSave操作を要求せず、選択時に即時反映します。
 
-## 利用状況
+Theme変更によって現在のApplication context、Navigation先、入力中の内容、選択状態等を失わせません。Theme変更はpresentationの変更であり、Domain Actionの再実行やNavigationを発生させません。
 
-利用状況はread-onlyです。Initial Releaseでは次を確認できるようにします。
+AppearanceはPersonal / Communityごとに分けず、同一browser / device上のApplication全体へ適用します。
 
-### ストレージ
+### 永続化scope
 
-- 使用量
-- 利用可能な総容量
-- 全体に対する使用割合
+Initial ReleaseのAppearance preferenceは **browser / device-local preference** とします。Memoria User accountへ同期するUser domain dataとして扱いません。
 
-容量と割合の関係を理解できる表現を用います。特定のChart Componentは仕様として固定しません。
+- 同じUserでもbrowser / deviceごとに異なるAppearanceを選択できます。
+- 同じbrowserでlogout / loginしても、local preferenceが利用可能である限り選択を維持できます。
+- 別deviceや別browserへAppearanceを同期しません。
+- Theme preferenceのためだけにUser entity、Profile、GraphQL / APIへ永続化fieldを追加しません。
 
-### Media
+local preferenceを読み取れない、未保存、または保存値を解釈できない場合はSystemとして扱います。
 
-- 全Mediaの件数と使用量
-- APIが提供するMedia typeごとの件数と使用量
+browser storageの具体方式、SSR / hydration時のTheme適用順序、flash防止等はFrontend implementation contractで決定します。ただし初期表示で不要なTheme切り替わりを可能な範囲で避けることを実装上の品質要件とします。
 
-件数と使用量を同じ分類軸で比較できるようにし、情報量に対して不要なChartを増やしません。
+### 日付形式
 
-### アップロード
+日付形式はUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。任意のformat stringは入力させず、Initial Releaseでは次の3パターンから選択します。
 
-- 1回のUploadで扱えるMedia数の上限
-- 1 Mediaあたりのサイズ上限
-- 対応形式
+| Preference | 表示例 |
+| --- | --- |
+| YYYY/MM/DD | 2026/10/05 |
+| MM/DD/YYYY | 10/05/2026 |
+| DD/MM/YYYY | 05/10/2026 |
 
-APIが提供するlimitを表示し、Clientに固定値を別の正本として持ちません。
+初期値は **YYYY/MM/DD** とします。
 
-利用状況の取得中、取得失敗、0件・0使用量を区別します。取得失敗を0として表示しません。
+このPreferenceは日付部分の表示順とseparatorだけを対象とします。Timezoneの選択・変換とは分離し、Initial Releaseでは時刻部分を24時間表記として扱います。12 / 24時間表記の切り替えは日付形式Preferenceへ含めません。
 
-## アカウント
+日付形式の変更は他のPreferenceと同様に選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
 
-Account領域はaccount lifecycleに関する低頻度Actionを扱います。Initial ReleaseではAccount Deletion Flowへの入口を提供します。
+Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的なAPI / data model contractはBackend設計時に確定します。
 
-入口のAction labelは **「アカウントを削除する」** とします。このAction自体では削除を実行せず、[Account Deletion Flow](/screens/account-deletion-flow)へ進み、削除対象とCommunityへの影響を段階的に確認します。
+### Language / Locale
 
-Auth0が管理するemail、password、external identity等をMemoria Settingsのaccount情報として表示・編集しません。Memoriaが保持しない認証情報をSettings用に複製しません。
+Applicationは将来の多言語対応を妨げないようLanguage / Localeを独立したPreferenceとして扱える境界を持ちます。ただしInitial Releaseで提供する言語は **日本語のみ** とし、SettingsにはLanguage選択controlを表示しません。選択肢が1つしかない状態で意味のない設定操作をUserへ要求しないためです。
 
-## Navigation
+Language / Localeは日付形式、Timezone、ファイルサイズ単位等のPreferenceと同一視しません。将来複数言語を正式に提供するときに、Language選択UI、初期値、fallback、永続化scopeをその時点のProduct requirementに基づいて設計します。
 
-Settingsは[Application Information Architecture](/system/application-information-architecture)のAccount Menuから到達します。Account MenuはSettingsとlogoutへの入口を持ち、Profileやaccount削除への個別入口を重複して設けません。
+### Timezone
 
-Wide / Mediumでlocal navigationを常時表示する場合、Application ShellのContext Navigation Drawerが開いている間はApplication Navigationを前面に表示し、背後のSettings local navigationと同時に操作対象として見せません。Drawerを閉じた場合はSettingsの選択領域と編集状態を維持します。
+ApplicationはUser-facingな日時をTimezoneへ変換して表示できる境界を持ちます。ただしInitial ReleaseではSettingsにTimezone選択controlを表示せず、実効Timezoneを **Asia/Tokyo** とします。
 
-Profileに未保存変更がある状態でSettings内の別領域やApplication Navigationへ移動する場合は[Editable Form Pattern](/design-system/patterns/editable-form)の破棄確認に従います。即時反映済みPreferenceとread-onlyのUsageには未保存変更としての離脱確認を要求しません。
+User-facingな日時表示には原則としてAsia/Tokyoを一貫して適用し、Timezone変換後の日付部分へ日付形式Preferenceを適用します。時刻部分はInitial Releaseでは24時間表記とします。Timezoneはpresentation上の日時解釈を決めるものであり、Domain / APIが保持する日時データそのものを書き換えません。
 
-## Content Design
+将来Timezone選択を提供する場合は、System / 明示指定Timezone等の選択方法とaccount同期を含むPreferenceとして改めて有効化します。具体的なAPI / data model contractはBackend設計時に確定します。
 
-Settingsは操作対象とActionを短く直接表現します。見出しから自明な説明や、同じ意味を繰り返す補足文を追加しません。
+### ファイルサイズ単位
 
-説明は、設定名だけでは変更結果が予測しにくい場合、不可逆・重要な影響を理解する必要がある場合、または次のActionの意味を補足する場合に使用します。Action labelは確認画面の存在を説明する文ではなく、Userが開始する目的を表します。
+ファイルサイズ単位はUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。
 
-## Responsive Behavior
+Initial Releaseでは次の2つの単位体系から選択します。
 
-Compact / Medium / Wideのいずれでも、4つのSettings領域へ移動し、それぞれのCapabilityを利用できることを維持します。
+| Preference | 単位 | 基数 |
+| --- | --- | --- |
+| Decimal | KB / MB / GB | 1 KB = 1000 bytes |
+| Binary | KiB / MiB / GiB | 1 KiB = 1024 bytes |
 
-表示領域が狭い場合はlocal navigationを常時サイドメニューとして表示することを要求しません。Select、Menu、Drawer等の具体的presentationはVisual Design / 実装で決定できますが、現在のSettings領域を理解でき、他領域へkeyboard / touchでも移動できる必要があります。
+初期値は **Decimal** とします。Binaryを選択した場合は1024基準の値に `KB` / `MB` / `GB` を使用せず、`KiB` / `MiB` / `GiB` として単位体系を明示します。
 
-Application NavigationとSettings local navigationが同時に狭い表示領域を占有して主要contentを圧迫しないようにします。
+このPreferenceはMedia DetailのOriginal file size、Usage等、Application内でUserへ提示するfile size表示へ一貫して適用します。Domain dataやStorage上のsizeそのものを書き換える設定ではなく、保持しているbyte数等の正本から表示値を導出するpresentation preferenceとして扱います。
 
-## Visual Design
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
 
-SettingsはApplication Shellを共有し、Settings専用の独立Headerを設けません。
+具体的なAPI / data model contractはBackend設計時に確定します。
 
-Wide / MediumのSettings local navigationはApplication Navigationと同系統のNavigation表現を使用し、各領域をiconとlabelで識別できるようにします。選択中の領域は色だけに依存せず判別可能にします。
+### Mediaサムネイルサイズ
 
-Contentは単一カラムを基本とし、Section、必要な説明、content / actionの順に情報階層を作ります。すべてをCardへ囲うことや、read-only dataを一律にChart化することは要求しません。Card、Divider、Chart等は情報のまとまりや比較を明確にする場合に使用します。
+Media Collectionで表示するサムネイルサイズはUser accountに紐づく共通Preferenceとして保持し、同じUserが利用するdevice / browser間で同期します。Media Browserだけでなく、Group Browser内のaggregate Media等、Media CollectionとしてMediaを一覧表示する箇所へ一貫して適用します。
 
-具体的なpixel幅、icon glyph、Mantine Component、spacingは実装とVisual Reviewで決定します。
+Initial Releaseでは **小 / 中 / 大** の3段階を提供し、初期値は **中** とします。
+
+| Preference | 意図 |
+| --- | --- |
+| 小 | 一覧性を優先し、一度により多くのMediaを確認しやすくする |
+| 中 | 一覧性と個々のMediaの確認しやすさを両立する |
+| 大 | 個々のMediaのvisual contentをより確認しやすくする |
+
+このPreferenceは固定pixel値や固定grid列数をUser preferenceとして定義するものではありません。Responsive viewport classificationとは独立して扱い、各viewportで適切な実寸・列数へ適応しながら、同一viewport内では小 < 中 < 大の相対的なサムネイルサイズ関係を維持します。
+
+具体的なthumbnail寸法、spacing、grid layoutはUI具体化とVisual Reviewで決定します。Preferenceとしてraw pixel値を保存・公開しません。
+
+このPreferenceはMedia Collectionの閲覧密度を調整するものであり、Media Detailのメイン画像、Upload preview、選択control内の補助thumbnail等、Collection閲覧を目的としないMedia表示には適用しません。Initial ReleaseではCollectionごとの個別設定を持たず、1つの共通Preferenceを使用します。将来、Collectionごとに異なるサイズを必要とするProduct needが確認された場合は、共通Preferenceをdefaultとして個別overrideする方式を検討します。
+
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。具体的なAPI / data model contractはBackend設計時に確定します。
+
+### Media Detailの前後Navigation循環
+
+Media Detailの前後NavigationをCollectionの境界で循環させるかはUser accountに紐づくPreferenceとして保持し、device / browser間で同期します。
+
+Initial Releaseでは **OFF** を初期値とします。OFFでは利用元Collectionの先頭・末尾をNavigationの境界とします。ONでは末尾から「次へ」で先頭へ、先頭から「前へ」で末尾へ移動します。
+
+循環を有効にしても、Detailを開いた利用元Collectionのfilter条件と順序は変更しません。未取得のMediaが存在する場合もclient上で読み込み済みの範囲をCollection全体の境界として扱わず、必要に応じてConnectionを追加取得して実際の先頭・末尾を解決します。
+
+Collectionが1件だけの場合は、同じMedia自身への前後移動Actionを成立させません。
+
+変更は選択時に即時反映します。具体的なAPI / data model contractはBackend設計時に確定します。
+
+### Media Detailの詳細情報初期表示
+
+Media Detailを開いたときの詳細情報領域の初期状態はUser accountに紐づくPreferenceとして保持し、device / browser間で同期します。Responsive領域ごとの利用可能な表示領域が異なるため、WideとMediumを個別に設定します。
+
+| 対象 | Preference | 初期値 |
+| --- | --- | --- |
+| Wide | 詳細情報を展開して開く | ON |
+| Medium | 詳細情報を展開して開く | OFF |
+| Compact | Preference対象外 | Compact固有のResponsive Behaviorに従う |
+
+このPreferenceはMedia Detailを新しく開いた瞬間の初期状態だけを決定します。Detailを開いた後にUserが詳細情報を展開・折りたたみしても、その操作からPreferenceを自動更新しません。
+
+Wide / Mediumのviewport classificationに応じて対応するPreferenceを解決し、Detail UIには解決後の初期状態を渡します。各表示箇所でPreference値を個別に分岐させません。CompactではこのPreferenceを参照せず、Compact向けのProgressive Disclosureを使用します。
+
+Detailを開いたままviewportが変化した場合は、breakpointを跨ぐたびにPreferenceを再適用してUserの操作状態を強制的にリセットしません。Responsive layoutへ適応しつつ、現在の状態を維持可能な範囲で維持します。CompactではCompact固有のpresentationを優先します。
+
+変更は選択時に即時反映し、次にMedia Detailを開くときの初期状態から使用します。具体的なAPI / data model contractはBackend設計時に確定します。
+
+## Usage
+
+### Storage Usage
+
+Initial Releaseでは、Userが現在のStorage消費状況と利用可能な残量を判断できるようにStorage Usageを提供します。少なくとも現在の使用中容量、現在適用されている上限容量、および両者の関係が分かる使用率または残容量を提示します。
+
+Storage上限をどのProduct概念・契約・Plan等から決定するかは本Screen Specificationでは定義しません。Usageは、その時点でUserへ適用されている有効な上限を表示する責務を持ちます。具体的な上限値もScreen Specificationへ固定しません。
+
+容量表示にはPreferencesで選択したファイルサイズ単位を適用します。割合や残量のpresentationは、Userが現在の消費状況と残りの利用可能量を誤解なく把握できることを優先します。
+
+Storage Usageの具体的な取得API / data model contractはBackend設計時に確定します。
+
+### Upload制約の扱い
+
+Initial ReleaseのSettings > Usageには、1回のUpload可能件数、1 Mediaあたりの最大file size、対応file format等のUpload制約一覧を常設しません。これらは利用状況そのものではなくUser inputの受理条件であり、具体値や提示方法はMedia Upload Capability側で設計します。
+
+Upload制約はUIへhard-codeせず、System全体のUser input制約方針に従ってMedia Domain / APIを正本とします。Userが事前に知ることで失敗を避けられる制約はUploadの操作contextで必要に応じて提示し、制約違反時は修正可能なvalidation feedbackを提供します。
+
+### Media Usage
+
+Initial Releaseでは、User本人の利用規模を把握できる指標として総Media件数を表示します。Storage使用量とは別の利用状況指標として扱います。
+
+JPEG / PNG等のfile format別の件数・容量内訳はInitial Releaseでは表示しません。現在のProductではformat別内訳から直接つながる整理・変換・削除等のUser Actionを定義しておらず、利用状況の把握に必要な情報を超えて複雑性を増やすためです。
+
+将来、Storage消費要因の分析等のProduct needが確認された場合は、Media type別、file format別等の分析軸をその時点のMedia Capabilityに合わせて再設計します。Media typeとfile formatを同一概念として扱いません。
+
+総Media件数の具体的な取得API / data model contractはBackend設計時に確定します。
+
+## Accessibility / Design System
+
+Light / Darkの双方でDesign Systemのsemantic color roleを維持し、個別ScreenがThemeごとの固定色をProduct meaningとして直接持たないことを基本とします。
+
+Themeによって情報、Action、状態表現、focus indicator等のCapabilityを変えません。色だけに意味を依存せず、双方のThemeでWCAG 2.2 AAを満たすことを目標とします。
+
+System / Light / Darkの選択状態は、色の見た目だけでなくcontrolの選択状態として認識可能にします。
+
+## Account
+
+Initial ReleaseのAccount領域では、User account lifecycleに関する操作として **account削除のみ** を提供します。削除の具体的なUser Flowは[Account Deletion Flow](/screens/account-deletion-flow)を正本とします。
+
+認証情報の正本はAuth0であり、password変更等の認証情報管理をMemoria独自のAccount設定として重複提供しません。認証方法の確認、session / device管理、外部account連携等はInitial ReleaseのSettingsへ追加せず、具体的なProduct needが確認された場合にAuth0との責務境界を含めて設計します。
+
+## Initial Release対象外
+
+- User accountを介したAppearance preferenceのdevice間同期
+- Community / Personal contextごとのTheme
+- Communityごとのbrand theme
+- Userが任意色を選択するcustom theme
+- font family、font size、density等の追加Appearance preference
+- Theme変更によってProduct Capabilityやauthorizationを変えること
+
+将来User preferenceを追加する場合も、account同期が必要かdevice-localであるべきかを設定ごとに判断し、Preferences全体を一律に同じ永続化scopeへ固定しません。
+
+## Visual Prototype / Reviewで確認する事項
+
+- Settings navigationがWide / Compact双方で現在位置を理解できること
+- System / Light / Darkの選択状態と即時反映が明確であること
+- Light / Dark双方で主要Screen、Dialog、feedback、focus stateのcontrastとsemantic roleが維持されること
+- Theme切り替え時にlayout shift、入力消失、Navigation stateの消失が発生しないこと

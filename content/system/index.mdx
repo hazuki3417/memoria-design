@@ -30,6 +30,14 @@ flowchart TD
 
 WebはAPIのドメインルールを複製せず、APIはユースケース・認可・data・file入出力を所有します。Media Workerは派生fileを生成し、Outbox PublisherはPostgreSQLに記録したeventをRedis Streamsへ配送します。DBとGraphQLの実行可能なschemaはAPI、AWS resourceはIaCを正本とします。
 
+### User input制約の正本と情報提供
+
+User inputの受理可否に関わるDomain上の制約は、そのCapabilityを所有するDomain / APIを正本とします。Webや各Screenが最大件数、最大size、許可format、文字数等のDomain ruleを独自に複製・固定しません。ApplicationがUserの入力成功に必要な制約を事前に説明できるよう、Domain / APIは必要な受理条件を機械可読な構造化情報として提供できる設計とします。
+
+構造化された制約情報をUIへ常時露出することは要求しません。UIは、事前認知によって入力失敗を避けられる場合や現在の判断に必要な場合に、操作contextに合わせて必要な情報だけを提示します。UI文言やpresentationはFrontendの責務とし、Domain / APIは表示文言ではなく意味のある制約値・種別を提供します。
+
+事前に制約情報を提示・client-side validationへ利用する場合でも、最終的な受理判定はDomain / APIで必ず行います。制約違反時は、Userが修正して再試行できる具体的なvalidation feedbackへ変換可能な結果を返します。どの制約を事前提供するか、どのcontextで表示するかは各CapabilityのProduct / UX設計で決定します。
+
 ## バックエンドの実行単位
 
 | 実行単位 | 責務 | Container image |
