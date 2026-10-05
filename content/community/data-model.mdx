@@ -12,6 +12,7 @@ Community固有のentityと、User・Media domainとの関連、不変条件を�
 erDiagram
   COMMUNITY ||--o{ COMMUNITY_MEMBERSHIP : has
   USER ||--o{ COMMUNITY_MEMBERSHIP : joins
+  COMMUNITY_MEMBERSHIP ||--|| COMMUNITY_USER_SETTINGS : has
   COMMUNITY ||--o{ COMMUNITY_INVITATION : issues
   COMMUNITY ||--o{ COMMUNITY_JOIN_REQUEST : receives
   USER ||--o{ COMMUNITY_JOIN_REQUEST : requests
@@ -30,6 +31,12 @@ Communityは識別子、必須の名称、lifecycle状態、作成日時、更�
 
 MembershipはCommunityとUserの参加関係であり、`role`として`member`または`admin`を持ちます。`admin` MembershipがAdministrator権限を表します。
 
+### User × Community Settings
+
+Community User SettingsはMembershipに従属するUser個別のpresentation設定です。Initial ReleaseではContext Accentを保持します。Community brandingではなく、同じCommunityでもUserごとに異なる値を許可します。
+
+Membership作成時に同じTransactionでSettingsを作成し、Membership終了時に削除します。再参加では過去値を復元せず新規生成します。roleや参加日時等のMembership情報とpresentation preferenceを同じ概念として扱いません。
+
 ### InvitationとUser起点Join Request
 
 InvitationはCommunityに紐付く招待URLを表し、発行から7日間有効です。Initial ReleaseのInvitation acceptは有効なInvitationを検証し、Membershipを直接成立させます。Invitation自体を使用済み状態にはせず、有効期間内は複数Userが同じURLを利用できます。
@@ -40,6 +47,7 @@ User起点Join RequestはInvitationとは独立した将来機能です。Commun
 
 - `ACTIVE` Communityごとに少なくとも1人の`admin` Membershipが存在する。`DELETING`では削除cleanupに伴うMembership削除を許容する。
 - 同じCommunityとUserのMembershipは1件だけ存在する。
+- ACTIVEなMembershipにはUser × Community Settingsが1件対応し、Settings単独では存在しない。
 - Administratorは必ず有効なMembershipを持ち、Administrator専用entityは持たない。
 - Communityごとに失効処理されていないInvitationは1件だけ存在する。
 - User起点Join Requestでは、同じCommunity・Userの`PENDING`申請を同時に複数持たない。
@@ -47,4 +55,4 @@ User起点Join RequestはInvitationとは独立した将来機能です。Commun
 
 ## 他domainとの境界
 
-Community domainはCommunity、Membership、Invitation、User起点Join Requestを所有します。Communityへの共有関係とCustodyはMedia domainが所有し、Community側はMembership role・Uploaderとの組み合わせによって認可を判定します。Mediaの論理モデルは[Media論理データモデル](/media/data-model)を正本とします。Userの認証主体とaccount lifecycleは[User論理データモデル](/user/data-model)を正本とします。
+Community domainはCommunity、Membership、User × Community Settings、Invitation、User起点Join Requestを所有します。Communityへの共有関係とCustodyはMedia domainが所有し、Community側はMembership role・Uploaderとの組み合わせによって認可を判定します。Mediaの論理モデルは[Media論理データモデル](/media/data-model)を正本とします。Userの認証主体とaccount lifecycleは[User論理データモデル](/user/data-model)を正本とします。
