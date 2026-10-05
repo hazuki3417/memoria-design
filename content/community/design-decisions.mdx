@@ -92,17 +92,17 @@ Userが退会・除外された場合、本人がCustodianであるMediaの対�
 
 退会後に本人が確認・管理できない共有を残さず、他Communityや個人領域への影響を防ぎます。
 
-## 8. Community管理Mediaが残るCommunityは削除しない
+## 8. Community削除時にCommunity管理Mediaも削除する
 
 **決定**
 
-通常のCommunity削除では、Community管理Mediaが0件の場合だけ、Administrator1人の判断とCommunity名入力によって削除できます。
+通常のCommunity削除では、Community管理Mediaが残っていてもAdministrator1人の判断で削除できます。削除前にCommunity管理Media件数と、他UserがUploadしたMediaを含めて復元不能に削除されることを明示し、Community名入力を要求します。通常のCommunity削除では追加の再認証を必須としません。
 
-account削除時に最後のAdministratorがCommunity削除を選択した場合だけ、参加者数、Media件数、他UserのUploadへの影響を明示し、Community名入力と再認証を条件にCommunity管理Mediaも削除できます。詳細は[User設計判断](/user/design-decisions)を正本とします。
+account削除時にCommunity削除を選択した場合もCommunity管理Mediaを削除対象としますが、User account自体の削除を伴うため、Account Deletion Flowとして参加者数、Media件数、他UserのUploadへの影響、Community名入力、再認証を要求します。詳細は[User設計判断](/user/design-decisions)を正本とします。
 
 **意図**
 
-Mediaを誤って一括削除することと、Custodianが存在しないMediaを防ぎます。
+CommunityというCustodianを削除した後に管理主体のないMediaを残さず、Community削除を完了するためにAdministratorへ事前のMedia個別削除を要求しません。一方でCommunity管理Mediaの一括削除を誤認しないよう、削除対象件数と他UserのUploadを含む影響を削除前に明示します。
 
 ## 9. 削除済みUploaderのMediaを保持する
 
