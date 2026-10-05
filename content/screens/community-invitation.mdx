@@ -1,0 +1,129 @@
+# Community Invitation
+
+## 概要
+
+Invitation URLを受け取ったUserが、参加先Communityを確認し、Communityへの参加を確定する画面です。
+
+> 実装状況: 本仕様に対応するInvitation UIは未実装です。
+
+## 目的
+
+Invitation URLを受け取ったUserが、参加成立前に必要最小限のCommunity情報だけを確認し、安全に認証・User登録を経由してCommunityへ参加できるようにします。
+
+Invitation URLを開いたこと自体ではMembershipを作成せず、Userの明示的な「参加する」Actionによって参加を確定します。
+
+## 関連Use Case
+
+- [Communityユースケース - InvitationからCommunityへ参加する](/community/use-cases#invitationからcommunityへ参加する)
+- [User登録](/screens/user-registration)
+- [Authentication Return / Session Recovery](/design-system/patterns/authentication-return-session-recovery)
+
+## 表示情報
+
+### 有効なInvitation
+
+参加成立前に表示するCommunity情報は現在のCommunity名だけとします。
+
+Member一覧、Media、Group、Tag、Administrator情報、email address等のCommunity内部情報は表示しません。
+
+Invitationが有効であることと、明示的に参加を確定するActionを提示します。
+
+### Invitationを利用できない場合
+
+期限切れ、無効化済み、削除済みCommunity等によりInvitationを利用できない場合は、新しいMembershipを作成できないことと、Userが取れる安全な次の行動を提示します。
+
+利用不能なInvitationからCommunityの非公開情報を新たに公開しません。無効・期限切れ・削除済み等の内部理由をUser向けにどこまで区別するかはSecurity / APIの公開error contractに従い、内部状態を推測できる詳細を要求しません。
+
+## 操作
+
+### 参加する
+
+認証済みのACTIVE Userは、有効なInvitationについて「参加する」を実行できます。
+
+現在Membershipが存在しない場合はdomain ruleに従って `role=member` のMembershipを作成します。参加成立後は対象Communityを現在contextとしてCommunity Dashboard（`/communities/[communityId]/dashboard`）へ進みます。
+
+### Login / User登録へ進む
+
+未認証Userが有効なInvitation URLを開いた場合はLoginへ誘導します。Auth0認証後にMemoria Userが未登録であればUser Registrationへ進みます。
+
+認証・登録の前にInvitationの安全な内部return destinationを保持し、Login / Registration完了後は同じInvitation flowへ戻ります。外部URLや任意URLをreturn destinationとして受け付けません。
+
+認証やUser登録の完了だけを理由に自動でMembershipを作成せず、Invitation flowへ戻った後にUserが参加を確定します。
+
+### 参加済みCommunityへ進む
+
+現在Userがすでに対象Communityの有効なMembershipを持つ場合は、新しいMembershipを作成しません。
+
+「すでにこのCommunityに参加しています」と理解できる状態を提示し、対象Community Dashboardへ進めるActionを提供します。重複参加をerrorとして扱いません。
+
+### Applicationへ戻る
+
+Invitationを利用できない場合や、Userが参加を確定しない場合は、利用可能なApplicationの安全なdestinationへ戻れるようにします。Invitation画面を閉じるためにMembership作成を要求しません。
+
+## 状態
+
+### 未認証
+
+Community名以外の内部情報を表示せず、参加を継続するためLoginへ進めます。認証後に元のInvitation flowへ復帰できることを維持します。
+
+### 認証済み・未登録
+
+User Registrationへ進みます。登録完了後は保持されたInvitation flowへ戻ります。
+
+### 参加可能
+
+現在Community名と「参加する」Actionを確認できます。
+
+### 参加処理中
+
+accept結果が確定するまで同じ参加操作の重複実行を防ぎ、処理中であることを伝えます。
+
+### 参加成功
+
+Membership成立後は対象Community Dashboardへ進みます。参加完了を理解するためだけに中間の完了Pageを必須としません。
+
+### 参加済み
+
+既存Membershipを維持し、新しいMembershipを作成しません。参加済みであることを伝え、Community Dashboardへ進めます。
+
+### Invitation利用不可
+
+期限切れ、無効化、Community削除等によりacceptできない場合は、参加Actionを提供しません。
+
+短時間で消えるNotificationだけに依存せず、現在このInvitationから参加できないことと安全なNavigationを持続的に提示します。
+
+### 参加失敗
+
+一時的な通信失敗等で再試行可能な場合は、Community名と現在のInvitation contextを維持し、参加が成立していないことを伝えて再試行できるようにします。
+
+処理中にInvitationが無効化された、Communityが削除された、UserがACTIVEでなくなった等、同じ操作の再送で解決しない場合は最新状態に応じてInvitation利用不可またはBlocking Errorへ移行します。
+
+## Navigation
+
+Invitation URLはApplication外から直接到達できるentryとして扱います。
+
+未認証・未登録の場合はAuthentication Return / Session Recoveryの規則に従ってLogin / Registrationを経由し、元のInvitation flowへ復帰します。
+
+参加成功または参加済みの場合は対象Community Dashboardへ進みます。
+
+Invitationを利用できない場合はPersonal Dashboard等の安全なApplication destinationへ戻れるようにします。具体的な公開route文字列やtoken形式はAPI / Routing設計で決定します。
+
+## 制約
+
+- Invitation URLを開いただけではMembershipを作成しません。
+- 参加成立前に表示するCommunity情報は名称だけです。
+- Initial ReleaseではAdministratorによる個別承認を要求しません。
+- Invitation acceptからUser起点Join Requestを作成しません。
+- Membership作成時のroleは `member` です。
+- 参加済みUserではMembershipを重複作成せず、参加済みとして扱います。
+- Invitation tokenをlog、外部解析、第三者Serviceへ送信しません。
+- Login / Registration後のreturn destinationは許可された内部URLだけを使用します。
+- Invitationの有効性、Community存在、User状態、Membershipはaccept時点の最新状態で再評価します。
+- domain ruleとTransactionは[Communityユースケース](/community/use-cases)と[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
+- error提示は[Feedback Pattern](/design-system/patterns/feedback)に従います。
+
+## Responsive対応
+
+Compact / Medium / Wideのいずれでも、Community名の確認、Login / Registrationへの継続、参加確定、参加済み状態、利用不能状態、安全なNavigationというCapabilityを維持します。
+
+参加前に提示する情報量が少ないため、viewportごとに異なるProduct情報を追加しません。具体的なcontainer width、Action配置、spacing等はUI具体化とVisual Reviewで決定します。
