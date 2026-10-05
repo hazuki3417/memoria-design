@@ -24,7 +24,7 @@ Community内の権限は`COMMUNITY_MEMBERSHIP.role`で表現し、`member`また
 
 ### Community
 
-Communityは識別子、必須の名称、作成日時、更新日時を持ちます。名称の重複は許可し、説明、作成者専用属性、親Communityを持ちません。
+Communityは識別子、必須の名称、lifecycle状態、作成日時、更新日時を持ちます。lifecycle状態は`ACTIVE`または`DELETING`です。削除受付時に`DELETING`へ遷移し、以後は通常の閲覧・参加・更新対象から除外します。Community管理Mediaの削除Lifecycleが完了した後にCommunityを物理削除します。名称の重複は許可し、説明、作成者専用属性、親Communityを持ちません。
 
 ### MembershipとRole
 
@@ -38,7 +38,7 @@ User起点Join RequestはInvitationとは独立した将来機能です。Commun
 
 ## 不変条件
 
-- Communityごとに少なくとも1人の`admin` Membershipが存在する。
+- `ACTIVE` Communityごとに少なくとも1人の`admin` Membershipが存在する。`DELETING`では削除cleanupに伴うMembership削除を許容する。
 - 同じCommunityとUserのMembershipは1件だけ存在する。
 - Administratorは必ず有効なMembershipを持ち、Administrator専用entityは持たない。
 - Communityごとに失効処理されていないInvitationは1件だけ存在する。
