@@ -10,7 +10,7 @@ Community参加者が現在の参加者とAdministrator roleを確認し、Admin
 
 Community参加者が「誰がこのCommunityに参加しているか」「誰がAdministratorか」を確認できるようにします。
 
-Administratorには参加者一覧と分離した管理画面を要求せず、対象Userを確認している同じMembers contextからrole変更・除外を行えるようにします。
+Administratorには参加者一覧と分離した管理画面を要求せず、対象Userを確認している同じMembers contextからrole変更・除外を行えるようにします。他Userに対する管理Actionは各row末尾のAction Menuへ集約し、自分自身の退会は他User管理とは分離したMembers画面の独立Actionとして提供します。
 
 ## 関連Use Case
 
@@ -75,7 +75,7 @@ Memberおよび最後のAdministratorではないAdministratorは、自分自身
 
 Memberには参加者確認に必要な情報だけを提示し、Administrator専用のrole変更・除外Actionを利用させません。
 
-Administratorには対象Userと現在roleに応じて利用可能な管理Actionを提示します。
+Administratorには対象Userと現在roleに応じて利用可能な管理Actionを各row末尾のAction Menuから提示します。自分自身のrowに他User管理と同じ意味で退会Actionを混在させず、退会はMembers画面の独立Actionとして提示します。
 
 ### Role変更・除外・退会処理中
 
@@ -132,4 +132,4 @@ Context Switcher、Context Navigation、Account Menuとの関係は[Application 
 
 表示領域や入力方式が変わっても、参加者とAdministrator roleの確認、自分の退会、およびAdministratorによるrole変更・除外というCapabilityを維持します。
 
-参加者一覧はCompact / Medium / WideのすべてでTableとしての名前・役割の対応関係を維持します。狭い表示領域でもこの2列の意味を失わせず、Administrator向け管理Actionをhoverだけに依存させません。管理Actionの具体的なpresentationは別途Visual Reviewで確定します。
+参加者一覧はCompact / Medium / WideのすべてでTableとしての名前・役割の対応関係を維持します。狭い表示領域でもこの2列の意味を失わせず、Administrator向けの各row末尾Action Menuをhoverだけに依存させません。自分自身の退会はviewportによらず他Userのrow Action Menuへ混在させず、Members画面の独立Actionとして維持します。Action Menuや独立Actionの具体的なvisual placementはVisual Reviewで確定します。
