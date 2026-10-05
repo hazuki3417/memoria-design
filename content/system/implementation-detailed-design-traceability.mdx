@@ -183,4 +183,13 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - account同期Preferenceは `identity.user_preferences`、User × Community AccentはMembership従属の `community.community_user_settings` を設計正本とする。実装時は既存initial migrationを書き換えずversioned migrationで追加する。
 - Community初期AccentはHSL（H 0–360、S 55–75%、L 40–60%）から生成し、現在所属Communityとの完全一致だけを回避する。最大10回retry後はdeterministic Hue fallbackを使用する。
 - Account deletion再認証はBFFのAuth0 `prompt=login` + `max_age=0`、APIのReview-bound Server-side binding（10分・単回使用）を実装契約とする。
-- Browser向けGraphQLへAuth0再認証proofを公開しない。binding storeの具体的なtable/cache選択はAPI実装詳細として決定する。
+- Browser向けGraphQLへAuth0再認証proofを公開しない。Reviewとreauthentication bindingは`identity.account_deletion_reviews` / `identity.account_deletion_reauthentications`をPostgreSQL正本とし、最終確定Transactionで単回消費する。
+
+
+### Model redesign traceability
+
+- Screen固有の選択file、Upload進捗集約、Media Update Draft等はClient / Application stateであり、永続Domain Entityへ昇格させない。
+- User SettingsのThemeだけをdevice-localとし、Personal Accent、日付形式、file size単位、thumbnail size、Media Detail preferencesはaccount同期のUser Preferencesへ統一する。
+- Community AccentはMembership従属Settingsとし、Membership終了時に削除、再参加時に再生成する。
+- Account deletionはReview → Review-bound reauthentication → final confirmation → Deletion Jobの順でmodelを分離する。Review / binding作成だけではUser lifecycleを変更しない。
+- Media logical overviewはTag / Group / Processing Job / Outbox / Storage Operation / Idempotency Requestを含み、既存physical modelのdurable stateと一致させる。
