@@ -1028,7 +1028,6 @@ extend type Mutation {
 ```graphql
 input ConfirmAccountDeletionInput {
   reviewToken: String!
-  reauthenticationProof: String!
   idempotencyKey: String!
 }
 
@@ -1045,7 +1044,15 @@ extend type Mutation {
 
 成功時は必要なAdministrator昇格・Community削除対象を確定し、User管理Media等の削除snapshotを固定してUserをDELETINGへ遷移させます。非同期cleanup完了をMutation responseで待ちません。
 
-`reviewToken` と `reauthenticationProof` の具体的な生成・保持・有効期限・Auth0連携方式はSecurity / Authentication上の未決定事項です。本レビューではFlow上必要なServer-side bindingを示す論理契約として扱い、具体形式を確定しません。
+`reviewToken` は削除Reviewを識別するopaque handleであり、Browserが保持するSecurity proofではありません。APIはreviewのowner User、削除計画snapshotまたは同等の整合性情報、作成時刻・有効状態をServer-sideで管理します。Clientはtoken内容を解釈しません。
+
+Auth0強制再認証とcallback処理はBFF（Next.js）が担当します。再認証成功後、BFFはBrowserへAuth0由来のproofを露出せず、通常の認証済みAccess Tokenと対象 `reviewToken` を用いてAPIの内部reauthentication binding境界へ「このACTIVE UserがこのReviewについて再認証済み」であることを登録します。この内部境界はBrowser向けGraphQL Schemaには公開しません。APIはAccess Tokenから解決したissuer / subject / Userとreview ownerが一致することを必須とし、Clientから渡されたUser IDを信頼しません。
+
+APIは `User + reviewToken + reauthenticatedAt + expiresAt + consumed/revoked state` 相当の短期Server-side bindingを保持します。具体的な保存方式はImplementation Detailです。bindingの有効期限はAuth0再認証方式とSecurity要件を実装前に確定し、期限切れ時は削除を開始しません。
+
+`confirmAccountDeletion` の公開Inputには `reauthenticationProof` を含めません。最終確定時にAPIがreview ownerと有効なServer-side bindingを照合し、ACTIVE User、Community / Membership / Mediaの現在状態を再検証します。review後に削除計画を変更・再生成した場合、旧reviewに対するbindingは新reviewへ流用しません。最終確定成功時はbindingをconsumedとして再利用不能にし、reviewも再利用不能にします。再認証失敗・取消し・期限切れ・callback不成立時はbindingを成立させません。
+
+Auth0再認証成功だけでは削除operationを開始しません。BFF callbackはbinding登録と安全な内部URLへの復帰までを担当し、削除開始にはFinal Confirmation画面からの明示的な `confirmAccountDeletion` を必須とします。
 
 ## Schema fieldと認可・副作用一覧
 
@@ -1126,7 +1133,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。Dashboardも専用Queryを作らず `first: 12` で同じConnectionを利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
 - User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte値は `Int64` を使用し、wire上は10進文字列として扱う。
 - Community削除はCommunity管理Mediaの存在を `CONFLICT` 条件にせず、`ACTIVE → DELETING` とMedia削除Lifecycleを実装する。
-- `mediaOriginalDownload` は単一Mediaの5分署名URL + `expiresAt` を実装引き渡し対象とする。複数Media ZIPはInitial Release対象外とする。Account deletionの `reviewToken` / `reauthenticationProof` に依存するSDLだけはSecurity binding確定まで実装引き渡し対象から除外する。
+- `mediaOriginalDownload` は単一Mediaの5分署名URL + `expiresAt` を実装引き渡し対象とする。複数Media ZIPはInitial Release対象外とする。Account deletionは公開GraphQLから `reauthenticationProof` を除外し、`reviewToken` とServer-side reauthentication bindingを使用する。BFF→APIのbinding登録境界はBrowser向けGraphQL Schemaとは分離する。
 - 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
 ## レビュー時の要判断事項
