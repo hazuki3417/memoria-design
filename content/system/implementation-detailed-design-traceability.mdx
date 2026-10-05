@@ -103,9 +103,9 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - source designで未指定のFK action / constraint name
 - access patternから一意に確定できないcomposite index column order
 - `normalized_name`のUnicode normalization / case folding / whitespace normalization
-- idempotency retention、cleanup interval、response snapshot representation
-- Outbox event versioning / serialization / payload schema
-- Processing Job / Image Variantのcurrent-vs-staged publication schemaとlock SQL
+- idempotency保証期間は24時間で確定。残るcleanup interval、operation別response snapshot representation
+- Outboxは`event_type + event_version`、version 1開始、PUBLISHED 7日保持で確定。残るevent種別ごとのpayload schema / serialization
+- Image Variant publicationは別storage keyへのstaged生成後、Media lock下で`image_variants`を一括更新する方針で確定。残るfinal SQL / Repository実装
 - migration rollout / rollback SQL
 - PostgreSQL HA manager / failover endpoint依存のconnection / migration behavior
 
@@ -177,3 +177,19 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - 旧仕様との競合が解消され、Community / Media / Async / Frontend / Infrastructureで同じsemanticsを参照している。
 - 資料にもGitHub正本にもない具体値が、推測で埋められずIssueへ分離されている。
 - 各Workstreamの次の詳細設計先がIssue対応表から追跡できる。
+
+### User Preferences / Context Accent / Account deletion reauthentication
+
+- account同期Preferenceは `identity.user_preferences`、User × Community AccentはMembership従属の `community.community_user_settings` を設計正本とする。実装時は既存initial migrationを書き換えずversioned migrationで追加する。
+- Community初期AccentはHSL（H 0–360、S 55–75%、L 40–60%）から生成し、現在所属Communityとの完全一致だけを回避する。最大10回retry後はdeterministic Hue fallbackを使用する。
+- Account deletion再認証はBFFのAuth0 `prompt=login` + `max_age=0`、APIのReview-bound Server-side binding（10分・単回使用）を実装契約とする。
+- Browser向けGraphQLへAuth0再認証proofを公開しない。Reviewとreauthentication bindingは`identity.account_deletion_reviews` / `identity.account_deletion_reauthentications`をPostgreSQL正本とし、最終確定Transactionで単回消費する。
+
+
+### Model redesign traceability
+
+- Screen固有の選択file、Upload進捗集約、Media Update Draft等はClient / Application stateであり、永続Domain Entityへ昇格させない。
+- User SettingsのThemeだけをdevice-localとし、Personal Accent、日付形式、file size単位、thumbnail size、Media Detail preferencesはaccount同期のUser Preferencesへ統一する。
+- Community AccentはMembership従属Settingsとし、Membership終了時に削除、再参加時に再生成する。
+- Account deletionはReview → Review-bound reauthentication → final confirmation → Deletion Jobの順でmodelを分離する。Review / binding作成だけではUser lifecycleを変更しない。
+- Media logical overviewはTag / Group / Processing Job / Outbox / Storage Operation / Idempotency Requestを含み、既存physical modelのdurable stateと一致させる。

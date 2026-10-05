@@ -8,9 +8,13 @@ User登録、状態遷移、削除対象固定、外部serviceとのcleanupに�
 
 ## Transaction境界
 
-登録確定はissuer・subjectのUNIQUE制約を利用し、User作成を一つのTransactionで確定します。
+登録確定はissuer・subjectのUNIQUE制約を利用し、UserとUser Preferences作成を一つのTransactionで確定します。
 
-account削除の受付TransactionではUser行をlockしてACTIVEを再確認し、最後のAdministrator、Media、Communityの選択と再認証結果を検証します。削除対象snapshotを固定してUserをDELETINGへ変更し、JobをPENDINGで作成します。対象の有無によってflowを変えません。
+Account deletion Review作成ではUser行をlockしてACTIVEを再確認し、Community / Membership / Mediaの最新状態と入力されたresolutionを検証します。既存ACTIVE ReviewがあればINVALIDATEDへ遷移し、新しいReview snapshotを作成します。このTransactionはUser状態や業務dataを削除・変更しません。
+
+Auth0再認証callback後のbinding登録では、Access Tokenから解決したUserとReview ownerを照合し、ReviewがACTIVEであることをlock後に再確認してReauthentication recordを作成または置換します。Auth0 token / proof自体は保存しません。
+
+account削除の受付TransactionではUser行、ACTIVE Review、Reauthentication bindingをlockし、UserがACTIVE、Review owner一致、binding未使用かつ10分以内、Review対象とCommunity / Membership / Mediaの現在状態が整合することを再検証します。成功時はReviewをCONSUMED、bindingをconsumedとして同じTransactionで再利用不能にし、削除対象snapshotをDeletion Jobへ固定してUserをDELETINGへ変更し、JobをPENDINGで作成します。対象の有無によってflowを変えません。
 
 Auth0 account削除、Media cleanup、Community側のcleanupなど、DB外I/Oやdomainをまたぐ長時間処理は受付Transactionへ含めず、User削除Jobで進行します。
 
@@ -20,7 +24,7 @@ Transactionは削除全体を一括rollbackするためには使用せず、削�
 
 ## 競合制御
 
-Profile更新は更新時点でUserがACTIVEであることを確認し、保存するProfile値で現在値を置き換えます。Initial ReleaseではProfile versionによる楽観lockやfield単位の自動mergeを行わず、複数の有効なProfile更新が成立した場合は後から成立した更新結果を現在値とします。
+Profile / User Preferences更新は更新時点でUserがACTIVEであることを確認し、対象fieldの現在値を更新します。Preferencesのpartial updateではInputで指定されていないfieldを変更しません。Initial ReleaseではProfile versionによる楽観lockやfield単位の自動mergeを行わず、複数の有効なProfile更新が成立した場合は後から成立した更新結果を現在値とします。
 
 同時登録ではissuer・subjectのUNIQUE制約により1件だけ成功させます。User lifecycleの排他点は`identity.users`行とし、account削除受付では対象Userを`SELECT ... FOR UPDATE`でlockしてからACTIVEを再確認します。その後、Community / Membership / Media等を共通のlock順序で確認して削除対象snapshotを確定し、UserをDELETINGへ更新してDeletion Jobを作成します。
 

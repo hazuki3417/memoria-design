@@ -19,6 +19,14 @@ erDiagram
   MEDIA ||--o{ MEDIA_VARIANT : derived_as
   MEDIA ||--o{ MEDIA_PROCESSING_JOB : processed_by
   MEDIA ||--o{ MEDIA_COMMUNITY_ACCESS : shared_to
+  MEDIA ||--o{ MEDIA_TAG_RELATION : tagged
+  MEDIA_TAG ||--o{ MEDIA_TAG_RELATION : classifies
+  MEDIA_GROUP ||--o{ MEDIA_GROUP_MEDIA : contains
+  MEDIA ||--o{ MEDIA_GROUP_MEDIA : classified
+  MEDIA_GROUP ||--o{ MEDIA_GROUP_RELATION : parent
+  MEDIA_GROUP ||--o{ MEDIA_GROUP_RELATION : child
+  MEDIA ||--o{ MEDIA_STORAGE_OPERATION : cleanup
+  MEDIA ||--o{ IDEMPOTENCY_REQUEST : command_guard
   COMMUNITY ||--o{ MEDIA_COMMUNITY_ACCESS : can_view
 ```
 
@@ -49,6 +57,10 @@ User管理MediaはMedia Community Accessを複数持てます。Community管理M
 
 個人領域へのuploadではUser、Communityへの直接uploadではCommunityが初期Custodianです。いずれもUploaderは実際にuploadしたUserとして記録します。
 
+## Tag
+
+TagはUser scopeまたはCommunity scopeを一つ持つflatな分類語です。Mediaとのrelationは多対多で、Custodyや閲覧権限を変更しません。Community scopeのTag relationは、そのCommunityで閲覧可能なMediaにだけ作成できます。Tagの作成・rename・削除とMedia分類の権限はTag仕様を正本とします。
+
 ## Media Group
 
 ```mermaid
@@ -67,14 +79,16 @@ GroupはUserまたはCommunityのスコープを一つ持ち、Mediaは複数Gro
 - User管理Mediaだけが複数CommunityへのMedia Community Accessを持てる。
 - Community管理Mediaは別CommunityへのAccessを持たない。
 - Uploader、Custodian、閲覧権限は独立した概念として扱う。
-- Media Groupは分類専用で、Custodyや閲覧権限を変更しない。
+- Media GroupとTagは分類専用で、Custodyや閲覧権限を変更しない。
+- Group / Tag relationは対象scopeで現在閲覧可能なMediaにだけ存在でき、共有解除・退会等で可視性を失う場合はCommunity scope relationをcleanupする。
+- Processing Job、Outbox、Storage Operation、Idempotency Requestは業務Entityと区別したdurable technical stateであり、画面の一時進捗やDraftを永続Entityとして表現しない。
 - Group関係はDAGとし、自己参照と直接・間接の循環を禁止する。
 
 ## 他domainとの境界
 
 Community、Membership、Invitation、User起点Join RequestはCommunity domainが所有します。Initial ReleaseのInvitation acceptはMembershipを直接成立させ、User起点Join RequestはInvitationとは独立した将来機能です。詳細は[Community論理データモデル](/community/data-model)を正本とします。
 
-Media domainはMedia、Custody、Communityへの共有関係、Media Group、Variant、Processing Jobを所有します。Community MembershipはCommunity共有Mediaの閲覧やUploader権限を行使する前提として参照します。
+Media domainはMedia、Custody、Communityへの共有関係、Media Group、Tag、Variant、Processing Job、Outbox、Storage Operation、Idempotency Requestを所有します。Community MembershipはCommunity共有Mediaの閲覧やUploader権限を行使する前提として参照します。
 
 Userの認証主体とaccount lifecycleは[User論理データモデル](/user/data-model)を正本とします。
 

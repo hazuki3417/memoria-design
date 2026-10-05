@@ -13,10 +13,27 @@ Auth0認証済みでも登録未確定ならusers行はありません。登録�
 | table | key | 主な値 |
 | --- | --- | --- |
 | users | U1 | issuer=I1、subject=S1、nickname=家族A、status=ACTIVE |
+| user_preferences | U1 | account同期Preferenceの初期値 |
+
+## account削除Reviewと再認証
+
+Final Review時にACTIVEなReview R1を作成します。この時点ではU1はACTIVEのままで、削除Jobは作成しません。
+
+| table | key | 主な値 |
+| --- | --- | --- |
+| account_deletion_reviews | R1 | user_id=U1、status=ACTIVE、plan_snapshot=検証済み計画 |
+
+Auth0強制再認証が成功するとR1へbindingしたrecordを作成します。
+
+| table | key | 主な値 |
+| --- | --- | --- |
+| account_deletion_reauthentications | R1 | user_id=U1、expires_at=成立から10分、consumed_at=NULL |
+
+計画を変更して新しいReview R2を作成する場合、R1をINVALIDATEDとして旧bindingを流用しません。
 
 ## account削除を受け付ける
 
-再認証と確認完了後、同じTransactionでU1をDELETINGへ更新し、D1を作成します。
+最終確定時にU1・R1・再認証bindingを再検証し、同じTransactionでR1をCONSUMED、bindingを消費済みにしてU1をDELETINGへ更新し、D1を作成します。
 
 | table | key | 主な値 |
 | --- | --- | --- |
@@ -35,6 +52,8 @@ User管理Media、Variant、共有、関連を削除し、保持するCommunity�
 
 - 登録未確定の認証主体にUser recordを作成しない。
 - issuer・subjectが同じUserを重複登録しない。
+- 同じUserに複数のACTIVE Reviewを作成しない。
+- Review変更後に旧Review / reauthentication bindingを再利用しない。
 - 同じUserに複数の有効な削除Jobを作成しない。
 - DELETING Userの権限や削除対象を追加しない。
 

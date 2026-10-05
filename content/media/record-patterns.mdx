@@ -19,7 +19,7 @@
 | table | key | 主な値 |
 | --- | --- | --- |
 | media | M1 | IMAGE、family.jpg、ACTIVE、uploaded_by=U1 |
-| media_images | M1 | width=1920、height=1080 |
+| images | M1 | width=1920、height=1080 |
 | media_custodies | M1 | user_id=U1、community_id=NULL |
 | media_events | E1 | UPLOADED、actor=U1、to_user=U1 |
 | media_processing_jobs | J1 | media_id=M1、status=PENDING |
@@ -27,13 +27,13 @@
 
 作成しないレコード:
 
-- media_videos
+- videos
 - media_community_accesses
 - media_group_media
 
 U1は著作権者ではなくUploaderと初期Custodianです。
 
-Worker完了後は`media_variants`へ320、640、960、1280、1920pxのWebPを記録し、`media_processing_jobs(J1)`をCOMPLETEDへ更新します。重複配送時は同じ幅のVariantを追加作成しません。
+Worker完了後は`image_variants`へ320、640、960、1280、1920pxのWebPを記録し、`media_processing_jobs(J1)`をCOMPLETEDへ更新します。重複配送時は同じ幅のVariantを追加作成しません。
 
 ## CommunityへImageを直接uploadする
 

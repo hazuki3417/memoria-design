@@ -19,6 +19,9 @@ ID、日時、命名、constraint、index、削除方針は[物理データモ�
 ```mermaid
 erDiagram
   USERS ||--o| USER_DELETION_JOBS : deletion
+  USERS ||--|| USER_PREFERENCES : preferences
+  USERS ||--o{ ACCOUNT_DELETION_REVIEWS : reviews
+  ACCOUNT_DELETION_REVIEWS ||--o| ACCOUNT_DELETION_REAUTHENTICATIONS : reauthentication
   USERS ||--o{ MEDIA : uploads
 ```
 
@@ -37,6 +40,94 @@ erDiagram
 | updated_at | timestamptz | NOT NULL | 更新時刻 |
 
 (auth_issuer, auth_subject)へUNIQUE indexを設定します。email、氏名、profile画像URL、公開account ID、nickname履歴は保存しません。
+
+### user_preferences
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| user_id | varchar(26) | PK、FK users ON DELETE CASCADE | 対象User |
+| personal_accent_color | varchar(7) | NOT NULL、CHECK | Personal Accent。大文字 `#RRGGBB` |
+| date_format | varchar(16) | NOT NULL、CHECK | `YYYY_MM_DD` / `MM_DD_YYYY` / `DD_MM_YYYY` |
+| file_size_unit | varchar(16) | NOT NULL、CHECK | `DECIMAL` / `BINARY` |
+| media_thumbnail_size | varchar(16) | NOT NULL、CHECK | `SMALL` / `MEDIUM` / `LARGE` |
+| media_detail_navigation_wrap | boolean | NOT NULL | Media Detail端移動wrap |
+| media_detail_initial_info_wide | boolean | NOT NULL | Wide初期情報表示 |
+| media_detail_initial_info_medium | boolean | NOT NULL | Medium初期情報表示 |
+| created_at | timestamptz | NOT NULL | 作成時刻 |
+| updated_at | timestamptz | NOT NULL | 更新時刻 |
+
+Userと1:1で作成し、account同期するpresentation preferenceだけを保持します。Themeはbrowser / device-localのため保存しません。Personal Accentの初期値はUser Settings正本の固定defaultを使用し、Community Accentのようなrandom生成は行いません。
+
+`personal_accent_color` はApplicationで `#RRGGBB` へ正規化して保存し、DBでも `^#[0-9A-F]{6}# User物理データモデル
+
+## 概要
+
+> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義するUser状態、削除Job、匿名化の整合性は未実装です。
+
+User domainが所有するPostgreSQL table、column、constraint、index、削除規則を定義します。
+
+## PostgreSQL schema
+
+本domainが所有するrelationは`identity` schemaへ配置します。schema名と共通の参照規約は[物理データモデル共通規約](/system/data/physical-model-conventions)を正本とします。
+
+## 共通規約
+
+ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。Auth0のissuer・subjectは外部認証identifierのためULIDではありません。
+
+## 全体ER
+
+```mermaid
+erDiagram
+  USERS ||--o| USER_DELETION_JOBS : deletion
+  USERS ||--|| USER_PREFERENCES : preferences
+  USERS ||--o{ MEDIA : uploads
+```
+
+## 所有table
+
+### users
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | 内部User ID |
+| auth_issuer | text | NOT NULL | Auth0 issuer |
+| auth_subject | text | NOT NULL | Auth0 subject |
+| nickname | text | NOT NULL、trim後に空でない | 表示名 |
+| status | varchar(16) | NOT NULL、CHECK | ACTIVE / DELETING |
+| created_at | timestamptz | NOT NULL | 登録時刻 |
+| updated_at | timestamptz | NOT NULL | 更新時刻 |
+
+ 相当のCHECKで形式を防御します。
+
+### account_deletion_reviews
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| id | varchar(26) | PK | opaque Review handle |
+| user_id | varchar(26) | FK users ON DELETE CASCADE | owner User |
+| plan_snapshot | jsonb | NOT NULL | 検証済みCommunity resolutionと影響情報 |
+| status | varchar(16) | NOT NULL、CHECK | `ACTIVE` / `CONSUMED` / `INVALIDATED` |
+| created_at | timestamptz | NOT NULL | Review作成時刻 |
+| updated_at | timestamptz | NOT NULL | 状態更新時刻 |
+
+Reviewは削除Jobではなく、最終確定前の短期計画stateです。`plan_snapshot` はFinal Reviewを再現し、確定時に現在状態との整合を再検証するために必要な最小情報だけを保持します。Auth0 token、credential、署名情報は保存しません。
+
+Userごとに `status='ACTIVE'` のReviewは1件だけ許可するpartial unique indexを設定します。新しいReviewを作成するTransactionでは既存ACTIVE Reviewを `INVALIDATED` にしてから新規Reviewを作成します。古いReviewを新しい計画へ更新してidentityを使い回しません。
+
+### account_deletion_reauthentications
+
+| 列 | 型 | 制約 | 意味 |
+| --- | --- | --- | --- |
+| review_id | varchar(26) | PK、FK account_deletion_reviews ON DELETE CASCADE | 対象Review |
+| user_id | varchar(26) | FK users ON DELETE CASCADE | 再認証したUser |
+| reauthenticated_at | timestamptz | NOT NULL | BFF callbackで成立した時刻 |
+| expires_at | timestamptz | NOT NULL | `reauthenticated_at + 10 minutes` |
+| consumed_at | timestamptz | NULL可 | 最終確定で使用した時刻 |
+| created_at | timestamptz | NOT NULL | record作成時刻 |
+
+Auth0由来のtoken / proofは保存しません。ReviewとUserの一致はApplicationで検証し、同じTransactionでbindingを作成します。`expires_at > reauthenticated_at` をCHECKし、取得用に `(user_id, expires_at)` indexを設定します。有効性は `consumed_at IS NULL AND expires_at > now()` とReviewの `ACTIVE` を組み合わせて判定し、現在時刻依存のpartial indexは作成しません。
+
+Review / bindingは短期stateですが、Account deletionの最終確定をPostgreSQL transactionで一貫して検証するためPostgreSQLを正本とします。process-local memoryやBrowser storage、best-effort cacheだけを正本にしません。期限切れ・CONSUMED / INVALIDATED Reviewは運用上十分な短期cleanup windowの後に物理削除できます。cleanup interval自体はProduct semanticsではなく運用parameterとします。
 
 ### user_deletion_jobs
 

@@ -35,7 +35,7 @@ UserがCommunityへ参加した時点で、そのUser向けの初期Accent Color
 
 Membershipを維持している間、保存済みAccentをContext集合の変化だけを理由に自動再割当しません。Communityを新しく作成・参加しても既存CommunityのAccentをshuffleしません。
 
-Membership離脱後に同じCommunityへ再参加した場合に以前のAccentを復元するか、新規生成するかはBackendのlifecycle / persistence設計で確定します。
+Membership離脱時にUser × Community Settingsを削除し、同じCommunityへ再参加した場合は以前のAccentを復元せず、新しい初期Accentを生成します。
 
 ## 変更Behavior
 
@@ -79,7 +79,7 @@ Membershipが失効した場合はCommunity Settingsを継続利用させず、A
 - Accent変更は他Userの表示へ影響しません。
 - Accent変更によってauthorization、Community data、Media data等のDomain behaviorを変更しません。
 - Community自体の名称、Invitation、削除等はCommunity Managementを正本とします。
-- Accentの永続化model / GraphQL API contractはBackend詳細設計で確定します。
+- AccentはMembership従属のUser × Community Settingsとしてaccount側に永続化し、GraphQLでは現在User本人のCommunity Settingsとして取得・更新します。
 
 ## Responsive対応
 

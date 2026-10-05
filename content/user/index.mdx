@@ -4,7 +4,7 @@
 
 > 実装状況: Auth0認証とUser関連実装は存在しますが、本domainで定義する登録・削除・整合性は未実装です。
 
-User domainは、Auth0で認証された主体とMemoria内部Userの対応、nickname、利用状態、登録・再認証・account削除を管理します。認証情報の正本はAuth0、Product内のUser・権限・Media・Community関係の正本はMemoriaです。
+User domainは、Auth0で認証された主体とMemoria内部Userの対応、nickname、account同期Preference、利用状態、登録・再認証・account削除を管理します。認証情報の正本はAuth0、Product内のUser・権限・Media・Community関係の正本はMemoriaです。
 
 ## 目的と対象範囲
 
@@ -17,7 +17,10 @@ Auth0で認証された利用者の登録、nickname、session、account削除�
 | User | Memoria内の利用者と権限の主体 |
 | Auth Identity | Auth0のissuer・subjectで識別する認証主体 |
 | Nickname | Userが登録・変更する表示名 |
-| Deletion Job | account削除を非同期に完了させる処理 |
+| User Preferences | device間で同期するUser個別のpresentation / behavior設定 |
+| Account Deletion Review | 最終削除前に検証した削除計画を識別する短期state |
+| Reauthentication Binding | Auth0強制再認証を特定Reviewへ短期・単回で結び付けるServer-side state |
+| Deletion Job | account削除確定後に非同期cleanupを完了させる処理 |
 
 ## 制約と責務境界
 

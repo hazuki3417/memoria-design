@@ -32,7 +32,7 @@ Userが本人確認を行う前にaccount削除による主要な変更を一度
 
 ### 再認証へ進む
 
-表示された削除計画を確認し、account削除を継続する場合はAuth0再認証へ進みます。
+表示された削除計画を確認し、account削除を継続する場合はServerが発行したAccount Deletion Reviewを対象としてAuth0再認証へ進みます。Review handleは削除を許可するSecurity proofではなく、検証済み計画を識別するopaque identifierです。
 
 このActionだけでは削除を開始しません。
 
@@ -74,7 +74,7 @@ Review後に継続する場合はAuth0再認証へ遷移し、削除計画を変
 - 再認証前に削除計画全体を確認できるようにします。
 - Review内容は現在の削除計画から構成し、過去の選択を前提にしません。
 - 削除計画を変更した場合は最新状態でReviewをやり直します。
-- Auth0の具体的な再認証方式や有効期限はこのScreen Specificationでは規定しません。
+- 強制再認証方式・有効期限・Review bindingのSecurity contractは[Userの認証と認可](/user/authentication-authorization)を正本とし、この画面独自の再認証stateを作りません。
 
 ## Responsive対応
 

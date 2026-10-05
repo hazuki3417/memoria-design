@@ -51,7 +51,7 @@ UserはColor Pickerから任意の `#RRGGBB` 値へ変更できます。Personal
 
 Personal AccentはLight / Darkで同じ値を使用し、Theme preferenceとは独立して扱います。Accentの適用範囲、色だけに依存しないContext識別、Surfaceとの境界補償は[Design System](/design-system#表示テーマとcontext-accentvisual-review中)を正本とします。
 
-Personal AccentはUser accountに紐づくpresentation preferenceとしてdevice / browser間で同期します。Themeがbrowser / device-localであることを理由にPersonal Accentをlocal preferenceへ含めません。具体的なAPI / data model contractはBackend設計時に確定します。
+Personal AccentはUser accountに紐づくpresentation preferenceとしてdevice / browser間で同期します。Themeがbrowser / device-localであることを理由にPersonal Accentをlocal preferenceへ含めません。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ### 変更Behavior
 
@@ -65,9 +65,10 @@ AppearanceはPersonal / Communityごとに分けず、同一browser / device上�
 
 Initial ReleaseのAppearance preferenceは **browser / device-local preference** とします。Memoria User accountへ同期するUser domain dataとして扱いません。
 
-- 同じUserでもbrowser / deviceごとに異なるAppearanceを選択できます。
-- 同じbrowserでlogout / loginしても、local preferenceが利用可能である限り選択を維持できます。
-- 別deviceや別browserへAppearanceを同期しません。
+- Themeは同じUserでもbrowser / deviceごとに異なる値を選択できます。
+- Themeは同じbrowserでlogout / loginしても、local preferenceが利用可能である限り選択を維持できます。
+- Themeを別deviceや別browserへ同期しません。
+- Personal Accentを含むaccount同期PreferenceはUser Preferencesとして別device / browserへ同期します。
 - Theme preferenceのためだけにUser entity、Profile、GraphQL / APIへ永続化fieldを追加しません。
 
 local preferenceを読み取れない、未保存、または保存値を解釈できない場合はSystemとして扱います。
@@ -90,7 +91,7 @@ browser storageの具体方式、SSR / hydration時のTheme適用順序、flash�
 
 日付形式の変更は他のPreferenceと同様に選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
 
-Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的なAPI / data model contractはBackend設計時に確定します。
+Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ### Language / Locale
 
@@ -104,7 +105,7 @@ ApplicationはUser-facingな日時をTimezoneへ変換して表示できる境�
 
 User-facingな日時表示には原則としてAsia/Tokyoを一貫して適用し、Timezone変換後の日付部分へ日付形式Preferenceを適用します。時刻部分はInitial Releaseでは24時間表記とします。Timezoneはpresentation上の日時解釈を決めるものであり、Domain / APIが保持する日時データそのものを書き換えません。
 
-将来Timezone選択を提供する場合は、System / 明示指定Timezone等の選択方法とaccount同期を含むPreferenceとして改めて有効化します。具体的なAPI / data model contractはBackend設計時に確定します。
+将来Timezone選択を提供する場合は、System / 明示指定Timezone等の選択方法とaccount同期を含むPreferenceとして改めて有効化します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ### ファイルサイズ単位
 
@@ -123,7 +124,7 @@ Initial Releaseでは次の2つの単位体系から選択します。
 
 変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
 
-具体的なAPI / data model contractはBackend設計時に確定します。
+具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ### Mediaサムネイルサイズ
 
@@ -143,7 +144,7 @@ Initial Releaseでは **小 / 中 / 大** の3段階を提供し、初期値は 
 
 このPreferenceはMedia Collectionの閲覧密度を調整するものであり、Media Detailのメイン画像、Upload preview、選択control内の補助thumbnail等、Collection閲覧を目的としないMedia表示には適用しません。Initial ReleaseではCollectionごとの個別設定を持たず、1つの共通Preferenceを使用します。将来、Collectionごとに異なるサイズを必要とするProduct needが確認された場合は、共通Preferenceをdefaultとして個別overrideする方式を検討します。
 
-変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。具体的なAPI / data model contractはBackend設計時に確定します。
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ### Media Detailの前後Navigation循環
 
@@ -155,7 +156,7 @@ Initial Releaseでは **OFF** を初期値とします。OFFでは利用元Colle
 
 Collectionが1件だけの場合は、同じMedia自身への前後移動Actionを成立させません。
 
-変更は選択時に即時反映します。具体的なAPI / data model contractはBackend設計時に確定します。
+変更は選択時に即時反映します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ### Media Detailの詳細情報初期表示
 
@@ -173,7 +174,7 @@ Wide / Mediumのviewport classificationに応じて対応するPreferenceを解�
 
 Detailを開いたままviewportが変化した場合は、breakpointを跨ぐたびにPreferenceを再適用してUserの操作状態を強制的にリセットしません。Responsive layoutへ適応しつつ、現在の状態を維持可能な範囲で維持します。CompactではCompact固有のpresentationを優先します。
 
-変更は選択時に即時反映し、次にMedia Detailを開くときの初期状態から使用します。具体的なAPI / data model contractはBackend設計時に確定します。
+変更は選択時に即時反映し、次にMedia Detailを開くときの初期状態から使用します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
 ## Usage
 
@@ -185,7 +186,7 @@ Storage上限をどのProduct概念・契約・Plan等から決定するかは�
 
 容量表示にはPreferencesで選択したファイルサイズ単位を適用します。割合や残量のpresentationは、Userが現在の消費状況と残りの利用可能量を誤解なく把握できることを優先します。
 
-Storage Usageの具体的な取得API / data model contractはBackend設計時に確定します。
+Storage UsageはGraphQLの`User.usage.storage`から`usedBytes`と`effectiveLimitBytes`を取得し、割合・残量・表示単位はWebで導出します。Plan / Quota等の内部算出modelは画面へ公開しません。
 
 ### Upload制約の扱い
 
@@ -201,7 +202,7 @@ JPEG / PNG等のfile format別の件数・容量内訳はInitial Releaseでは�
 
 将来、Storage消費要因の分析等のProduct needが確認された場合は、Media type別、file format別等の分析軸をその時点のMedia Capabilityに合わせて再設計します。Media typeとfile formatを同一概念として扱いません。
 
-総Media件数の具体的な取得API / data model contractはBackend設計時に確定します。
+総Media件数はGraphQLの`User.usage.mediaCount`を正本として取得します。画面側でMedia一覧を全件取得して件数を再計算しません。
 
 ## Accessibility / Design System
 
