@@ -30,7 +30,7 @@ U1がUploaderでCustodianがC1である別Mediaは削除しません。
 
 ## Community削除の登録パターン
 
-C1にCommunity CustodyのMediaが残っている場合、Community削除を拒否します。対象Mediaが0件であれば、C1のMembership、Administrator、招待、参加申請、Community Group・Tag、M1-C1共有を削除します。User管理M1、M1-C2共有、C2側の分類は変更しません。
+C1にCommunity CustodyのMediaが残っている場合もCommunity削除を受け付け、対象MediaをMedia削除Lifecycleへ移行します。C1のMembership、Administrator、招待、参加申請、Community Group・Tag、M1-C1共有を削除または無効化します。User管理M1、M1-C2共有、C2側の分類は変更しません。Community Custody MediaのObject Storage等の物理cleanupはMedia domainのdurable cleanupで完了させます。
 
 ## 申請の拒否・取消し・再申請
 
@@ -49,7 +49,7 @@ C1管理Media M1の`uploaded_by_user_id=U1`でU1のMembershipが存在する間�
 - 同じCommunity・UserのMembershipを重複作成しない。
 - Administrator専用recordを作成せず、`community_memberships.role=admin`を正本とする。
 - 最後のAdministratorを失う降格・退会・除外・User削除を許可しない。
-- Community管理Mediaが残る通常のCommunity削除を許可しない。
+- Community管理Mediaが残るCommunity削除では、対象Mediaを漏れなく削除対象として確定し、削除Lifecycleへ移行する。
 - 同じCommunity・Userの`PENDING`なUser起点Join Requestを重複作成しない。
 
 ## 非影響範囲
