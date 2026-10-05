@@ -10,7 +10,7 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 - 本人がCustodianであるMediaのうち、最近のMediaを表示します。Communityへ共有済みのMediaも、本人がCustodianである限りPersonalの対象です。
 - 最近のMediaはDashboard上でread-onlyなpreviewとして表示し、Media単位の選択・Detail表示・Action・Navigationは提供しません。Personal Media全体の閲覧はセクション単位の入口からPersonal Media一覧へ移動します。
 - Personal Media一覧、Groups、Context Switcherによる参加中Communityへの移動を、主要機能への入口として提供します。Uploadの開始はPersonal Media画面から行い、DashboardにUpload入口を設けません。
-- 最近のMediaがない場合は空状態とPersonal Media一覧への入口を提供します。DashboardにUpload入口は表示しません。
+- 最近のMediaがない場合はEmpty Stateとして「メディアはまだありません」と表示し、「メディアへ移動」ActionからPersonal Mediaへ移動できるようにします。補足説明やUpload ActionはDashboardには表示しません。
 
 ## Community Dashboard
 
@@ -18,7 +18,7 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 - 現在のCommunityで閲覧可能な最近のMediaを表示します。User管理Mediaの共有とCommunity管理Mediaを含め、Custodianと共有の既存権限を変更しません。
 - 最近のMediaはDashboard上でread-onlyなpreviewとして表示し、Media単位の選択・Detail表示・Action・Navigationは提供しません。当該CommunityのMedia全体の閲覧はセクション単位の入口からCommunity Media一覧へ移動します。
 - Community Media一覧、Groups、Membersへの入口を提供します。ManagementはAdministratorに限り表示します。Uploadは権限に応じてCommunity Media画面から開始し、Dashboardには入口を設けません。
-- 閲覧可能なMediaがない場合は空状態とCommunity Media一覧への入口を提供します。
+- 閲覧可能なMediaがない場合はEmpty Stateとして「メディアはまだありません」と表示し、「メディアへ移動」ActionからCommunity Mediaへ移動できるようにします。補足説明、Communityへの直接Upload、自分のMediaから共有するActionはDashboardには表示しません。
 
 ## 共通の状態・権限
 
@@ -36,7 +36,7 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 
 ## 後続の詳細設計
 
-- Thumbnailの具体的な配置・寸法と、空状態の文言。
+- Thumbnailの具体的な配置・寸法。
 - Media Browserへのセクション単位Navigationの具体presentation。
 - 必要なGraphQL Operationと既存Media Browserとの取得契約の整合。
 
