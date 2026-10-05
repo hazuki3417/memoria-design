@@ -186,7 +186,7 @@ Storage上限をどのProduct概念・契約・Plan等から決定するかは�
 
 容量表示にはPreferencesで選択したファイルサイズ単位を適用します。割合や残量のpresentationは、Userが現在の消費状況と残りの利用可能量を誤解なく把握できることを優先します。
 
-Storage Usageの具体的な取得API / data model contractはBackend設計時に確定します。
+Storage UsageはGraphQLの`User.usage.storage`から`usedBytes`と`effectiveLimitBytes`を取得し、割合・残量・表示単位はWebで導出します。Plan / Quota等の内部算出modelは画面へ公開しません。
 
 ### Upload制約の扱い
 
@@ -202,7 +202,7 @@ JPEG / PNG等のfile format別の件数・容量内訳はInitial Releaseでは�
 
 将来、Storage消費要因の分析等のProduct needが確認された場合は、Media type別、file format別等の分析軸をその時点のMedia Capabilityに合わせて再設計します。Media typeとfile formatを同一概念として扱いません。
 
-総Media件数の具体的な取得API / data model contractはBackend設計時に確定します。
+総Media件数はGraphQLの`User.usage.mediaCount`を正本として取得します。画面側でMedia一覧を全件取得して件数を再計算しません。
 
 ## Accessibility / Design System
 
