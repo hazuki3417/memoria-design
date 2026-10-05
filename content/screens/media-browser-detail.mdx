@@ -65,6 +65,8 @@ Browserの一覧contextからDetailを開いた場合、Userは現在の一覧co
 
 前後移動の範囲はClientが現在取得済みのMediaだけに制限しません。現在のCollection上で移動先が存在し、まだ取得されていない場合は、Relay Connectionから必要な範囲を追加取得して移動します。追加取得に失敗した場合は現在表示中のMedia Detailを維持し、移動できなかったことを示して再試行できるようにします。
 
+User Settingsの「前後Navigation循環」がOFFの場合はCollectionの先頭・末尾を境界とします。ONの場合は、Collectionのfilter条件と順序を維持したまま、末尾から次へ進むと先頭へ、先頭から前へ戻ると末尾へ循環します。循環先が未取得の場合も取得済み範囲を境界とはみなさず、必要な範囲をConnectionから取得します。Collectionが1件だけの場合は同じMedia自身への前後移動Actionを成立させません。
+
 ### 詳細情報を確認する
 
 Mediaの閲覧を妨げない形で、必要なときに補助情報を確認できます。
