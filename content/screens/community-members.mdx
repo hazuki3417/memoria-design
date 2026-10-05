@@ -37,7 +37,7 @@ Initial Releaseではprofile画像、email address、Auth0 identifier等を参�
 
 Administratorは現在のMemberをAdministratorへ変更できます。
 
-変更成立後は対象Userのrole表示と利用可能なCommunity管理権限を現在状態へ更新します。
+変更成立後は対象Userのrole表示と利用可能なCommunity管理権限を現在状態へ更新します。MemberからAdministratorへの昇格は権限を追加する非破壊的な変更として扱い、既存Use Caseで要求されていない追加Confirmationを必須にしません。
 
 ### Memberへ変更する
 
@@ -45,13 +45,15 @@ Administratorは別のAdministratorをMemberへ変更できます。
 
 この操作によってAdministratorが0人になる場合は実行できません。現在User自身の降格も、別Administratorが残る場合に限り可能です。
 
+Administrator権限を失わせる変更であるため、対象Userと失われる管理権限を理解できるConfirmationを行ってから実行します。
+
 ### Communityから除外する
 
 AdministratorはMemberまたは別AdministratorをCommunityから除外できます。
 
 除外により対象UserはCommunityへのアクセスを失い、対象UserがCustodianであるMediaのこのCommunityへの共有と、対象Communityの分類関連もdomain ruleに従って解除されます。Community管理Mediaは削除しません。
 
-対象Userと影響を理解できる確認を行ってから実行します。
+対象Userと、Communityへのアクセスを失うこと、User管理Mediaの当該Community共有とCommunity側分類が解除されることを理解できるConfirmationを行ってから実行します。Community管理Mediaは削除されないことも誤解が生じる場合に確認できるようにします。
 
 最後のAdministratorを除外する操作は実行できません。
 
@@ -61,7 +63,7 @@ Memberおよび最後のAdministratorではないAdministratorは、自分自身
 
 退会は他Userを管理するActionではありませんが、Membershipを終了する操作としてMembers contextから到達可能にします。
 
-退会による影響を理解できる確認を行ってから実行します。最後のAdministratorは、別UserをAdministratorへ変更する等により不変条件を解消するまで退会できません。
+退会によりCommunityへのアクセスを失い、自分がCustodianであるMediaの当該Community共有とCommunity側分類が解除されることを理解できるConfirmationを行ってから実行します。最後のAdministratorは、別UserをAdministratorへ変更する等により不変条件を解消するまで退会できません。
 
 ## 状態
 
@@ -88,6 +90,12 @@ Administratorには対象Userと現在roleに応じて利用可能な管理Actio
 ### 読み込み失敗
 
 参加者一覧を取得できない場合は参加者が存在しない状態として表示せず、取得に失敗したことと再試行可能なActionを提示します。
+
+### 操作成功
+
+role変更はMembers上の対象User表示へ即時反映します。他Userの除外では対象Userを一覧から除きます。
+
+現在User自身の退会が成立した場合は対象Community contextを継続表示せず、Personal Dashboard（`/dashboard`）へ移動して退会完了をOperation Feedbackとして伝えます。
 
 ### Membership失効
 
