@@ -139,6 +139,12 @@ Storage上限をどのProduct概念・契約・Plan等から決定するかは�
 
 Storage Usageの具体的な取得API / data model contractはBackend設計時に確定します。
 
+### Upload制約の扱い
+
+Initial ReleaseのSettings > Usageには、1回のUpload可能件数、1 Mediaあたりの最大file size、対応file format等のUpload制約一覧を常設しません。これらは利用状況そのものではなくUser inputの受理条件であり、具体値や提示方法はMedia Upload Capability側で設計します。
+
+Upload制約はUIへhard-codeせず、System全体のUser input制約方針に従ってMedia Domain / APIを正本とします。Userが事前に知ることで失敗を避けられる制約はUploadの操作contextで必要に応じて提示し、制約違反時は修正可能なvalidation feedbackを提供します。
+
 ### Media Usage
 
 Initial Releaseでは、User本人の利用規模を把握できる指標として総Media件数を表示します。Storage使用量とは別の利用状況指標として扱います。
