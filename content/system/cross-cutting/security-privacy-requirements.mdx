@@ -96,6 +96,8 @@ Application logは30日、traceは7日、Media Eventは90日を初期保持期�
 
 User、Community、Mediaは物理削除を基本とし、Original、Variant、関連record、外部service cleanupを対象に含めます。account削除では影響確認とAuth0再認証を行い、受付後はUserをDELETINGとして直ちに操作不可にします。
 
+Account deletionの再認証は通常Loginとは分離したAuth0 Authorization requestで `prompt=login` + `max_age=0` を要求します。BFF callback成功後は対象Deletion ReviewへbindingしたServer-side再認証状態をAPI側に成立させ、BrowserへAuth0由来のproofを公開しません。bindingは成立から10分、単回使用とし、期限切れ・Review変更/再生成・削除確定成功時に無効化します。callback成功だけでは削除を開始せず、Memoria上の明示的な最終確定を必須とします。
+
 外部cleanupに失敗してもUserを再有効化せず、durable Jobを保持してretryまたは運用者による再開を可能にします。Communityに残るMediaのUploader参照はNULLとし、画面では「削除済みUser」と表示します。
 
 暗号化された障害復旧用backupには削除済みdataが保持期限まで残る場合があります。DB backupの初期保持期間は14日とし、個別User・Mediaの復元依頼には利用しません。復旧時は復旧対象、参照権限、削除済みdataへの影響を確認します。
