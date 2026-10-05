@@ -1,0 +1,96 @@
+# Community Settings
+
+## 概要
+
+Community Settingsは、現在UserがそのCommunityを利用するときのUser固有の設定を扱う画面です。
+
+Community自体へ影響するAdministrator向け操作は[Community Management](/screens/community-management)へ分離します。Community Settingsへのアクセス権とCommunity ManagementのAdministrator権限を同一視しません。
+
+> 実装状況: 本仕様に対応するCommunity Settings UIは未実装です。
+
+## 目的
+
+各Memberが、他のMemberやCommunity自体へ影響させず、自分にとってのCommunity利用体験を調整できるようにします。
+
+Initial Releaseでは必要性が確認されている **Accent Color** だけを扱い、将来の設定項目を空のplaceholderとして先行表示しません。
+
+## Accent Color
+
+Accent Colorは現在のCommunityを他のApplication Contextから視覚的に識別するための補助的なpresentation設定です。
+
+- 設定scopeはUser × Communityとし、同じCommunityでもUserごとに異なる値を持てます。
+- CommunityのbrandingやCommunity domain identityとして扱いません。
+- 全Memberが自分向けのAccent Colorを変更できます。Administrator権限は要求しません。
+- 色だけにContext識別を依存せず、Context名等の非色情報を併用します。
+- Light / Dark Themeで同じAccent値を使用します。
+- Design System上の適用範囲・境界補償は[Design System](/design-system#表示テーマとcontext-accentvisual-review中)を正本とします。
+
+## 初期割当
+
+UserがCommunityへ参加した時点で、そのUser向けの初期Accent Colorをランダム生成します。
+
+同一Userが現在所属する他Communityに完全一致するAccent値が存在する場合は、その値を初期割当として使用せず再生成します。類似色まで自動的に排除することは要求しません。
+
+ランダム生成では初期値として使いにくい極端な明度を避けます。具体的な生成範囲、乱数方式、再試行上限等は実装契約で決定します。
+
+Membershipを維持している間、保存済みAccentをContext集合の変化だけを理由に自動再割当しません。Communityを新しく作成・参加しても既存CommunityのAccentをshuffleしません。
+
+Membership離脱後に同じCommunityへ再参加した場合に以前のAccentを復元するか、新規生成するかはBackendのlifecycle / persistence設計で確定します。
+
+## 変更Behavior
+
+Accent ColorはColor Pickerを基本controlとして変更します。
+
+Userが色を選択した時点で明示的なSave操作を要求せず、即時保存・即時反映します。保存中の同じ意図の重複操作を適切に扱い、古い保存結果でより新しい選択を上書きしないようにします。
+
+保存成功後は新しい色を保存済み値とします。
+
+保存失敗時は保存済みのAccent Colorへ戻し、[Feedback](/design-system/patterns/feedback)に従って再試行可能なFeedbackを提示します。
+
+Userの手動選択では `#RRGGBB` 全域を許可し、明度による入力制限を設けません。AccentとSurfaceの識別が難しい場合はDesign Systemの境界補償で扱います。
+
+## Navigation
+
+有効なMembershipを持つMemberはCommunity Context NavigationからCommunity Settingsへ到達できます。
+
+AdministratorにはCommunity Settingsとは別に[Community Management](/screens/community-management)への入口を提供します。SettingsはUser固有のCommunity利用設定、ManagementはCommunity自体へ影響する管理操作という責務を維持します。
+
+## 状態
+
+### 通常
+
+現在保存されているAccent Colorを確認・変更できます。
+
+### 保存中
+
+選択した色を即時反映しつつ保存結果を待ちます。連続変更が可能なColor Pickerでは、最終的なUser意図と保存済み値が一致するようにします。
+
+### 保存失敗
+
+最後に確認できている保存済み色へ戻し、再試行できるFeedbackを提示します。Community ContextやNavigation状態を失わせません。
+
+### Membership失効
+
+Membershipが失効した場合はCommunity Settingsを継続利用させず、Application IAに従って安全なdestinationへ移動します。
+
+## 制約
+
+- Initial ReleaseのCommunity SettingsはAccent Colorだけを扱います。
+- Accent変更は他Userの表示へ影響しません。
+- Accent変更によってauthorization、Community data、Media data等のDomain behaviorを変更しません。
+- Community自体の名称、Invitation、削除等はCommunity Managementを正本とします。
+- Accentの永続化model / GraphQL API contractはBackend詳細設計で確定します。
+
+## Responsive対応
+
+Compact / Medium / Wideのすべてで、現在色の確認とAccent Color変更Capabilityを維持します。
+
+Color Pickerの具体presentation、popover / inline等の配置、寸法はUI具体化とVisual Reviewで決定します。keyboard操作、focus、touch操作を維持し、色だけで現在値や操作状態を伝えません。
+
+## Visual Prototype / Reviewで確認する事項
+
+- Light / Dark双方で任意Accentを適用したとき、Context識別が破綻しないこと
+- 白・黒に近い手動選択色を含め、必要な場合に境界補償が機能すること
+- Context Switcher、Header、選択中Navigation等のAccent表現が過度にAction / status colorへ見えないこと
+- Color Pickerの即時反映と保存失敗時のrollbackが理解できること
+- Compact / Medium / Wideで同じCapabilityを維持できること

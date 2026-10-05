@@ -22,10 +22,19 @@ Memoria Design Systemは、実際のScreen設計から確認された再利用�
 - keyboard操作、focusの視認性、touch操作のしやすさを維持する。コンパクト化によって操作対象が小さくなりすぎないよう確認する。
 - 現段階ではStorybookでのVisual Review対象とし、細部の寸法・配色は承認後に共通実装へ反映する。
 
-## 表示テーマとコンテキストカラー（Visual Review中）
+## 表示テーマとContext Accent（Visual Review中）
 
-- 表示モードは「システム」「ライト」「ダーク」の3種類とし、システム選択時はOSの表示設定に追従する。ユーザーの選択として扱い、コンテキストを切り替えても表示モードを維持する。
-- コンテキストごとにカラーテーマを設定できるようにする。コンテキストを切り替えると、そのコンテキストのアクセントカラーがヘッダーや選択中ナビゲーション等へ反映され、ワークスペースの変化を視覚的に伝える。
-- 表示モードが背景・文字・サーフェスの明暗を担当し、コンテキストカラーはアクセントに限定する。可読性とコントラストを維持し、色だけに頼らずコンテキスト名も表示する。
-- Storybookで両方の切り替えと組み合わせを確認し、正式な色パレット、適用範囲、ユーザー設定の永続化先、コンテキストカラーの設定権限・保存方法は後続の設計で確定する。
-- 初期試作ではPersonalを青、Communityを青緑とするが、これは承認前の仮色であり、製品仕様として固定しない。
+- 表示モードは「システム」「ライト」「ダーク」の3種類とし、システム選択時はOSの表示設定に追従する。ユーザーの選択として扱い、Contextを切り替えても表示モードを維持する。
+- Context Accent Colorは、現在のContextを視覚的に識別するための補助的なpresentationとする。ヘッダー、選択中Navigation、Context Switcherのindicator等、Context識別に必要な場所へ限定して使用し、一般的なAction / status / text colorのsemantic roleとして使用しない。
+- 色だけをContext識別手段にせず、Context名や選択状態等の非色情報を併用する。
+- Accent ColorはLight / Darkで共通の値を使用する。ThemeごとにAccentを再割当せず、Themeによって見え方の強さが異なることは許容する。
+- Accent Colorを文字色として使用することは前提にしない。将来Accentを背景としてforegroundを重ねる場合、そのforegroundの可読性は別途保証する。
+- Accentと隣接Surfaceの識別が難しい場合は境界表現で補償する。境界の具体的な色差アルゴリズム・閾値はFrontend実装とVisual Reviewで決定し、Accent自体をThemeごとに変更して解決しない。
+- Community AccentはCommunityのbranding / domain identityではなく、UserごとのContext presentation設定とする。同じCommunityでもUserごとに異なる色を使用できる。
+- Community参加時にUser向けの初期Accentをランダム生成する。同一Userが現在所属する他CommunityのAccentと完全一致する値は避けるが、類似色まで自動的に排除することは要求しない。
+- 初期Accent生成では極端な明度を避ける。具体的な生成範囲・乱数方式はFrontend / API / Data実装契約で決定する。
+- Community AccentはUserが後からColor Pickerで任意の `#RRGGBB` 値へ変更できる。手動選択では明度による制限を設けず、見分けにくい組み合わせはUser自身が変更できる。
+- Community Accentの変更は[Community Settings](/screens/community-settings)から行い、選択時に即時保存・即時反映する。保存失敗時は保存済みの色へ戻し、再試行可能なFeedbackを提示する。
+- Context Switcherでは各ContextのAccent indicatorを表示し、切替前にもContext名と色を併用して識別できるようにする。
+- Community Accentの具体的な永続化model / API contractは後続のBackend設計で確定する。Presentation設定であることを理由にCommunity entityのbranding fieldとして扱わない。
+- Personal AccentはUserごとのpresentation preferenceとし、[User Settings](/screens/user-settings)から任意の `#RRGGBB` へ変更できる。初期値は固定default Accentとし、Communityのようなランダム生成・重複回避は行わない。変更は即時保存・即時反映し、失敗時は保存済み値へ戻す。
