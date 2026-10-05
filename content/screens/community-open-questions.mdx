@@ -1,0 +1,95 @@
+# Community画面設計の確認事項
+
+CommunityのInitial Release Screen Specificationを横断レビューした際に、既存Domain contractだけでは一意に決めず、Product / UI設計として追加合意する事項を管理します。
+
+この文書の項目は未確定事項です。各項目を合意した時点で、対応するScreen Specificationへ正本を移し、この一覧から解消します。
+
+## Community Creation
+
+現時点でProduct上の未確定事項はありません。Creation Dialogの具体的なwidth、spacing、focus、Button配置等はVisual Review / UI具体化で確認します。
+
+## Community Management
+
+### Invitation URLの共有Action
+
+Invitation sectionでは長いURLを手動選択しなくても共有できる補助Actionを提供する方針です。
+
+確認事項:
+
+- Initial Releaseの明示Actionを「コピー」に限定するか。
+- Web Share API等のOS共有ActionまでInitial Releaseで提供するか。
+
+Domain上はURLの発行・共有が目的であり、共有手段そのものは未確定です。
+
+### Invitation無効化のConfirmation
+
+再発行は旧URLを失効させるためConfirmationを要求する仕様です。
+
+確認事項:
+
+- 単純な無効化についても毎回Confirmationを要求するか。
+- Management上で影響説明を十分に提示し、直接実行 + Operation Feedbackとするか。
+
+## Community Invitation
+
+### Invitation利用不可時のUser向け理由
+
+Security上、無効・期限切れ・Community削除等から不要なCommunity情報を公開しないことは確定しています。
+
+確認事項:
+
+- 「この招待は利用できません」の共通表現へ統一するか。
+- Community情報を公開しない範囲で「期限切れ」等の理由だけを区別するか。
+
+公開error contractと合わせて確定します。
+
+### Invitationを利用しない場合の戻り先
+
+安全なApplication destinationへ戻れることは確定しています。
+
+確認事項:
+
+- 認証済みUserは常にPersonal Dashboardへ戻すか。
+- Invitation開始前にApplication内contextが存在した場合だけ、そのcontextへのCancel復帰を許可するか。
+
+## Community Members
+
+### Members一覧の規模対応
+
+Initial ReleaseではnicknameとAdministrator roleを表示し、検索・filter・並び順は固定していません。
+
+確認事項:
+
+- Initial Release時点で明示的な並び順を定義するか。
+- 想定Community規模から検索をInitial Releaseへ含める必要があるか。
+
+### Member Actionのpresentation
+
+role変更・除外・自分の退会というCapabilityとConfirmation要件は確定しています。
+
+確認事項:
+
+- 各Member rowにAction Menuを置くか。
+- Administrator roleを直接変更するControlを置くか。
+- Compact / Medium / WideでAction presentationを変えるか。
+
+具体的なComponent選択はVisual Reviewで確定します。
+
+## Community Deletion
+
+### Community管理Mediaの解消導線
+
+削除不能時にCommunity Mediaへ移動し、管理Mediaを解消する方針は確定しています。
+
+確認事項:
+
+- Media画面へ単純に移動するだけとするか。
+- Community管理Mediaだけを対象にしたfilter / Collectionへ直接遷移できるようにするか。
+
+後者にはMedia Browser側のfilter capability追加が必要になるため、Community削除画面だけでは決定しません。
+
+## 横断Visual Design
+
+Creation、Management、Invitation、Members、Deletion ConfirmationについてProduct / UX contractはScreen Specificationで定義しますが、具体的なvisual hierarchy、container width、section表現、Action配置、Compact / Medium / WideのpresentationはVisual Prototype / Human Visual Reviewで確認します。
+
+既存Design SystemとApplication Shellのcontractを維持し、Visual Prototypeの都合でScreen SpecificationのCapabilityや情報を削除しません。
