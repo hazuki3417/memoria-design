@@ -197,6 +197,12 @@ Themeによって情報、Action、状態表現、focus indicator等のCapabilit
 
 System / Light / Darkの選択状態は、色の見た目だけでなくcontrolの選択状態として認識可能にします。
 
+## Account
+
+Initial ReleaseのAccount領域では、User account lifecycleに関する操作として **account削除のみ** を提供します。削除の具体的なUser Flowは[Account Deletion Flow](/screens/account-deletion-flow)を正本とします。
+
+認証情報の正本はAuth0であり、password変更等の認証情報管理をMemoria独自のAccount設定として重複提供しません。認証方法の確認、session / device管理、外部account連携等はInitial ReleaseのSettingsへ追加せず、具体的なProduct needが確認された場合にAuth0との責務境界を含めて設計します。
+
 ## Initial Release対象外
 
 - User accountを介したAppearance preferenceのdevice間同期
