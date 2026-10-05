@@ -694,13 +694,51 @@ input ScopeInput {
   communityId: ID
 }
 
+enum MediaGroupRelationUnavailableReason {
+  SELF
+  ALREADY_RELATED
+  OPPOSITE_RELATION
+  CYCLE
+  DEPTH_LIMIT
+  PARENT_LIMIT
+  CHILD_LIMIT
+}
+
+type MediaGroupRelationActionAvailability {
+  canAdd: Boolean!
+  unavailableReason: MediaGroupRelationUnavailableReason
+}
+
+type MediaGroupRelationCandidate {
+  group: MediaGroup!
+  isParent: Boolean!
+  isChild: Boolean!
+  addAsParent: MediaGroupRelationActionAvailability!
+  addAsChild: MediaGroupRelationActionAvailability!
+}
+
+type MediaGroupRelationCandidateEdge {
+  cursor: String!
+  node: MediaGroupRelationCandidate!
+}
+
+type MediaGroupRelationCandidateConnection {
+  edges: [MediaGroupRelationCandidateEdge!]!
+  pageInfo: PageInfo!
+}
+
 extend type Query {
   mediaGroups(scope: ScopeInput!, search: String, first: Int, after: String, last: Int, before: String): MediaGroupConnection!
   mediaGroup(id: ID!): MediaGroup
+  mediaGroupRelationCandidates(groupId: ID!, search: String, first: Int, after: String, last: Int, before: String): MediaGroupRelationCandidateConnection!
 }
 ```
 
-`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。Group間relation編集時の追加候補検索は、[Issue #131](https://github.com/hazuki3417/memoria-design/issues/131)で同一scope・自己参照・既存relation・循環禁止を考慮する独立した取得契約として詳細設計し、表示用relation fieldを編集候補判定の代替にしません。DAG全体graph取得を主要契約にしません。
+`ScopeInput` が必要なfieldでは `scope.type` に `PERSONAL` / `COMMUNITY` の明示指定を必須とします。IDで特定した既存resourceの所属情報からscopeを確定できるfieldではscopeを重複指定しません。ULID自体からPersonal / Communityを推測しません。`COMMUNITY` では `communityId` が必須、`PERSONAL` では指定を禁止し、違反は `VALIDATION` です。Group・Tag一覧の共通規則として、name昇順（同名はID昇順）、大文字・小文字を区別するname部分一致検索、並び順に対応したopaque cursorを使用します。GroupはfolderではなくDAGであり、一意なroot / path / breadcrumbをGraphQL契約に導入しません。Group detailの `parents`（所属先Group）、`children`（このGroupに所属するGroup）、`media`（このGroupへ直接分類されたMedia）を独立したRelay Connectionとして公開します。
+
+`mediaGroupRelationCandidates` はrelation編集専用の候補評価Queryです。対象Groupの保存済みscopeを使用し、同一scopeのGroupだけをname順で検索します。自己Groupや既存relationを候補から隠さず、各候補について現在の `isParent` / `isChild` と、Parent / Child各方向の追加可否を返します。WebはDAG全体を取得・再構築してcycle、深度、直接relation数上限を判定しません。
+
+`MediaGroupRelationActionAvailability.canAdd = false` の場合は `unavailableReason` を必須とし、`canAdd = true` の場合は `null` とします。理由はUI文言そのものではなくDomain semanticsを表し、WebがProduct文言へ変換します。現在保存済みrelationに対する `ALREADY_RELATED` と、同一Draftで反対方向へ選択済みというClient-local状態は区別します。後者はServer候補Queryの状態ではないため、WebがDraft上で `OPPOSITE_RELATION` 相当としてActionを無効化します。保存時はServerが最終Draft全体を再評価するため、候補取得後のDAG変更を安全性の根拠にしません。
 
 ### Command
 
@@ -710,23 +748,50 @@ input CreateMediaGroupInput {
   name: String!
 }
 
-input RenameMediaGroupInput {
-  groupId: ID!
-  name: String!
-}
-
 input DeleteMediaGroupInput {
   groupId: ID!
 }
 
-input AddMediaGroupRelationInput {
-  parentGroupId: ID!
-  childGroupId: ID!
+input MediaGroupRelationChangeInput {
+  groupId: ID!
+  direction: MediaGroupRelationDirection!
+  action: MediaGroupRelationChangeAction!
 }
 
-input RemoveMediaGroupRelationInput {
-  parentGroupId: ID!
-  childGroupId: ID!
+enum MediaGroupRelationDirection {
+  PARENT
+  CHILD
+}
+
+enum MediaGroupRelationChangeAction {
+  ADD
+  REMOVE
+}
+
+enum MediaGroupRelationChangeStatus {
+  SUCCEEDED
+  ALREADY_APPLIED
+  FAILED
+}
+
+type MediaGroupRelationChangeResult {
+  groupId: ID!
+  direction: MediaGroupRelationDirection!
+  action: MediaGroupRelationChangeAction!
+  status: MediaGroupRelationChangeStatus!
+  errorCode: String
+  unavailableReason: MediaGroupRelationUnavailableReason
+}
+
+input UpdateMediaGroupInput {
+  groupId: ID!
+  name: String
+  relationChanges: [MediaGroupRelationChangeInput!]
+}
+
+type UpdateMediaGroupPayload {
+  group: MediaGroup!
+  relationResults: [MediaGroupRelationChangeResult!]!
 }
 
 input ChangeMediaGroupClassificationInput {
@@ -742,11 +807,6 @@ type DeleteMediaGroupPayload {
   groupId: ID!
 }
 
-type MediaGroupRelationPayload {
-  parentGroup: MediaGroup!
-  childGroup: MediaGroup!
-}
-
 type MediaGroupClassificationItemResult {
   mediaId: ID!
   status: BulkItemStatus!
@@ -759,18 +819,22 @@ type ChangeMediaGroupClassificationPayload {
 
 extend type Mutation {
   createMediaGroup(input: CreateMediaGroupInput!): MediaGroupPayload!
-  renameMediaGroup(input: RenameMediaGroupInput!): MediaGroupPayload!
+  updateMediaGroup(input: UpdateMediaGroupInput!): UpdateMediaGroupPayload!
   deleteMediaGroup(input: DeleteMediaGroupInput!): DeleteMediaGroupPayload!
-  addMediaGroupRelation(input: AddMediaGroupRelationInput!): MediaGroupRelationPayload!
-  removeMediaGroupRelation(input: RemoveMediaGroupRelationInput!): MediaGroupRelationPayload!
   addMediaToGroup(input: ChangeMediaGroupClassificationInput!): ChangeMediaGroupClassificationPayload!
   removeMediaFromGroup(input: ChangeMediaGroupClassificationInput!): ChangeMediaGroupClassificationPayload!
 }
 ```
 
-Personal Group構造はUser本人、Community Groupのcreate / rename / delete / relation管理はAdministratorが行います。CommunityのAdministrator / Memberは閲覧可能Mediaを既存Groupへ分類できます。
+Personal Group構造はUser本人、Community Groupのcreate / update / delete / relation管理はAdministratorが行います。CommunityのAdministrator / Memberは閲覧可能Mediaを既存Groupへ分類できます。
 
-Group relationは同一scopeだけを許可し、自己参照、重複、直接・間接循環を `CONFLICT` とします。Group削除はMedia本体を削除せず、対象GroupのMedia relationとGroup relationだけを削除します。
+`updateMediaGroup` はGroup Browserの編集Dialogで構成した「同じGroup自身の名前とrelation Draftを保存する」という1つのUser intentを表します。`name` と `relationChanges` は部分指定でき、少なくとも一方を指定します。同一request内で同じrelationへの矛盾したchange、同じ候補をParentとChildの双方へ追加するchange、自己参照等のrequest自体の矛盾はMutation全体を `VALIDATION` として拒否します。
+
+name更新はGroup本体の更新として先に検証し、nameが不正・重複等で成立しない場合はrelation changeを開始せずMutation全体を失敗させます。nameが成立した後のrelation changeはInput順へ意味を持たせず、Serverが最新DAGに対する1つのDraft差分集合として評価します。relation change同士は部分成功を許容しますが、処理順によって同じrequestの可否が変わらないよう、追加予定relationを含む最終候補graphを基準にcycle・深度・parent / child上限を検証します。成立可能なchangeだけをtransaction内で反映し、各結果を `relationResults` で返します。
+
+保存時には現在のrole、scope、Group存在、relation、cycle、DAG深度、parents / children各10件上限を再評価します。候補Query時点で `canAdd` だったことを認可・整合性の根拠にしません。部分成功後の `group` は成立済み変更を反映した最新状態を返し、Webは `parents` / `children` と候補availabilityを再取得して残Draftを再評価します。descendant集合が変化し得る成功が1件でもあれば、Group Browserのaggregate Media Connectionも最新relationを基準に再取得します。
+
+relation解除は指定relationだけを削除し、0 parents / 0 childrenを許容します。Group削除はMedia本体を削除せず、対象GroupのMedia relationとGroup relationだけを削除します。
 
 Group IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Group IDとMedia IDのULID形式からscopeを推測しません。複数Media分類は各Mediaを再認可して部分成功を許容します。query結果全件を暗黙対象にするInputは提供しません。
 
