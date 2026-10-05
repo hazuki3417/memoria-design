@@ -1048,7 +1048,7 @@ extend type Mutation {
 
 Auth0強制再認証とcallback処理はBFF（Next.js）が担当します。再認証成功後、BFFはBrowserへAuth0由来のproofを露出せず、通常の認証済みAccess Tokenと対象 `reviewToken` を用いてAPIの内部reauthentication binding境界へ「このACTIVE UserがこのReviewについて再認証済み」であることを登録します。この内部境界はBrowser向けGraphQL Schemaには公開しません。APIはAccess Tokenから解決したissuer / subject / Userとreview ownerが一致することを必須とし、Clientから渡されたUser IDを信頼しません。
 
-APIは `User + reviewToken + reauthenticatedAt + expiresAt + consumed/revoked state` 相当の短期Server-side bindingを保持します。具体的な保存方式はImplementation Detailです。bindingの有効期限はAuth0再認証方式とSecurity要件を実装前に確定し、期限切れ時は削除を開始しません。
+APIは `User + reviewToken + reauthenticatedAt + expiresAt + consumed/revoked state` 相当の短期Server-side bindingを保持します。具体的な保存方式はImplementation Detailです。bindingは再認証成立時から10分間だけ有効とし、期限切れ時は削除を開始しません。Account deletion専用Auth0 Authorization requestはBFFが `prompt=login` + `max_age=0` で開始します。
 
 `confirmAccountDeletion` の公開Inputには `reauthenticationProof` を含めません。最終確定時にAPIがreview ownerと有効なServer-side bindingを照合し、ACTIVE User、Community / Membership / Mediaの現在状態を再検証します。review後に削除計画を変更・再生成した場合、旧reviewに対するbindingは新reviewへ流用しません。最終確定成功時はbindingをconsumedとして再利用不能にし、reviewも再利用不能にします。再認証失敗・取消し・期限切れ・callback不成立時はbindingを成立させません。
 
