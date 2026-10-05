@@ -58,7 +58,7 @@ Invitationが有効であることと、明示的に参加を確定するAction�
 
 ### Applicationへ戻る
 
-Invitationを利用できない場合や、Userが参加を確定しない場合は、利用可能なApplicationの安全なdestinationへ戻れるようにします。Invitation画面を閉じるためにMembership作成を要求しません。
+Invitationを利用できない場合や、認証済みUserが参加を確定せずApplicationへ戻る場合は、Personal Dashboard（`/dashboard`）へ戻れるようにします。Invitation開始前のApplication contextは復元しません。Invitation画面を離れるためにMembership作成を要求しません。
 
 ## 状態
 
@@ -106,7 +106,7 @@ Invitation URLはApplication外から直接到達できるentryとして扱い�
 
 参加成功または参加済みの場合は対象Community Dashboardへ進みます。
 
-Invitationを利用できない場合はPersonal Dashboard等の安全なApplication destinationへ戻れるようにします。具体的な公開route文字列やtoken形式はAPI / Routing設計で決定します。
+Invitationを利用できない場合、または認証済みUserが参加せずApplicationへ戻る場合はPersonal Dashboard（`/dashboard`）へ移動します。Invitation開始前のCommunity等を暗黙に復元しません。未認証UserにApplication内destinationへの遷移を強制せず、認証が必要なdestinationへ進む場合は通常の認証Flowに従います。Invitation URL自体の具体的な公開route文字列やtoken形式はAPI / Routing設計で決定します。
 
 ## 制約
 
