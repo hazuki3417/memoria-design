@@ -3,6 +3,7 @@ export default {
   "-- User": {"type":"separator","title":"User"},
   "user-registration": "User登録",
   "user-profile": "Userプロフィール",
+  "user-settings": "User設定",
   "-- Account Deletion": {"type":"separator","title":"アカウント削除"},
   "account-deletion-flow": "フロー概要",
   "account-deletion-impact": "1. 影響確認",
