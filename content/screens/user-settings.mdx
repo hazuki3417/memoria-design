@@ -78,6 +78,25 @@ browser storageの具体方式、SSR / hydration時のTheme適用順序、flash�
 
 Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的なAPI / data model contractはBackend設計時に確定します。
 
+### ファイルサイズ単位
+
+ファイルサイズ単位はUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。
+
+Initial Releaseでは次の2つの単位体系から選択します。
+
+| Preference | 単位 | 基数 |
+| --- | --- | --- |
+| Decimal | KB / MB / GB | 1 KB = 1000 bytes |
+| Binary | KiB / MiB / GiB | 1 KiB = 1024 bytes |
+
+初期値は **Decimal** とします。Binaryを選択した場合は1024基準の値に `KB` / `MB` / `GB` を使用せず、`KiB` / `MiB` / `GiB` として単位体系を明示します。
+
+このPreferenceはMedia DetailのOriginal file size、Usage等、Application内でUserへ提示するfile size表示へ一貫して適用します。Domain dataやStorage上のsizeそのものを書き換える設定ではなく、保持しているbyte数等の正本から表示値を導出するpresentation preferenceとして扱います。
+
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
+
+具体的なAPI / data model contractはBackend設計時に確定します。
+
 ## Accessibility / Design System
 
 Light / Darkの双方でDesign Systemのsemantic color roleを維持し、個別ScreenがThemeごとの固定色をProduct meaningとして直接持たないことを基本とします。
