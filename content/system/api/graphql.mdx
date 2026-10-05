@@ -62,6 +62,8 @@ GraphQLはDBの外部キーをそのまま公開するのではなく、Client�
 
 ```graphql
 scalar DateTime
+# User Usageの累積byte値向け候補。公開表現はImplementation Detail確定後に実行可能SDLへ引き渡す。
+scalar Int64
 
 enum CommunityRole {
   MEMBER
@@ -84,6 +86,23 @@ enum ProcessingStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum DateFormat {
+  YYYY_MM_DD
+  MM_DD_YYYY
+  DD_MM_YYYY
+}
+
+enum FileSizeUnit {
+  DECIMAL
+  BINARY
+}
+
+enum MediaThumbnailSize {
+  SMALL
+  MEDIUM
+  LARGE
 }
 ```
 
@@ -161,12 +180,34 @@ type PageInfo {
 type User {
   id: ID!
   profile: UserProfile!
+  preferences: UserPreferences!
+  usage: UserUsage!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
 type UserProfile {
   nickname: String!
+}
+
+type UserPreferences {
+  personalAccentColor: String!
+  dateFormat: DateFormat!
+  fileSizeUnit: FileSizeUnit!
+  mediaThumbnailSize: MediaThumbnailSize!
+  mediaDetailNavigationWrap: Boolean!
+  mediaDetailInitialInfoWide: Boolean!
+  mediaDetailInitialInfoMedium: Boolean!
+}
+
+type UserUsage {
+  mediaCount: Int!
+  storage: StorageUsage!
+}
+
+type StorageUsage {
+  usedBytes: Int64!
+  effectiveLimitBytes: Int64!
 }
 
 extend type Query {
@@ -189,9 +230,24 @@ type UpdateUserProfilePayload {
   user: User!
 }
 
+input UpdateUserPreferencesInput {
+  personalAccentColor: String
+  dateFormat: DateFormat
+  fileSizeUnit: FileSizeUnit
+  mediaThumbnailSize: MediaThumbnailSize
+  mediaDetailNavigationWrap: Boolean
+  mediaDetailInitialInfoWide: Boolean
+  mediaDetailInitialInfoMedium: Boolean
+}
+
+type UpdateUserPreferencesPayload {
+  preferences: UserPreferences!
+}
+
 extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserPayload!
   updateUserProfile(input: UpdateUserProfileInput!): UpdateUserProfilePayload!
+  updateUserPreferences(input: UpdateUserPreferencesInput!): UpdateUserPreferencesPayload!
 }
 ```
 
@@ -200,6 +256,12 @@ extend type Mutation {
 `registerUser` はAccess Tokenから認証主体を確定し、Clientからissuer・subjectを受け取りません。登録済み主体による再登録は `CONFLICT` です。
 
 `updateUserProfile` はACTIVE User本人だけが実行でき、Initial Releaseではnicknameを更新します。同時更新にversion mergeは導入せず、成立した更新の最終状態を返します。
+
+`User.preferences` はaccount同期するpresentation preferenceの正本です。Themeはbrowser / device-localでありGraphQLへ含めません。Language / LocaleとTimezoneはInitial Releaseで選択UIを提供しないため、先行してfieldを追加しません。各fieldの初期値はUser SettingsのScreen Specificationを正本とします。
+
+`updateUserPreferences` は複数のaccount同期Preferenceを1つのモデル更新I/Fとして部分更新します。Inputは少なくとも1 fieldを指定し、未指定fieldは現在値を維持します。明示的な `null` は設定値として受理せず `VALIDATION` とします。Personal Accentは `#RRGGBB` を受理し、他のPreferenceと同様に成功時の保存済み `UserPreferences` を返します。連続する即時保存はWebがrequestを直列化し、保存中の変更を必要に応じてcoalesceして最新のUser intentを次requestとして送ります。APIにPreference versionやClient sequenceを追加せず、各Mutationは受信時の入力をatomicに保存します。
+
+`User.usage` はUser Settings > Usageで必要な現在の総Media件数とStorage Usageを返します。Storageは現在使用中のbyte数と、その時点でUserへ適用されているeffective limitを返し、Plan / Quota等の算出モデルをGraphQL契約へ露出しません。使用率・残容量・表示単位への変換はWebで導出します。累積Storage値は32-bit `Int` の範囲を超え得るため、既存APIに存在する `Int64` を契約候補として記載しますが、Usageを実行可能SDLへ引き渡す前にscalarの公開表現をImplementation Detailとして確定します。
 
 ## Community
 
@@ -211,6 +273,7 @@ type Community {
   name: String!
   members(first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
   myMembership: CommunityMembership!
+  mySettings: CommunityUserSettings!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -218,6 +281,10 @@ type Community {
 type CommunityMembership {
   user: User!
   role: CommunityRole!
+}
+
+type CommunityUserSettings {
+  accentColor: String!
 }
 
 type CommunityMembershipEdge {
@@ -248,6 +315,8 @@ extend type Query {
 
 `community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。`Community.myMembership` は現在の認証User本人の有効なMembershipを直接返し、ページングされた `Community.members` に本人が含まれるかどうかに依存しません。`members` は本人を除外せず、全参加者を対象とします。両fieldは同じ保存済みMembershipを参照し、二重保存しません。`community(id:)` は有効なMembershipを持つUserにのみ公開するため、取得可能なCommunityの `myMembership` は非nullです。Membership失効時はCommunity取得と各fieldの認可を再評価し、Clientの表示済みroleを認可根拠にしません。
 
+`Community.mySettings` は現在の認証User × Communityに属するpresentation settingを返します。Initial ReleaseではAccent Colorだけを持ち、Community brandingやCommunity本体の属性にはしません。`myCommunities` から各 `Community.mySettings.accentColor` を取得できるため、Context Switcher専用のAccent Queryは追加しません。有効なMembershipを持つUserだけがCommunityを取得できるため、取得可能なCommunityでは `mySettings` も非nullです。
+
 Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.myMembership` は本人のrole取得、`Community.members` は本人を含む全参加者一覧の取得に使います。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
 
 ### 作成・名称変更
@@ -270,15 +339,29 @@ type UpdateCommunityPayload {
   community: Community!
 }
 
+input UpdateCommunitySettingsInput {
+  communityId: ID!
+  accentColor: String!
+}
+
+type UpdateCommunitySettingsPayload {
+  settings: CommunityUserSettings!
+}
+
 extend type Mutation {
   createCommunity(input: CreateCommunityInput!): CreateCommunityPayload!
   updateCommunity(input: UpdateCommunityInput!): UpdateCommunityPayload!
+  updateCommunitySettings(input: UpdateCommunitySettingsInput!): UpdateCommunitySettingsPayload!
 }
 ```
 
 `createCommunity` はACTIVE Userが実行し、Communityと実行Userの `role=ADMIN` Membershipを同一transactionで作成します。同名Communityは許可します。
 
 `updateCommunity` は現在のAdministratorだけが実行します。Initial Releaseで更新可能なCommunity fieldはnameだけです。Community説明や画像を先行して契約へ追加しません。
+
+`updateCommunitySettings` はCommunity本体ではなく、現在User本人のUser × Community settingを更新します。有効なMembershipを持つ全Memberが自身のAccentを変更でき、Administrator権限は要求しません。`accentColor` は `#RRGGBB` を受理します。Community作成時およびInvitation参加成立時はMembershipと同じtransaction境界で初期Accentを生成・保存し、Membershipだけ成立してsettingが欠落する状態を作りません。初期生成では同一Userが現在所属する他CommunityのAccentとの完全一致を避けます。具体的な生成範囲・乱数方式・再試行上限はImplementation Detailとして別途確定します。
+
+User × Community settingはMembership lifecycleに従属します。退会・除外時にsettingも削除し、同じCommunityへ再参加した場合は過去値を復元せず新しいAccentを生成します。既存Membershipを維持している間はCommunity集合の変化だけを理由に再生成しません。Accentの連続即時保存はUser Preferencesと同様にWeb側でrequestを直列化・coalesceし、APIへClient sequenceを追加しません。
 
 ### Membership role・退会・除外
 
@@ -471,7 +554,7 @@ extend type Query {
 }
 ```
 
-`mediaList(scope:)` は1つのscope内のMedia一覧を取得する共通Queryです。`PERSONAL` は現在UserがCustodianであるACTIVE Mediaを返し、`COMMUNITY` は有効なMembershipを持つ指定Communityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。異なるscopeのMediaを1つのConnectionへ混在させません。Web側では画面・ユースケースに対応するGraphQL Operationを定義し、この共通Queryへscopeを渡します。
+`mediaList(scope:)` は1つのscope内のMedia一覧を取得する共通Queryです。`PERSONAL` は現在UserがCustodianであるACTIVE Mediaを返し、`COMMUNITY` は有効なMembershipを持つ指定Communityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。異なるscopeのMediaを1つのConnectionへ混在させません。Web側では画面・ユースケースに対応するGraphQL Operationを定義し、この共通Queryへscopeを渡します。Dashboardの「最近のメディア」も専用Queryを追加せず、現在scopeの `mediaList` を `first: 12` で使用します。Media一覧の固定順序 `createdAt DESC, id DESC` をそのまま利用し、Dashboard専用のsort・selection・Detail用Connectionを導入しません。
 
 Tag filterは現在scopeのTagだけを受け付け、Tag IDの形式からscopeを推測せず保存済みの所属情報を検証します。複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
 
@@ -771,6 +854,8 @@ Personal TagはUser本人が管理します。CommunityではAdministrator / Mem
 
 Tag IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Tag IDとMedia IDのULID形式からscopeを推測しません。Media Browserの複数Tag filterはAND条件です。OR切替や複雑な検索式はInitial Releaseへ追加しません。複数Media分類は部分成功を許容し、query結果全件を暗黙対象にしません。
 
+Media Upload / Media Updateで複数MediaのTag Draftを保存する場合も、画面専用の巨大な「最終Tag集合保存」Mutationを追加せず、Tag作成と既存Tag分類のCommandをWebの名前付きOperation / orchestrationから組み合わせます。各Mutationは独立したtransactionであり、Webは成功済みCommandを失敗した後続Commandのためにrollback済みとみなしません。部分失敗時は成立済み状態を再取得してDraftとの差分を再評価し、失敗対象だけをUserが修正・再試行できるようにします。
+
 ## Community削除
 
 ```graphql
@@ -800,9 +885,11 @@ extend type Mutation {
 }
 ```
 
-現在のAdministratorだけが削除影響を取得・削除できます。Community Custody Mediaが1件でも残る通常のCommunity削除は `CONFLICT` とし、先に対象Mediaを削除する必要があります。
+現在のAdministratorだけが削除影響を取得・削除できます。`managedMediaCount` は削除可否を判定するためではなく、Community管理Mediaを含む不可逆な削除影響をUserへ確認させるために返します。Community Custody Mediaが存在していても通常のCommunity削除を受け付けます。
 
-`confirmationName` は誤操作防止のUser intent確認であり、認可の代替ではありません。削除成立時はCommunity、Membership、Invitation、共有relation、Community scope Group / Tag等をdomain transaction規則に従って削除します。User Custody Media本体や他Communityのrelationは変更しません。
+`confirmationName` は誤操作防止のUser intent確認であり、認可の代替ではありません。実行時はCommunity行を直列化点として最新の `ACTIVE` 状態、Administrator権限、Community管理Media集合を再確認します。確認済みの影響から対象集合が変化している場合は古い確認状態のまま削除を進めず `CONFLICT` とし、最新Impactで再確認を要求します。
+
+削除受付が成立するとCommunityを `ACTIVE` から `DELETING` へ遷移し、Membership、Invitation、共有relation、Community scope Group / Tag等をdomain transaction規則に従って削除または無効化し、Community管理MediaをMedia削除Lifecycleへ移行します。Object Storage cleanup完了をMutation成功条件にしません。Community管理MediaとCustody参照がすべて解消した後にCommunityを物理削除します。User Custody Media本体、User側分類、他Communityの共有・分類は変更しません。
 
 ## Account削除計画
 
@@ -900,10 +987,13 @@ extend type Mutation {
 | `me` | 認証済み主体 | 登録状態取得 |
 | `registerUser` | 未登録認証主体 | ACTIVE User作成 |
 | `updateUserProfile` | ACTIVE User本人 | nickname更新 |
+| `User.preferences` / `updateUserPreferences` | ACTIVE User本人 | account同期Preference取得・部分更新 |
+| `User.usage` | ACTIVE User本人 | Media件数・Storage Usage取得 |
 | `myCommunities` | ACTIVE User | 自身のMembership一覧 |
 | `community` / `Community.members` | Member / Admin | Community内部情報取得 |
 | `createCommunity` | ACTIVE User | Community + admin Membership作成 |
 | `updateCommunity` | Admin | Community名更新 |
+| `Community.mySettings` / `updateCommunitySettings` | Member / Admin本人 | User × Community Accent取得・更新 |
 | `changeCommunityMemberRole` | Admin | role変更。最後のadmin保護 |
 | `removeCommunityMember` | Admin | Membershipと関連共有・分類cleanup |
 | `leaveCommunity` | Member / Admin | 自身のMembershipと関連cleanup |
@@ -919,7 +1009,7 @@ extend type Mutation {
 | Group分類 | scope上の許可User | Media relation追加・解除、bulk部分成功 |
 | Tag管理 | Personal owner / Community role規則 | Tag変更 |
 | Tag分類 | scope上の許可User | Media relation追加・解除、bulk部分成功 |
-| `deleteCommunity` | Admin | Community domain一式削除 |
+| `deleteCommunity` | Admin | ACTIVE→DELETING、Community管理Media削除Lifecycle開始、関連情報cleanup |
 | account deletion review | ACTIVE User本人 | 破壊的変更なし、計画検証 |
 | account deletion confirm | 再認証済みACTIVE User本人 | DELETING遷移、削除snapshot固定、cleanup開始 |
 
@@ -941,6 +1031,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - Upload成功はOriginal保存とPostgreSQL commitで確定し、Variant生成完了を待ちません。
 - Processing状態はMediaから観測できます。内部Job errorやRedis状態はClient契約にしません。
 - Media削除は `DELETING` 受付を同期結果とし、Object Storage cleanup完了を待ちません。
+- Community削除は `ACTIVE → DELETING` と削除対象確定を同期結果とし、Community管理Mediaの物理cleanupとCommunityの物理削除完了を待ちません。
 - account削除はUserをDELETINGへ遷移させた時点で利用終了とし、cleanup完了をBrowserで待たせません。
 - Transactional OutboxのRedis配送成功をGraphQL Mutationの成功条件に含めません。
 
@@ -965,7 +1056,9 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 
 - 既存APIの `scalar Upload` と `scalar Int64` は既存schemaに存在するが、新しいMedia upload transportは専用HTTP endpoint、Initial ReleaseのMedia size/dimension fieldは標準 `Int` とする。既存scalarの削除はこの契約だけを根拠に行わない。
 - Group relationの表示は `MediaGroup.parents` / `children` / `media` を使用する。関連追加の候補検索は表示用Connectionと別の契約が必要であり、候補の絞り込み・DAG循環禁止をAPIで再検証する。
-- Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
+- Media一覧は `mediaList(scope:)` を共通I/Fとし、Personal / CommunityごとのWeb Operationから利用する。Dashboardも専用Queryを作らず `first: 12` で同じConnectionを利用する。1 Connection内でscopeを混在させない。Media Detailの現在scopeの分類は `Media.groups(scope:)` / `tags(scope:)` を使用する。Personalと各Communityの分類を混在させない。
+- User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte scalarは実装引き渡し前に確定する。
+- Community削除はCommunity管理Mediaの存在を `CONFLICT` 条件にせず、`ACTIVE → DELETING` とMedia削除Lifecycleを実装する。
 - `mediaOriginalDownload` とAccount deletionの `reviewToken` / `reauthenticationProof` に依存するSDLは保留中の暫定案であり、schemaの実装引き渡し対象から除外する。
 - 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
@@ -985,5 +1078,11 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 10. **Media scope固有分類取得とモデルfield（確定）**: Group詳細の関連Connectionと同様に、Media詳細の直接関連情報は `Media.groups(scope:)` / `Media.tags(scope:)` の独立したRelay Connectionとして取得する。scopeは必須とし、現在scopeでのMedia可視性を検証する。Group / Tag本体の一覧・検索・管理は独立Query、Communityの子fieldにはしない。
 11. **Upload transport（確定）**: ファイル本体は同じmemoria-api内の専用HTTP upload endpointで受信し、必要最小限のcustody情報とidempotency keyも同じrequestで受け取る。GraphQLはMediaの取得・分類・共有・削除・Processing状態取得を担当する。既存Redis Streamsによる非同期処理基盤を再利用し、HTTP endpointとGraphQLはApplication Use Caseおよび認証・認可規則を共有する。具体的なHTTP routeとrequest / response形式は詳細設計で確定する。
 12. **整数scalar（確定）**: Initial ReleaseのOriginal file size上限128 MiB、画像寸法・Variant size等の現在の上限をGraphQL標準の32-bit signed `Int` で表現する。`BigInt` / custom integer scalarは導入しない。将来2,147,483,647を超える値を公開する要件が生じた場合は、該当fieldのscalarとClient互換性を別途設計する。
+
+13. **User Preferences更新（確定）**: account同期Preferenceは `User.preferences` から取得し、`updateUserPreferences` の部分更新Inputで保存する。Themeはbrowser / device-localのためGraphQLへ含めない。
+14. **Community Accent lifecycle（確定）**: AccentはUser × Community settingとして `Community.mySettings` から取得する。Membership作成と同一transactionで初期生成し、退会・除外時に削除する。再参加時は過去値を復元せず新規生成する。
+15. **即時保存ordering（確定）**: Accent / Preferenceの連続変更はWebがrequestを直列化し、保存中の変更をcoalesceして最新意図を次requestへ送る。APIへClient sequence / versionを追加しない。
+16. **Media Update / UploadのTag保存（確定）**: 画面専用の最終Tag集合Mutationは追加せず、Tag作成とTag分類CommandをWeb Operationが編成する。各Mutationは独立transactionとし、部分失敗後はServerの成立済み状態を再取得して差分を再評価する。
+17. **Usageの意味契約（確定、scalarのみ保留）**: APIは総Media件数、Storage使用byte数、その時点のeffective limitを返す。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値のscalarは32-bit `Int` を使用せず、実行可能SDLへの引き渡し前に確定する。
 
 これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。5・6の詳細設計はIssueで追跡し、対象のSDLは詳細設計後に引き渡します。
