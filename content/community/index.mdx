@@ -9,7 +9,7 @@ Communityは、家族や友人などがMediaを共有する閉じた独立空間
 ## 目的と対象範囲
 
 - 家族や知人が静止画像を安全に共有できる閉じた空間を提供する。
-- Community、Membership、Administrator、Invitationと、将来のUser起点Join Requestを管理する。
+- Community、Membership、Membership従属のUser × Community Settings、Administrator、Invitationと、将来のUser起点Join Requestを管理する。
 - User管理Mediaの共有とCommunity管理Mediaの直接Uploadを区別する。
 - Community内のGroup・Tagによる共同整理を扱う。
 - Community同士をネストせず、参加者、Media、権限を継承しない。
@@ -20,7 +20,8 @@ Communityは、家族や友人などがMediaを共有する閉じた独立空間
 | --- | --- |
 | Community | 家族や知人がMediaを共有する閉じた独立空間 |
 | Membership | UserとCommunityの有効な参加関係 |
-| Administrator | admin roleのMembershipを持ち、参加・設定・権限を管理するUser |
+| Administrator | admin roleのMembershipを持ち、参加・管理・権限を扱うUser |
+| User × Community Settings | Membershipに従属し、各User向けContext Accent等を保持する設定 |
 | 招待URL | Administratorが発行する、Communityへの参加を開始するためのURL |
 | User起点Join Request | Invitationとは独立した将来の参加申請 |
 | Media共有 | User CustodianがCommunity参加者に閲覧を許可する操作 |
@@ -30,7 +31,7 @@ Communityは、家族や友人などがMediaを共有する閉じた独立空間
 
 - Communityごとに少なくとも1人のAdministratorを維持し、Administrator専用entityは設けない。
 - Communityは閉じた独立空間とし、別Communityへ参加者、Media、権限を継承しない。
-- Community domainはCommunity、Membership、Invitation、User起点Join Requestを所有する。
+- Community domainはCommunity、Membership、User × Community Settings、Invitation、User起点Join Requestを所有する。
 - MediaのCustody、共有関係、Media削除はMedia domainを正本とする。
 - Userの認証主体とaccount lifecycleはUser domainを正本とする。
 - Group・Tagは分類に使用し、Mediaの管理主体や閲覧権限を変更しない。
