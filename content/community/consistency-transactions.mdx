@@ -19,7 +19,8 @@ Community作成、招待、参加、Membership role、退会・除外、削除�
 | Role変更 | Membership確認、Community lock、`admin`数の再確認、role更新 |
 | 退会・除外 | 最終Administrator確認、Membership削除、User管理Mediaの共有解除、Community分類関連削除 |
 | 共有追加・解除 | Membership・Custody確認、Access追加・削除、Community分類関連削除、Event記録 |
-| Community削除 | Community lock、削除権限・対象Community管理Mediaの再確認、Communityと関連情報の削除・無効化、Community管理Mediaの削除対象確定 |
+| Community削除受付 | Community lock、`ACTIVE`・削除権限・対象Community管理Mediaの再確認、Communityを`DELETING`へ遷移、関連情報の削除・無効化、Community管理Mediaの削除対象確定 |
+| Community削除完了 | Community管理MediaとCustody参照がすべて解消済みであることを確認し、Communityを物理削除 |
 
 ## 競合制御
 
@@ -59,9 +60,9 @@ Initial Releaseでは、退会・除外に伴うMembership削除、対象Userが
 
 Initial Releaseの通常Community削除では、Community管理Mediaが存在していても削除を受け付けます。Community行をlockして削除権限と最新のCommunity管理Media集合を再確認し、確認済みの削除意図に対する対象を確定します。
 
-DB上ではCommunity、Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationを整合した状態で削除または無効化し、Community管理Mediaを削除Lifecycleへ移行させます。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。
+削除受付TransactionでCommunityを`ACTIVE`から`DELETING`へ遷移し、Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationを整合した状態で削除または無効化し、Community管理Mediaを削除Lifecycleへ移行させます。`DELETING` Communityは通常の閲覧・参加・更新・Upload対象にせず、復元して`ACTIVE`へ戻しません。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。
 
-Community管理MediaのObject Storage上のOriginal・Variant等の外部I/OはCommunity削除のDB transactionへ含めません。Media domainの削除Lifecycleとdurable cleanup Jobへ委ね、削除受付後に物理cleanupが未完了でも削除済みCommunityを利用可能状態へ戻しません。cleanup失敗時はMedia domainの再試行・運用再開に従います。
+Community管理MediaのObject Storage上のOriginal・Variant等の外部I/OはCommunity削除受付のDB transactionへ含めません。Media domainの削除Lifecycleとdurable cleanup Jobへ委ねます。`media_custodies.community_id`の`ON DELETE RESTRICT`を安全装置として維持し、Community管理MediaとCustody参照が残る間はCommunity recordを物理削除しません。すべての対象Mediaが物理削除され参照が解消した後、削除完了Transactionで`DELETING` Communityを物理削除します。cleanup失敗時はCommunityを`DELETING`のまま保持し、Media domainの再試行・運用再開に従います。
 
 Account削除時にCommunity削除を選択する場合も同じCommunity / Media cleanup原則を使用しますが、User account削除を含む全体Flowの確認・再認証はAccount Deletion Flowの責務として分離します。
 
