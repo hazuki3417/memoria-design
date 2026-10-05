@@ -63,7 +63,7 @@ Community削除を選択していない場合、この段階はskipします。
 
 ### 4. 最終Review
 
-必要なCommunity上の判断と確認をすべて完了した後、削除計画全体をReviewします。User account、User管理Media、削除するCommunity、Administratorを引き継いで保持するCommunity等、account削除によって実行される主要な変更をまとめて確認します。
+必要なCommunity上の判断と確認をすべて完了した後、削除計画全体をReviewします。この時点でServerは検証済み計画をAccount Deletion Reviewとして発行し、後続の再認証と最終確定は同じReviewを対象にします。User account、User管理Media、削除するCommunity、Administratorを引き継いで保持するCommunity等、account削除によって実行される主要な変更をまとめて確認します。
 
 Userが削除計画を変更する場合は前段階へ戻り、最新の選択結果に基づいてReviewを再構成します。
 
@@ -71,7 +71,7 @@ Userが削除計画を変更する場合は前段階へ戻り、最新の選択�
 
 最終Reviewの内容を確認してaccount削除を継続する場合、Auth0で再認証します。再認証の失敗、取消し、期限切れ時は削除を開始しません。
 
-再認証を強制する具体的なAuth0方式と再認証結果の有効期限はAuthentication / Security設計で定義し、このFlowでは規定しません。
+強制再認証はAuthentication / Security設計を正本とし、Account deletion専用Auth0 Authorization requestで `prompt=login` + `max_age=0` を使用します。成立結果は対象Deletion ReviewへServer-sideでbindingし、10分・単回使用とします。
 
 ### 6. 最終確定
 
