@@ -10,7 +10,7 @@ ACTIVE Userが、Application利用中のcontextから新しいCommunityを作成
 
 UserがApplication内から、Community名だけを指定して新しいCommunityを作成できるようにします。
 
-Community作成はApplication利用開始に必須となるFlowではなく、Application利用中に任意で開始できる操作として扱います。作成中の具体的なpresentationや画面遷移方式は本仕様では固定しません。
+Community作成はApplication利用開始に必須となるFlowではなく、Application利用中に任意で開始できる操作として扱います。Initial Releaseでは入力と判断がCommunity名だけに限定され、現在contextを維持する価値が高いため、[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。
 
 ## 関連Use Case
 
@@ -18,8 +18,9 @@ Community作成はApplication利用開始に必須となるFlowではなく、Ap
 
 ## 表示情報
 
-- 新しいCommunityを作成する操作であることを提示します。
-- Community名の入力を提示します。
+- Dialog title等で新しいCommunityを作成する操作であることを提示します。
+- Community名の入力を1 fieldだけ提示します。
+- Primary ActionはCommunityを作成すること、Secondary ActionはCancelであることを明確にします。
 - Initial Releaseでは、作成時に説明、Community画像、公開Profile等の任意情報を要求しません。
 
 ## 操作
@@ -52,7 +53,7 @@ Community名が必須条件を満たさない場合は、[Feedback Pattern](/des
 
 Community作成が完了した場合は、作成したCommunityの標準entryへ進みます。
 
-Communityの標準entryはMediaです。Application Navigationの構造は[Application Information Architecture](/system/application-information-architecture)に従います。
+Communityの標準entryはDashboard（`/communities/[communityId]/dashboard`）です。Application Navigationの構造は[Application Information Architecture](/system/application-information-architecture)に従います。
 
 ### 作成失敗
 
@@ -62,11 +63,11 @@ User状態の変化等によりCommunity作成を継続できない場合はBloc
 
 ## Navigation
 
-Community作成は、ACTIVE Userが通常のApplication利用中に開始できるようにします。
+Community作成は、ACTIVE Userが通常のApplication利用中にContext Switcherから開始し、現在context上にCreation Dialogとして提示します。
 
 Application Navigationは[Application Information Architecture](/system/application-information-architecture)に従い、Context SwitcherからCommunity作成を開始できるようにします。Header、Sidebar等の具体的なpresentationは固定しません。
 
-作成成功後は作成したCommunityの標準entryへ進みます。Cancelでは作成開始前のApplication contextを維持します。
+作成成功後はDialogを閉じ、作成したCommunityを現在contextとしてCommunity Dashboard（`/communities/[communityId]/dashboard`）へ進みます。CancelではDialogを閉じ、作成開始前のApplication contextと表示状態を維持します。
 
 ## 制約
 
@@ -79,9 +80,10 @@ Application Navigationは[Application Information Architecture](/system/applicat
 - 作成したUserを最初のMembershipおよびAdministratorとしてCommunity作成と同じTransactionで登録します。
 - 作成者専用の恒久的な権限は設けません。
 - validationと作成結果の提示には[Feedback Pattern](/design-system/patterns/feedback)を適用します。
+- Initial ReleaseではCreation Dialogを使用し、Community名以外の設定を作成時に追加しません。将来入力や判断が増えてDialogで明瞭に完了できなくなった場合は専用Flowを再検討します。
 
 ## Responsive対応
 
 表示領域や入力方式が変わっても、Community名を入力してCommunityを作成するCapabilityは維持します。
 
-現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なpresentation、layout、size、placementは後続のUI具体化で決定します。
+Compact / Medium / Wideのいずれでも同じCommunity名入力、Create、Cancelを提供します。Dialogの具体的なwidth、field / Actionの配置等はUI具体化とVisual Reviewで決定します。
