@@ -14,9 +14,9 @@
 | --- | --- | --- |
 | Final DDL | 論理relation、共通型、主要constraint方針 | 全column、constraint name、未指定FK action、index、migration SQL |
 | Tag normalization | `name`と`normalized_name`を分離しscope内uniquenessを保証 | Unicode normalization、case folding、空白処理、locale policy |
-| Processing publication | old currentを提供しながらnew artifactをstaged生成しall-or-nothing publish | current/stagedの物理表現、lock/conditional update SQL |
-| Outbox schema | PostgreSQLがtruth、PublisherがRedis Streamsへdelivery | event version、payload envelope、serialization、retention |
-| Idempotency persistence | actor + operation + keyを一意化しrequest hashを検証 | retention、response snapshot、cleanup interval、payload size limit |
+| Processing publication | `image_variants`の既存published集合を維持したまま別storage keyへ生成し、Media lock下の短いTransactionで全Variantを一括更新 | final SQL / Repository実装 |
+| Outbox schema | `event_type + event_version`、versioned envelope、PUBLISHED 7日保持、PostgreSQL truth、Redis Streams delivery | payloadのevent種別ごとの具体schema / serialization実装 |
+| Idempotency persistence | actor + operation + keyを一意化しrequest hashを検証、保証期間24時間、responseは最小識別情報 | cleanup interval、operation別response snapshot、payload size limit |
 | Upload quota reservation | concurrent uploadの超過をreservationで防止 | reservation tableのfinal column、expiry、cleanup query、lock SQL |
 | Migration compatibility | gooseによるversioned SQL migrationをschema変更履歴の正本とし、`schema.sql`は生成snapshotとする | 変更ごとのrollout/rollback SQL、必要な場合のexpand/migrate/contract手順 |
 | HA-aware DB client | PostgreSQL HAをproduction baselineとする | failover endpoint確定後のconnection / retry / migration execution detail |
