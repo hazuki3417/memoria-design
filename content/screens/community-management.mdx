@@ -40,7 +40,7 @@ Community説明、画像等の未提供Capabilityを、空の設定項目とし�
 - 有効期限
 - 無効化済みまたは期限切れ等、現在利用できない状態
 
-有効なInvitationがある場合は、URLを確認して共有すること、無効化すること、再発行することへ同じsectionから到達できるようにします。URLの共有ActionはUserが長いURLを手動選択することを必須にせず、copy等の明示的な共有補助Actionを提供できる構成とします。具体的なbrowser APIやComponentは固定しません。
+有効なInvitationがある場合は、URLを確認して共有すること、無効化すること、再発行することへ同じsectionから到達できるようにします。Initial Releaseの共有補助Actionは「Invitation URLをコピー」に限定し、Userが長いURLを手動選択することを必須にしません。コピー成功後はOperation Feedbackを提示します。Web Share API等を利用したOS共有UIはInitial Releaseでは提供しません。
 
 Invitation tokenそのものを必要以上の場所へ露出させず、log、外部解析、第三者Serviceへ送信しません。
 
