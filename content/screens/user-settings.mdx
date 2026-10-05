@@ -11,7 +11,7 @@ Application ShellのAccount Menuから到達し、既存のApplication Informati
 Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
-- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。
+- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Browserのサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
 - **Usage**: User本人の利用状況に関する情報を確認する。Initial ReleaseではStorage Usageと総Media件数を提供する。Upload制約一覧はUsageへ常設せず、User input制約のSystem方針に従って各Capabilityの操作contextで必要に応じて提示する。
 - **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
@@ -23,7 +23,7 @@ Settings内NavigationのHeader / Sidebar / Tabs / Drawer等の具体presentation
 
 ### Appearance
 
-Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。
+Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Browserのサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。Language / LocaleとTimezoneはApplicationとして扱える境界を持ちますが、Initial ReleaseではUserが変更する設定項目として表示しません。
 
 #### Theme
 
@@ -72,11 +72,25 @@ browser storageの具体方式、SSR / hydration時のTheme適用順序、flash�
 
 初期値は **YYYY/MM/DD** とします。
 
-このPreferenceは日付部分の表示順とseparatorだけを対象とします。timezoneの選択・変換とは分離し、Initial Releaseでは時刻部分を24時間表記として扱います。12 / 24時間表記の切り替えは日付形式Preferenceへ含めません。
+このPreferenceは日付部分の表示順とseparatorだけを対象とします。Timezoneの選択・変換とは分離し、Initial Releaseでは時刻部分を24時間表記として扱います。12 / 24時間表記の切り替えは日付形式Preferenceへ含めません。
 
 日付形式の変更は他のPreferenceと同様に選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
 
 Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的なAPI / data model contractはBackend設計時に確定します。
+
+### Language / Locale
+
+Applicationは将来の多言語対応を妨げないようLanguage / Localeを独立したPreferenceとして扱える境界を持ちます。ただしInitial Releaseで提供する言語は **日本語のみ** とし、SettingsにはLanguage選択controlを表示しません。選択肢が1つしかない状態で意味のない設定操作をUserへ要求しないためです。
+
+Language / Localeは日付形式、Timezone、ファイルサイズ単位等のPreferenceと同一視しません。将来複数言語を正式に提供するときに、Language選択UI、初期値、fallback、永続化scopeをその時点のProduct requirementに基づいて設計します。
+
+### Timezone
+
+ApplicationはUser-facingな日時をTimezoneへ変換して表示できる境界を持ちます。ただしInitial ReleaseではSettingsにTimezone選択controlを表示せず、実効Timezoneを **Asia/Tokyo** とします。
+
+User-facingな日時表示には原則としてAsia/Tokyoを一貫して適用し、Timezone変換後の日付部分へ日付形式Preferenceを適用します。時刻部分はInitial Releaseでは24時間表記とします。Timezoneはpresentation上の日時解釈を決めるものであり、Domain / APIが保持する日時データそのものを書き換えません。
+
+将来Timezone選択を提供する場合は、System / 明示指定Timezone等の選択方法とaccount同期を含むPreferenceとして改めて有効化します。具体的なAPI / data model contractはBackend設計時に確定します。
 
 ### ファイルサイズ単位
 
@@ -96,6 +110,24 @@ Initial Releaseでは次の2つの単位体系から選択します。
 変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
 
 具体的なAPI / data model contractはBackend設計時に確定します。
+
+### Media Browserのサムネイルサイズ
+
+Media Browserで表示するサムネイルサイズはUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。
+
+Initial Releaseでは **小 / 中 / 大** の3段階を提供し、初期値は **中** とします。
+
+| Preference | 意図 |
+| --- | --- |
+| 小 | 一覧性を優先し、一度により多くのMediaを確認しやすくする |
+| 中 | 一覧性と個々のMediaの確認しやすさを両立する |
+| 大 | 個々のMediaのvisual contentをより確認しやすくする |
+
+このPreferenceは固定pixel値や固定grid列数をUser preferenceとして定義するものではありません。Responsive viewport classificationとは独立して扱い、各viewportで適切な実寸・列数へ適応しながら、同一viewport内では小 < 中 < 大の相対的なサムネイルサイズ関係を維持します。
+
+具体的なthumbnail寸法、spacing、grid layoutはUI具体化とVisual Reviewで決定します。Preferenceとしてraw pixel値を保存・公開しません。
+
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。具体的なAPI / data model contractはBackend設計時に確定します。
 
 ### Media Detailの前後Navigation循環
 
