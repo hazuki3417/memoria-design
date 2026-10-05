@@ -14,6 +14,8 @@ AdministratorがCommunity自体に対する管理操作を一か所から理解�
 
 日常的なMedia利用や参加者管理とは分離し、Administratorだけが必要とするCommunity設定をまとめます。
 
+Initial Releaseでは1つのManagement画面を **General / Invitation / Danger Zone** の3 sectionで構成します。設定項目ごとに別Pageへ分割せず、Community自体の管理対象を一か所で把握できることを優先します。ただし不可逆なCommunity削除の最終確認は専用Flowへ分離します。
+
 ## 関連Use Case
 
 - [Communityユースケース - Communityを作成・変更する](/community/use-cases#communityを作成変更する)
@@ -25,7 +27,9 @@ AdministratorがCommunity自体に対する管理操作を一か所から理解�
 
 ### General
 
-現在のCommunity名を表示し、Administratorが変更できるようにします。
+Community自体の基本情報を扱うsectionです。Initial Releaseでは現在のCommunity名だけを表示し、Administratorが変更できるようにします。
+
+Community説明、画像等の未提供Capabilityを、空の設定項目として先行表示しません。
 
 ### Invitation
 
@@ -36,11 +40,15 @@ AdministratorがCommunity自体に対する管理操作を一か所から理解�
 - 有効期限
 - 無効化済みまたは期限切れ等、現在利用できない状態
 
+有効なInvitationがある場合は、URLを確認して共有すること、無効化すること、再発行することへ同じsectionから到達できるようにします。URLの共有ActionはUserが長いURLを手動選択することを必須にせず、copy等の明示的な共有補助Actionを提供できる構成とします。具体的なbrowser APIやComponentは固定しません。
+
 Invitation tokenそのものを必要以上の場所へ露出させず、log、外部解析、第三者Serviceへ送信しません。
 
-### Delete Community
+### Danger Zone
 
-Community削除が不可逆な管理操作であることを示し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。
+通常設定やInvitation操作と、不可逆なCommunity削除を視覚的・意味的に区別するsectionです。
+
+Community削除が不可逆な管理操作であることを短く説明し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。Management上では削除影響の全内容やCommunity名確認入力を重複して提示せず、最終判断は削除確認Flowへ委ねます。
 
 ## 操作
 
@@ -58,19 +66,19 @@ nameは必須で、前後の空白を除去して空文字・空白だけの値�
 
 現在利用可能なInvitationが存在しない場合、Administratorは新しいInvitationを発行できます。
 
-Invitationは発行時刻から7日間有効で、有効期間中は複数Userが利用できます。
+Invitationは発行時刻から7日間有効で、有効期間中は複数Userが利用できます。発行成功後は同じInvitation sectionを有効状態へ更新し、URL、有効期限、利用可能なActionをその場で確認できるようにします。
 
 ### Invitationを無効化する
 
 Administratorは現在のInvitationを無効化できます。
 
-無効化後、そのURLによる新しいInvitation acceptは成立しません。
+無効化後、そのURLによる新しいInvitation acceptは成立しません。旧URLが利用できなくなる操作であることを実行前に理解できるようにし、無効化後はInvitationなし / 利用不可状態として新規発行Actionを提供します。
 
 ### Invitationを再発行する
 
 AdministratorはInvitationを再発行できます。
 
-再発行では既存Invitationを無効化し、新しいInvitationを同じ操作として成立させます。旧URLは利用できなくなるため、実行前にその影響を理解できるようにします。
+再発行では既存Invitationを無効化し、新しいInvitationを同じ操作として成立させます。旧URLは利用できなくなるため、実行前にその影響を理解できるConfirmationを要求します。成立後は新しいURLと有効期限へ表示を置き換え、旧URLを現在利用可能なURLとして残しません。
 
 ### Community削除へ進む
 
@@ -82,7 +90,7 @@ Management画面上の単純な確認だけでCommunity削除を確定しませ�
 
 ### 通常
 
-現在のCommunity名、Invitation状態、Community削除への入口を確認できます。
+General / Invitation / Danger Zoneの順に、現在のCommunity名、Invitation状態、Community削除への入口を確認できます。破壊的操作を日常的な設定Actionと同じ優先度で強調しません。
 
 ### Invitationなし / 利用不可
 
@@ -131,4 +139,6 @@ Context全体のNavigation責務は[Application Information Architecture](/syste
 
 表示領域や入力方式が変わっても、Community名変更、Invitation状態確認・管理、Community削除Flowへの到達というCapabilityを維持します。
 
-sectionの具体的なlayoutやAction配置は固定せず、異なる管理対象と破壊的操作の境界を理解できることを優先します。重要なActionをhoverだけに依存させません。
+Compact / Medium / WideのすべてでGeneral / Invitation / Danger Zoneの意味的な順序とCapabilityを維持します。Wideで横方向の余白が増えても、3 sectionを別々の意味を持つcolumnへ機械的に分散させることは要求しません。Compactではfield、状態情報、Actionを必要に応じて縦方向へ積み、URLや日時の可読性と操作可能性を優先します。
+
+具体的なwidth、spacing、Action配置はUI具体化とVisual Reviewで決定します。重要なActionをhoverだけに依存させません。
