@@ -22,7 +22,7 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 
 ## 共通の状態・権限
 
-- 最近のMediaは、各ContextのMedia Browserと整合する新しい順の安定した並びを基本とします。Personal・Communityの双方で最大12件を取得・表示します。12件未満なら存在する件数だけを表示し、12件を超える場合は各ContextのMedia一覧へ案内します。ThumbnailはMediaの存在と最近の内容を視覚的に把握するためのread-only previewとし、thumbnail画像だけを表示します。filename、作成日時、Uploader、Custody等の補助情報はDashboardの最近のMediaには表示しません。Media単位の選択、Detail表示、hover Action、Context Menu等のInteractionを持たせません。Media全体を閲覧するNavigationは「すべて見る」等のセクション単位のActionとして提供します。Thumbnailの配置、更新タイミング、セクションActionの具体presentationはUI具体化時に決定します。
+- 最近のMediaは、各ContextのMedia Browserと整合する新しい順の安定した並びを基本とします。Personal・Communityの双方で最大12件を取得・表示します。12件未満なら存在する件数だけを表示し、12件を超える場合は各ContextのMedia一覧へ案内します。ThumbnailはMediaの存在と最近の内容を視覚的に把握するためのread-only previewとし、thumbnail画像だけを表示します。filename、作成日時、Uploader、Custody等の補助情報はDashboardの最近のMediaには表示しません。Media単位の選択、Detail表示、hover Action、Context Menu等のInteractionを持たせません。Media全体を閲覧するNavigationは「最近のメディア」セクション全体に対する「すべて見る」Actionとして提供し、PersonalではPersonal Media、Communityでは現在CommunityのCommunity Mediaへ移動します。Wide / Mediumではセクション見出しの右側を基本とし、Compactでは利用可能幅に応じてセクション末尾等へ配置を変更できます。配置が変わってもMedia単位のActionとして扱わず、意味・label・destinationを維持します。Thumbnailの配置と更新タイミングはUI具体化時に決定します。
 - LoadingとMediaが0件のEmptyを区別します。取得失敗では空一覧として扱わず、既存の共通エラー表示方針に従います。
 - Contextごとに閲覧権限を再評価します。Membership喪失時は当該Communityの保護データを継続表示せず、詳細な原因を示さない共通エラー表示へ移ります。
 - Dashboardは独自の閲覧権限を導入せず、Media・Groups・Tag操作・Members等の既存権限を尊重します。
@@ -37,7 +37,6 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 ## 後続の詳細設計
 
 - Thumbnailの具体的な配置・寸法。
-- Media Browserへのセクション単位Navigationの具体presentation。
 - 必要なGraphQL Operationと既存Media Browserとの取得契約の整合。
 
 関連: [Application Information Architecture](/system/application-information-architecture)、[Personal Media](/screens/personal-media)、[Media Browser / Detail](/screens/media-browser-detail)、[Frontend UI Development](/system/frontend-ui-development)。
