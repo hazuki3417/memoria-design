@@ -29,7 +29,7 @@ Initial Releaseではprofile画像、email address、Auth0 identifier等を参�
 
 現在User自身を参加者一覧で識別できるようにします。具体的なvisual treatmentは固定しません。
 
-参加者は名前で検索できます。既定の並び順は名前順とし、参加日時・参加順を表示または既定sortへ使用しません。参加順からCommunity内の上下関係や序列を想起させるpresentationを避けます。Initial Releaseでは名前・役割以外の列を追加しません。
+参加者は名前で検索できます。既定の並び順は名前順とします。名前・役割のcolumn labelを操作することで、そのcolumnをsort keyとして並び順を変更できます。sortは常に単一のcolumnだけをkeyとし、複数columnの値を組み合わせた複合sortは提供しません。別のcolumnを選択した場合は、それまでのsort keyを置き換えます。参加日時・参加順を表示またはsortへ使用しません。参加順からCommunity内の上下関係や序列を想起させるpresentationを避けます。Initial Releaseでは名前・役割以外の列を追加しません。
 
 ## 操作
 
@@ -69,7 +69,7 @@ Memberおよび最後のAdministratorではないAdministratorは、自分自身
 
 ### 参加者一覧
 
-現在の参加者とAdministrator roleをTableで確認できます。既定では名前順に表示します。
+現在の参加者とAdministrator roleをTableで確認できます。既定では名前順に表示します。名前・役割のcolumn labelから単一columnのsortを変更できます。
 
 名前による検索では、現在の参加者集合から名前に一致する参加者を絞り込みます。検索結果が0件の場合は読み込み失敗と区別して、該当する参加者がいないことを示します。
 
@@ -122,7 +122,8 @@ Context Switcher、Context Navigation、Account Menuとの関係は[Application 
 - Administratorへ変更できるのは現在Communityに参加済みのMemberです。
 - 参加者一覧はTable形式とし、User情報の表示列は名前（現在のnickname）と役割（Administrator / Member）に限定します。
 - 名前による検索を提供し、既定の並び順は名前順とします。
-- 参加日時・参加順は表示せず、既定sortにも使用しません。
+- 名前・役割のcolumn labelからsort keyを選択でき、sortは常に単一columnだけを使用します。複合sortは提供しません。
+- 参加日時・参加順は表示せず、sortにも使用しません。
 - 退会・除外時のcleanupと競合制御は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 - Communityのroleと操作権限は[Community権限](/community/authorization)を正本とします。
 - 除外されたUserの将来の再参加を恒久的に禁止しません。有効なInvitationがあればdomain ruleに従って再参加できます。
