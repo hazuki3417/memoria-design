@@ -6,7 +6,7 @@
 
 Media Browserで1件または複数のMediaを明示選択して開始し、Media Uploadと共通する編集Interactionを利用します。ただし、登録済みMediaのOriginal fileを置き換える機能ではないため、file選択、drag and drop、Upload、Upload進捗、Upload retry、画像Processing状態等のfile登録に固有な要素は提供しません。
 
-Initial ReleaseではTag編集を対象とします。Group分類は別途Interactionを設計するため、本Screenの対象外です。
+Initial ReleaseではTag編集を対象とします。Group分類は本Screenの対象外です。Media UpdateはMedia自身の編集に責務を限定し、Media ↔ Group relationの操作はMedia Browser / Media Detailへ集約します。
 
 ## 目的
 
@@ -44,7 +44,7 @@ Initial Releaseで編集する情報は現在scopeのTag relationです。
 
 Original file、Uploader、Upload日時、Custodian、共有先、Processing状態は本Screenで変更しません。
 
-Groupへの追加・除外は本Screenの対象外です。Media単体・複数Mediaに対するGroup操作は別途設計します。
+Groupへの追加・除外は本Screenの対象外です。複数MediaへのGroup追加はMedia Browser、1 Mediaの現在のdirect Group所属の確認・修正はMedia Detailを使用します。
 
 ## Media Uploadとの関係
 
@@ -188,4 +188,4 @@ Upload用のdrop zone、file picker、file validation、Upload progress、Proces
 
 次はVisual PrototypeでMedia Uploadとの共通Component境界、複数Media編集時の共通Tag操作と個別Tag操作のpresentation、部分失敗時の表示を検証します。
 
-Group操作は本Screen仕様とは分離して別途検討します。
+Group操作は本Screenへ追加せず、Media Browser / Media DetailのGroup分類Interactionを正本とします。
