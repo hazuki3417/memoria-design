@@ -139,6 +139,16 @@ Storage上限をどのProduct概念・契約・Plan等から決定するかは�
 
 Storage Usageの具体的な取得API / data model contractはBackend設計時に確定します。
 
+### Media Usage
+
+Initial Releaseでは、User本人の利用規模を把握できる指標として総Media件数を表示します。Storage使用量とは別の利用状況指標として扱います。
+
+JPEG / PNG等のfile format別の件数・容量内訳はInitial Releaseでは表示しません。現在のProductではformat別内訳から直接つながる整理・変換・削除等のUser Actionを定義しておらず、利用状況の把握に必要な情報を超えて複雑性を増やすためです。
+
+将来、Storage消費要因の分析等のProduct needが確認された場合は、Media type別、file format別等の分析軸をその時点のMedia Capabilityに合わせて再設計します。Media typeとfile formatを同一概念として扱いません。
+
+総Media件数の具体的な取得API / data model contractはBackend設計時に確定します。
+
 ## Accessibility / Design System
 
 Light / Darkの双方でDesign Systemのsemantic color roleを維持し、個別ScreenがThemeごとの固定色をProduct meaningとして直接持たないことを基本とします。
