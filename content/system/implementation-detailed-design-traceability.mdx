@@ -177,3 +177,10 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - 旧仕様との競合が解消され、Community / Media / Async / Frontend / Infrastructureで同じsemanticsを参照している。
 - 資料にもGitHub正本にもない具体値が、推測で埋められずIssueへ分離されている。
 - 各Workstreamの次の詳細設計先がIssue対応表から追跡できる。
+
+### User Preferences / Context Accent / Account deletion reauthentication
+
+- account同期Preferenceは `identity.user_preferences`、User × Community AccentはMembership従属の `community.community_user_settings` を設計正本とする。実装時は既存initial migrationを書き換えずversioned migrationで追加する。
+- Community初期AccentはHSL（H 0–360、S 55–75%、L 40–60%）から生成し、現在所属Communityとの完全一致だけを回避する。最大10回retry後はdeterministic Hue fallbackを使用する。
+- Account deletion再認証はBFFのAuth0 `prompt=login` + `max_age=0`、APIのReview-bound Server-side binding（10分・単回使用）を実装契約とする。
+- Browser向けGraphQLへAuth0再認証proofを公開しない。binding storeの具体的なtable/cache選択はAPI実装詳細として決定する。
