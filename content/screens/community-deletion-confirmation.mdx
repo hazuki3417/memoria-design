@@ -33,7 +33,7 @@ Account削除Flowに伴うCommunity削除特例とは異なり、Community管理
 - 共有されていたUser管理Media本体、User側分類、他Communityへの共有は削除されないこと
 - Community管理Mediaが残っている場合は通常削除できないこと
 
-Community管理Mediaが存在する場合、削除できない理由と、通常削除の前に対象Mediaを解消する必要があることを理解できるようにします。
+Community管理Mediaが存在する場合、削除できない理由と、通常削除の前に対象Mediaを解消する必要があることを理解できるようにします。対象を探すため、現在CommunityのMediaへ移動できる導線を提供します。削除確認画面自体にMedia削除機能を持ち込まず、Mediaの閲覧・削除Capabilityを正本とする画面で解消します。
 
 ## 操作
 
@@ -69,6 +69,8 @@ Community管理Mediaが1件以上存在する場合、通常のCommunity削除�
 
 Initial ReleaseではCustodian委譲がないため、通常削除を行うには対象Community管理Mediaをすべて削除する必要があります。
 
+blocking状態ではCommunity名確認入力や最終削除Actionを主Taskとして進めさせず、Community Mediaへ移動してblocking conditionを解消するActionを提示します。Mediaから戻った場合は削除条件を最新状態で再取得します。
+
 ### 確認入力不一致
 
 入力したCommunity名が現在名称と一致しない場合は削除を実行できません。修正箇所との関係が分かるField Errorとして扱います。
@@ -99,7 +101,7 @@ Community ManagementからCommunity削除確認を開始します。
 
 Cancel時は対象CommunityのManagementへ戻ります。
 
-削除成功後は削除済みCommunityへ戻らず、利用可能なApplication destinationへ移動します。
+削除成功後は削除済みCommunityへ戻らず、Personal Dashboard（`/dashboard`）へ移動します。Community削除は現在context自体を消失させるため、別Communityを暗黙に選択したり直前contextを推測して復元したりしません。
 
 Account削除FlowからCommunity削除が必要な場合は、通常Community削除確認と同じUI構成をそのまま再利用することを前提としません。Account削除特例はCommunity管理Media削除や再認証を含むため、[Account Deletion Flow](/screens/account-deletion-flow)の責務として扱います。
 
