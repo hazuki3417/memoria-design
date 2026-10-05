@@ -23,7 +23,11 @@ Settings内NavigationのHeader / Sidebar / Tabs / Drawer等の具体presentation
 
 ### Appearance
 
-Initial ReleaseではApplicationのTheme preferenceとして次の3状態を提供します。
+Initial ReleaseではAppearanceと日付形式をPreferencesとして提供します。
+
+#### Theme
+
+ApplicationのTheme preferenceとして次の3状態を提供します.
 
 | Preference | Behavior |
 | --- | --- |
@@ -55,6 +59,24 @@ Initial ReleaseのAppearance preferenceは **browser / device-local preference**
 local preferenceを読み取れない、未保存、または保存値を解釈できない場合はSystemとして扱います。
 
 browser storageの具体方式、SSR / hydration時のTheme適用順序、flash防止等はFrontend implementation contractで決定します。ただし初期表示で不要なTheme切り替わりを可能な範囲で避けることを実装上の品質要件とします。
+
+### 日付形式
+
+日付形式はUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。任意のformat stringは入力させず、Initial Releaseでは次の3パターンから選択します。
+
+| Preference | 表示例 |
+| --- | --- |
+| YYYY/MM/DD | 2026/10/05 |
+| MM/DD/YYYY | 10/05/2026 |
+| DD/MM/YYYY | 05/10/2026 |
+
+初期値は **YYYY/MM/DD** とします。
+
+このPreferenceは日付部分の表示順とseparatorだけを対象とします。timezoneの選択・変換とは分離し、Initial Releaseでは時刻部分を24時間表記として扱います。12 / 24時間表記の切り替えは日付形式Preferenceへ含めません。
+
+日付形式の変更は他のPreferenceと同様に選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
+
+Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的なAPI / data model contractはBackend設計時に確定します。
 
 ## Accessibility / Design System
 
