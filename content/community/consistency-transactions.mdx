@@ -84,7 +84,7 @@ Community domainはMembership、role、Invitation、User起点Join RequestとCom
 | 未認証UserによるCommunity操作 | 認証が必要 |
 | Community外Userによる詳細取得 | 情報を公開しない |
 | 招待tokenが無効・期限切れ | Invitation acceptを拒否 |
-| 参加済みUserによるInvitation accept | 重複参加として拒否またはretry結果として既存Membershipを返す契約をIdempotency設計で確定 |
+| 参加済みUserによるInvitation accept | Membershipを重複作成せず、既存Membershipを参加済みの成功結果として扱う |
 | User起点Join Requestの重複（将来） | 既存PENDING申請を維持し重複登録しない |
 | 最後のAdministratorの退会・降格・除外 | 拒否 |
 | Community管理Mediaが残るCommunity削除 | 拒否 |
