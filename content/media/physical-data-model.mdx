@@ -362,7 +362,7 @@ Storage Workerは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now
 - Media削除は`DELETING`を経由し、Object Storageの原本・派生物を冪等に削除した後、Group関連、Access、Custody、subtype、Media本体を物理削除します。
 - `media_events`はMedia本体の物理削除後も必要期間の操作traceを保持できるよう、`media_id`へFKを設定しません。
 - User削除時、UploaderやEvent actorの履歴参照は`ON DELETE SET NULL`で匿名化し、User CustodyのMediaはUser削除前のcleanupで解消します。
-- Community管理Mediaが残るCommunityの通常削除はCommunity domain側で拒否し、Media cleanupをCommunity FKのcascadeだけで代替しません。
+- Community削除受付時はCommunityを`DELETING`として保持したままCommunity管理MediaをMedia削除Lifecycleへ移行します。`media_custodies.community_id`の`ON DELETE RESTRICT`を維持し、Custody参照がすべて解消するまでCommunityの物理削除を禁止します。Media cleanupをCommunity FKのcascadeだけで代替しません。
 - Group関連やCommunity Accessの削除によってMedia本体を削除しません。
 
 ## 他domainとの境界
