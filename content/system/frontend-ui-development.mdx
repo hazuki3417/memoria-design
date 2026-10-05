@@ -237,6 +237,14 @@ Memoriaの共通UI ComponentとしてComponent化したものは、原則とし�
 
 画面固有のCompositionや内部実装上の小さなComponentまで機械的に個別Storyを要求するものではありません。Design Systemまたは複数画面から利用する共通UI Componentとして昇格させる場合に、このStorybook要件を適用します。
 
+### React Collection keyと静的検査
+
+ReactでCollectionや固定slotを描画する場合、配列のindexを `key` に使用しません。Domain entityはID等の永続的な識別子を使用し、固定位置のpreview cellやplaceholder等でDomain IDを持たない場合も、`top-left` / `bottom-right` のようにslotの意味に対応するstable keyを明示します。現在の順序やloop indexからkeyを生成してlintを回避する実装は行いません。
+
+このルールは並び替え可能な一覧だけでなく、現時点では順序が固定されているVisual PrototypeやStorybook sampleにも適用します。React Componentを追加・変更した時点で `key={index}` 等を残さず、Biomeの `lint/suspicious/noArrayIndexKey` を通常の実装完了前検査として扱います。
+
+Frontend sourceを変更した場合は、Human Visual Reviewや完了報告の前にrepository標準のcheckを実行し、auto-fix後にもerrorが残っていないことを確認します。特に `npm run check -- --write --unsafe` 相当のCI commandが適用される変更では、formatterによる書き換え成功だけでなくcommand全体のexit successを確認します。実行環境がなく検査できない場合は、未検証であることを明示し、CI結果を確認するまで完了扱いにしません。
+
 ### Human Visual Review前の実行可能性Gate
 
 Visual Prototypeを含むUI変更をHuman Visual Reviewへ渡す場合、確認者が実行時errorやsource破損の調査を行わず、意図したUI/UXの確認から開始できる状態をReview開始条件とします。
