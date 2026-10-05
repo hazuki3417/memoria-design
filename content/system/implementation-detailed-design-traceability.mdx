@@ -103,9 +103,9 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - source designで未指定のFK action / constraint name
 - access patternから一意に確定できないcomposite index column order
 - `normalized_name`のUnicode normalization / case folding / whitespace normalization
-- idempotency retention、cleanup interval、response snapshot representation
-- Outbox event versioning / serialization / payload schema
-- Processing Job / Image Variantのcurrent-vs-staged publication schemaとlock SQL
+- idempotency保証期間は24時間で確定。残るcleanup interval、operation別response snapshot representation
+- Outboxは`event_type + event_version`、version 1開始、PUBLISHED 7日保持で確定。残るevent種別ごとのpayload schema / serialization
+- Image Variant publicationは別storage keyへのstaged生成後、Media lock下で`image_variants`を一括更新する方針で確定。残るfinal SQL / Repository実装
 - migration rollout / rollback SQL
 - PostgreSQL HA manager / failover endpoint依存のconnection / migration behavior
 
