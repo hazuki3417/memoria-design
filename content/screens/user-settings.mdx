@@ -11,7 +11,7 @@ Application ShellのAccount Menuから到達し、既存のApplication Informati
 Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
-- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Browserのサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
+- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
 - **Usage**: User本人の利用状況に関する情報を確認する。Initial ReleaseではStorage Usageと総Media件数を提供する。Upload制約一覧はUsageへ常設せず、User input制約のSystem方針に従って各Capabilityの操作contextで必要に応じて提示する。
 - **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
@@ -23,7 +23,7 @@ Settings内NavigationのHeader / Sidebar / Tabs / Drawer等の具体presentation
 
 ### Appearance
 
-Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Browserのサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。Language / LocaleとTimezoneはApplicationとして扱える境界を持ちますが、Initial ReleaseではUserが変更する設定項目として表示しません。
+Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。Language / LocaleとTimezoneはApplicationとして扱える境界を持ちますが、Initial ReleaseではUserが変更する設定項目として表示しません。
 
 #### Theme
 
@@ -111,9 +111,9 @@ Initial Releaseでは次の2つの単位体系から選択します。
 
 具体的なAPI / data model contractはBackend設計時に確定します。
 
-### Media Browserのサムネイルサイズ
+### Mediaサムネイルサイズ
 
-Media Browserで表示するサムネイルサイズはUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。
+Media Collectionで表示するサムネイルサイズはUser accountに紐づく共通Preferenceとして保持し、同じUserが利用するdevice / browser間で同期します。Media Browserだけでなく、Group Browser内のaggregate Media等、Media CollectionとしてMediaを一覧表示する箇所へ一貫して適用します。
 
 Initial Releaseでは **小 / 中 / 大** の3段階を提供し、初期値は **中** とします。
 
@@ -126,6 +126,8 @@ Initial Releaseでは **小 / 中 / 大** の3段階を提供し、初期値は 
 このPreferenceは固定pixel値や固定grid列数をUser preferenceとして定義するものではありません。Responsive viewport classificationとは独立して扱い、各viewportで適切な実寸・列数へ適応しながら、同一viewport内では小 < 中 < 大の相対的なサムネイルサイズ関係を維持します。
 
 具体的なthumbnail寸法、spacing、grid layoutはUI具体化とVisual Reviewで決定します。Preferenceとしてraw pixel値を保存・公開しません。
+
+このPreferenceはMedia Collectionの閲覧密度を調整するものであり、Media Detailのメイン画像、Upload preview、選択control内の補助thumbnail等、Collection閲覧を目的としないMedia表示には適用しません。Initial ReleaseではCollectionごとの個別設定を持たず、1つの共通Preferenceを使用します。将来、Collectionごとに異なるサイズを必要とするProduct needが確認された場合は、共通Preferenceをdefaultとして個別overrideする方式を検討します。
 
 変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。具体的なAPI / data model contractはBackend設計時に確定します。
 
