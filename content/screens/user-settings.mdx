@@ -4,15 +4,15 @@
 
 User Settingsは、現在のPersonal / Community contextに依存しないUser本人の設定を扱う画面です。
 
-Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界と、Initial Releaseで今回確定したPreferences / Appearanceを定義します。
+Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界と、Initial Releaseで確定したPreferences / Usageを定義します。
 
 ## Information Architecture
 
 Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
-- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではAppearanceを提供する。
-- **Usage**: User本人の利用状況に関する情報を確認する。Initial ReleaseではStorage Usageを提供し、現在の使用中容量、適用されている上限容量、使用率または残容量を確認できる。Media内訳やUpload制約等の追加Capabilityは個別に再設計する。
+- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。
+- **Usage**: User本人の利用状況に関する情報を確認する。Initial ReleaseではStorage Usageと総Media件数を提供する。Upload制約一覧はUsageへ常設せず、User input制約のSystem方針に従って各Capabilityの操作contextで必要に応じて提示する。
 - **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
 SettingsはCommunity管理設定とは分離します。Community contextを利用中でもPersonal contextへ切り替えずAccount Menuから直接到達でき、Settings内の値は現在のCommunityによって変化しません。
@@ -23,7 +23,7 @@ Settings内NavigationのHeader / Sidebar / Tabs / Drawer等の具体presentation
 
 ### Appearance
 
-Initial ReleaseではAppearanceと日付形式をPreferencesとして提供します。
+Initial ReleaseではTheme、日付形式、ファイルサイズ単位、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。
 
 #### Theme
 
