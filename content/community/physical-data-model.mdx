@@ -33,10 +33,11 @@ erDiagram
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | Community ID |
 | name | text | NOT NULL、前後空白除去後に空でない | 表示名。同名を許可 |
+| status | varchar(16) | NOT NULL、CHECK | `ACTIVE` / `DELETING` |
 | created_at | timestamptz | NOT NULL | 作成時刻 |
 | updated_at | timestamptz | NOT NULL | 更新時刻 |
 
-説明、作成者、親Communityは保持しません。
+説明、作成者、親Communityは保持しません。通常操作は`ACTIVE`だけを対象とし、削除受付時に`DELETING`へ遷移します。`DELETING`から`ACTIVE`へ戻す復元操作は提供しません。
 
 ### community_memberships
 
@@ -98,7 +99,7 @@ Media domainが所有する`media_custodies`と`media_community_accesses`は[Med
 
 ## 削除規則
 
-Community削除時は`communities`を起点としてMembership、Invitation、User起点Join Requestに加え、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationを同じtransaction内でCASCADE削除します。ただし、`media_custodies.community_id`はON DELETE RESTRICTとし、Community管理Mediaが残る場合は通常のCommunity削除を拒否します。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。Media domainのcleanupをFK cascadeだけで代替しません。
+Community削除受付時はCommunityを`DELETING`へ遷移させ、通常利用を停止したうえでMembership、Invitation、User起点Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationを削除または無効化し、Community管理MediaをMedia削除Lifecycleへ移行します。`media_custodies.community_id`は`ON DELETE RESTRICT`を維持し、Community管理MediaのCustody参照が残る間はCommunity recordの物理削除を禁止します。すべてのCommunity管理Mediaが物理削除されCustody参照が解消した後にCommunityを物理削除します。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。Media domainのcleanupをFK cascadeだけで代替しません。
 
 Membershipの退会・除外・User削除では、最後のAdministrator確認とUser管理Mediaの共有解除が必要なため、`users`からの単純なFK cascadeだけに依存しません。Invitationの発行者やJoin Requestのreviewerなど履歴上のUser参照は、User削除後に不要な個人情報を保持しないよう`ON DELETE SET NULL`またはUser domainの削除規則に従います。
 
