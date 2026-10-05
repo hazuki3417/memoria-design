@@ -37,4 +37,4 @@ Memoria Design Systemは、実際のScreen設計から確認された再利用�
 - Community Accentの変更は[Community Settings](/screens/community-settings)から行い、選択時に即時保存・即時反映する。保存失敗時は保存済みの色へ戻し、再試行可能なFeedbackを提示する。
 - Context Switcherでは各ContextのAccent indicatorを表示し、切替前にもContext名と色を併用して識別できるようにする。
 - Community Accentの具体的な永続化model / API contractは後続のBackend設計で確定する。Presentation設定であることを理由にCommunity entityのbranding fieldとして扱わない。
-- Personal Accentの初期色・変更Capabilityの詳細は、Personal側の設定仕様で確定する。
+- Personal AccentはUserごとのpresentation preferenceとし、[User Settings](/screens/user-settings)から任意の `#RRGGBB` へ変更できる。初期値は固定default Accentとし、Communityのようなランダム生成・重複回避は行わない。変更は即時保存・即時反映し、失敗時は保存済み値へ戻す。
