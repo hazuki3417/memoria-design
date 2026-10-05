@@ -97,6 +97,18 @@ Initial Releaseでは次の2つの単位体系から選択します。
 
 具体的なAPI / data model contractはBackend設計時に確定します。
 
+### Media Detailの前後Navigation循環
+
+Media Detailの前後NavigationをCollectionの境界で循環させるかはUser accountに紐づくPreferenceとして保持し、device / browser間で同期します。
+
+Initial Releaseでは **OFF** を初期値とします。OFFでは利用元Collectionの先頭・末尾をNavigationの境界とします。ONでは末尾から「次へ」で先頭へ、先頭から「前へ」で末尾へ移動します。
+
+循環を有効にしても、Detailを開いた利用元Collectionのfilter条件と順序は変更しません。未取得のMediaが存在する場合もclient上で読み込み済みの範囲をCollection全体の境界として扱わず、必要に応じてConnectionを追加取得して実際の先頭・末尾を解決します。
+
+Collectionが1件だけの場合は、同じMedia自身への前後移動Actionを成立させません。
+
+変更は選択時に即時反映します。具体的なAPI / data model contractはBackend設計時に確定します。
+
 ## Accessibility / Design System
 
 Light / Darkの双方でDesign Systemのsemantic color roleを維持し、個別ScreenがThemeごとの固定色をProduct meaningとして直接持たないことを基本とします。
