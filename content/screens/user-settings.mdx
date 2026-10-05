@@ -2,126 +2,82 @@
 
 ## 概要
 
-ACTIVE User本人が、現在のPersonal / Community contextから独立してProfile、表示・操作のPreference、利用状況、account lifecycleを確認・管理する設定画面です。
+User Settingsは、現在のPersonal / Community contextに依存しないUser本人の設定を扱う画面です。
 
-SettingsはApplication Shell内のUser-scopedな領域として扱います。特定contextの設定ではなく、Account Menuから到達するUser本人の設定を集約します。
-
-## 目的
-
-- User本人に関する設定と確認先を一つのSettings領域へ集約する。
-- Profile、Preference、利用状況、account lifecycleという異なる責務を、Settings内Navigationで明確に分離する。
-- Account Menuへ個別のProfileや削除Actionを重複して配置せず、Application全体のNavigation階層を予測可能にする。
-
-## 関連仕様
-
-- [Application Information Architecture](/system/application-information-architecture)
-- [User Profile](/screens/user-profile)
-- [Account Deletion Flow](/screens/account-deletion-flow)
-- [Editable Form Pattern](/design-system/patterns/editable-form)
-- [Feedback Pattern](/design-system/patterns/feedback)
+Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界と、Initial Releaseで今回確定したPreferences / Appearanceを定義します。
 
 ## Information Architecture
 
-Initial ReleaseのSettingsは次の4領域で構成します。
+Settingsは次の領域を持ちます。
 
-1. **プロフィール**: Memoriaで使用するProfileを確認・変更する。
-2. **環境設定**: 表示とPreviewの動作を変更する。
-3. **利用状況**: Storage使用量、Media統計、Upload上限を確認する。
-4. **アカウント**: account lifecycleに関する操作へ進む。
+- **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
+- **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではAppearanceを提供する。
+- **Usage**: User本人の利用状況に関する情報の配置先とする。具体的なInitial Release Capabilityは別途設計する。
+- **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
-通知設定はInitial ReleaseのSettingsに含めません。
+SettingsはCommunity管理設定とは分離します。Community contextを利用中でもPersonal contextへ切り替えずAccount Menuから直接到達でき、Settings内の値は現在のCommunityによって変化しません。
 
-Settings内NavigationはApplication Context Navigationとは別のlocal navigationです。Settingsの各領域を移動してもPersonal / Community contextを切り替える操作とは扱いません。
+Settings内NavigationのHeader / Sidebar / Tabs / Drawer等の具体presentationは固定せず、viewportに応じて適切なComponentを選択します。
 
-## プロフィール
+## Preferences
 
-Profileの意味、validation、保存、失敗時の復旧は[User Profile](/screens/user-profile)を正本とします。
+### Appearance
 
-Initial Releaseの編集対象はnicknameのみです。Profile変更は明示的に保存するEditable Formとして扱い、Preferenceの即時反映とは操作モデルを混在させません。
+Initial ReleaseではApplicationのTheme preferenceとして次の3状態を提供します。
 
-## 環境設定
+| Preference | Behavior |
+| --- | --- |
+| System | OS / browserが公開するcolor scheme preferenceに追従する |
+| Light | System preferenceに関係なくLight themeを使用する |
+| Dark | System preferenceに関係なくDark themeを使用する |
 
-Initial Releaseでは次を提供します。
+初期値は **System** とします。
 
-- 表示テーマ
-- 日付形式
-- ファイルサイズの単位
-- Previewで最後のMediaから最初のMediaへ戻る動作
-- Previewを開いたときに詳細情報を表示する動作
+System選択中にOS / browserのcolor schemeが変化した場合は、reloadや再選択を要求せずApplicationの実効Themeを追従させます。Light / Darkを明示選択している場合はSystem preferenceの変化でThemeを変更しません。
 
-Preferenceは設定ごとに即時反映します。Settings全体またはPreference全体を確定するSave / Cancel Actionは設けません。
+### 変更Behavior
 
-変更要求中は同一設定の結果が不明瞭にならないようにし、Serverで保存が成立していない値を確定済みとして扱いません。保存に失敗した場合は最後に確認できている値へ戻し、[Feedback Pattern](/design-system/patterns/feedback)に従って失敗を伝えます。短時間に連続して変更した場合も、古い応答で新しい選択を上書きしません。
+Appearanceの選択は明示的なSave操作を要求せず、選択時に即時反映します。
 
-表示テーマは `システム` / `ライト` / `ダーク` を提供し、変更は他のPreferenceと同様に即時反映します。テーマの永続化方式はInitial ReleaseのSettings設計では固定せず、永続化が必要になった時点でUser Preference APIまたはClient側storage等の責務を別途検討します。
+Theme変更によって現在のApplication context、Navigation先、入力中の内容、選択状態等を失わせません。Theme変更はpresentationの変更であり、Domain Actionの再実行やNavigationを発生させません。
 
-APIで管理するPreferenceの具体的な選択肢はAPI契約を正本とし、Webだけに未対応の値を追加しません。
+AppearanceはPersonal / Communityごとに分けず、同一browser / device上のApplication全体へ適用します。
 
-## 利用状況
+### 永続化scope
 
-利用状況はread-onlyです。Initial Releaseでは次を確認できるようにします。
+Initial ReleaseのAppearance preferenceは **browser / device-local preference** とします。Memoria User accountへ同期するUser domain dataとして扱いません。
 
-### ストレージ
+- 同じUserでもbrowser / deviceごとに異なるAppearanceを選択できます。
+- 同じbrowserでlogout / loginしても、local preferenceが利用可能である限り選択を維持できます。
+- 別deviceや別browserへAppearanceを同期しません。
+- Theme preferenceのためだけにUser entity、Profile、GraphQL / APIへ永続化fieldを追加しません。
 
-- 使用量
-- 利用可能な総容量
-- 全体に対する使用割合
+local preferenceを読み取れない、未保存、または保存値を解釈できない場合はSystemとして扱います。
 
-容量と割合の関係を理解できる表現を用います。特定のChart Componentは仕様として固定しません。
+browser storageの具体方式、SSR / hydration時のTheme適用順序、flash防止等はFrontend implementation contractで決定します。ただし初期表示で不要なTheme切り替わりを可能な範囲で避けることを実装上の品質要件とします。
 
-### Media
+## Accessibility / Design System
 
-- 全Mediaの件数と使用量
-- APIが提供するMedia typeごとの件数と使用量
+Light / Darkの双方でDesign Systemのsemantic color roleを維持し、個別ScreenがThemeごとの固定色をProduct meaningとして直接持たないことを基本とします。
 
-件数と使用量を同じ分類軸で比較できるようにし、情報量に対して不要なChartを増やしません。
+Themeによって情報、Action、状態表現、focus indicator等のCapabilityを変えません。色だけに意味を依存せず、双方のThemeでWCAG 2.2 AAを満たすことを目標とします。
 
-### アップロード
+System / Light / Darkの選択状態は、色の見た目だけでなくcontrolの選択状態として認識可能にします。
 
-- 1回のUploadで扱えるMedia数の上限
-- 1 Mediaあたりのサイズ上限
-- 対応形式
+## Initial Release対象外
 
-APIが提供するlimitを表示し、Clientに固定値を別の正本として持ちません。
+- User accountを介したAppearance preferenceのdevice間同期
+- Community / Personal contextごとのTheme
+- Communityごとのbrand theme
+- Userが任意色を選択するcustom theme
+- font family、font size、density等の追加Appearance preference
+- Theme変更によってProduct Capabilityやauthorizationを変えること
 
-利用状況の取得中、取得失敗、0件・0使用量を区別します。取得失敗を0として表示しません。
+将来User preferenceを追加する場合も、account同期が必要かdevice-localであるべきかを設定ごとに判断し、Preferences全体を一律に同じ永続化scopeへ固定しません。
 
-## アカウント
+## Visual Prototype / Reviewで確認する事項
 
-Account領域はaccount lifecycleに関する低頻度Actionを扱います。Initial ReleaseではAccount Deletion Flowへの入口を提供します。
-
-入口のAction labelは **「アカウントを削除する」** とします。このAction自体では削除を実行せず、[Account Deletion Flow](/screens/account-deletion-flow)へ進み、削除対象とCommunityへの影響を段階的に確認します。
-
-Auth0が管理するemail、password、external identity等をMemoria Settingsのaccount情報として表示・編集しません。Memoriaが保持しない認証情報をSettings用に複製しません。
-
-## Navigation
-
-Settingsは[Application Information Architecture](/system/application-information-architecture)のAccount Menuから到達します。Account MenuはSettingsとlogoutへの入口を持ち、Profileやaccount削除への個別入口を重複して設けません。
-
-Wide / Mediumでlocal navigationを常時表示する場合、Application ShellのContext Navigation Drawerが開いている間はApplication Navigationを前面に表示し、背後のSettings local navigationと同時に操作対象として見せません。Drawerを閉じた場合はSettingsの選択領域と編集状態を維持します。
-
-Profileに未保存変更がある状態でSettings内の別領域やApplication Navigationへ移動する場合は[Editable Form Pattern](/design-system/patterns/editable-form)の破棄確認に従います。即時反映済みPreferenceとread-onlyのUsageには未保存変更としての離脱確認を要求しません。
-
-## Content Design
-
-Settingsは操作対象とActionを短く直接表現します。見出しから自明な説明や、同じ意味を繰り返す補足文を追加しません。
-
-説明は、設定名だけでは変更結果が予測しにくい場合、不可逆・重要な影響を理解する必要がある場合、または次のActionの意味を補足する場合に使用します。Action labelは確認画面の存在を説明する文ではなく、Userが開始する目的を表します。
-
-## Responsive Behavior
-
-Compact / Medium / Wideのいずれでも、4つのSettings領域へ移動し、それぞれのCapabilityを利用できることを維持します。
-
-表示領域が狭い場合はlocal navigationを常時サイドメニューとして表示することを要求しません。Select、Menu、Drawer等の具体的presentationはVisual Design / 実装で決定できますが、現在のSettings領域を理解でき、他領域へkeyboard / touchでも移動できる必要があります。
-
-Application NavigationとSettings local navigationが同時に狭い表示領域を占有して主要contentを圧迫しないようにします。
-
-## Visual Design
-
-SettingsはApplication Shellを共有し、Settings専用の独立Headerを設けません。
-
-Wide / MediumのSettings local navigationはApplication Navigationと同系統のNavigation表現を使用し、各領域をiconとlabelで識別できるようにします。選択中の領域は色だけに依存せず判別可能にします。
-
-Contentは単一カラムを基本とし、Section、必要な説明、content / actionの順に情報階層を作ります。すべてをCardへ囲うことや、read-only dataを一律にChart化することは要求しません。Card、Divider、Chart等は情報のまとまりや比較を明確にする場合に使用します。
-
-具体的なpixel幅、icon glyph、Mantine Component、spacingは実装とVisual Reviewで決定します。
+- Settings navigationがWide / Compact双方で現在位置を理解できること
+- System / Light / Darkの選択状態と即時反映が明確であること
+- Light / Dark双方で主要Screen、Dialog、feedback、focus stateのcontrastとsemantic roleが維持されること
+- Theme切り替え時にlayout shift、入力消失、Navigation stateの消失が発生しないこと
