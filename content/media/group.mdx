@@ -62,7 +62,7 @@ flowchart TD
 - Groupを削除してもMedia本体は削除しない
 - Media削除時はすべてのGroup関連を削除する
 
-Media分類のrelation semanticsと権限は本設計を正本とします。Initial Releaseの具体的Interactionは[Media Browser / Detail](/screens/media-browser-detail)を正本とし、Media Detailでは1 Mediaのdirect Group relationを確認して追加・除外でき、Browserで明示選択した複数Mediaには同じ既存Groupを一括追加できます。Initial ReleaseではGroupからのbulk除外を主要Capabilityとしません。bulk追加でもMediaごとに現在scope・可視性・権限を再検証し、部分成功を許容します。
+Media分類のrelation semanticsと権限は本設計を正本とします。Initial Releaseの具体的Interactionは[Media Browser / Detail](/screens/media-browser-detail)を正本とし、Media Detailでは1 Mediaのdirect Group relationを確認して追加・除外でき、Browserで明示選択した複数Mediaには1つ以上の同じ既存Groupを一括追加できます。Initial ReleaseではGroupからのbulk除外を主要Capabilityとしません。bulk追加でもMediaごとに現在scope・可視性・権限を再検証し、部分成功を許容します。
 
 ## Group同士の関係
 
