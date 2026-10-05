@@ -4,7 +4,7 @@
 
 Community Administratorが通常のCommunity削除について、対象と影響、削除可能状態を確認したうえで最終実行する画面です。
 
-Account削除Flowに伴うCommunity削除特例とは異なり、Community管理Mediaが残るCommunityをこのFlowから削除することはできません。
+Community管理Mediaが残っている場合もこのFlowからCommunityを削除でき、対象CommunityがCustodianであるMediaも削除対象になります。Account削除Flowでは同じ削除原則を利用しつつ、User account削除全体として追加のReviewと再認証を行います。
 
 > 実装状況: 本仕様に対応するCommunity削除UIは未実装です。
 
@@ -31,9 +31,8 @@ Account削除Flowに伴うCommunity削除特例とは異なり、Community管理
 - このCommunityへのUser管理Media共有が解除されること
 - Community内Group / Tagとその関連が削除されること
 - 共有されていたUser管理Media本体、User側分類、他Communityへの共有は削除されないこと
-- Community管理Mediaが残っている場合は通常削除できないこと
-
-Community管理Mediaが存在する場合、削除できない理由と、通常削除の前に対象Mediaを解消する必要があることを理解できるようにします。対象を探すため、現在CommunityのMediaへ移動できる導線を提供します。削除確認画面自体にMedia削除機能を持ち込まず、Mediaの閲覧・削除Capabilityを正本とする画面で解消します。
+- Community管理Mediaの件数
+- Community管理Mediaは、他UserがUploadしたMediaを含めてCommunity削除時に復元不能に削除されること
 
 ## 操作
 
@@ -45,11 +44,11 @@ Community管理Mediaが存在する場合、削除できない理由と、通常
 
 ### Communityを削除する
 
-現在UserがAdministratorであり、Community管理Mediaが存在せず、確認入力が成立している場合に削除を実行できます。
+現在UserがAdministratorであり、削除対象とCommunity管理Mediaへの影響を確認でき、確認入力が成立している場合に削除を実行できます。Community管理Mediaが存在すること自体は削除を妨げません。
 
 他Administratorの同意は要求しません。
 
-実行時には最新状態で権限、Community存在、Community管理Media不存在等を再確認します。
+実行時には最新状態で権限、Community存在、Community管理Media集合等を再確認し、削除対象Mediaを確定します。
 
 ### Cancel
 
@@ -61,16 +60,6 @@ Community管理Mediaが存在する場合、削除できない理由と、通常
 
 削除対象と影響を確認し、Community名入力後に削除を実行できます。
 
-### Community管理Mediaあり
-
-Community管理Mediaが1件以上存在する場合、通常のCommunity削除を実行できません。
-
-削除Actionを成立させず、管理Mediaが残っていることがblocking conditionであると明示します。
-
-Initial ReleaseではCustodian委譲がないため、通常削除を行うには対象Community管理Mediaをすべて削除する必要があります。
-
-blocking状態ではCommunity名確認入力や最終削除Actionを主Taskとして進めさせず、Community Mediaへ移動してblocking conditionを解消するActionを提示します。Mediaから戻った場合は削除条件を最新状態で再取得します。
-
 ### 確認入力不一致
 
 入力したCommunity名が現在名称と一致しない場合は削除を実行できません。修正箇所との関係が分かるField Errorとして扱います。
@@ -81,9 +70,9 @@ blocking状態ではCommunity名確認入力や最終削除Actionを主Taskと�
 
 ### 状態変化による拒否
 
-画面表示後にCommunity管理Mediaが追加された、roleが変更された等により削除条件を満たさなくなった場合、古い表示状態を根拠に削除しません。
+画面表示後にCommunity管理Mediaが追加された、roleが変更された等の状態変化がある場合、古い表示状態を根拠に削除しません。
 
-最新状態を反映し、削除できない理由と次に取れる行動を持続的に提示します。
+最新の権限とCommunity管理Media集合を再確認します。確認後にMedia件数や削除影響が変化してUserが確認した内容と一致しなくなった場合は、最新の削除対象を提示して再確認を要求します。
 
 ### 削除成功
 
@@ -103,23 +92,24 @@ Cancel時は対象CommunityのManagementへ戻ります。
 
 削除成功後は削除済みCommunityへ戻らず、Personal Dashboard（`/dashboard`）へ移動します。Community削除は現在context自体を消失させるため、別Communityを暗黙に選択したり直前contextを推測して復元したりしません。
 
-Account削除FlowからCommunity削除が必要な場合は、通常Community削除確認と同じUI構成をそのまま再利用することを前提としません。Account削除特例はCommunity管理Media削除や再認証を含むため、[Account Deletion Flow](/screens/account-deletion-flow)の責務として扱います。
+Account削除FlowからCommunity削除が必要な場合は、通常Community削除確認と同じUI構成をそのまま再利用することを前提としません。Community管理Mediaを削除対象とする原則は共通ですが、User account削除全体のReviewと再認証は[Account Deletion Flow](/screens/account-deletion-flow)の責務として扱います。
 
 ## 制約
 
 - Administratorだけが通常Community削除を実行できます。
 - 他Administratorの同意は要求しません。
-- Community管理Mediaが1件でも残る場合は削除できません。
+- Community管理Mediaが存在する場合も削除でき、対象MediaはCommunityとともに復元不能な削除対象になります。
+- Community管理Media件数と、他UserがUploadしたMediaも削除されることを実行前に提示します。
 - Community名の一致確認を要求します。
 - 削除は復元できません。
 - 通常Community削除では、既存Use Caseで要求されていない追加の再認証を必須条件にしません。
-- Community削除と関連cleanupは同一Transactionで確定します。
+- Community削除のDB上の状態確定と、Object Storage等の物理cleanupを同一Transactionへ含めません。Community管理Mediaの物理cleanupはMedia domainの削除Lifecycleに従います。
 - User管理Media本体、User側分類、他Communityの共有・分類は変更しません。
 - Account削除時のCommunity削除特例とは分離します。
 - domain ruleと競合制御は[Communityユースケース](/community/use-cases)および[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 
 ## Responsive対応
 
-表示領域や入力方式が変わっても、削除対象、削除影響、blocking condition、確認入力、Cancel、最終削除Actionを確認・操作できるCapabilityを維持します。
+表示領域や入力方式が変わっても、削除対象、Community管理Mediaを含む削除影響、確認入力、Cancel、最終削除Actionを確認・操作できるCapabilityを維持します。
 
 破壊的操作であることと実行対象をvisual representationだけに依存せず理解できるようにします。
