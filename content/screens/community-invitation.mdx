@@ -32,7 +32,7 @@ Invitationが有効であることと、明示的に参加を確定するAction�
 
 期限切れ、無効化済み、削除済みCommunity等によりInvitationを利用できない場合は、新しいMembershipを作成できないことと、Userが取れる安全な次の行動を提示します。
 
-利用不能なInvitationからCommunityの非公開情報を新たに公開しません。無効・期限切れ・削除済み等の内部理由をUser向けにどこまで区別するかはSecurity / APIの公開error contractに従い、内部状態を推測できる詳細を要求しません。
+利用不能なInvitationからCommunityの非公開情報を新たに公開しません。期限切れ、無効化済み、Community削除済み、存在しないInvitation等の内部理由はUser向けに区別せず、「この招待は利用できません」という共通状態として扱います。次の行動として、CommunityのAdministratorから新しいInvitation URLを受け取るよう案内します。
 
 ## 操作
 
@@ -88,7 +88,7 @@ Membership成立後は対象Community Dashboardへ進みます。参加完了を
 
 ### Invitation利用不可
 
-期限切れ、無効化、Community削除等によりacceptできない場合は、参加Actionを提供しません。
+期限切れ、無効化、Community削除、存在しないInvitation等によりacceptできない場合は、参加Actionを提供しません。これらの理由はUser向けには区別せず、同じ利用不可表現を使用します。
 
 短時間で消えるNotificationだけに依存せず、現在このInvitationから参加できないことと安全なNavigationを持続的に提示します。
 
