@@ -19,7 +19,7 @@ Community作成、招待、参加、Membership role、退会・除外、削除�
 | Role変更 | Membership確認、Community lock、`admin`数の再確認、role更新 |
 | 退会・除外 | 最終Administrator確認、Membership削除、User管理Mediaの共有解除、Community分類関連削除 |
 | 共有追加・解除 | Membership・Custody確認、Access追加・削除、Community分類関連削除、Event記録 |
-| Community削除 | Community lock、管理Media不存在確認、関連情報削除・無効化 |
+| Community削除 | Community lock、削除権限・対象Community管理Mediaの再確認、Communityと関連情報の削除・無効化、Community管理Mediaの削除対象確定 |
 
 ## 競合制御
 
@@ -55,17 +55,19 @@ Initial Releaseでは、退会・除外に伴うMembership削除、対象Userが
 
 将来relation件数の増大によりtransaction規模が問題になる場合は、cleanupのみを単純に非同期化せず、論理的な離脱状態とdurable cleanup Jobを含むLifecycleとして別途設計します。Initial Releaseではその中間状態を導入しません。
 
-## Community削除のatomic cleanup
+## Community削除のcleanup
 
-Initial Releaseの通常Community削除は一つのDB transactionで確定します。Community行をlockして削除権限を再確認し、Community Custody Mediaが0件であることを確認した後にCommunityを削除します。
+Initial Releaseの通常Community削除では、Community管理Mediaが存在していても削除を受け付けます。Community行をlockして削除権限と最新のCommunity管理Media集合を再確認し、確認済みの削除意図に対する対象を確定します。
 
-Community削除により、Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationをFKのON DELETE CASCADEで同じtransaction内に削除します。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。
+DB上ではCommunity、Membership、Invitation、Join Request、当該CommunityへのUser管理Media Access、Community scopeのGroup / Tagとそれらの従属relationを整合した状態で削除または無効化し、Community管理Mediaを削除Lifecycleへ移行させます。User管理Media本体、User scopeの分類、他Communityへの共有は変更しません。
 
-`media_custodies.community_id`はON DELETE RESTRICTとし、Community管理Mediaが残る場合は通常削除を拒否します。Account削除時に明示確認を伴ってCommunity管理Mediaまで削除する特例flowは通常Community削除とは分離して扱います。
+Community管理MediaのObject Storage上のOriginal・Variant等の外部I/OはCommunity削除のDB transactionへ含めません。Media domainの削除Lifecycleとdurable cleanup Jobへ委ね、削除受付後に物理cleanupが未完了でも削除済みCommunityを利用可能状態へ戻しません。cleanup失敗時はMedia domainの再試行・運用再開に従います。
+
+Account削除時にCommunity削除を選択する場合も同じCommunity / Media cleanup原則を使用しますが、User account削除を含む全体Flowの確認・再認証はAccount Deletion Flowの責務として分離します。
 
 ## Community削除とUpload
 
-Community削除とCommunityへの直接Uploadは同じCommunity行をlockします。後続TransactionはCommunity存在とCommunity Custody件数を再評価し、管理Mediaを残した削除や削除済みCommunityへのUploadを防ぎます。
+Community削除とCommunityへの直接Uploadは同じCommunity行をlockします。後続TransactionはCommunity存在とCommunity lifecycleを再評価し、削除対象確定後のCommunityへのUploadや、同時UploadによるCommunity管理Mediaの削除対象漏れを防ぎます。
 
 ## 外部I/Oと失敗時処理
 
@@ -87,7 +89,7 @@ Community domainはMembership、role、Invitation、User起点Join RequestとCom
 | 参加済みUserによるInvitation accept | Membershipを重複作成せず、既存Membershipを参加済みの成功結果として扱う |
 | User起点Join Requestの重複（将来） | 既存PENDING申請を維持し重複登録しない |
 | 最後のAdministratorの退会・降格・除外 | 拒否 |
-| Community管理Mediaが残るCommunity削除 | 拒否 |
+| Community管理Mediaが残るCommunity削除 | 対象Mediaを削除対象として確定し、Community削除を継続 |
 | Membershipを失ったUploaderの操作 | 拒否 |
 | 同時Invitation accept | lock・一意制約・idempotencyによりMembershipを重複作成しない |
 | User削除とInvitation acceptの競合 | 削除済みUserの参加を禁止 |
