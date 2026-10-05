@@ -28,7 +28,7 @@ Auth0再認証に成功したUserがMemoriaへ戻った後、account削除を実
 
 Userが明示的に最終削除Actionを実行した場合だけ削除受付を行います。
 
-受付時にはUser状態、Community / Membership / Media等の対象、必要な選択、および再認証結果をServer側で再検証します。成功時は削除対象snapshotを固定し、UserをDELETINGへ変更して非同期削除Jobを開始します。
+受付時にはUser状態、ACTIVEなAccount Deletion Review、Reviewにbindingされた未使用・有効期限内の再認証、Community / Membership / Media等の現在状態をServer側で再検証します。成功時はReviewと再認証bindingを単回消費し、削除対象snapshotをDeletion Jobへ固定してUserをDELETINGへ変更し、非同期削除Jobを開始します。
 
 ### 削除を中止する
 
@@ -78,7 +78,7 @@ Auth0からの安全な復帰と、再認証成功だけでは削除operationを
 - 削除計画変更後に以前の再認証済み状態を最終確定へ流用しません。
 - 削除受付時はServer側でUser状態、権限、対象、選択、再認証結果を再検証します。
 - 削除受付成功後はUserを即時DELETINGとして扱い、cleanup完了までACTIVEへ戻しません。
-- Auth0の具体的な強制再認証方式と有効期限はAuthentication / Security設計で定義します。
+- 強制再認証はAccount deletion専用Auth0 Authorization requestの `prompt=login` + `max_age=0` を使用し、Review-boundなServer-side bindingは成立から10分・単回使用です。詳細はAuthentication / Security設計を正本とします。
 
 ## Responsive対応
 
