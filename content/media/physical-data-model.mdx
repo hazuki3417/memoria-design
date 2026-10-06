@@ -163,7 +163,7 @@ Image Variantは、フロントエンドが表示条件・解像度に応じて�
 | created_at | timestamptz | NOT NULL | 登録時刻 |
 | updated_at | timestamptz | NOT NULL | 更新時刻 |
 
-`PENDING` / `PROCESSING`をactive Jobとし、同一`(media_id, job_type)`ではactive Jobを1件だけ許可します。これは`WHERE status IN ('PENDING', 'PROCESSING')`のpartial unique indexでDB上も保証します。同じ処理のretryは新Jobを作らず同じ`job_id`を使用し、明示的なreprocessは既存Jobが`COMPLETED`、`FAILED`または`CANCELLED`のterminal stateになった後に新しいJobを作成します。`CANCELLED`はMedia削除により処理が意図的に不要になった状態であり、処理障害を表す`FAILED`とは区別します。並行したreprocess要求がactive Job作成で競合した場合は、unique constraintを境界として既存active Jobを採用し、同一処理を重複開始しません。
+`PENDING` / `PROCESSING`をactive Jobとし、同一`(media_id, job_type)`ではactive Jobを1件だけ許可します。Initial Releaseの画像Variant生成では`job_type = GENERATE_IMAGE_VARIANTS`を使用し、初回生成とreprocessで同じ種別を使用します。これは`WHERE status IN ('PENDING', 'PROCESSING')`のpartial unique indexでDB上も保証します。同じ処理のretryは新Jobを作らず同じ`job_id`を使用し、明示的なreprocessは既存Jobが`COMPLETED`、`FAILED`または`CANCELLED`のterminal stateになった後に新しいJobを作成します。`CANCELLED`はMedia削除により処理が意図的に不要になった状態であり、処理障害を表す`FAILED`とは区別します。並行したreprocess要求がactive Job作成で競合した場合は、unique constraintを境界として既存active Jobを採用し、同一処理を重複開始しません。
 
 Processing Jobは処理状態と試行結果のdurable truthですが、実行中messageのownership / crash recovery leaseはRedis Consumer Groupのpending stateを正本とします。Processing Jobへ`lease_expires_at`等の重複lease columnは追加しません。WorkerはRedis messageを取得・claimした後にJobをrow lockし、`PENDING`から`PROCESSING`への開始または`PROCESSING` Jobのretryを確定します。`attempts`はPipelineの実行開始ごとに増加させます。`COMPLETED` / `FAILED` / `CANCELLED`へのduplicate deliveryは再実行しません。Processing開始時とVariant publication時には対象Mediaをlockして`ACTIVE`を再確認し、`DELETING`ならpublicationせずJobを`CANCELLED`として確定します。
 
@@ -192,7 +192,7 @@ Media domainで確定した変更を非同期Publisherへ引き渡す技術table
 | next_attempt_at | timestamptz | NULL可 | PENDINGでは実行可能時刻、PROCESSINGではclaim lease期限 |
 | updated_at | timestamptz | NOT NULL | 最終更新時刻 |
 
-`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `PROCESSING` / `FAILED`では`published_at`をNULLとします。`PENDING` / `PROCESSING`では`next_attempt_at`をNOT NULL相当のCHECKで必須とし、`PENDING`作成時は原則`next_attempt_at = created_at`として即時実行可能にします。`PROCESSING`では`next_attempt_at`をclaim lease期限として扱い、期限到達後は別Publisherが回収できます。`PUBLISHED` / `FAILED`では`next_attempt_at`をNULLとします。`FAILED`は自動retry上限到達後のterminal operational stateとし、自動取得対象から外します。運用再開時は`PENDING`へ戻し、新しい`next_attempt_at`を設定します。
+`status`と`published_at`の整合はCHECK constraintで保証し、`PUBLISHED`の場合に限って`published_at`をNOT NULLとします。`PENDING` / `PROCESSING` / `FAILED`では`published_at`をNULLとします。`PENDING` / `PROCESSING`では`next_attempt_at`をNOT NULL相当のCHECKで必須とし、`PENDING`作成時は原則`next_attempt_at = created_at`として即時実行可能にします。`PROCESSING`では`next_attempt_at`をclaim lease期限として扱い、期限到達後は別Publisherが回収できます。`PUBLISHED` / `FAILED`では`next_attempt_at`をNULLとします。`FAILED`はretryしても回復しない恒久的な配送不能のterminal operational stateとし、自動取得対象から外します。Redis unavailable等のtransient failureはattempt回数だけを理由に`FAILED`へ遷移させずretryを継続します。運用再開時は`PENDING`へ戻し、新しい`next_attempt_at`を設定します。
 
 Publisherは短いDB transactionで実行可能な`PENDING`、またはlease期限切れの`PROCESSING`を`FOR UPDATE SKIP LOCKED`でbatch取得し、`PROCESSING`とlease期限を設定してcommitします。Redisへの`XADD`はDB transaction外で行います。`XADD`成功後は`PUBLISHED`と`published_at`を確定し、失敗時は`attempt_count`を増加して次回retry時刻を設定します。`XADD`成功後から`PUBLISHED`確定前の停止では重複配送を許容し、`event_id`による下流の冪等性で処理します。
 
@@ -355,7 +355,7 @@ PKは`(media_id, tag_id)`です。MediaからTagを取得する方向はPKを使
 
 Storage Workerは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`を`FOR UPDATE SKIP LOCKED`でbatch取得し、短いtransactionで`PROCESSING`とlease期限を設定してcommitした後にObject Storage DELETEを実行します。Objectが既に存在しない場合も成功として扱います。成功後は別transactionで`COMPLETED`へ遷移します。retry可能failureでは`attempt_count`を増加し、指数backoffと最大間隔から算出した次回実行時刻を設定して`PENDING`へ戻します。retry上限到達または回復不能failureでは`FAILED`とし、自動取得対象から外します。運用再開時は`PENDING`へ戻して新しい`next_attempt_at`を設定します。claim後のWorker停止はlease期限切れ`PROCESSING`の再取得で回復します。
 
-取得indexは`(status, next_attempt_at, created_at, id)`とします。lease時間、retry上限、backoff初期値・最大値はruntime parameterとし、DB schemaの固定値にはしません。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。`FAILED`は削除未完了・整合性未収束の運用対応待ちなので自動cleanupしません。完了したoperationはMedia物理削除と同時には削除せず、運用・障害調査用の履歴として一定期間保持した後にcleanupします。具体的な保持期間とcleanup intervalは運用設計で確定します。
+取得indexは`(status, next_attempt_at, created_at, id)`とします。lease時間、retry上限、backoff初期値・最大値はruntime parameterとし、DB schemaの固定値にはしません。このtableは復元機能ではなく、削除を最終的に完了させるために使用します。`FAILED`は削除未完了・整合性未収束の運用対応待ちなので自動cleanupしません。完了したoperationはMedia物理削除と同時には削除せず、運用・障害調査用の履歴として完了後7日間保持してからbatch cleanup対象とします。cleanupの実行間隔は運用実装で調整可能とし、保持保証を7日未満にはしません。
 
 ## 削除規則
 
@@ -370,3 +370,10 @@ Storage Workerは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now
 `communities`、`community_memberships`、`community_invitations`、`community_join_requests`の定義、constraint、indexは[Community物理データモデル](/community/physical-data-model)を正本とします。Administrator専用tableは使用しません。
 
 Media domainは`media_custodies`と`media_community_accesses`を所有し、Communityへの参照と共有・管理関係を定義します。
+
+
+## Media非同期処理のruntime baseline
+
+Outbox Publisherはclaim batch 100件、poll interval 1秒、claim lease 30秒、transient failureのretryを1秒開始・最大5分のexponential backoffとします。transient failureはattempt回数だけで`FAILED`にせず、恒久的な配送不能だけを`FAILED`とします。
+
+Storage Operationは最大10 attempts、30秒開始・最大30分のexponential backoff、claim lease 5分とします。Object StorageのDELETEでNot Foundは成功として扱います。retry不能な恒久障害は上限を待たず`FAILED`にでき、`FAILED`は自動削除しません。`COMPLETED`は完了後7日保持してcleanup対象とします。

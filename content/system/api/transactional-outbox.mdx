@@ -1,5 +1,7 @@
 # Transactional Outbox
 
+> 全体の責務分担、failure path、シーケンス図、採用理由は[Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)を参照してください。
+
 ## 概要
 
 > 実装状況: Outbox table、Outbox Publisher、Redis Streamsへの配送、再試行は未実装です。
@@ -35,13 +37,13 @@ Outboxは記録するだけでは再送されません。常駐するOutbox Publ
 | Redisへ配送成功 | `published_at`を記録する |
 | Redisへ配送失敗 | eventを未送信のまま保持し、次回retryする |
 | Publisherが停止 | 再起動後に未送信eventを回収する |
-| 最大retryを超過 | `FAILED`として運用から確認できるようにする |
+| 恒久的な配送不能 | `FAILED`として運用から確認できるようにする |
 
 Publisherは短いDB transactionで実行可能な`PENDING` event、またはclaim lease期限が切れた`PROCESSING` eventを`FOR UPDATE SKIP LOCKED`でbatch取得し、`PROCESSING`へ遷移させて`next_attempt_at`へlease期限を保存してcommitします。Redisへの`XADD`中はPostgreSQL row lockを保持しません。
 
-`XADD`成功後は別transactionで`PUBLISHED`と`published_at`を確定します。失敗時は`attempt_count`を増加し、retry可能な場合は次回実行時刻を`next_attempt_at`へ設定します。自動retry上限へ到達したeventは`FAILED`とし、自動取得対象から外します。運用者が再開する場合は`PENDING`へ戻します。Publisherがclaim後に停止した場合は、`PROCESSING`かつlease期限到達済みのeventを別Publisherが回収します。
+`XADD`成功後は別transactionで`PUBLISHED`と`published_at`を確定します。失敗時は`attempt_count`を増加し、retry可能な場合は次回実行時刻を`next_attempt_at`へ設定します。Redis unavailable等のtransient failureはattempt回数だけを理由に`FAILED`へ遷移させず、1秒から開始して最大5分までのexponential backoffで`PENDING`へ戻し続けます。unsupported event contract、永続payload不正、serialization不能などretryしても回復しない恒久的な配送不能だけを`FAILED`とし、自動取得対象から外します。運用者が原因解消後に再開する場合は`PENDING`へ戻します。Publisherがclaim後に停止した場合は、`PROCESSING`かつlease期限到達済みのeventを別Publisherが回収します。
 
-`next_attempt_at`は`PENDING`では実行可能時刻、`PROCESSING`ではclaim lease期限として統一して使用します。新規`PENDING` eventは原則`created_at`を設定します。Publisherは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`を対象にし、`created_at, id`で安定順序を付けます。
+`next_attempt_at`は`PENDING`では実行可能時刻、`PROCESSING`ではclaim lease期限として統一して使用します。新規`PENDING` eventは原則`created_at`を設定します。Publisherは`status IN ('PENDING', 'PROCESSING') AND next_attempt_at <= now()`を対象にし、`created_at, id`で安定順序を付けます。Initial Releaseのruntime baselineはclaim batch 100件、通常poll interval 1秒、claim lease 30秒、retry backoff 1秒開始・最大5分とします。
 
 `PUBLISHED` eventは障害調査のため`published_at`から7日間保持し、その後batchで物理削除します。未配送・処理中・運用対応待ちである`PENDING` / `PROCESSING` / `FAILED`は自動cleanupしません。Outbox retentionは利用者操作traceであるMedia Eventの保持方針とは独立です。
 
@@ -63,3 +65,16 @@ Outboxだけをqueueとして利用する方式も成立しますが、業務dat
 業務dataの更新と後続の非同期処理を必ず連動させる操作に適用します。DB更新がなく、Redis送信失敗をrequest errorとして返せばよい処理にまで機械的にOutboxを導入しません。
 
 Outbox eventは配送のための技術情報です。[Media Event](/ubiquitous#media-event)は利用者操作のtraceであり、目的、保持期間、tableを分けます。
+
+
+## Media processing event
+
+Initial ReleaseのMedia非同期処理要求は`MEDIA_PROCESSING_REQUESTED` version 1を使用します。`aggregate_id`はMedia ID、payloadはProcessing Jobを参照する最小契約として次の形に限定します。
+
+```json
+{
+  "job_id": "<Processing Job ID>"
+}
+```
+
+Workerが必要とするMedia、Image、Original、Variant生成条件等はPostgreSQLを正本として取得し、Outbox payloadへsnapshotしません。

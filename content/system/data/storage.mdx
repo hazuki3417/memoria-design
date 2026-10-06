@@ -10,12 +10,12 @@ DBはMediaの属性・管理主体・公開関係、Object Storageは原本と�
 
 ```text
 media/{mediaId}/original/source.{extension}
-media/{mediaId}/variants/{width}.webp
+media/{mediaId}/variants/{jobId}/{width}.webp
 downloads/{downloadRequestId}.zip
 ```
 
 - `original/source.{extension}`は変更していない原本です。
-- `variants/{width}.webp`はアスペクト比を維持した幅別の表示用画像です。
+- `variants/{jobId}/{width}.webp`はアスペクト比を維持した幅別の表示用画像です。Job固有keyへ完全な集合を生成し、公開状態はObject pathではなくDBの`image_variants.storage_key`を正本とします。
 - 一覧と詳細表示は同じVariant集合を使用し、thumbnail用とpreview用のfileは分けません。
 - User IDやCommunity IDをpathへ含めず、管理委譲でObjectを移動しません。
 - watermark付きfileは要求がないため生成しません。
