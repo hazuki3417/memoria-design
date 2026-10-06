@@ -1,5 +1,7 @@
 # Mediaの整合性とTransaction
 
+> 全体の責務分担、failure path、シーケンス図、採用理由は[Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)を参照してください。
+
 ## 概要
 
 > 実装状況: ImageのDB・Object Storage操作は存在しますが、Custody・Access・Eventとstorage operationを含むtransaction設計は未実装です。
