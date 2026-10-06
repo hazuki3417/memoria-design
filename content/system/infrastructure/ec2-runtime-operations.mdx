@@ -4,7 +4,7 @@
 
 > 実装状況: IaCにEC2、private S3、IAMなどの初期定義があります。PostgreSQL / Redis HA container、multi-host配置、EBS、SSM deploy、migration、backup、restore、実運用監視は未実装です。
 
-初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心に定義します。ProductionではApplicationとstateful serviceを単一EC2へ同居させる構成を可用性Baselineにせず、PostgreSQLとRedisのHA topologyを複数Failure Domainへ配置できる構成とします。低コスト検証環境ではSingle nodeを許容します。通常のlocal developmentではPostgreSQLはSingle nodeを許容し、RedisはRedis Data x3 / Sentinel x3を標準構成とします。
+初回Releaseの実行基盤をEC2、Docker、EBS、S3、IAM、Security Group、SSMを中心に定義します。Initial ReleaseのProduction baselineは、コストと初期運用規模を優先して単一EC2上にApplicationとstateful serviceを配置する構成とします。これは単一障害点を受容する明示的な初期判断であり、Infrastructure-level HAを満たすとは扱いません。停止時はbackup / durable state / IaC / immutable imageから復旧できることを必須とし、利用規模・可用性要求・復旧実績が見直し条件へ達した場合にmulti-host / managed serviceを含むHA構成へ移行します。通常のlocal developmentではPostgreSQLはSingle nodeを許容し、RedisはRedis Data x3 / Sentinel x3をsoftware failover検証の標準構成とします。
 
 ## 実行構成と責務
 
@@ -18,13 +18,13 @@
 | Redis containers | Stream、cache、再構築可能な一時状態、Sentinel HA | memoria-api・memoria-IaC |
 | OpenTelemetry Collector | trace・metric収集 | memoria-IaC |
 
-API、Worker、Publisherは論理的に分離します。Productionの物理配置はFailure Domainとresource要求を考慮して決定し、stateful HA nodeを同一Hostへ集約して冗長構成とはみなしません。CollectorはApplicationの可用性依存先にせず、Collector停止だけでApplicationを停止させません。
+API、Worker、Publisherは論理的に分離します。Initial Release Productionではこれらを単一EC2へ配置できます。Redis Data / Sentinelを同一Hostで複数起動してもsoftware-level failover検証であり、Host failureに対するHAとはみなしません。HAへ移行する場合はstateful nodeを複数Failure Domainへ分散し、同一Hostへの集約を冗長構成とはみなしません。CollectorはApplicationの可用性依存先にせず、Collector停止だけでApplicationを停止させません。
 
 ## DevelopmentとProductionのTopology
 
 DevelopmentではDocker Composeを使用します。PostgreSQLは通常開発でSingle nodeを許容し、HA検証時にProduction相当のPostgreSQL HAを再現します。Redisは通常開発からRedis Data x3 / Sentinel x3 / quorum 2を標準構成とし、Single RedisやHA profileへの切り替えを標準手順にしません。Redisの詳細なDevelopment topologyは[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)を正本とします。
 
-Development用Composeを無変更でProductionへ使用しません。共通化するのはcontainer image、version、HA software、startup command、health check、基本configuration template、metrics integration、network / service naming conventionです。ProductionではEBS、Secrets Manager / SSM等のcredential管理、実resource limit、multi-host / multi-AZ、backup / archive、monitoring / alertingを環境固有設定として適用します。
+Development用Composeを無変更でProductionへ使用しません。共通化するのはcontainer image、version、HA software、startup command、health check、基本configuration template、metrics integration、network / service naming conventionです。ProductionではEBS、Secrets Manager / SSM等のcredential管理、実resource limit、backup / archive、monitoring / alertingを環境固有設定として適用します。multi-host / multi-AZはInitial Release必須条件ではなく、HA移行後のProduction topologyで適用します。
 
 Local HAはsoftware-level failover、reconnect、election、recoveryを検証するためのものです。同一Docker Host上の複数containerをInfrastructure-level HAとはみなしません。Host / network / AZ / disk failureはAWS上の検証環境で確認します。
 
@@ -50,4 +50,19 @@ PostgreSQLとS3 Originalを必須復旧対象とし、RedisはPostgreSQL上のOu
 
 ReplicationはBackupではありません。DB backup、WAL archive、EBS、暗号化、保持期間、restore確認は[PostgreSQL・Redis運用](/system/data/postgresql-redis-operations)に従います。RPO、RTO、retention、監視thresholdは[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。
 
-RDS、ElastiCache、ECS/Fargate、Multi-Region、Kubernetes、Service Mesh、advanced WAFは初期の必須構成に含めません。managed serviceや別runtimeへの移行は、負荷、障害、運用時間、費用の実測に基づいて再評価します。PostgreSQL / RedisのHAそのものはProduction Baselineとして扱い、managed service導入とは別判断にします。
+RDS、ElastiCache、ECS/Fargate、Multi-Region、Kubernetes、Service Mesh、advanced WAFは初期の必須構成に含めません。managed serviceや別runtimeへの移行は、負荷、障害、運用時間、費用の実測に基づいて再評価します。PostgreSQL / RedisのHAはInitial Release Production Baselineには含めません。managed service導入とHA化は別判断ですが、いずれも利用規模、実障害、RPO / RTO、復旧演習、運用負荷、費用の実測をもとに再評価します。
+
+
+## Initial Release Production topology decision
+
+Initial Releaseはsingle EC2を正式なProduction baselineとします。月間99.0%は運用目標であり、このtopologyでInfrastructure-level HAや無停止failoverを保証する意味ではありません。
+
+HA移行を再評価するtriggerは、少なくとも次のいずれかです。
+
+- 単一Host障害による停止が現在のRTO 24時間を満たせない、または停止許容が縮小した。
+- 日次backup / restore drillでRPO 24時間またはRTO 24時間を継続して満たせない。
+- EC2のCPU、memory、network、disk競合によりAPI / async processingのNFRを継続して満たせない。
+- 利用者・保存量・business importanceの増加によりsingle point of failureを受容できなくなった。
+- 障害対応・backup・upgrade等の自己運用負荷がmanaged serviceとの差額を正当化する水準へ達した。
+
+trigger到達時は、Application stateless hostの複数化、PostgreSQL failover / managed DB、Redis multi-failure-domain配置 / managed Redisを個別に評価します。一度に全componentを移行することを前提にしません。
