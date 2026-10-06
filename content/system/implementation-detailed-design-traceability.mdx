@@ -215,3 +215,45 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - [Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)を、UploadからVariant publication・failure recoveryまでの横断的な理解を補助する入口として追加した。
 - このguideは新しい仕様の正本を作るものではなく、Media transaction、Processing Job、Outbox、Idempotency、Redis ownership、Storage Operation、orphan reconciliationの既存正本が解決する問題と責務を関連付ける。
 - 正常系、DB rollback compensation、Outbox delivery、Processing Job state、Redis data loss recovery、Job-scoped Variant publicationをMermaid図で可視化し、APIからRedisへ直接publishしない等の非採用理由も記録する。
+
+## Backend API detailed design pass
+
+今回の詳細設計scopeは `memoria-api` のPublic API、Application境界、async runtime、Persistence連携、API test contractです。Webの画面実装詳細とInfrastructureのnode配置、HA、backup / restore、監視通知等は今回のscope外とし、各正本 / Issueで別途扱います。
+
+### 合意済みの実装境界
+
+- dependency directionは `transport / worker -> application -> domain`。Persistence / Redis / Storage / Auth0はApplication portのadapterとし、Domain / Applicationへframework / SQL / Redis / AWS SDK typeを漏らさない。
+- package責務とdependency rule、Transaction境界、port capabilityは固定するが、具体的なGo package / interface / method signatureは実装前に過剰固定しない。
+- Application Use CaseがTransaction境界を所有し、同一scopeのRepositoryは同じPostgreSQL transactionを共有する。外部I/Oとの整合性はOutbox / Storage Operation等で保証する。
+- Resolver / HTTP HandlerはTransport adapterとして薄くし、business authorization、state transition、transaction orchestrationをApplication / Domainへ置く。
+- AuthenticationはTransport / Infrastructure、business authorizationはApplication / Domainが担当する。
+- WriteはDomain invariantをRepositoryで維持し、ReadはQuery Serviceによるjoin / projectionを許可する。Initial Releaseで別read storeは導入しない。
+- Workerはdelivery / execution orchestration、ApplicationはUse Case、PostgreSQLはdurable business stateを担当する。Redis messageをbusiness truthとせず、識別子からPostgreSQL stateを再取得する。
+- API Server、Outbox Publisher、Media Worker、Storage Operation Worker等は論理的に独立したprocess roleとする。Docker / EC2への物理配置はInfrastructure設計へ委ねる。
+
+### Public API contract
+
+- GraphQLのsemantic designはmemoria-design、実行可能SDLは `memoria-api/schemas/graphql/*.graphql`、consumer operation / generated typeはconsumer repositoryが所有する。SDL全文をdesignへ複製しない。
+- Schema evolutionは additive API → consumer migration → deprecated removal とし、cross-repository simultaneous deployを前提にしない。
+- PaginationはRelay Cursor Connections Specificationへ準拠し、cursorはopaqueとする。sort semanticsは各Query contractで定義する。
+- Mediaのpublic processing stateは `PROCESSING / READY / FAILED` のみとし、Processing Jobのattempt、PEL、lease等の内部状態を公開しない。
+- Media Uploadは `POST /api/media/uploads`、`multipart/form-data`、1 request = 1 Mediaとする。`Idempotency-Key` はHTTP headerで必須とし、bodyのbusiness inputと分離する。
+- Upload成功responseは `mediaId` と `processingStatus` の受付結果だけを返し、Media query modelはGraphQLから取得する。
+- GraphQLとHTTPはTransport表現を分離しつつ、Clientが判断するstable Application error semanticsを可能な範囲で共通化する。
+- 全GraphQL Mutationへ汎用Idempotency middlewareを一律導入せず、副作用重複が問題になるUse Caseだけ明示的なidempotency contractを持たせる。
+
+### GraphQL protection limits
+
+防御機構は必須とし、具体値はSchema / consumer Operation実装後に計測して確定する。実測前は暫定値としてrequest body 1 MiB、depth 12、complexity 1000、execution timeout 10秒を使用する。既存NFRのrate limitとConnection件数上限は維持する。
+
+### Test contract
+
+coverage percentageだけをrelease gateにせず、Domain/Application unit、real PostgreSQL integration、real Redis integration、Storage adapter integration、GraphQL / HTTP contract、migration upgrade、async duplicate / retry / restart / Redis loss recoveryを設計上の必須検証対象とする。DB lock、constraint、Redis PEL ownership等をmockだけで検証完了とは扱わない。
+
+### Scope外 / 保留
+
+- PostgreSQL / RedisのProduction topology、HA配置、automatic failover、backup / restore方式。
+- EC2 / Dockerの物理配置、monitoring / alert delivery等のInfrastructure詳細。
+- Web implementation / Apollo cache / component / routing等のFrontend詳細。
+
+これらを今回のBackend API詳細設計で簡略化・変更しない。Infrastructureについて既存正本にある構成は維持し、別scopeで設計する。

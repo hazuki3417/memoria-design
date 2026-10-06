@@ -6,7 +6,7 @@
 
 本ページはInitial ReleaseでWeb Clientから利用するGraphQLの型、Query、Mutation、認可、error、pagination、非同期状態の契約を定義します。APIはschema、Webはoperation・fragment・生成型を所有します。resolver、DataLoader、schema進化、Access Token、GraphQL Errorの実装規約は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照します。
 
-GraphQL I/Fは現時点のProduct / Domain契約から確定できる範囲を実行可能SDLへ引き渡します。Original downloadは既存Security / Storage契約に従い単一Mediaの短期署名URL発行まで確定しています。Account deletionの再認証bindingだけはAuth0 / BFFとのSecurity境界が未確定のため、論理契約を維持しつつ具体SDLの確定を保留します。Product / domain semanticsは変更しません。
+GraphQL I/Fは現時点のProduct / Domain契約から確定できる範囲を実行可能SDLへ引き渡します。Original downloadは既存Security / Storage契約に従い単一Mediaの短期署名URL発行まで確定しています。Account deletionの再認証bindingは、BFFによるAuth0強制再認証とPostgreSQL上の短期Server-side bindingをSecurity境界として確定しています。Browser向けSDLにはproofを公開せず、`reviewToken` と有効なbindingを最終確定時にServer側で照合します。Product / domain semanticsは変更しません。
 
 ## 契約原則
 
@@ -24,6 +24,21 @@ GraphQL I/Fは現時点のProduct / Domain契約から確定できる範囲を�
 - request size、Query depth / complexity、取得件数、rate limitに用途に応じた上限を設けます。
 - DB更新と非同期処理の連動はTransactional Outboxを利用し、Redis配送完了をMutation成功条件にしません。
 - 管理主体委譲、User起点Join Request、動画OperationはInitial ReleaseのGraphQL契約へ含めません。
+
+## GraphQL protection limits
+
+request size、query depth / complexity、execution timeoutは防御機構を必須とし、consumerで使用する全OperationをCIで検証します。具体値はSchema / Operation実装後の計測で確定し、実測前の値を恒久contractとは扱いません。
+
+Initial provisional valueは次のとおりです。
+
+| 項目 | 暫定値 |
+| --- | --- |
+| GraphQL HTTP request body | 1 MiB |
+| Query depth | 12 |
+| Query complexity | 1000 |
+| Execution timeout | 10秒 |
+
+既存NFRのrate limit（User 60 requests/minute、burst 20）とConnection取得件数（default 30、max 100）は別layerの既存contractとして維持します。実装後、正規のconsumer Operationを計測し、正常な最大Operationへ十分なmarginを持つ値へ更新します。
 
 ## モデル中心の公開境界
 
@@ -70,6 +85,16 @@ enum CommunityRole {
   ADMIN
 }
 
+enum CommunityMemberSort {
+  NAME
+  ROLE
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
 enum MediaType {
   IMAGE
   VIDEO
@@ -81,11 +106,9 @@ enum MediaStatus {
 }
 
 enum ProcessingStatus {
-  PENDING
   PROCESSING
-  COMPLETED
+  READY
   FAILED
-  CANCELLED
 }
 
 enum DateFormat {
@@ -168,7 +191,8 @@ type PageInfo {
 - 既定取得件数は30件、最大取得件数は100件です。
 - 0以下、上限超過、`before + first`、`after + last`、`first + last` は `VALIDATION` とします。
 - edgeは `cursor` と `node`、connectionは `edges` と `pageInfo` を返します。
-- cursorはopaqueとし、ClientがDB key構造へ依存しないようにします。
+- Connection / Edge / `node` / `cursor` / `pageInfo` と `first` / `after` / `last` / `before` の意味はRelay Cursor Connections Specificationへ準拠します。
+- cursorはopaqueとし、ClientがDB key構造へ依存しないようにします。Pagination mechanismは共通化しますが、business上のsort semanticsは各Query契約で定義します。
 - Media一覧は既存設計どおり `createdAt DESC, id DESC` を論理順とします。
 - Group / Tag一覧はname ASC、同名時ID ASCとし、対応するopaque cursorを使用します。Community / Membership一覧の具体的sortとcursor keyは、Product仕様で未確定のため本契約だけで新規決定しません。
 
@@ -271,7 +295,7 @@ extend type Mutation {
 type Community {
   id: ID!
   name: String!
-  members(first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
+  members(first: Int, after: String, last: Int, before: String, sort: CommunityMemberSort = NAME, direction: SortDirection = ASC): CommunityMembershipConnection!
   myMembership: CommunityMembership!
   mySettings: CommunityUserSettings!
   createdAt: DateTime!
@@ -316,6 +340,8 @@ extend type Query {
 `community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。`Community.myMembership` は現在の認証User本人の有効なMembershipを直接返し、ページングされた `Community.members` に本人が含まれるかどうかに依存しません。`members` は本人を除外せず、全参加者を対象とします。両fieldは同じ保存済みMembershipを参照し、二重保存しません。`community(id:)` は有効なMembershipを持つUserにのみ公開するため、取得可能なCommunityの `myMembership` は非nullです。Membership失効時はCommunity取得と各fieldの認可を再評価し、Clientの表示済みroleを認可根拠にしません。
 
 `Community.mySettings` は現在の認証User × Communityに属するpresentation settingを返します。Initial ReleaseではAccent Colorだけを持ち、Community brandingやCommunity本体の属性にはしません。`myCommunities` から各 `Community.mySettings.accentColor` を取得できるため、Context Switcher専用のAccent Queryは追加しません。有効なMembershipを持つUserだけがCommunityを取得できるため、取得可能なCommunityでは `mySettings` も非nullです。
+
+`Community.members` の既定順は現在のnickname昇順、同値時はUser ID昇順です。`sort: NAME` はnickname、`sort: ROLE` はroleを主keyとし、指定directionを主keyへ適用した後、安定化keyとしてUser IDを同方向で使用します。cursorは `(sort kind, direction, normalized primary value, user id)` に対応するopaque値で、Clientは内容を解釈しません。nicknameはUser domain所有のため、Query ServiceはMembershipと現在User Profileをjoinして同一snapshot内でpage境界を評価します。role / nicknameがpage取得間に変更された場合、cursor paginationは最新状態を基準に再評価されるため、Webは管理操作後に対象Connectionをrefetchします。参加日時sortはInitial Releaseへ追加しません。
 
 Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.myMembership` は本人のrole取得、`Community.members` は本人を含む全参加者一覧の取得に使います。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
 
@@ -539,7 +565,7 @@ Image Variantは `Media -> Image -> ImageVariant` の構造を正本とします
 
 `uploadedBy` はUploader削除後も「削除済みUser」を表現できる必要があります。削除前nickname等を保持しないため、削除済みUploaderにnicknameを返しません。
 
-`processing` はClientがVariant生成中・完了・terminal failureを区別するための利用者向け状態です。内部のattempt数、Redis ownership、内部error本文は公開しません。
+`processing` はClientがVariant生成中・完了・terminal failureを区別するためのMedia-level状態です。内部Processing Jobの `PENDING` / `PROCESSING` は `PROCESSING`、`COMPLETED` は `READY`、`FAILED` は `FAILED` へ写像します。`CANCELLED`、attempt数、Redis ownership、lease、内部error本文等のJob runtime状態は公開しません。
 
 ### Personal / Community一覧と詳細
 
@@ -1140,7 +1166,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte値は `Int64` を使用し、wire上は10進文字列として扱う。
 - Community削除はCommunity管理Mediaの存在を `CONFLICT` 条件にせず、`ACTIVE → DELETING` とMedia削除Lifecycleを実装する。
 - `mediaOriginalDownload` は単一Mediaの5分署名URL + `expiresAt` を実装引き渡し対象とする。複数Media ZIPはInitial Release対象外とする。Account deletionは公開GraphQLから `reauthenticationProof` を除外し、`reviewToken` とServer-side reauthentication bindingを使用する。BFF→APIのbinding登録境界はBrowser向けGraphQL Schemaとは分離する。
-- 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
+- 専用HTTP upload endpointのpath、multipart request / response詳細は[Media Upload HTTP契約](./http-media-upload)を正本とする。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
 ## レビュー時の要判断事項
 
@@ -1151,7 +1177,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 3. **Bulk result表現（確定）**: 共有・共有解除・Group分類・Tag分類に専用のitem result型を設ける。状態の意味は共通 `BulkItemStatus`（`SUCCEEDED` / `ALREADY_APPLIED` / `FAILED`）で統一し、各resultは `mediaId` / `status` / `errorCode` を持つ。操作固有の結果fieldは必要になった時点で個別に追加する。
 4. **Invitation secret返却（確定）**: APIが完全な招待URLを生成し、Administrator向け `CommunityInvitation.url` で返す。Web ClientはURLを組み立てない。招待URLはsecretとして取り扱い、非Administrator向けQueryへ公開しない。
 5. **Original download契約（確定）**: Initial Releaseの単一Media Original downloadは `mediaOriginalDownload(mediaId:)` で認可後に5分の期限付き署名URLと `expiresAt` を返す。Storage keyは公開しない。複数Media ZIPはInitial Release対象外とし、将来別契約で設計する。
-6. **Account deletion binding（保留）**: 削除前の再認証とReview内容へのbinding要件は維持するが、Auth0再認証の証明方法・保持方法・有効期限は未確定。現在の `reviewToken` / `reauthenticationProof` は論理上の暫定表現であり、実装確定契約には含めない。
+6. **Account deletion binding（確定）**: BFFがAuth0 `prompt=login` + `max_age=0` で強制再認証し、成功callback後にAPIへ内部境界でbindingを登録する。APIはPostgreSQLに `review + User + reauthenticatedAt + expiresAt + consumed state` を保持し、10分だけ有効とする。Browser向けSDLには `reauthenticationProof` を公開せず、`confirmAccountDeletion` は `reviewToken` とServer-side bindingを照合して成功時にconsumeする。
 7. **Idempotency対象（確定）**: Community削除にも `idempotencyKey` を必須とする。通信断や再送時は同一keyで同じ削除受付結果を再現し、削除処理を重複実行しない。Upload・Media削除・account削除と同様に[冪等性と再試行](./idempotency)の共通規則を適用する。
 8. **Group / Tag list sort・search matching・cursor（確定）**: Group・Tag一覧はname昇順、同名時はID昇順で順序を固定する。`search` はnameの大文字・小文字を区別する部分一致とする。Relay Connectionのcursorはこの並び順に対応したopaqueな値とし、Clientに内部keyを公開しない。
 9. **Group relation editor契約（確定）**: `MediaGroup.parents` / `children` / `media` を表示用Connectionとして公開し、編集候補は `mediaGroupRelationCandidates` から現在relationとParent / Child各方向のAction availabilityを取得する。保存は `updateMediaGroup` でnameとrelation Draft差分を1つのUser intentとして送信し、relation changeは部分成功を許容する。APIは最新DAGに対してcycle・深度・直接relation数上限を再検証する。
@@ -1165,4 +1191,4 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 16. **Media Update / UploadのTag保存（確定）**: 画面専用の最終Tag集合Mutationは追加せず、Tag作成とTag分類CommandをWeb Operationが編成する。各Mutationは独立transactionとし、部分失敗後はServerの成立済み状態を再取得して差分を再評価する。
 17. **Usage契約（確定）**: APIは総Media件数、Storage使用byte数、その時点のeffective limitを返す。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値は既存 `Int64` scalarを使用し、wire上は10進文字列としてserializeする。
 
-これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。5・6の詳細設計はIssueで追跡し、対象のSDLは詳細設計後に引き渡します。
+これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。上記項目はInitial ReleaseのTransport contractとして確定済みです。専用HTTP upload endpointのroute / multipart形式など、GraphQL外のtransport詳細はSystem-wide detailed designで引き渡します。

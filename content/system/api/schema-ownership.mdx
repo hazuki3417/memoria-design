@@ -1,0 +1,29 @@
+# API Schema Ownershipと同期
+
+## Source of Truth
+
+Product / Domain上のAPI semanticsはmemoria-designのGraphQL契約を設計正本とします。実行可能なGraphQL SDLは `memoria-api/schemas/graphql/*.graphql` がruntime sourceです。Webが使用するOperation / Fragmentと生成型はmemoria-webが所有します。
+
+同じSDL全文をmemoria-designへmirrorして二重正本にしません。Designは型・field・nullability・authorization・pagination・error semanticsをレビュー可能な契約として保持し、API実装PRでexecutable SDLへ反映します。
+
+## Change flow
+
+1. Product semantics変更がある場合は先にmemoria-designを更新・合意する。
+2. memoria-apiでSDL、resolver boundary、generated code、contract testを同じPRで更新する。
+3. additive changeを優先し、既存Web利用fieldのrename / removeはdeprecation期間を置く。
+4. memoria-webでschemaを入力にOperation validation / codegenを実行し、generated typeとoperationを更新する。
+5. removalは既存consumerが移行済みであることを確認してから行う。
+
+単なるimplementation detailでProduct contractを変えない変更はdesign全文の再記述を要求しませんが、公開field / nullability / error / authorization semanticsが変わる場合はdesign更新が必要です。
+
+## CI drift detection
+
+memoria-apiはschemaからgenerated Go codeを再生成した結果にdiffがないことをCIで検証します。generated codeの手編集を禁止します。
+
+memoria-webは対象schemaに対して全Operation / Fragment validationとtype generationをCIで実行し、存在しないfield、nullability mismatch、enum driftを検出します。
+
+Cross-repository CIが常に同一commitで動くことを前提にしません。互換変更順序はAPI additive → Web migrate → API deprecated removalとし、各repositoryのdevelopが一時的に異なるversionでも動作可能にします。
+
+## Review checklist
+
+公開SDL変更では、design contract、authorization、error、pagination/cache key、Web consumer、generated diff、migrationの要否を確認します。GraphQL fieldをDB column名へ機械的に合わせるrenameや、画面都合だけの重複Query追加を行いません。

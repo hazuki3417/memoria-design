@@ -49,7 +49,7 @@ erDiagram
 | role | varchar(16) | NOT NULL、CHECK | `member` / `admin` |
 | joined_at | timestamptz | NOT NULL | 参加時刻 |
 
-PKは`(community_id, user_id)`です。Userが参加しているCommunityのlookup用に`(user_id, community_id)`へindexを追加します。Community内のMember一覧はScreen Specificationに従って既定を現在のnickname順とし、名前またはroleの単一column sortを提供します。参加日時はInitial Releaseの表示・sort契約に使用しません。nicknameはUser domainが所有するため、Community Membership単独の`joined_at` indexをUI一覧順の正本にはしません。具体的なcross-domain query、cursor、indexはGraphQL / query実装設計で確定します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、User参照は`ON DELETE RESTRICT`とします。User削除flowでは必要なCommunity / Media cleanupを完了してMembershipを明示削除した後にUserを物理削除します。
+PKは`(community_id, user_id)`です。Userが参加しているCommunityのlookup用に`(user_id, community_id)`へindexを追加します。Community内のMember一覧はScreen Specificationに従って既定を現在のnickname順とし、名前またはroleの単一column sortを提供します。参加日時はInitial Releaseの表示・sort契約に使用しません。nicknameはUser domainが所有するため、Community Membership単独の`joined_at` indexをUI一覧順の正本にはしません。cross-domain queryとcursorは[GraphQL契約](/system/api/graphql)を正本とし、Query ServiceがMembershipと現在User Profileをjoinして `NAME` / `ROLE` のkeyset paginationを実行します。nicknameはUser domain所有のためCommunity tableへ複製しません。初期Releaseでは実測なしに冗長なcross-schema indexを追加せず、Membershipの `(community_id, user_id)` PKとUser PKを基礎にquery planを検証し、必要性が確認されたindexだけmigrationで追加します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、User参照は`ON DELETE RESTRICT`とします。User削除flowでは必要なCommunity / Media cleanupを完了してMembershipを明示削除した後にUserを物理削除します。
 
 ### community_user_settings
 
@@ -63,60 +63,7 @@ PKは`(community_id, user_id)`です。Userが参加しているCommunityのlook
 
 PKは `(community_id, user_id)` とし、同じ複合keyで `community_memberships(community_id, user_id)` を参照して `ON DELETE CASCADE` とします。これによりsettingはMembership lifecycleへ従属し、退会・除外時に同時削除されます。再参加時は過去recordを復元せず、新しい初期Accentを生成します。
 
-AccentはApplicationで `#RRGGBB` へ正規化し、DBでも `^#[0-9A-F]{6}# Community物理データモデル
-
-## 概要
-
-> 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
-
-Community domainが所有するPostgreSQL table、column、PK、FK、index、削除規則を定義します。
-
-## PostgreSQL schema
-
-本domainが所有するrelationは`community` schemaへ配置します。schema名と共通の参照規約は[物理データモデル共通規約](/system/data/physical-model-conventions)を正本とします。
-
-## 共通規約
-
-ID、日時、命名、constraint、index、削除方針は[物理データモデル共通規約](/system/data/physical-model-conventions)に従います。本ページではCommunity domain固有の定義と例外を記載します。
-
-## 全体ER
-
-```mermaid
-erDiagram
-  COMMUNITIES ||--o{ COMMUNITY_MEMBERSHIPS : has
-  USERS ||--o{ COMMUNITY_MEMBERSHIPS : joins
-  COMMUNITY_MEMBERSHIPS ||--|| COMMUNITY_USER_SETTINGS : settings
-  COMMUNITIES ||--o{ COMMUNITY_INVITATIONS : issues
-  USERS ||--o{ COMMUNITY_JOIN_REQUESTS : requests
-  COMMUNITIES ||--o{ COMMUNITY_JOIN_REQUESTS : receives
-```
-
-## 所有table
-
-### communities
-
-| 列 | 型 | 制約 | 意味 |
-| --- | --- | --- | --- |
-| id | varchar(26) | PK | Community ID |
-| name | text | NOT NULL、前後空白除去後に空でない | 表示名。同名を許可 |
-| status | varchar(16) | NOT NULL、CHECK | `ACTIVE` / `DELETING` |
-| created_at | timestamptz | NOT NULL | 作成時刻 |
-| updated_at | timestamptz | NOT NULL | 更新時刻 |
-
-説明、作成者、親Communityは保持しません。通常操作は`ACTIVE`だけを対象とし、削除受付時に`DELETING`へ遷移します。`DELETING`から`ACTIVE`へ戻す復元操作は提供しません。
-
-### community_memberships
-
-| 列 | 型 | 制約 | 意味 |
-| --- | --- | --- | --- |
-| community_id | varchar(26) | FK communities ON DELETE CASCADE | 所属先 |
-| user_id | varchar(26) | FK users ON DELETE RESTRICT | 参加User |
-| role | varchar(16) | NOT NULL、CHECK | `member` / `admin` |
-| joined_at | timestamptz | NOT NULL | 参加時刻 |
-
-PKは`(community_id, user_id)`です。Userが参加しているCommunityのlookup用に`(user_id, community_id)`へindexを追加します。Community内のMember一覧はScreen Specificationに従って既定を現在のnickname順とし、名前またはroleの単一column sortを提供します。参加日時はInitial Releaseの表示・sort契約に使用しません。nicknameはUser domainが所有するため、Community Membership単独の`joined_at` indexをUI一覧順の正本にはしません。具体的なcross-domain query、cursor、indexはGraphQL / query実装設計で確定します。Administrator専用tableは設けず、`role = 'admin'`のMembershipがAdministrator権限を表します。Communityごとに1人以上の`admin`を維持する条件は、Community行lockとService transactionで保証します。退会・User削除時は共有解除や最終Administrator確認が必要なため、User参照は`ON DELETE RESTRICT`とします。User削除flowでは必要なCommunity / Media cleanupを完了してMembershipを明示削除した後にUserを物理削除します。
-
- 相当のCHECKで形式を防御します。Community作成時とInvitation参加成立時はMembership作成と同じTransaction内でsettingを作成し、Membershipだけ存在してsettingが欠落するcommitを許可しません。
+AccentはApplicationで `#RRGGBB` へ正規化し、DBでも `^#[0-9A-F]{6AccentはApplicationで `#RRGGBB` へ正規化し、DBでも `^#[0-9A-F]{6}$` 相当のCHECKで形式を防御します。Community作成時とInvitation参加成立時はMembership作成と同じTransaction内でsettingを作成し、Membershipだけ存在してsettingが欠落するcommitを許可しません。
 
 初期AccentはHSLで生成します。Hueは `0 <= H < 360`、Saturationは55–75%、Lightnessは40–60%から一様乱数で選び、RGBへ変換して大文字 `#RRGGBB` として保存します。同一Userが現在Membershipを持つ他CommunityのAccentとの完全一致だけを衝突として扱い、類似色は許容します。衝突時は最大10回random生成を再試行します。10回すべて衝突した場合は最後の候補を起点にHueを決定的にずらし、現在使用中のAccentと完全一致しない値を選ぶfallbackを使用します。乱数衝突だけを理由にCommunity作成・参加Transactionを失敗させません。暗号学的乱数は要件としません。
 

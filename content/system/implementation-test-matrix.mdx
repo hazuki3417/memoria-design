@@ -1,0 +1,79 @@
+# Implementation Test Matrix
+
+## 目的
+
+Initial Releaseの詳細設計を、単なるtype / lint成功ではなくDomain invariant、Transaction、Concurrency、Transport、async failureまで検証するための横断test contractです。
+
+## Test layers
+
+| layer | 主対象 | 実DB / 外部境界 |
+| --- | --- | --- |
+| Domain / Application unit | validation、authorization decision、state transition、error分類 | port fake可 |
+| PostgreSQL integration | DDL、constraint、repository query、transaction、lock、cursor | real PostgreSQL |
+| Redis integration | Stream / Consumer Group、PEL、XAUTOCLAIM、heartbeat ownership | real Redis |
+| Storage adapter integration | key、metadata、NotFound delete、error分類 | S3-compatible test boundary |
+| GraphQL / HTTP contract | SDL、nullability、error code、auth、pagination、multipart upload | Application +必要adapter |
+| E2E | User goalの主要happy / failure path | deployed-equivalent stack |
+
+mockだけでDB lock、UNIQUE、Redis PEL ownership、multipart streaming、Object Storage cleanupのcorrectnessを完了扱いにしません。
+
+## Cross-domain acceptance
+
+### User / Account
+
+- 未登録認証主体だけがregisterでき、同一issuer / subjectを重複作成しない。
+- ACTIVE / DELETING境界でProfile更新、Upload、Community操作が競合しても削除確定後に新規副作用を作らない。
+- Account deletion review変更で旧review / reauthentication bindingを再利用できない。
+- bindingは対象User / review一致、10分expiry、consume-on-successを満たす。
+- 最後のAdministrator解決とMedia snapshotを再検証し、drift時はCONFLICT。
+
+### Community / Membership / Invitation
+
+- createでCommunity + admin Membership + settingがatomic。
+- last adminのleave / remove / demote concurrencyでもadmin 0をcommitしない。
+- invitation再発行は有効URLを1件に維持し、accept concurrencyでMembershipを重複しない。
+- leave / removeはshare / Community classification cleanupとMembership削除がatomic。
+- deleteとdirect uploadのraceで削除snapshot漏れを作らない。
+
+### Media / Group / Tag
+
+- Personal / Community authorizationとCustodyをClient指定IDから推測しない。
+- Group DAG cycle / depth / direct relation上限をconcurrent updateでも破らない。
+- bulk relation操作はitemごとのSUCCEEDED / ALREADY_APPLIED / FAILEDを契約どおり返す。
+- stable sort + opaque cursorで同値sort keyのpage重複 / 欠落を防ぐ。
+- deleteとshare / classify / processing publicationのraceでDELETING Mediaを再可視化しない。
+
+### Upload / async
+
+- 128 MiB transport上限をContent-Length有無の両方で検証し、全body memory bufferingを前提にしない。
+- same idempotency key + same hashは同じ結果、different hashはconflict。
+- Original PUT後DB rollbackの補償DELETE、DELETE失敗時Storage Operation作成。
+- Outbox commit後Redis outageでもupload成功を取り消さず、回復後にdelivery。
+- NEW duplicateとRECLAIMED retryを区別し、fresh duplicateで二重実行しない。
+- reclaim / heartbeat / max attempts / terminal ACKをasync正本どおり検証。
+- Job-scoped Variant publicationで旧setと新setを混在させない。
+- Redis total loss recoveryはold Worker fencing後だけPROCESSING reset / redeliveryできる。
+- orphan reconciliationはreferenced / active Job objectを削除せずgrace超過orphanだけcleanupへ送る。
+
+## GraphQL / HTTP contract drift
+
+API repositoryではSDLとgenerated codeのgeneration diffをCIで検証します。DesignのGraphQL文書はsemantic source、実行可能SDLはmemoria-apiをruntime sourceとし、実装PRでは双方の差分をレビューします。
+
+API Schema変更はconsumerが互換性を検証できるようadditive changeを先行し、利用側migration後にdeprecated fieldを除去します。Cross-repository同時deployを前提にしません。
+
+HTTP Media uploadはrequest fixtureでmultipart part、scope validation、idempotency、status/error mappingをcontract testします。
+
+## Migration
+
+migration testは空DBへのup適用だけでなく、直前schemaからのupgrade、constraint / index存在、schema snapshotとの差分を検証します。破壊的migrationはbackup / rollback / deploy順序を別途確認します。
+
+## Runtime
+
+- livenessはprocess deadlock / terminationを検出し、外部dependency一時障害だけで無限restartを誘発しない。
+- readinessは新規trafficを安全に処理できるdependency状態を反映する。
+- graceful shutdownは新規HTTP受付を止め、in-flight requestを期限内に完了させ、Workerは新規claimを止めてownership contractに従って終了する。
+- DB / Redis / S3 / Auth0 failureを区別してobservabilityへ出し、secret / token / presigned URL / raw fileをlogしない。
+
+## Quality Gate
+
+memoria-apiのformat / lint / type / generated diff / unit / integrationをCIで実行し、API E2Eは主要contractとfailure pathを対象にします。coverage percentageだけをrelease判定にせず、上記invariant / race / recovery caseの存在をacceptance criterionとします。
