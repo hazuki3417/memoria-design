@@ -121,6 +121,29 @@ Close時は理由を区別します。
 
 既存Issueを形式だけ合わせるために一括書き換えません。棚卸しまたは実際に着手するときに、現在の正本との差異を確認して必要な情報を補正します。過去の本文を履歴として保持する必要がある場合は、本文を無理に現在形へ書き換えず、差異と現在の判定をコメントへ残せます。
 
+### Issue本文と履歴の更新
+
+Issue本文は、そのIssueを開始した背景、当初のScope、Acceptance Criteria、その後の変更を追跡できる記録として扱います。Issue本文にはGitのような変更履歴を前提としないため、意味のある既存情報を直接削除・置換して履歴を失わせません。
+
+通常Issueでは次の規則に従います。
+
+- 既存のPurpose、Scope、Out of Scope、Acceptance Criteria、Constraint、Deferred等は原則として削除しない
+- 既存内容が後の判断で無効または変更になった場合、旧内容を`~~取り消し線~~`で残し、その近くに現在の内容または参照先を追記する
+- Acceptance Criteriaの達成は`[ ]`から`[x]`への更新を許容する。条件そのものを変更する場合は旧条件を削除せず、取り消し線と新条件で変更を表現する
+- 作業進捗、日付付きの設計判断、検証結果、Deferred解消、PR反映状況、Consistency Review結果、close理由等の時系列情報は本文へ追記せず、原則としてコメントへ記録する
+- IssueをCloseするために本文を完成形へ全面的に書き換えない。最終EvidenceとResolution理由はコメントから確認できる状態にする
+- 誤字脱字、format、意味を変えない表現修正、単純なlink保守等は、設計判断の履歴を失わない範囲で直接修正できる
+
+設計や実装の現在のSource of TruthはIssue本文ではなく、各Repositoryで定めた正本文書、schema、code、test等です。Issueコメントは、いつ何を確認し、どの判断によって現在の正本へ到達したかを追跡する履歴として使用します。
+
+#### Design Coverage Issueの例外
+
+Design Coverage Issueは、過去のCoverage表ではなく現在のCoverage状態を一覧できること自体が役割です。そのためCoverage Map、Evidence、Blocking等は現在状態へ直接更新できます。削除されたCapabilityや過去のStateを取り消し線でMapへ蓄積しません。
+
+CoverageのState変更、Capability追加・除外、Blocking解消等、意味のある変更を行った場合は、変更理由と必要なEvidenceをコメントへ記録して履歴を保持します。Coverage Issueの本文を現在状態へ更新できることは、通常Issueの履歴保持規則を他のIssueで省略する根拠にはしません。
+
+通常Issueで取り消し線が増え、現在状態の把握を妨げるほど可読性が悪化した場合は、履歴を独断で削除して整理せず、Issue履歴の保持方法そのものを再検討します。
+
 ### Repository ownership
 
 Issueは成果のSource of Truthを所有するRepositoryへ置きます。Product / Design判断は`memoria-design`、Web実装は`memoria-web`、Backend実装は`memoria-api`、Infrastructure実装は`memoria-IaC`を基本とします。
