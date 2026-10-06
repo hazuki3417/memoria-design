@@ -1,12 +1,18 @@
-# v5設計カバレッジ / Traceability
+# v5設計統合Traceability
 
-## 目的
+## 位置づけ
 
-2026-08-26 v5 checkpointの全設計項目について、GitHub正本への着地点を照合した結果です。v5はInfrastructure/Persistenceだけでなく、継承されたv4 Application/Cross-cutting設計を含めて全件統合対象とします。
+2026-08-26 v5 checkpointの各項目を、統合当時どのGitHub文書へ着地させたかを示す**historical traceability**です。この表の状態記号や「次作業」は現在の進捗・未決定事項を表しません。
+
+現行仕様は[Current design baseline](/context/current-design-baseline)から各正本を参照してください。A/B/C/D分類はPR #58当時の統合作業を説明するためだけに保持します。
+
+## 統合時のcoverage
+
+v5はInfrastructure/Persistenceだけでなく、継承されたv4 Application/Cross-cutting設計を含めて統合対象としました。
 
 分類は `A=既存正本で充足`、`B=PR #58で既存正本を更新`、`C=PR #58で新規正本へ統合`、`D=合意済みoverride` です。複数分類の場合は併記します。競合解決の理由は[v5設計統合方針](./v5-design-integration-policy)を参照してください。
 
-## V5 Current Overrides / New Decisions
+## v5統合時のOverrides / New Decisions
 
 | # | 項目 | 状態 | GitHub正本 |
 |---|---|---|---|
@@ -176,3 +182,7 @@
 全26 Current Override、全58 Cross-cutting、全55 Application/Domain項目（59–113）にGitHub上の着地点を割り当てました。単なる項目一覧ではなく、A/B/C/Dと正本pathを追跡できる状態を完成条件とします。
 
 `Initial Release外`は設計削除理由にしません。将来機能を見越したDomain/Persistence構造は維持し、Release Scopeと分離します。
+
+## 読み取り上の注意
+
+この文書に記載された「未決定」「次作業」「Implementation Detail待ち」等は、checkpoint統合時点の状態を示す履歴です。現在のOpen Itemを判断する根拠には使用しません。現在も未解決かどうかは、対象領域の最新正本とGitHub Issueを確認します。
