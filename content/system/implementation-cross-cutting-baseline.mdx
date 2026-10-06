@@ -2,7 +2,7 @@
 
 ## 位置づけ
 
-この文書は、v5 checkpointが継承するCross-cutting / Implementation設計のうち、Domain固有文書へ属さない横断ルールをGitHub上で欠損なく保持するためのBaselineです。より具体的な正本が存在する事項は、その文書を優先します。
+この文書はDomain固有文書へ属さないCross-cutting / Implementationの現行横断ルールを保持するBaselineです。より具体的なDomain / API / Runtime / Infrastructure正本が存在する事項は、その文書を優先します。過去checkpointや作業順序はこのBaselineのcontractに含めません。
 
 設計優先順位は `Correctness -> Simplicity -> Explicitness -> Observability -> Optimize when needed` とします。標準機能を優先し、同じ責務を複数layer・複数libraryへ重複させません。Architecture BoundaryとOperational Boundaryを分離し、AI支援・複数人開発でも機械的に検査できるruleを優先します。
 
@@ -10,7 +10,7 @@
 
 `memoria-api`はAPI、Media Worker、Outbox Publisherを同一repositoryで所有しつつ、独立process/containerとして実行できる境界を維持します。PostgreSQLをpersistent application truth、Redis Streamsをtrigger/deliveryとし、APIから通常Redisへ直接publishしません。DB transactionでOutboxへ記録しPublisherがRedisへ配送します。
 
-Deliveryはat-least-onceを前提とし、Workerはidempotentにします。retry回数をboundedにし、stale pending entryのreclaimを可能にします。Partial artifactをcurrentとして公開せず、Image Variantのpublicationは全必要artifact生成後にatomicに切り替えます。
+Deliveryはat-least-onceを前提とし、Workerはidempotentにします。retry / reclaim / terminal failureの具体規則は処理種別ごとのasync正本に従い、横断Baselineから一律の回数制限を課しません。stale pending entryをreclaim可能にし、Partial artifactをcurrentとして公開せず、Image Variantのpublicationは全必要artifact生成後にatomicに切り替えます。
 
 ## ID・日時・設定・Secret
 
@@ -48,9 +48,9 @@ Least privilege、private-by-default、TLS、secret separation、dependency upda
 
 ## PostgreSQL・Redis・Backup
 
-Production PostgreSQLはPrimary + StandbyのHA topologyをBaselineとし、streaming replicationを使用します。初期候補はasync replicationです。ReplicationはBackupではありません。Backup/WAL archive/restore test/PITRを別責務として設計します。
+Application / Domainから見た横断contractは、PostgreSQLをdurable application truth、Redisを再構築可能なdelivery / runtime stateとして扱うことです。Redis lossからPostgreSQL上のdurable stateを基準に回復可能にします。
 
-Redisは1 Primary + 2 Replicas、Sentinel x3、quorum 2をBaselineとし、clientはSentinel-awareとします。Redis Clusterは初期採用しません。Redis lossからPostgreSQL truth/Outboxを使って回復可能にします。
+Production topology、replication、Sentinel配置、failover、backup / restore等の物理・運用設計はInfrastructure / Data Operations正本に委ねます。このImplementation Baselineから特定topologyを現行Infrastructure仕様として固定しません。
 
 ## API / GraphQL
 
@@ -74,9 +74,7 @@ Dependencyは安定版を使用し、同一責務のlibraryを重複導入しま
 
 ## Development Environment
 
-DevelopmentはDockerでProduction software topologyを再現します。通常開発用の軽量Compose profileとHA検証profileを分離します。Development ComposeをそのままProductionへdeployするのではなく、共通image/configとenvironment overlayでparityを保ちます。
-
-Local HAはfailure behaviorの検証用であり、物理host/AZ failureを完全再現するものではありません。
+DevelopmentはDockerを利用し、実装検証に必要なdependencyを再現可能にします。Productionとのparity、HA検証profile、物理topologyの具体形はInfrastructure / Local Development正本に従います。Development ComposeをそのままProduction topologyの正本とは扱いません。
 
 ## Backend Clean Architecture
 
