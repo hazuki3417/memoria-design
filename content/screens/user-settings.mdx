@@ -8,6 +8,15 @@ Application ShellのAccount Menuから到達し、既存のApplication Informati
 
 ## Information Architecture
 
+Settingsは次の領域をそれぞれ独立したURLを持つpageとして扱います。`/settings`へのアクセスは`/settings/profile`へRedirectします。
+
+| 領域 | URL |
+| --- | --- |
+| Profile | `/settings/profile` |
+| Preferences | `/settings/preferences` |
+| Usage | `/settings/usage` |
+| Account | `/settings/account` |
+
 Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
