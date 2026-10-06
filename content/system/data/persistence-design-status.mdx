@@ -1,0 +1,23 @@
+# Persistence設計状態
+
+## 位置づけ
+
+このページはPersistence設計について、確定済み範囲と現在も設計上保留している範囲を区別する状態ページです。仕様そのものは[PostgreSQL実装詳細レビュー](/system/data/postgresql-implementation-review)、各Domain物理モデル、versioned migrationを正本とし、このページへ重複定義しません。古いcheckpointの未決定事項は再掲しません。
+
+## 解消済み
+
+Initial executable DDL contract、schema分割、ID / timestamp、主要FK / UNIQUE / CHECK、Media / Community / User lifecycle、Idempotency、Outbox、Processing Job、Storage Operation、Account deletion review / reauthentication persistence、Tag normalization、migration baselineは確定済みです。
+
+実装時は正本文書と `memoria-api` のmigration / schema snapshotを同じ変更単位で更新し、design上確定済みの項目を「実装時判断」として変更しません。
+
+## 現在の保留範囲
+
+### Production PostgreSQL availability / backup
+
+Logical schema / transaction semanticsとは独立して、ProductionでPostgreSQLをどこに配置し、failover / backup / restoreをどの方式で保証するかはInfrastructure設計領域として保留しています。Backend API / Persistence schemaの正本からInfrastructure topologyを決定しません。
+
+この判断では少なくともRPO / RTO、backup retention、restore test、single-host failure、運用コストを比較し、Infrastructure方針と同時に確定します。Application / Domain schemaをHA方式へ依存させません。
+
+## 実装検証
+
+Persistence変更は[Implementation Test Matrix](/system/implementation-test-matrix)に従い、real PostgreSQLでconstraint、transaction、lock、concurrency、migration upgradeを検証します。
