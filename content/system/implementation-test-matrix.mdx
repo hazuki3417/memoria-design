@@ -13,7 +13,6 @@ Initial Releaseの詳細設計を、単なるtype / lint成功ではなくDomain
 | Redis integration | Stream / Consumer Group、PEL、XAUTOCLAIM、heartbeat ownership | real Redis |
 | Storage adapter integration | key、metadata、NotFound delete、error分類 | S3-compatible test boundary |
 | GraphQL / HTTP contract | SDL、nullability、error code、auth、pagination、multipart upload | Application +必要adapter |
-| Web operation / component | operation variables、cache invalidation、form / URL state | mocked network contract可 |
 | E2E | User goalの主要happy / failure path | deployed-equivalent stack |
 
 mockだけでDB lock、UNIQUE、Redis PEL ownership、multipart streaming、Object Storage cleanupのcorrectnessを完了扱いにしません。
@@ -60,7 +59,7 @@ mockだけでDB lock、UNIQUE、Redis PEL ownership、multipart streaming、Obje
 
 API repositoryではSDLとgenerated codeのgeneration diffをCIで検証します。DesignのGraphQL文書はsemantic source、実行可能SDLはmemoria-apiをruntime sourceとし、実装PRでは双方の差分をレビューします。
 
-Web repositoryは使用Operation / Fragmentからgenerated typeを作り、schema更新でoperation validation / codegenが失敗する状態をCIで検出します。手書きでAPI response typeを複製しません。
+API Schema変更はconsumerが互換性を検証できるようadditive changeを先行し、利用側migration後にdeprecated fieldを除去します。Cross-repository同時deployを前提にしません。
 
 HTTP Media uploadはrequest fixtureでmultipart part、scope validation、idempotency、status/error mappingをcontract testします。
 
@@ -77,4 +76,4 @@ migration testは空DBへのup適用だけでなく、直前schemaからのupgra
 
 ## Quality Gate
 
-各repositoryのformat / lint / type / generated diff / unit / integrationをCIで実行し、E2Eは主要User Goalとfailure pathを対象にします。coverage percentageだけをrelease判定にせず、上記invariant / race / recovery caseの存在をacceptance criterionとします。
+memoria-apiのformat / lint / type / generated diff / unit / integrationをCIで実行し、API E2Eは主要contractとfailure pathを対象にします。coverage percentageだけをrelease判定にせず、上記invariant / race / recovery caseの存在をacceptance criterionとします。
