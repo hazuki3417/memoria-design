@@ -85,7 +85,7 @@ Deferredには次を記載します。
 
 Design Coverageの仕組み、Aspect、State、判定基準、更新ルールは本ドキュメントを正本とします。各Domain / Capabilityの現在のCoverage状態はGitHub Issueを正本として管理します。
 
-初期運用ではDomain単位に1つのCoverage Issueを基本とし、そのDomainで実際に設計・実装対象となっているCapabilityから必要な範囲を追加します。Domain内のCapabilityが増え、一つのIssueではReview・更新が困難になった場合だけ、Capability群または個別Capabilityへ分割します。すべてのCapabilityに機械的にIssueを作成しません。
+Domain単位に1つのCoverage Issueを基本とし、そのDomainで実際に設計・実装対象となっているCapabilityから必要な範囲を追加します。User / Community / MediaのようにInitial Releaseで継続的に設計・実装する主要DomainはCoverage Issueを維持し、System横断領域はDomain Coverageへ無理に混在させず、必要に応じて専用Coverage Issueまたは正本・Issueで追跡します。Domain内のCapabilityが増え、一つのIssueではReview・更新が困難になった場合だけ、Capability群または個別Capabilityへ分割します。すべてのCapabilityに機械的にIssueを作成しません。
 
 Coverage Issueでは、Capabilityごとに各AspectのStateを俯瞰できる表を持ちます。必要な箇所だけEvidence、Blocking、Deferredを補足します。Product仕様本文やBacklogをCoverage Issueへ複製しません。
 
@@ -187,7 +187,7 @@ AIは未探索やDeferredを事実として提示しますが、Coverageだけ�
 
 ## 初期運用と見直し
 
-最初から完全なCoverage管理を構築しません。Memoriaの通常の設計・実装で利用し、実際に必要になった情報だけを追加します。
+Coverage管理は通常の設計・実装に追従させます。主要Domainで設計が進んでいるのにCoverage Issueが存在しない状態を放置せず、設計棚卸し・大規模な正本再編・詳細設計完了時にはCoverage Issueの有無とEvidence / Blockingを確認します。
 
 初期運用では次を行いません。
 
