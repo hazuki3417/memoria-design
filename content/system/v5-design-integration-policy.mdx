@@ -1,16 +1,24 @@
-# v5設計統合方針
+# v5設計統合記録
 
-## 目的
+## 位置づけ
 
-`catchup_design_checkpoint_2026-08-26_v5_infra_postgres_foundation.txt` に含まれる設計項目を欠落なくMemoria設計へ取り込むための統合規約です。
+この文書は `catchup_design_checkpoint_2026-08-26_v5_infra_postgres_foundation.txt` をGitHub設計へ統合した際の**判断記録**です。v5という版を現在の仕様versionとして扱うものではなく、現行contractのSource of Truthでもありません。
+
+現在有効な仕様は[Current design baseline](/context/current-design-baseline)から各Domain / System正本を参照してください。本書は「どの旧設計を採用・overrideしたか」「なぜその判断をしたか」を失わないために保持します。
+
+## 統合時の目的
+
+`catchup_design_checkpoint_2026-08-26_v5_infra_postgres_foundation.txt` に含まれていた設計項目を欠落なくMemoria設計へ取り込むことを目的としていました。
 
 v5はv4 Application詳細設計全文を継承しているため、Infrastructure / Persistenceだけではなく、Application / Domain / Authorization / Concurrency / Idempotency / Error / Transaction / Async / Observability / GraphQL / Frontend / Testing / Development / Security等をすべて統合対象とします。
 
-## Source of Truth
+## 統合時のSource of Truthルール
 
-GitHub `develop` の既存設計を基準とし、v5と競合しない設計は追加します。競合については2026-08-26の統合レビューで合意した内容を優先します。
+統合作業ではGitHub `develop` の既存設計を基準とし、v5と競合しない設計を追加しました。競合は2026-08-26の統合レビューで合意した内容で解決しました。
 
-### 合意済みoverride
+以下のoverrideは**統合時のDecision履歴**です。その後に各領域正本で変更された場合は、後続の正本を優先します。特にInfrastructure topologyのように後続設計で再検討対象となった事項を、本書だけから現行仕様として復活させてはいけません。
+
+### 統合時に合意したoverride
 
 - Infrastructureはv5のProduction HA baselineを採用する。
 - DevelopmentはDocker / Docker Composeを利用し、通常軽量profileとHA検証profileを分ける。
@@ -26,9 +34,9 @@ GitHub `develop` の既存設計を基準とし、v5と競合しない設計は�
 - User削除後も保持されるMediaの`uploaded_by_user_id`はNULL化し、削除済みUserとして扱う。PII snapshotは保持しない。
 - 既存Persistence共通規約（ULID `varchar(26)`等）はv5の未決定状態へ戻さない。
 
-## 全項目統合対象
+## 統合対象だった領域
 
-以下はv5に含まれる全設計領域であり、既存の同等設計がある場合も意味を失わないよう正本へ統合・参照します。
+以下は当時の統合対象一覧です。現在の仕様一覧ではなく、統合作業のcoverageと意図を示します。
 
 ### Foundation / Infrastructure / Persistence
 
@@ -162,7 +170,7 @@ Initial ReleaseでUI/APIを提供しない
 
 既存設計またはv5に合理的な将来拡張モデルがある場合、Initial Release外であることだけを理由に削除しません。
 
-## Persistence詳細化の順序
+## 統合時に採用したPersistence詳細化手順
 
 ```text
 1. 全Table / Relation / Responsibilityレビュー
@@ -180,3 +188,7 @@ Initial ReleaseでUI/APIを提供しない
 ```
 
 既存GitHubで既に確定済みの横断規約はこの順序で未決定へ戻さず、既存決定として入力に含めます。
+
+## 現在の利用方法
+
+本書を実装仕様として直接参照しません。Decisionの由来を調査するときに使用し、実装判断はCurrent design baselineから辿れる最新の領域正本で再確認します。矛盾がある場合は最新正本を優先し、履歴側を書き換えて現在仕様に見せるのではなく、必要に応じてsupersededであることを明記します。
