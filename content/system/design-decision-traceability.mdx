@@ -1,11 +1,11 @@
 # Design Decision / Implementation Traceability
 
 
-> この文書は設計判断の由来、横断レビューで解消した旧設計、各詳細設計passの結果を追跡する履歴資料です。**現在の未決定事項一覧や実装仕様そのものではありません。** 現行仕様は[Current design baseline](/context/current-design-baseline)から各領域正本を参照し、現在の未解決事項はGitHub Issueまたは明示的なOpen Items文書で確認します。
+> この文書は設計判断の由来、横断レビューで解消した旧設計、各詳細設計の結果を追跡する履歴資料です。**現在の未決定事項一覧や実装仕様そのものではありません。** 現行仕様は[Current design baseline](/context/current-design-baseline)から各領域正本を参照し、現在の未解決事項はGitHub Issueまたは明示的なOpen Items文書で確認します。
 
 ## 目的
 
-Issue #59 の Implementation Detailed Design について、共有済み設計資料と GitHub 正本から実装詳細への反映状況を追跡します。
+Memoriaの設計変更で確定した重要な判断、置き換えた旧仕様、その理由と後続正本への反映を追跡します。作業進捗表ではなく、現在の設計を理解するために必要なdecision historyを保持します。
 
 ## 運用原則
 
@@ -14,18 +14,6 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - 共有資料にも GitHub 正本にも具体的決定がない事項は推測で補完せず、未決定事項として Issue で追跡する。
 - Application / Domain semantics を DB・framework・library の都合で変更しない。
 - 重要な技術選定は必要に応じて ADR として記録する。
-
-## Workstream
-
-| Workstream | 上位 Contract | Implementation Detail | 状態 | 主な追跡先 |
-| --- | --- | --- | --- | --- |
-| PostgreSQL | `content/system/data/*`, Domain physical data model | 全 Relation 横断レビュー、FK、CHECK、UNIQUE、Index、Deletion、Lock、Migration、Final DDL | 進行中 | #28, #42, #43, #44, #61 |
-| GraphQL | `content/system/api/*`, Application baseline | Query / Mutation / Input / Payload / Enum / Scalar / Connection / Error mapping | baseline照合済み・具体化待ち | #17, #61 |
-| Go Application / Infrastructure | Application baseline, Domain UseCase | package、interface、Repository、Transaction manager、error type | baseline照合済み・具体化待ち | #21, #61 |
-| Outbox / Redis / Worker | async / outbox / data operations | event schema、stream、consumer group、retry、reclaim、idempotency | baseline照合済み・具体化待ち | #44, #61 |
-| Frontend | frontend / GraphQL baseline | route、feature、operation、Apollo cache、RHF、URL state | baseline照合済み・具体化待ち | #18, #61 |
-| Test | testing baseline | Domain / UseCase / DB / GraphQL / async / E2E | baseline照合済み・具体化待ち | #21, #61 |
-| Infrastructure | infrastructure baseline | node placement、PostgreSQL HA、Redis Sentinel、Compose profile、backup/restore | v5 baseline反映済み・具体化待ち | #45, #61 |
 
 ## 横断照合で確定したoverride / baseline
 
@@ -96,93 +84,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - Media直結`media_variants`を廃止し、`media -> images -> image_variants`へ統一した。
 - 将来のCustody transferと初回ReleaseのCommunity shareを明確に分離した。
 
-## 当時の未決定事項と追跡
-
-以下は横断レビュー時点で未決定として追跡した項目です。**現在も未決定であることを意味しません。** 後続設計で解消された内容は各正本を優先し、未解決かどうかはGitHub Issueの最新状態で判断します。推測で補完しないという原則自体は維持します。
-
-### Persistence / migration
-
-- 全tableのfinal executable DDLとmigration順序
-- source designで未指定のFK action / constraint name
-- access patternから一意に確定できないcomposite index column order
-- `normalized_name`のUnicode normalization / case folding / whitespace normalization
-- idempotency保証期間は24時間で確定。残るcleanup interval、operation別response snapshot representation
-- Outboxは`event_type + event_version`、version 1開始、PUBLISHED 7日保持で確定。Media処理eventは`MEDIA_PROCESSING_REQUESTED` v1、`aggregate_id = media_id`、payload `{ job_id }`で確定。残る他event種別のpayload schema / serialization
-- Image Variant publicationは別storage keyへのstaged生成後、Media lock下で`image_variants`を一括更新する方針で確定。残るfinal SQL / Repository実装
-- migration rollout / rollback SQL
-- PostgreSQL HA manager / failover endpoint依存のconnection / migration behavior
-
-### GraphQL
-
-- 資料に明記されていない最終Operation名、Input / Payload field、nullability
-- Relay Connectionの各一覧への具体適用と上限値
-- upload / processingの利用者向けobservable stateは`PROCESSING` / `READY` / `FAILED`のMedia-level stateで確定。Processing Job ID、attempts、last_errorは通常の利用者向けGraphQLへ公開しない。残る最終Operation / Input / Payload field名・nullabilityとdelete payload
-- operation単位のidempotency key適用範囲
-
-### Go Application / Infrastructure
-
-- package / interfaceの最終分割
-- Repository method signature、Transaction manager API、domain/application error typeの具体形
-- DB error / GraphQL errorへの最終mapping
-
-### Async / Worker
-
-- Redis Streamは`media-processing`、Consumer Groupは`media-workers`で確定。ConsumerはWorker processごとの一意なruntime identityを使用する
-- `MEDIA_PROCESSING_REQUESTED` v1は`aggregate_id = media_id`、payload `{ job_id }`の最小参照契約で確定
-- Processing Jobは`GENERATE_IMAGE_VARIANTS`、最大3 attempts・reclaim idle 5分、1分間隔の`XCLAIM` heartbeatでownershipを維持する。`NEW + PROCESSING`はduplicateとしてACKし、`RECLAIMED + PROCESSING`だけをretry実行する
-- Image Variant keyは`media/{mediaId}/variants/{jobId}/{width}.webp`とし、DB参照をpublicationの正本とする
-- Storage Operationは最大10 attempts、30秒開始・最大30分の指数backoff、lease 5分、COMPLETED 7日保持、FAILED自動削除なしで確定
-- orphan reconciliationは1時間ごと・24時間graceでOriginal/Variantを照合し、candidateはStorage Operationへ引き渡す
-- Outbox Publisherはbatch 100、poll 1秒、lease 30秒、1秒〜5分の指数backoff。transient failureは回数でFAILEDにせず恒久的配送不能のみFAILED
-
-### Frontend
-
-- route名とroute hierarchy
-- breakpoint / supported viewport等の具体値
-- GraphQL operationごとのApollo cache更新方法
-- 文言、confirmation detail、error presentationの最終形
-
-### Test
-
-- layer別test suite / fixture / testcontainer構成
-- coverage threshold等の具体値
-- async failure / recovery、migration、restoreを含むintegration / E2E scenarioの最終一覧
-
-### Infrastructure
-
-- EC2/node placement
-- PostgreSQL HA manager / failover endpoint
-- Redis Sentinel placement / client設定
-- Docker Compose profile / dependency / healthcheckの最終構造
-- WAL archive / restore softwareとprocedure
-- volume / filesystem、monitoring / alerting、restore drillの具体値
-
-## 当時のIssue対応表
-
-| 領域 | 主Issue | 状態 |
-| --- | --- | --- |
-| 要求coverage | #24 | coverage整理済み、#59完了時に最終確認 |
-| Application全体 | #21 | baseline整理済み、詳細化継続 |
-| Group | #42 | semantics確定、Implementation Detail待ち |
-| Tag | #23 / #43 | 要求確定、正規化等のDetail待ち |
-| 静止画像 | #44 | Product / pipeline semantics確定、実装parameter・GraphQL handoff待ち |
-| GraphQL | #17 | baseline反映済み、SDL / Operation具体化待ち |
-| Frontend | #18 | baseline反映済み、route / flow具体化待ち |
-| Migration | #28 | execution baseline確定、tool / SQL等待ち |
-| Infrastructure | #45 | v5 baseline確定、HA / Compose / restore等待ち |
-| 将来動画 | #20 | 将来境界更新済み |
-| 将来通知 | #47 | Invitation / Join Request semantics更新済み |
-| 将来Custody transfer | #48 | current Custody / share semantics更新済み |
-| 横断未決定事項 | #61 | open |
-
-## Traceability作業の完了条件（履歴）
-
-Issue #59のtraceability作業は、以下を満たした時点で完了とする。
-
-- 共有資料に記載された設計項目が対応するGitHub正本または明示的なoverrideへtraceされている。
-- 旧仕様との競合が解消され、Community / Media / Async / Frontend / Infrastructureで同じsemanticsを参照している。
-- 資料にもGitHub正本にもない具体値が、推測で埋められずIssueへ分離されている。
-- 各Workstreamの次の詳細設計先がIssue対応表から追跡できる。
+## 後続設計で確定したDecision
 
 ### User Preferences / Context Accent / Account deletion reauthentication
 
@@ -221,7 +123,7 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 
 ## Backend API detailed design pass
 
-今回の詳細設計scopeは `memoria-api` のPublic API、Application境界、async runtime、Persistence連携、API test contractです。Webの画面実装詳細とInfrastructureのnode配置、HA、backup / restore、監視通知等は今回のscope外とし、各正本 / Issueで別途扱います。
+Backend API詳細設計のscopeは `memoria-api` のPublic API、Application境界、async runtime、Persistence連携、API test contractです。Webの画面実装詳細とInfrastructureのnode配置、HA、backup / restore、監視通知等は今回のscope外とし、各正本 / Issueで別途扱います。
 
 ### 合意済みの実装境界
 
@@ -259,4 +161,4 @@ coverage percentageだけをrelease gateにせず、Domain/Application unit、re
 - EC2 / Dockerの物理配置、monitoring / alert delivery等のInfrastructure詳細。
 - Web implementation / Apollo cache / component / routing等のFrontend詳細。
 
-これらを今回のBackend API詳細設計で簡略化・変更しない。Infrastructureについて既存正本にある構成は維持し、別scopeで設計する。
+これらをBackend API詳細設計で簡略化・変更しない。Infrastructureについて既存正本にある構成は維持し、別scopeで設計する。
