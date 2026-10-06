@@ -26,7 +26,7 @@ Initial ReleaseではMedia UploadをMedia Browserとは独立した専用画面�
 
 専用画面ではfile追加、選択fileごとのpreview・validation、Upload開始、個別進捗・結果、失敗fileの再試行を一つの作業の中で確認できるようにします。**単一画面・状態変化型**を採用し、準備画面と結果画面を別route・別stepとして分割しません。初期状態ではfile追加を主操作とし、file追加後にpreviewと事前Validationを提示します。Upload開始後は同じ画面で全体概要とfile単位の状態を更新し、成功済みMediaを維持しながら失敗fileのみ再試行できます。Media登録後の非同期ProcessingはUpload requestの成功と区別し、登録済みMediaへの導線を提供します。Group / Tag分類はUpload成立の必須入力としません。
 
-画面の基本的な情報順序はfile追加、選択fileのpreview・事前確認、Upload実行、全体進捗・個別結果とします。route、画像一覧のpresentation、responsive対応、Upload中の画面離脱、Upload後の遷移は本仕様の後段およびVisual Prototypeで具体化します。request識別・復帰時のserver-side照合等、実データ接続を必要とするBehaviorはGraphQL / Frontend詳細設計で確定します。既存Web componentの再利用は設計上の制約としません。
+画面の基本的な情報順序はfile追加、選択fileのpreview・事前確認、Upload実行、全体進捗・個別結果とします。route、画像一覧のpresentation、responsive対応、Upload中の画面離脱、Upload後の遷移は本仕様の後段およびVisual Prototypeで具体化します。Initial Releaseではreload後のUpload作業状態の復元を保証せず、複雑な復旧機構を必須としません。既存Web componentの再利用は設計上の制約としません。
 
 ## 開始点 / Scope
 
@@ -189,7 +189,9 @@ Initial ReleaseではUpload開始前の未送信fileが残る状態、およびU
 
 Media登録が完了しServer側の画像Processingだけが残っている場合、Upload画面への滞在を必須とせずMedia Browserへ移動できます。Media BrowserでもProcessing中・terminal failureを識別できるようにします。
 
-Initial Releaseでは画面離脱後もfile送信を継続するbackground Uploadを必須要件としません。画面遷移・reload・network切断が発生した場合、Serverで登録済みのMediaと未確定requestの状態をidempotencyおよびserver-side observable stateで照合し、結果不明のfileを無条件に自動再送して重複登録しません。具体的な離脱guard、復帰・再試行UI、request識別・照合方法はGraphQL / Frontend詳細設計で決定し、client memoryだけを正本にしません。
+Initial Releaseでは画面離脱後もfile送信を継続するbackground Uploadを必須要件としません。通常の通信失敗では、fileが現在のUpload画面に残っており再試行可能な場合だけUserが明示的に再試行できます。通信切断等でrequestの成立可否をClientから確定できない場合は結果不明として扱い、重複登録を避けるため無条件の自動再送を行いません。UserはMedia Browserで登録結果を確認できます。
+
+reload / tab close後に未送信file、file選択、進捗、結果不明request等のClient-side Upload作業状態を復元することはInitial Releaseでは保証しません。Serverで既に成立したMediaはそのまま保持し、reloadや離脱を理由にrollbackしません。reload recovery専用のUpload履歴・request照会APIやBrowser永続Upload JobはInitial Releaseの必須要件としません。
 
 ## 状態 / Concurrency
 
