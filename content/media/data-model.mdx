@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: PostgreSQLはImage・Image Group中心です。Media、Custodian、Media Event、動画属性は設計との差分があります。物理schemaの正本は`memoria-api/schemas/postgres/`です。
+> 現在の論理モデルはInitial Releaseの静止画像を対象とします。動画固有属性は現在の設計scopeに含めません。物理schemaの正本は`memoria-api/schemas/postgres/`です。
 
 このページはMemoriaの論理データモデルを定義します。
 
@@ -35,13 +35,10 @@ erDiagram
 | 属性 | 意味 |
 | --- | --- |
 | id | Media識別子 |
-| mediaType | IMAGEまたはVIDEO |
 | fileName・fileSize・mimeType | 原本の属性 |
 | uploadedByUserId | 最初のUploader。User削除後は「削除済みUser」として扱う |
 | uploadedAt | アップロード日時 |
 | createdAt・updatedAt | 登録・更新日時 |
-
-Imageはwidth・height、Videoはwidth・height・duration・codec・frameRateを持ちます。
 
 Media自体には管理主体を埋め込みません。Uploaderは操作の実行者、Custodyは現在の管理関係、Variantは表示用派生物、Processing Jobは非同期処理状態を表し、それぞれ独立して扱います。
 

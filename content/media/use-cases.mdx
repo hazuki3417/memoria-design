@@ -3,7 +3,7 @@
 
 ## 概要
 
-> 実装状況: 静止画像を中心とした一部の操作は実装済みです。Media、動画、Custodian、Community共有、Media Eventを含む設計との差分は未実装です。
+> 現在の設計scopeはInitial Releaseの静止画像です。動画対応とCustody transferはIdeaとして管理し、本ページの実装契約には含めません。
 
 ## Actor
 
@@ -16,7 +16,7 @@
 
 ### Mediaをアップロードする
 
-- Userが静止画像または動画をアップロードする
+- Userが静止画像をアップロードする
 - Uploaderとアップロード日時を記録する
 - 個人領域ではUser、Communityへの直接uploadではCommunityを初期Custodianとする
 - 対応形式以外を拒否する
@@ -45,23 +45,9 @@
 - 他Communityへの共有は維持する
 - Media本体とCustodianは変更しない
 
-### Mediaを委譲する
+### Media管理主体の委譲
 
-管理主体の委譲は初回Release対象外です。[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)で将来機能として検討します。
-
-対応する遷移はUser→User、User→Community、Community→Userです。
-
-事前条件:
-
-- 操作者が現在のCustodianを変更できる
-- 委譲先が存在し、有効である
-
-結果:
-
-- 既存共有をすべて解除する
-- Custodianを変更する
-- Uploaderは変更しない
-- CUSTODIAN_CHANGEDイベントを記録する
+Initial Releaseには含めず、現在の設計scope外です。必要性と具体的なUse Caseから[Issue #48](https://github.com/hazuki3417/memoria-design/issues/48)でIdeaとして再検討します。現在のUse Caseとして遷移、事前条件、Event contractを定義しません。
 
 ### Mediaを削除する
 
@@ -76,7 +62,7 @@
 - User管理Mediaの件数と復元不能な削除を明示する。
 - Userの確認後、対象Mediaを固定して非同期cleanupで削除する。
 - cleanup失敗時はDELETING状態を維持し、systemが再試行・運用再開する。
-- 管理主体の委譲は初回Release対象外とする。
+- 管理主体の委譲は現在の設計scope外とし、account削除flowでは提供しない。
 - 詳細なaccount削除flowは[Userユースケース](/user/use-cases)を正本とする。
 
 ### MediaをGroupへ分類する
