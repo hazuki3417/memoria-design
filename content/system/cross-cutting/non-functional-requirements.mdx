@@ -27,12 +27,12 @@
 | 通常のMutation | p95 1,000 ms以下、p99 2,000 ms以下 | request metric、trace、k6 | DB競合や外部I/O待ちが増加 |
 | Media一覧 | 1 page 30件、最大100件 | schema、境界値test、一覧計測 | 一覧の転送量・DB負荷・操作性が悪化 |
 | 初回画面表示 | p75 2.5秒以下 | 実browser、Performance API、主要画面の計測 | 画像一覧や初回navigationが継続して遅い |
-| 画像Original | 1 file最大50 MiB | APIのfile size検証、境界値test | 実際の撮影機器や利用者要求に合わない |
+| 画像Original | 1 file最大128 MiB | APIのfile size検証、境界値test | 実際の撮影機器や利用者要求に合わない |
 | 画像Variant生成 | 20 MiB以下の画像はp95 30秒以内 | Job作成から完了までのmetric | backlog増加、画像形式や画素数の変化 |
 | 同時upload | Userあたり3 requestまで | Webの並列制御、API metric | 回線やEC2の帯域・CPUが不足 |
 | API rate limit | Userあたり60 request/分、burst 20 | gatewayまたはAPIのmetric | 正常操作の誤検知、不正利用、負荷増加 |
 | Outbox配送 | commit後p95 10秒以内 | oldest unpublished event age | Redis停止、Publisher滞留 |
-| 非同期処理のretry | 最大5回、指数backoff、最大5分間隔 | Job・Outboxのattemptと状態 | 一時障害が長い、恒久失敗が埋もれる |
+| 非同期処理のretry | Processing Jobは最大3 attempts・5分idle reclaim。Outboxは1秒〜5分backoffでtransient failureを継続retry | Job・Outboxのattemptと状態 | 一時障害が長い、恒久失敗が埋もれる |
 | Application log | 30日保持 | retention設定と削除確認 | 調査に不足、保存費用が増加 |
 | Trace | 7日保持 | Collector・backendのretention | 障害解析に不足、保存費用が増加 |
 | Media Event | 90日保持 | 削除処理、保持期限test | 利用目的の変更、Privacy要求の見直し |
@@ -74,9 +74,9 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 ### 画像
 
-- Originalの上限は1 file 50 MiBとします。
-- Originalの最大画素数は40 megapixelとし、decode前に可能な範囲でdimensionを確認します。
-- fileの拡張子、宣言されたMIME type、実dataの判定を照合し、矛盾するfileを拒否します。
+- Originalの上限は1 file 128 MiBとします。
+- Originalの最大画素数は100 megapixels（100,000,000 pixels）とし、width / heightはそれぞれ32,768 pixels以下とします。decode前に可能な範囲でdimensionを確認し、総pixel数と各辺上限を独立して適用します。
+- extensionやClient申告MIME / HTTP Content-Typeを形式判定の正本にせず、Server側で実fileのsignature / containerを解析し、許可形式として識別でき、かつdecode可能であることを受理条件とします。
 - Image VariantはOriginalのアスペクト比を維持し、320、640、960、1280、1920 pxを候補とするWebPを生成します。
 - Originalより大きいVariantは生成しません。最小候補より小さいOriginalはOriginalと同じ幅のWebPを生成します。
 - 対応する具体的な画像形式はAPIの実装可能なvalidationを正本とし、安全にdecodeできない形式は受け付けません。
@@ -85,7 +85,7 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 動画はMediaの対象に含めますが、初回Releaseへの採否、最大size、再生時間、対応container、codec、配信形式、変換時間は[動画処理の詳細設計](https://github.com/hazuki3417/memoria-design/issues/20)で決定します。
 
-動画条件が未確定の段階で画像用の50 MiB上限や30秒の変換目標を動画へ流用しません。動画機能を公開する前に、対象形式、size上限、処理timeout、retry、再生に必要な受け入れ条件を明示します。
+動画条件が未確定の段階で画像用の128 MiB上限や30秒の変換目標を動画へ流用しません。動画機能を公開する前に、対象形式、size上限、処理timeout、retry、再生に必要な受け入れ条件を明示します。
 
 ### 総容量と使用量
 
@@ -134,8 +134,8 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 - 業務dataとOutbox Eventは同じPostgreSQL transactionでcommitします。
 - OutboxのcommitからRedis配送までp95 10秒以内を初期目標とします。
 - Publisherは未送信eventを保持し、Redis停止を理由に業務dataを破棄しません。
-- JobとOutboxの一時的な失敗は最大5回retryし、指数backoffの最大間隔を5分とします。
-- 最大回数を超えた処理は`FAILED`として識別し、運用上確認できる状態にします。
+- Processing Jobは最大3 attempts（初回含む）とし、一時failureではRedis pendingへ残して5分idle後に`XAUTOCLAIM`します。attemptごとの指数backoffやProcessing Jobの`next_attempt_at`は使用しません。
+- Outbox Publisherはtransient failureを1秒開始・最大5分のexponential backoffで継続retryし、attempt回数だけでは`FAILED`にしません。恒久的な配送不能だけを`FAILED`として運用上確認できる状態にします。
 - eventの配送はat-least-onceを前提とし、`event_id`、Job ID、Idempotency Keyで重複実行の影響を抑えます。
 - Outboxの未送信件数、最古未送信eventの経過時間、Jobの待機件数、失敗件数、最終成功時刻を観測します。
 - 未送信eventまたはJob backlogが15分を超えて増加する場合は警告対象とします。
@@ -242,7 +242,7 @@ backupやS3 versioningには、削除後のdataが保持期間の間だけ残る
 | --- | --- | --- |
 | API応答時間 | 代表Query・Mutationのk6 scenarioとtrace | 同時利用10人で定義したp95・p99を満たす |
 | Pagination | schema・resolverの境界値test | 既定30件、最大100件、0以下と101以上を拒否 |
-| 画像size・画素数 | 49 MiB、50 MiB、51 MiBと画素上限のtest | 上限以内を受け付け、超過や偽装形式を拒否 |
+| 画像size・画素数 | 127 MiB、128 MiB、129 MiB、100 MP、各辺32,768px境界のtest | 上限以内を受け付け、超過・未許可形式・decode不能を拒否 |
 | Upload | 複数file、接続断、timeout、再送のintegration test | 同時3件以下、Media単位でretry、重複recordなし |
 | 非同期処理 | Redis停止、Publisher停止、Worker再起動、重複配送 | data欠落なし、event再配送、Job重複実行なし |
 | 認可 | User、Community Member、Administrator、未認証者のtest | 閲覧・Original download・管理権限を分離 |
