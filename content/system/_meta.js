@@ -7,9 +7,10 @@ export default {
   "data": "データ・ストレージ",
   "infrastructure": "インフラストラクチャ",
   "cross-cutting": "横断設計",
-  "-- Baseline": {"type":"separator","title":"詳細設計Baseline"},
+  "-- Baseline": {"type":"separator","title":"現行設計Baseline"},
   "application-detailed-design-baseline": "Application詳細設計Baseline",
   "implementation-cross-cutting-baseline": "Implementation横断設計Baseline",
-  "v5-design-integration-policy": "v5設計統合方針",
-  "v5-design-coverage": "v5設計カバレッジ"
+  "-- History": {"type":"separator","title":"設計履歴・Traceability"},
+  "v5-design-integration-policy": "v5設計統合記録",
+  "v5-design-coverage": "v5統合Traceability"
 }
