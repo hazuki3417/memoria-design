@@ -208,3 +208,10 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - 利用者向けGraphQLはProcessing Job内部状態を直接公開せず、Media-level `PROCESSING` / `READY` / `FAILED`へ写像する。
 
 - Processing Jobの実行資格はRedis message取得経路とDB stateを組み合わせ、`NEW + PENDING`を初回実行、`NEW + PROCESSING`をfresh duplicate、`RECLAIMED + PROCESSING`を正当なretryとして扱う。Redis全損recoveryではfencing後にJobを`PENDING`へ戻して新しいOutbox Eventを作る。
+
+
+### Media processing architecture guide
+
+- [Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)を、UploadからVariant publication・failure recoveryまでの横断的な理解を補助する入口として追加した。
+- このguideは新しい仕様の正本を作るものではなく、Media transaction、Processing Job、Outbox、Idempotency、Redis ownership、Storage Operation、orphan reconciliationの既存正本が解決する問題と責務を関連付ける。
+- 正常系、DB rollback compensation、Outbox delivery、Processing Job state、Redis data loss recovery、Job-scoped Variant publicationをMermaid図で可視化し、APIからRedisへ直接publishしない等の非採用理由も記録する。
