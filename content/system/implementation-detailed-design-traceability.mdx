@@ -104,7 +104,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - access patternから一意に確定できないcomposite index column order
 - `normalized_name`のUnicode normalization / case folding / whitespace normalization
 - idempotency保証期間は24時間で確定。残るcleanup interval、operation別response snapshot representation
-- Outboxは`event_type + event_version`、version 1開始、PUBLISHED 7日保持で確定。残るevent種別ごとのpayload schema / serialization
+- Outboxは`event_type + event_version`、version 1開始、PUBLISHED 7日保持で確定。Media処理eventは`MEDIA_PROCESSING_REQUESTED` v1、`aggregate_id = media_id`、payload `{ job_id }`で確定。残る他event種別のpayload schema / serialization
 - Image Variant publicationは別storage keyへのstaged生成後、Media lock下で`image_variants`を一括更新する方針で確定。残るfinal SQL / Repository実装
 - migration rollout / rollback SQL
 - PostgreSQL HA manager / failover endpoint依存のconnection / migration behavior
@@ -113,7 +113,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 
 - 資料に明記されていない最終Operation名、Input / Payload field、nullability
 - Relay Connectionの各一覧への具体適用と上限値
-- upload / delete / processingの最終payloadとobservable state
+- upload / processingの利用者向けobservable stateは`PROCESSING` / `READY` / `FAILED`のMedia-level stateで確定。Processing Job ID、attempts、last_errorは通常の利用者向けGraphQLへ公開しない。残る最終Operation / Input / Payload field名・nullabilityとdelete payload
 - operation単位のidempotency key適用範囲
 
 ### Go Application / Infrastructure
@@ -124,10 +124,13 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 
 ### Async / Worker
 
-- Redis stream / consumer group名
-- event / job payloadのversioned schema
-- Processing Job retry初期値は最大3 attempts・reclaim idle 5分で確定。残るWorker runtime tuningと正常な長時間処理のownership維持実装
-- Upload Originalの部分失敗補償は即時DELETE、失敗時はStorage Operationへ引き渡すことで確定。残るStorage Operationのretry / lease / retention parameter
+- Redis Streamは`media-processing`、Consumer Groupは`media-workers`で確定。ConsumerはWorker processごとの一意なruntime identityを使用する
+- `MEDIA_PROCESSING_REQUESTED` v1は`aggregate_id = media_id`、payload `{ job_id }`の最小参照契約で確定
+- Processing Jobは`GENERATE_IMAGE_VARIANTS`、最大3 attempts・reclaim idle 5分、1分間隔の`XCLAIM` heartbeatでownershipを維持する
+- Image Variant keyは`media/{mediaId}/variants/{jobId}/{width}.webp`とし、DB参照をpublicationの正本とする
+- Storage Operationは最大10 attempts、30秒開始・最大30分の指数backoff、lease 5分、COMPLETED 7日保持、FAILED自動削除なしで確定
+- orphan reconciliationは1時間ごと・24時間graceでOriginal/Variantを照合し、candidateはStorage Operationへ引き渡す
+- Outbox Publisherはbatch 100、poll 1秒、lease 30秒、1秒〜5分の指数backoff。transient failureは回数でFAILEDにせず恒久的配送不能のみFAILED
 
 ### Frontend
 
@@ -193,3 +196,13 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - Community AccentはMembership従属Settingsとし、Membership終了時に削除、再参加時に再生成する。
 - Account deletionはReview → Review-bound reauthentication → final confirmation → Deletion Jobの順でmodelを分離する。Review / binding作成だけではUser lifecycleを変更しない。
 - Media logical overviewはTag / Group / Processing Job / Outbox / Storage Operation / Idempotency Requestを含み、既存physical modelのdurable stateと一致させる。
+
+
+### Media processing detailed design decisions
+
+- 画像Originalは128 MiB、100 MP、各辺32,768pxをInitial Release contractとし、旧NFR値をこのbaselineへ統一する。
+- Redis Stream / Consumer Groupは`media-processing` / `media-workers`。正常処理中は1分間隔の`XCLAIM` heartbeat、5分idleでreclaimする。
+- `GENERATE_IMAGE_VARIANTS`を初回生成・reprocess共通のProcessing Job種別とする。
+- Variant Object keyはJob固有namespaceを使い、Object path自体にstaging/published状態を持たせない。
+- Orphan reconciliationは1時間間隔・24時間graceで実行し、削除はStorage Operation経由とする。
+- 利用者向けGraphQLはProcessing Job内部状態を直接公開せず、Media-level `PROCESSING` / `READY` / `FAILED`へ写像する。
