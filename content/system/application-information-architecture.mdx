@@ -234,3 +234,13 @@ Header、Sidebar、Menu、Drawer等の具体的なpresentationをviewport間で�
 - viewportごとのpixel値
 
 これらはScreen Specification、domain詳細設計、実装、Visual Reviewの適切な責務で決定します。
+
+## Web Application ShellとRoute Layout
+
+認証後Applicationの主要画面は、Context Switcher、Context Navigation、Account Menuを含む共通Application Shellの内側に配置します。Dashboard、Media、Groups、Settings等の各Screen / Featureが個別にApplication Shellを所有・複製しません。
+
+Next.js App Routerでは、URLへ影響しないRoute Groupと `layout.tsx` を利用してApplication Shellを共通化します。PersonalとCommunityで必要なcontext情報はroute hierarchyからShellへ渡し、同一画面Component内でShellを重複して描画しません。Community routeでもShellは1階層だけとします。
+
+Application contextをPersonal / Communityで切り替えても、同じCapabilityを表す画面の基本layout、spacing、visual designは変更しません。Context固有の情報・Action・accent等、仕様で定義された差分だけを切り替えます。特にDashboardはPersonal / Communityで同じvisual contractを維持します。
+
+単純な画面Navigationを提供するUIは、Buttonのclick handlerからimperativeにrouteを変更することを基本とせず、Link / NavLink等のNavigation semanticsを持つ要素として実装します。フォーム送信、Dialog表示、状態変更等のActionはButtonとして扱います。Select等の選択UIからNavigationを発生させる場合は、そのcontrolのInteraction semanticsを維持した上でrouteを変更します。
