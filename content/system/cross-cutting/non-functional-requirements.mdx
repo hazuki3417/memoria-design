@@ -123,7 +123,7 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 - 月間99.0%は初期の運用目標であり、対外的なSLAではありません。
 - 予定された保守停止も記録し、計画停止を無かったことにはしません。
-- RedisやWorkerの停止時も、認可や既存Mediaの閲覧可否を緩めません。
+- RedisやWorkerの停止時も、認可や既存Mediaの閲覧可否を緩めません。Redis data loss recoveryでは旧ownershipを持つWorkerを停止またはfencingした後にだけ`PROCESSING` Jobを`PENDING`へ戻し、新しいOutbox Eventから再enqueueします。
 - Worker、Publisher、APIは再起動後に安全に再開できるよう、冪等性と永続化済み状態を使用します。
 - 停止時間、復旧に必要だった操作、再発防止策を記録し、冗長化は実測と予算に基づいて判断します。
 
@@ -244,7 +244,7 @@ backupやS3 versioningには、削除後のdataが保持期間の間だけ残る
 | Pagination | schema・resolverの境界値test | 既定30件、最大100件、0以下と101以上を拒否 |
 | 画像size・画素数 | 127 MiB、128 MiB、129 MiB、100 MP、各辺32,768px境界のtest | 上限以内を受け付け、超過・未許可形式・decode不能を拒否 |
 | Upload | 複数file、接続断、timeout、再送のintegration test | 同時3件以下、Media単位でretry、重複recordなし |
-| 非同期処理 | Redis停止、Publisher停止、Worker再起動、重複配送 | data欠落なし、event再配送、Job重複実行なし |
+| 非同期処理 | Redis停止・data loss、Publisher停止、Worker再起動、fresh duplicate、`XAUTOCLAIM` reclaim | data欠落なし、fresh duplicateでPipelineを再実行せず、reclaim / fenced recoveryだけが`PROCESSING` Jobを再実行し、Job並行実行なし |
 | 認可 | User、Community Member、Administrator、未認証者のtest | 閲覧・Original download・管理権限を分離 |
 | Secret保護 | Client bundle、log、trace、IaC outputの検査 | Secret、署名付きURL、tokenを出力しない |
 | Backup・復旧 | 別環境へのrestoreと整合性確認 | RPO 24時間、RTO 24時間以内を実測で確認 |
