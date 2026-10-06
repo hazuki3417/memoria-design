@@ -17,11 +17,12 @@ Content-Typeは `multipart/form-data` とし、1 requestで1 Mediaだけを登�
 | `file` | yes | Original binary。1 fileだけ |
 | `scopeType` | yes | `PERSONAL` または `COMMUNITY` |
 | `communityId` | conditional | `COMMUNITY` の場合だけ必須。Personalでは指定禁止 |
-| `idempotencyKey` | yes | retry-safeなupload command key |
+
+再送制御はbusiness bodyから分離し、HTTP `Idempotency-Key` headerを必須とします。Authorizationもheaderで受け取り、Client指定User ID、Custodian ID、Uploader IDは受け取りません。
 
 filenameとContent-Typeはtransport metadataでありfile formatの正本にはしません。Server-side decode / canonical MIME判定をMedia processing正本どおり実施します。
 
-認証は通常のBFF→API Access Token境界を使用します。Client指定User ID、Custodian ID、Uploader IDは受け取りません。PERSONALは認証済みACTIVE User本人、COMMUNITYはcommunityIdと現在MembershipからCustody / authorizationを決定します。
+認証は通常のBFF→API Access Token境界を使用します。PERSONALは認証済みACTIVE User本人、COMMUNITYはcommunityIdと現在MembershipからCustody / authorizationを決定します。
 
 ## Success
 
@@ -33,7 +34,7 @@ HTTP `201 Created`:
 {"mediaId":"01...","processingStatus":"PROCESSING"}
 ```
 
-詳細Media modelはGraphQLの `media(id:)` から取得します。同一idempotency key + 同一request hashの再送は同じ受付結果を返し、新しいMediaを作りません。
+HTTP uploadは受付結果だけを返します。詳細Media modelはGraphQLの `media(id:)` から取得し、HTTP JSONへGraphQLのMedia表現を複製しません。同一`Idempotency-Key` + 同一request hashの再送は同じ受付結果を返し、新しいMediaを作りません。
 
 ## Error
 
@@ -41,7 +42,7 @@ HTTP `201 Created`:
 {"error":{"code":"VALIDATION","message":"..."}}
 ```
 
-HTTP statusはtransport分類、Client分岐の正本は安定したApplication error `code` とします。代表mappingは未認証401、権限不足403、不存在404、validation / unsupported media 400、state conflict / idempotency conflict 409、size超過413、予期しない障害500です。内部SQL、Storage key、stack trace、decode detailを公開しません。
+HTTP statusはtransport分類、Client分岐の正本は安定したApplication error `code` とします。GraphQL `errors[].extensions.code` と可能な範囲で同じApplication error semanticsを使用し、Transport表現だけを分離します。代表mappingは未認証401、権限不足403、不存在404、validation / unsupported media 400、state conflict / idempotency conflict 409、size超過413、予期しない障害500です。内部SQL、Storage key、stack trace、decode detailを公開しません。
 
 ## Streamingと上限
 
@@ -51,7 +52,7 @@ S3 Original PUT成功後のDB失敗と補償DELETEはMedia consistency正本に�
 
 ## Web retry
 
-network failureやresponse喪失時は同じfile commandへ同じidempotencyKeyを再利用します。Userが明示的に再度uploadを開始した場合は新しいkeyを生成します。複数file uploadはfileごとに独立key / requestとし、一部失敗を他fileのrollback理由にしません。
+network failureやresponse喪失時は同じfile commandへ同じ`Idempotency-Key`を再利用します。Userが明示的に再度uploadを開始した場合は新しいkeyを生成します。複数file uploadはfileごとに独立key / requestとし、一部失敗を他fileのrollback理由にしません。
 
 ## 対象外
 
