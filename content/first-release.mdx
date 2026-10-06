@@ -2,7 +2,7 @@
 
 ## 目的
 
-初回Releaseでは、静止画像を個人およびCommunityで安全に閲覧・共有し、GroupとTagを使って整理できる状態を実現します。将来のProduct全体が静止画像と動画を扱うことと、初回Releaseで提供する対象は区別します。
+初回Releaseでは、静止画像を個人およびCommunityで安全に閲覧・共有し、GroupとTagを使って整理できる状態を実現します。動画等のInitial Release対象外Capabilityは現在の設計scopeに含めず、必要性を再判断するIdeaとして管理します。
 
 本ページを初回ReleaseのProduct-levelな範囲、優先順位、成功条件の正本とします。Issue上のRelease scopeは[開発プロセス](/development-process#release-scope)に従い、`release:initial` / `release:deferred` labelとして本ページの判断を投影します。IssueのOpen / ClosedはRelease包含とは別の状態です。要求や詳細設計で未確定の事項は対応するIssueで判断し、推測によって確定済み仕様へ含めません。
 
@@ -28,15 +28,15 @@
 
 Initial ReleaseのMedia bulk操作は、BrowserでUserが明示選択したMedia集合だけを対象とします。Group / Tag分類、User管理Mediaの1 Communityへの共有、Media削除を含め、Mediaごとの認可・現在状態を実行時に再検証し、全件atomic transactionを要求せず部分成功を許容します。filter結果全件や未読込Mediaを暗黙対象にする「すべて選択」はInitial Releaseでは提供しません。
 
-Media削除とUser account削除は初回Releaseの必須機能です。管理主体の委譲と独立した原本download画面は初回Releaseの必須機能とはしません。それらを提供する場合は既存の不変条件と認可設計に従います。
+Media削除とUser account削除は初回Releaseの必須機能です。管理主体の委譲と独立した原本download画面は初回Releaseに含めません。管理主体の委譲は現在の設計scopeから外し、将来のIdeaとして必要性から再検討します。
 
 ## 初回Releaseに含めない機能
 
-- 動画、PDF、文書、音声単体など静止画像以外の登録
+- 動画、PDF、文書、音声単体など静止画像以外の登録。動画対応は[#20](https://github.com/hazuki3417/memoria-design/issues/20)でIdeaとして管理し、現在の詳細設計・実装契約には含めない
 - 課金、料金体系、請求処理、自動Tag付け
 - profile画像、複数認証方法のaccount統合、公開用account ID：[#51](https://github.com/hazuki3417/memoria-design/issues/51)・[#52](https://github.com/hazuki3417/memoria-design/issues/52)・[#53](https://github.com/hazuki3417/memoria-design/issues/53)
 - イベント通知機能（アプリ内通知、メール通知、push通知、通知履歴・未読管理等）。現時点では通知を必要とする具体的なユースケースを定義していないため先行して要求・設計しない。今後、利用者がその場にいなくても状態変化を認識する必要があるユースケースが明らかになった場合、そのユースケースを起点として通知要求を検討する：[判断記録 #47](https://github.com/hazuki3417/memoria-design/issues/47)
-- Media管理主体の委譲：[委譲機能 #48](https://github.com/hazuki3417/memoria-design/issues/48)
+- Media管理主体の委譲：[#48](https://github.com/hazuki3417/memoria-design/issues/48)でIdeaとして管理し、現在の詳細設計・実装契約には含めない
 - query/filter結果全件を暗黙対象にするbulk操作、高度な検索、および未採用の高度なmulti-target操作。複数画像Uploadに加え、Browserで明示選択したMediaへのGroup分類、Tag付与・解除、1 Communityへの共有、削除はInitial Releaseに含める
 - ごみ箱、削除済み画像の復元、アーカイブ
 - BrowserからS3への直接Upload
@@ -100,7 +100,7 @@ Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域に
 | Security・Privacy | 公開前に満たす認証、認可、保護要件と、強制再認証等の実装方式を確定する | [#27](https://github.com/hazuki3417/memoria-design/issues/27) |
 | 初期運用 | EC2構成、DB配置、Deploy、Backup、復旧を確定する | [#45](https://github.com/hazuki3417/memoria-design/issues/45) |
 
-動画の詳細設計は[#20](https://github.com/hazuki3417/memoria-design/issues/20)として初回Release後の候補に残します。高度な段階的DB移行は[#28](https://github.com/hazuki3417/memoria-design/issues/28)として、既存dataや互換性の必要性に応じて判断します。
+動画対応は[#20](https://github.com/hazuki3417/memoria-design/issues/20)、Media管理主体の委譲は[#48](https://github.com/hazuki3417/memoria-design/issues/48)でIdeaとして管理し、現在の設計Backlogには含めません。高度な段階的DB移行は[#28](https://github.com/hazuki3417/memoria-design/issues/28)として、既存dataや互換性の必要性に応じて判断します。
 
 WebおよびIaCの既知のquality gate問題は、それぞれ[memoria-web#11](https://github.com/hazuki3417/memoria-web/issues/11)と[memoria-IaC#10](https://github.com/hazuki3417/memoria-IaC/issues/10)で追跡します。
 
