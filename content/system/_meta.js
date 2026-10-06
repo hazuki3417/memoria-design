@@ -11,6 +11,7 @@ export default {
   "application-detailed-design-baseline": "Application詳細設計Baseline",
   "implementation-cross-cutting-baseline": "Implementation横断設計Baseline",
   "-- History": {"type":"separator","title":"設計履歴・Traceability"},
-  "v5-design-integration-policy": "v5設計統合記録",
-  "v5-design-coverage": "v5統合Traceability"
+  "design-integration-decisions": "設計統合Decision履歴",
+  "design-integration-traceability": "設計統合Traceability",
+  "design-decision-traceability": "設計Decision Traceability"
 }
