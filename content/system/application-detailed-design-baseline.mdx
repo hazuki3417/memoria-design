@@ -132,3 +132,8 @@ Original / Variantはprivate storageを基本とし、signed URLをlog/traceへ�
 ## Implementation Detailed Designへの移行
 
 Application詳細設計はBaseline確定済みとして扱い、次はImplementation Detailed Designへ進みます。PersistenceはDomainごとの部分最適ではなく、全Table / Relationをレビューしてから共通型、Nullability、FK、UNIQUE/CHECK、Deletion、Index、Transaction/Lock、Concurrency、Outbox/Idempotency、Migration、DDLの順で横断詳細化します。
+
+
+## Implementation handoff
+
+実装時のdependency direction、Transaction Runner、port、internal Worker operationは[Application実装境界](/system/application-implementation-boundaries)を正本とします。GraphQL以外のMedia file transportは[Media Upload HTTP契約](/system/api/http-media-upload)、Web側のBFF / Apollo / upload / reauthentication境界は[Web実装引き渡し](/system/web/implementation-handoff)、process ownership / health / shutdownは[Runtime Process Model](/system/runtime-process-model)、横断acceptanceは[Implementation Test Matrix](/system/implementation-test-matrix)を参照します。
