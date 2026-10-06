@@ -1140,7 +1140,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - User Preferences / Community User Settingsはaccount / Membership scopeに従って永続化し、ThemeをGraphQLへ含めない。Context Switcherは `myCommunities -> Community.mySettings` からAccentを取得する。Storage Usageのbyte値は `Int64` を使用し、wire上は10進文字列として扱う。
 - Community削除はCommunity管理Mediaの存在を `CONFLICT` 条件にせず、`ACTIVE → DELETING` とMedia削除Lifecycleを実装する。
 - `mediaOriginalDownload` は単一Mediaの5分署名URL + `expiresAt` を実装引き渡し対象とする。複数Media ZIPはInitial Release対象外とする。Account deletionは公開GraphQLから `reauthenticationProof` を除外し、`reviewToken` とServer-side reauthentication bindingを使用する。BFF→APIのbinding登録境界はBrowser向けGraphQL Schemaとは分離する。
-- 専用HTTP upload endpointのpath、multipart request / response詳細は別途設計する。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
+- 専用HTTP upload endpointのpath、multipart request / response詳細は[Media Upload HTTP契約](./http-media-upload)を正本とする。既存の認証・認可、Application Use Case、Transactional Outbox、Redis Streams処理基盤を再利用する。
 
 ## レビュー時の要判断事項
 
