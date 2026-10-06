@@ -4,7 +4,7 @@
 
 初回Releaseでは、静止画像を個人およびCommunityで安全に閲覧・共有し、GroupとTagを使って整理できる状態を実現します。将来のProduct全体が静止画像と動画を扱うことと、初回Releaseで提供する対象は区別します。
 
-本ページを初回Releaseの範囲、優先順位、成功条件の正本とします。要求や詳細設計で未確定の事項は対応するIssueで判断し、推測によって確定済み仕様へ含めません。
+本ページを初回ReleaseのProduct-levelな範囲、優先順位、成功条件の正本とします。Issue上のRelease scopeは[開発プロセス](/development-process#release-scope)に従い、`release:initial` / `release:deferred` labelとして本ページの判断を投影します。IssueのOpen / ClosedはRelease包含とは別の状態です。要求や詳細設計で未確定の事項は対応するIssueで判断し、推測によって確定済み仕様へ含めません。
 
 ## 対象利用者と利用場面
 
@@ -79,7 +79,9 @@ DB schemaの初期化と安全なmigration実行は初回Releaseで必要です�
 
 性能、容量、可用性、RPO/RTO、Backup保持期間、観測項目は[非機能要件](/system/cross-cutting/non-functional-requirements)を正本とします。Security・Privacyの詳細は専用の要求Issueで確定します。
 
-## 設計状況と残る設計事項
+## 設計状況と追跡先
+
+以下のIssue参照は設計判断・履歴・後続作業への追跡先であり、IssueがOpenであることだけを「Initial Releaseの未完了条件」と解釈しません。Release可否は本ページの成功条件と `release:initial` Issueの実状態を照合して判断します。
 
 Initial ReleaseのProduct / Domain設計は、UserとCommunityの主要領域について確定済みです。Application UIについても、[Application Information Architecture](/system/application-information-architecture)と[Screen Specification](/screens)で主要Flowを定義し、Media Browser / Detail、Media Sharing、Group BrowserとMedia ↔ Group分類Interactionまで横断設計済みです。Media Upload、Tag Interaction、および主要なMedia bulk操作のProduct / Screen semanticsまで確定済みです。
 
