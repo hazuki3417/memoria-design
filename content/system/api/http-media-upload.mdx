@@ -1,0 +1,58 @@
+# Media Upload HTTP契約
+
+## 位置づけ
+
+Image Originalのupload transportを定義します。Mediaの閲覧・分類・共有・削除・Processing状態はGraphQLを使用し、file bodyだけは同じmemoria-apiが提供する専用HTTP endpointで受信します。認証、認可、Application Use Case、Transaction、Outbox、Processing JobはGraphQLと同じApplication境界を再利用します。
+
+## Endpoint
+
+`POST /api/media/uploads`
+
+Content-Typeは `multipart/form-data` とし、1 requestで1 Mediaだけを登録します。複数file選択UIはWebがfileごとに独立requestを送信します。
+
+## Request
+
+| part | 必須 | 内容 |
+| --- | --- | --- |
+| `file` | yes | Original binary。1 fileだけ |
+| `scopeType` | yes | `PERSONAL` または `COMMUNITY` |
+| `communityId` | conditional | `COMMUNITY` の場合だけ必須。Personalでは指定禁止 |
+| `idempotencyKey` | yes | retry-safeなupload command key |
+
+filenameとContent-Typeはtransport metadataでありfile formatの正本にはしません。Server-side decode / canonical MIME判定をMedia processing正本どおり実施します。
+
+認証は通常のBFF→API Access Token境界を使用します。Client指定User ID、Custodian ID、Uploader IDは受け取りません。PERSONALは認証済みACTIVE User本人、COMMUNITYはcommunityIdと現在MembershipからCustody / authorizationを決定します。
+
+## Success
+
+DB commitまでにOriginal、Media / subtype / Custody、Processing Job、Outbox、Idempotency recordが既存Media transaction契約どおりdurableになった場合だけ成功します。Redis deliveryやVariant生成完了は待ちません。
+
+HTTP `201 Created`:
+
+```json
+{"mediaId":"01...","processingStatus":"PROCESSING"}
+```
+
+詳細Media modelはGraphQLの `media(id:)` から取得します。同一idempotency key + 同一request hashの再送は同じ受付結果を返し、新しいMediaを作りません。
+
+## Error
+
+```json
+{"error":{"code":"VALIDATION","message":"..."}}
+```
+
+HTTP statusはtransport分類、Client分岐の正本は安定したApplication error `code` とします。代表mappingは未認証401、権限不足403、不存在404、validation / unsupported media 400、state conflict / idempotency conflict 409、size超過413、予期しない障害500です。内部SQL、Storage key、stack trace、decode detailを公開しません。
+
+## Streamingと上限
+
+APIはrequest body全体をmemoryへ読み込まずstreamとして扱い、既存128 MiB Original上限をtransportでも早期に適用します。Content-Lengthだけを信頼せずstreamed byte countでも超過を拒否します。dimension / pixel / decode上限はMedia processing正本に従います。
+
+S3 Original PUT成功後のDB失敗と補償DELETEはMedia consistency正本に従います。
+
+## Web retry
+
+network failureやresponse喪失時は同じfile commandへ同じidempotencyKeyを再利用します。Userが明示的に再度uploadを開始した場合は新しいkeyを生成します。複数file uploadはfileごとに独立key / requestとし、一部失敗を他fileのrollback理由にしません。
+
+## 対象外
+
+GraphQL multipart Upload、1 request複数Media、direct browser-to-S3、resumable / chunk upload、video固有transportはInitial Release対象外です。
