@@ -2,7 +2,7 @@
 
 ## 目的
 
-Domain semanticsをTransport、DB、Workerへ漏らさず、GraphQL / HTTP / async runtimeが同じApplication規則を再利用できる実装境界を定義します。具体package名よりdependency directionを正本とします。
+Domain semanticsをTransport、DB、Workerへ漏らさず、GraphQL / HTTP / async runtimeが同じApplication規則を再利用できる実装境界を定義します。責務、dependency rule、transaction boundary、port capabilityを設計contractとし、具体的なGo directory / package名、interface名、method signatureは実装時に最新のmemoria-api構成へ適合させます。
 
 ## Dependency direction
 
@@ -16,7 +16,15 @@ Public operationはGraphQL fieldのmirrorではなくUser intent / business tran
 
 Command handlerは認証済みPrincipal、入力値、必要なidempotency contextを受け、authorization・state validation・transaction orchestrationを行います。Resolver / HTTP handlerは入力変換とerror mappingだけを担当します。
 
-Query serviceはauthorization、stable sort / cursor、N+1回避を担当し、Command aggregateを無理に再利用しません。Initial Releaseで別DB/read storeは導入しません。
+Query Serviceはread projectionに必要なjoin、filter、sort、Relay cursor paginationを効率的に実行するApplication read portです。一覧取得のためだけに複数aggregateをRepository経由で復元してApplicationでjoinすることを要求しません。Write側はDomain invariantをRepository経由で維持し、Read側はprojectionを許可する軽量なCQRS的分離とします。Query Serviceもauthorization semanticsを迂回できません。Initial Releaseで別DB/read storeやeventual consistencyは導入せず、同じPostgreSQLをSource of Truthとします。
+
+## Transport / Resolver responsibility
+
+GraphQL Resolver / HTTP HandlerはTransport adapterとして薄く保ち、input変換、検証済みAuthentication Contextの受け渡し、Application Use Case / Query Service呼び出し、result変換、Transport error mappingを担当します。authorization decision、business state transition、transaction orchestration、Repository呼び出しの組み立ては置きません。
+
+GraphQL pagination argument validationやSelection Setに依存する最適化など、GraphQLでのみ意味を持つ処理はGraphQL adapter側へ置けます。
+
+AuthenticationはTransport / InfrastructureがAccess Tokenを検証してContextを生成し、Community roleやMedia操作可否等のbusiness authorizationはApplication / Domainが判定します。ApplicationへAuth0 SDK typeやraw JWT Claimsを渡さず、検証済みactor identityと必要最小限のauthentication metadataを渡します。
 
 ## Transaction Runner
 
@@ -40,6 +48,10 @@ Applicationが必要とするportは能力単位に分離します。
 
 巨大なInfrastructure service interfaceや全table共通generic repositoryを作りません。Domain固有queryは型付きの明示的operationにします。
 
+## Idempotency scope
+
+Media Upload HTTPは結果不明retryによる重複Media作成を防ぐため `Idempotency-Key` を必須とします。GraphQL Mutation全体へ汎用Idempotency middlewareを一律導入しません。DB constraint、current-state validation、transactionで再実行安全性を確保し、副作用重複が問題となるUse Caseだけ明示的なidempotency contractを持たせます。
+
 ## Internal operations
 
 Outbox Publisher、Media Processing Worker、Storage Operation Worker、orphan reconciliation、User / Community deletion cleanupはBrowser向けPublic Use Caseと分離したinternal Application operationです。
@@ -58,7 +70,7 @@ expected validation / conflict / forbidden / not-foundとunexpected infrastructu
 
 process startupでadapterとUse Caseを組み立てます。global mutable singletonへbusiness dependencyを隠しません。DB pool、Redis client、S3 client、Auth0 client等のthread-safe expensive clientはprocess単位で共有します。
 
-API serverとWorkerを同一binaryのmodeとして提供するか別binaryにするかは実装選択を許容しますが、ProductionではHTTP servingとlong-running async ownershipを独立して停止・再起動できるprocess responsibilityとして扱います。
+API serverとWorkerを同一binary / imageのmodeとして提供するか別binaryにするかは実装選択を許容しますが、HTTP serving、Outbox Publisher、Media Worker、Storage Operation Worker等は論理的に独立したprocess roleとし、個別に起動・停止・再起動・scaleできる構造にします。どのDocker container / EC2へ配置するかはInfrastructure設計へ委ねます。
 
 ## Test seam
 
