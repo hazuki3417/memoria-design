@@ -4,7 +4,7 @@
 
 このページはMemoriaの**現行設計を読むための入口**です。詳細仕様を複製せず、現在有効なSource of Truthとその優先関係を示します。
 
-過去のcheckpoint、PR、設計統合作業の状態は現行仕様そのものではありません。設計判断の経緯を確認する場合は、各文書の「設計判断・理由」、ADR、またはhistorical traceabilityを参照します。
+過去の過去の作業記録、PR、設計統合作業の状態は現行仕様そのものではありません。設計判断の経緯を確認する場合は、各文書の「設計判断・理由」、ADR、またはhistorical traceabilityを参照します。
 
 ## Source of Truthの読み方
 
@@ -14,7 +14,7 @@
 2. 横断的なApplication / Implementation contract
 3. Initial Release scope、NFR、Security等の横断Requirement
 4. ADR / design decision（判断理由と再検討条件）
-5. integration / traceability文書（過去資料がどこへ統合されたかを追跡する履歴）
+5. traceability文書（設計判断・旧仕様の解消経緯を追跡する履歴）
 
 実行可能Schema、migration、generated code、runtime configuration等について設計文書が実装Repositoryを正本として明示している場合は、そのRepositoryの最新状態を併せて確認します。
 
@@ -52,7 +52,7 @@ Screen Specificationは、利用者が確認するInformation、実行するActi
 
 設計変更時は、現行contractだけでなく「なぜその判断をしたか」「何を採用しなかったか」「どの条件で再検討するか」を失わないよう、対象正本のDecision節またはADRへ残します。
 
-`design-integration-decisions` と `design-integration-traceability` は、v5 checkpointをGitHub正本へ統合した**履歴・traceability資料**です。現在の仕様を決める文書ではなく、現行仕様は上記の各正本から読み取ります。
+`design-decision-traceability` は、横断レビューで行った設計判断と旧仕様の解消経緯を追跡する履歴資料です。現在の仕様を決める文書ではなく、現行仕様は上記の各正本から読み取ります。
 
 ## 実装時の原則
 
