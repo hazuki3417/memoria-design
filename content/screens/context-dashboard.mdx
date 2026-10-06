@@ -41,3 +41,13 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 - 必要なGraphQL Operationと既存Media Browserとの取得契約の整合。
 
 関連: [Application Information Architecture](/system/application-information-architecture)、[Personal Media](/screens/personal-media)、[Media Browser / Detail](/screens/media-browser-detail)、[Frontend UI Development](/system/frontend-ui-development)。
+
+## DashboardからCollectionへの遷移
+
+「最近のMedia」の「すべて見る」は現在contextのMedia Browserへ遷移します。「最近のGroup」の「すべて見る」は現在contextのGroup Browserへ遷移します。Personal Dashboardではそれぞれ `/media` と `/groups`、Community Dashboardでは `/communities/[communityId]/media` と `/communities/[communityId]/groups` を使用します。
+
+### 未対応課題: 最新順での初期表示
+
+Dashboardの「最近のMedia」「最近のGroup」から「すべて見る」でCollectionへ遷移した場合は、Dashboardで見ていた「最近」の意味を維持するため、遷移先も更新日時等の適切な時系列基準による最新順で初期表示されることが望ましい状態です。
+
+現時点のMedia Browser / Group Browserには、この遷移元に応じて初期Sortを指定・復元する契約がありません。そのためInitial implementationでは通常のCollection表示へ遷移するところまでを実装し、最新順Sortの適用は未対応課題として扱います。Sortの正本となるfield、既定Sort、URL QueryへSort状態を含めるか、APIのConnection orderとの責務分担を設計した上で対応します。
