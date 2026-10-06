@@ -27,7 +27,6 @@ flowchart LR
     Community --> CDashboard["Dashboard"]
     Community --> CMedia["Media"]
     Community --> CGroups["Groups"]
-    Community --> Members["Members"]
     Community --> Management["Management<br/>Administratorのみ"]
     Account["Account Menu"] --> Settings["Settings"]
     Settings --> Profile["Profile"]
@@ -63,10 +62,9 @@ Initial Releaseでは次を主要領域とします。
 - **Dashboard**: 各Community contextの標準entry。そのCommunityのMediaや活動に関する情報を提示する。最近のMediaと主要機能への入口を提供する。詳細は[Context Dashboard](/screens/context-dashboard)を参照する。
 - **Media**:Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
 - **Groups**: Community内で閲覧可能なMediaをCommunity専用のGroupで整理する。
-- **Members**: 現在の参加者とAdministrator roleを確認する。Administratorは同じ領域でrole変更・参加者除外を行う。
 - **Management**: Administrator向けのCommunity自体の設定を提供する。
 
-ManagementにはCommunity名変更、Invitation管理、Community削除等を含めます。参加者の確認と管理はMembersへ集約し、人を確認する場所と管理する場所を分離しません。Memberが利用できないCommunity設定を日常利用の主要領域と同格に見せることは避けます。
+ManagementにはCommunity名変更、Invitation管理、Community削除等を含めます。Community Membersの独立画面は今回のルーティング対象に含めません。Memberが利用できないCommunity設定を日常利用の主要領域と同格に見せることは避けます。
 
 Community内の具体的なScreen構成は各Screen Specificationで定義します。
 
@@ -127,7 +125,7 @@ Communityの検索、pin、recent、手動並べ替え等はInitial Releaseの�
 
 ACTIVE UserはContext SwitcherからCommunity作成を開始できます。
 
-Community作成には[Community Creation](/screens/community-creation)と[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。作成成功後は作成したCommunityを現在contextとして、そのCommunityのDashboard（`/communities/[communityId]`）へ移動します。
+Community作成には[Community Creation](/screens/community-creation)と[Creation Dialog Pattern](/design-system/patterns/creation-dialog)を適用します。作成成功後は作成したCommunityを現在contextとして、そのCommunityのDashboard（`/communities/[communityId]/dashboard`）へ移動します。
 
 ### Navigation state
 
@@ -151,7 +149,7 @@ Context Navigationは、現在contextの中でUserが何を行うかを選択す
 
 Personal contextではDashboard、Media、Groupsを提供します。Tagの付与・解除・絞り込みはMedia内で提供します。
 
-Community contextではDashboard、Media、Groups、Membersを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。
+Community contextではDashboard、Media、Groupsを提供し、AdministratorにはCommunity管理へ到達できるNavigationを追加します。Community Membersの独立Navigationは今回の対象に含めません。
 
 Contextを切り替えた場合、移動先contextのDashboardへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
 
@@ -190,7 +188,7 @@ Personal contextの標準entryはDashboardです。
 
 ### Community
 
-各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。Community DashboardのURLは`/communities/[communityId]`です。Dashboardの情報構成は[Context Dashboard](/screens/context-dashboard)で定義します。
+各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。Community DashboardのURLは`/communities/[communityId]/dashboard`です。Dashboardの情報構成は[Context Dashboard](/screens/context-dashboard)で定義します。
 
 ## DashboardとContextの関係
 
