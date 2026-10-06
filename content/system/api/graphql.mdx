@@ -70,6 +70,16 @@ enum CommunityRole {
   ADMIN
 }
 
+enum CommunityMemberSort {
+  NAME
+  ROLE
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
 enum MediaType {
   IMAGE
   VIDEO
@@ -271,7 +281,7 @@ extend type Mutation {
 type Community {
   id: ID!
   name: String!
-  members(first: Int, after: String, last: Int, before: String): CommunityMembershipConnection!
+  members(first: Int, after: String, last: Int, before: String, sort: CommunityMemberSort = NAME, direction: SortDirection = ASC): CommunityMembershipConnection!
   myMembership: CommunityMembership!
   mySettings: CommunityUserSettings!
   createdAt: DateTime!
@@ -316,6 +326,8 @@ extend type Query {
 `community` と `Community.members` は有効なMembershipを持つUserだけが利用できます。Community外Userへ内部情報を公開しません。`myCommunities` は現在Userが有効なMembershipを持つCommunityだけを返し、公開Community検索や現在Communityにおける本人role取得の代替には使用しません。Application IAではCommunity contextへ移動後、対象Communityの情報と現在Userの権限を参照します。`Community.myMembership` は現在の認証User本人の有効なMembershipを直接返し、ページングされた `Community.members` に本人が含まれるかどうかに依存しません。`members` は本人を除外せず、全参加者を対象とします。両fieldは同じ保存済みMembershipを参照し、二重保存しません。`community(id:)` は有効なMembershipを持つUserにのみ公開するため、取得可能なCommunityの `myMembership` は非nullです。Membership失効時はCommunity取得と各fieldの認可を再評価し、Clientの表示済みroleを認可根拠にしません。
 
 `Community.mySettings` は現在の認証User × Communityに属するpresentation settingを返します。Initial ReleaseではAccent Colorだけを持ち、Community brandingやCommunity本体の属性にはしません。`myCommunities` から各 `Community.mySettings.accentColor` を取得できるため、Context Switcher専用のAccent Queryは追加しません。有効なMembershipを持つUserだけがCommunityを取得できるため、取得可能なCommunityでは `mySettings` も非nullです。
+
+`Community.members` の既定順は現在のnickname昇順、同値時はUser ID昇順です。`sort: NAME` はnickname、`sort: ROLE` はroleを主keyとし、指定directionを主keyへ適用した後、安定化keyとしてUser IDを同方向で使用します。cursorは `(sort kind, direction, normalized primary value, user id)` に対応するopaque値で、Clientは内容を解釈しません。nicknameはUser domain所有のため、Query ServiceはMembershipと現在User Profileをjoinして同一snapshot内でpage境界を評価します。role / nicknameがpage取得間に変更された場合、cursor paginationは最新状態を基準に再評価されるため、Webは管理操作後に対象Connectionをrefetchします。参加日時sortはInitial Releaseへ追加しません。
 
 Community参加者とAccount削除の後任候補には共通の `User` 型を使用します。参加者画面で必要な情報は `User.id`、`User.profile.nickname` と `CommunityMembership.role` です。`Community.myMembership` は本人のrole取得、`Community.members` は本人を含む全参加者一覧の取得に使います。`Community.members` の親Communityは取得済みのため、Membershipから同じCommunityへの逆参照は設けません。`User` 型を共用しても、将来追加する本人専用fieldはfield単位で認可し、Membershipを通じて公開しません。email、profile画像、Auth0 identifierはInitial Releaseの `User` に含めません。
 
