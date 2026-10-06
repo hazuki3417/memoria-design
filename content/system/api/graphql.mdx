@@ -25,6 +25,21 @@ GraphQL I/Fは現時点のProduct / Domain契約から確定できる範囲を�
 - DB更新と非同期処理の連動はTransactional Outboxを利用し、Redis配送完了をMutation成功条件にしません。
 - 管理主体委譲、User起点Join Request、動画OperationはInitial ReleaseのGraphQL契約へ含めません。
 
+## GraphQL protection limits
+
+request size、query depth / complexity、execution timeoutは防御機構を必須とし、consumerで使用する全OperationをCIで検証します。具体値はSchema / Operation実装後の計測で確定し、実測前の値を恒久contractとは扱いません。
+
+Initial provisional valueは次のとおりです。
+
+| 項目 | 暫定値 |
+| --- | --- |
+| GraphQL HTTP request body | 1 MiB |
+| Query depth | 12 |
+| Query complexity | 1000 |
+| Execution timeout | 10秒 |
+
+既存NFRのrate limit（User 60 requests/minute、burst 20）とConnection取得件数（default 30、max 100）は別layerの既存contractとして維持します。実装後、正規のconsumer Operationを計測し、正常な最大Operationへ十分なmarginを持つ値へ更新します。
+
 ## モデル中心の公開境界
 
 GraphQLはDBの外部キーをそのまま公開するのではなく、Clientへ公開するドメインモデルと本質的な関連を表現します。Queryはモデルへの入口、関連fieldはモデル間の移動、MutationはUser intentを表します。関連の逆方向は利用目的がある場合だけ公開し、単に技術的に辿れるという理由では追加しません。
@@ -91,11 +106,9 @@ enum MediaStatus {
 }
 
 enum ProcessingStatus {
-  PENDING
   PROCESSING
-  COMPLETED
+  READY
   FAILED
-  CANCELLED
 }
 
 enum DateFormat {
@@ -178,7 +191,8 @@ type PageInfo {
 - 既定取得件数は30件、最大取得件数は100件です。
 - 0以下、上限超過、`before + first`、`after + last`、`first + last` は `VALIDATION` とします。
 - edgeは `cursor` と `node`、connectionは `edges` と `pageInfo` を返します。
-- cursorはopaqueとし、ClientがDB key構造へ依存しないようにします。
+- Connection / Edge / `node` / `cursor` / `pageInfo` と `first` / `after` / `last` / `before` の意味はRelay Cursor Connections Specificationへ準拠します。
+- cursorはopaqueとし、ClientがDB key構造へ依存しないようにします。Pagination mechanismは共通化しますが、business上のsort semanticsは各Query契約で定義します。
 - Media一覧は既存設計どおり `createdAt DESC, id DESC` を論理順とします。
 - Group / Tag一覧はname ASC、同名時ID ASCとし、対応するopaque cursorを使用します。Community / Membership一覧の具体的sortとcursor keyは、Product仕様で未確定のため本契約だけで新規決定しません。
 
@@ -551,7 +565,7 @@ Image Variantは `Media -> Image -> ImageVariant` の構造を正本とします
 
 `uploadedBy` はUploader削除後も「削除済みUser」を表現できる必要があります。削除前nickname等を保持しないため、削除済みUploaderにnicknameを返しません。
 
-`processing` はClientがVariant生成中・完了・terminal failureを区別するための利用者向け状態です。内部のattempt数、Redis ownership、内部error本文は公開しません。
+`processing` はClientがVariant生成中・完了・terminal failureを区別するためのMedia-level状態です。内部Processing Jobの `PENDING` / `PROCESSING` は `PROCESSING`、`COMPLETED` は `READY`、`FAILED` は `FAILED` へ写像します。`CANCELLED`、attempt数、Redis ownership、lease、内部error本文等のJob runtime状態は公開しません。
 
 ### Personal / Community一覧と詳細
 
