@@ -81,3 +81,10 @@ Object Storageへの生成・削除はPostgreSQL transactionへ含めません�
 Initial Releaseの画像Variant生成Jobは`GENERATE_IMAGE_VARIANTS`とします。初回生成と運用上のreprocessで同じ`job_type`を使用し、同一`(media_id, job_type)`のactive Jobは1件だけ許可します。
 
 Upload transactionで作成するOutbox eventは`MEDIA_PROCESSING_REQUESTED` version 1とします。`aggregate_id`はMedia ID、payloadは`{"job_id":"<Processing Job ID>"}`だけを保持します。画像形式、Original storage key、Variant幅、Custody等はeventへsnapshotせず、WorkerはPostgreSQLから現在状態を取得します。
+
+
+## GraphQLから観測する処理状態
+
+利用者向けGraphQLはProcessing Jobの内部stateをそのまま公開せず、Media-levelの`MediaProcessingStatus`として`PROCESSING` / `READY` / `FAILED`だけを公開します。`PENDING`と`PROCESSING`は`PROCESSING`、`COMPLETED`は`READY`、`FAILED`は`FAILED`へ写像します。`CANCELLED`はMedia削除との競合で発生する内部状態であり、通常Queryから`DELETING` Mediaを返さないため利用者向けenumへ公開しません。
+
+Upload MutationはVariant生成を待たず、PostgreSQL transaction commit後に作成済みMediaと`PROCESSING`状態を返します。Media Browser / Detail Queryでも同じMedia-level stateを取得可能にします。Processing Job ID、attempts、last_error等の運用情報は通常の利用者向けGraphQLへ公開しません。`READY`は公開可能なImage Variant集合が正常にpublication済みであることを意味します。最終Operation名、Input / Payload field名、nullabilityはGraphQL詳細設計で確定します。
