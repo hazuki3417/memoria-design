@@ -1,4 +1,7 @@
-# Implementation Detailed Design Traceability
+# Design Decision / Implementation Traceability
+
+
+> この文書は設計判断の由来、横断レビューで解消した旧設計、各詳細設計passの結果を追跡する履歴資料です。**現在の未決定事項一覧や実装仕様そのものではありません。** 現行仕様は[Current design baseline](/context/current-design-baseline)から各領域正本を参照し、現在の未解決事項はGitHub Issueまたは明示的なOpen Items文書で確認します。
 
 ## 目的
 
@@ -93,9 +96,9 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - Media直結`media_variants`を廃止し、`media -> images -> image_variants`へ統一した。
 - 将来のCustody transferと初回ReleaseのCommunity shareを明確に分離した。
 
-## 未決定事項の管理
+## 当時の未決定事項と追跡
 
-共有資料・GitHub正本に具体的決定がない事項は推測で補完しない。横断的な未決定事項はIssue #61、領域固有事項は対応Issueで追跡する。
+以下は横断レビュー時点で未決定として追跡した項目です。**現在も未決定であることを意味しません。** 後続設計で解消された内容は各正本を優先し、未解決かどうかはGitHub Issueの最新状態で判断します。推測で補完しないという原則自体は維持します。
 
 ### Persistence / migration
 
@@ -154,7 +157,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - WAL archive / restore softwareとprocedure
 - volume / filesystem、monitoring / alerting、restore drillの具体値
 
-## Issue対応表
+## 当時のIssue対応表
 
 | 領域 | 主Issue | 状態 |
 | --- | --- | --- |
@@ -172,7 +175,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 | 将来Custody transfer | #48 | current Custody / share semantics更新済み |
 | 横断未決定事項 | #61 | open |
 
-## 完了条件
+## Traceability作業の完了条件（履歴）
 
 Issue #59のtraceability作業は、以下を満たした時点で完了とする。
 
