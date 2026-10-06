@@ -29,7 +29,6 @@ erDiagram
   COMMUNITIES ||--o{ COMMUNITY_JOIN_REQUESTS : receives
   MEDIA ||--o| IMAGES : image_detail
   IMAGES ||--o{ IMAGE_VARIANTS : derived_as
-  MEDIA ||--o| MEDIA_VIDEOS : video_detail
   MEDIA ||--o{ MEDIA_COMMUNITY_ACCESSES : shared_to
   COMMUNITIES ||--o{ MEDIA_COMMUNITY_ACCESSES : receives
   MEDIA ||--o{ MEDIA_EVENTS : traced_by
@@ -48,7 +47,6 @@ erDiagram
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | Media ID |
-| media_type | varchar(16) | NOT NULL、CHECK | `IMAGE`または`VIDEO` |
 | original_file_name | text | NOT NULL | upload時のfile名 |
 | extension | varchar(32) | NOT NULL | 正規化した拡張子 |
 | mime_type | varchar(255) | NOT NULL | 検証済みMIME type |
@@ -69,14 +67,11 @@ erDiagram
 index:
 
 - `(uploaded_by_user_id, uploaded_at DESC, id DESC)`
-- `(media_type, created_at DESC, id DESC)`
 - `(status)`は削除処理の再開に使用
 
-### images・videos
+### images
 
 ImageはMediaのsubtype detailとして`images`に分離します。Image VariantはMediaへ直接ぶら下げず、必ず`images`を親とします。
-
-#### images
 
 | 列 | 型 | 制約 | 意味 |
 | --- | --- | --- | --- |
@@ -84,18 +79,7 @@ ImageはMediaのsubtype detailとして`images`に分離します。Image Varian
 | width | integer | NOT NULL、CHECK 1以上 | 画像の幅 |
 | height | integer | NOT NULL、CHECK 1以上 | 画像の高さ |
 
-#### videos
-
-| 列 | 型 | 制約 | 意味 |
-| --- | --- | --- | --- |
-| media_id | varchar(26) | PK、FK media ON DELETE CASCADE | 対象Media ID |
-| width | integer | NOT NULL、CHECK 1以上 | 動画の幅 |
-| height | integer | NOT NULL、CHECK 1以上 | 動画の高さ |
-| duration_ms | bigint | NOT NULL、CHECK 1以上 | 再生時間（ミリ秒） |
-| codec | varchar(64) | NOT NULL | 動画codec |
-| frame_rate | numeric(8,3) | NULL可、CHECK 0より大きい | frame rate |
-
-`media.media_type`に対応する詳細tableを必ず1件だけ作ります。このtable間制約はServiceと同一transaction内の書き込みで保証し、integration testで検証します。
+Initial ReleaseではMediaは静止画像だけを扱うため、Media作成時に`images`を同一transactionで必ず1件作成します。動画対応を採用する場合は、その時点のUse Caseと処理pipelineを入力としてsubtype表現を再設計します。
 
 ### media_custodies
 
@@ -118,7 +102,7 @@ CHECK (
 )
 ```
 
-別々のUser用・Community用Custody tableには分けません。PKとCHECKによって1行の中で主体を排他的に選択し、複数主体による共同管理を禁止します。Custody行そのものの存在はCHECKだけでは保証できないため、MediaとCustodyを同じtransactionで作成し、integration testで不変条件を検証します。委譲履歴はこのtableへ蓄積せず、`media_events`へ記録します。
+別々のUser用・Community用Custody tableには分けません。PKとCHECKによって1行の中で主体を排他的に選択し、複数主体による共同管理を禁止します。Custody行そのものの存在はCHECKだけでは保証できないため、MediaとCustodyを同じtransactionで作成し、integration testで不変条件を検証します。Initial ReleaseではCustody transferを提供しないため、Custodian変更履歴の契約は定義しません。
 
 index:
 
