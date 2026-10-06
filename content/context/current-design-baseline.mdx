@@ -1,71 +1,61 @@
-# Current design baseline context
+# Current design baseline
 
-## 目的
+## 位置づけ
 
-設計・実装・テストを再開するときに、現在の確定Baselineと読み取り順序を短く共有するContextです。詳細仕様をここへ複製せず、GitHub上の正本へ誘導します。
+このページはMemoriaの**現行設計を読むための入口**です。詳細仕様を複製せず、現在有効なSource of Truthとその優先関係を示します。
 
-## 現在のフェーズ
+過去のcheckpoint、PR、設計統合作業の状態は現行仕様そのものではありません。設計判断の経緯を確認する場合は、各文書の「設計判断・理由」、ADR、またはhistorical traceabilityを参照します。
 
-Application / Domain詳細設計は完了済みです。現在はImplementation Detailed Designへ進みます。Application semanticsを再設計するのではなく、確定したContractを上位に置いて実装詳細を具体化します。
+## Source of Truthの読み方
 
-推奨順序は次です。
+同じ事項について複数文書に記述がある場合は、次の順で具体的な正本を優先します。
 
-```text
-PostgreSQL Persistence Design
-  -> GraphQL Schema
-  -> Go Application / Infrastructure
-  -> Outbox / Redis / Worker contracts
-  -> Frontend Detailed Design
-  -> Test Design
-  -> Implementation
-```
+1. 対象Domain / System領域の詳細設計（use case、authorization、data model、physical model、consistency、API contract等）
+2. 横断的なApplication / Implementation contract
+3. Initial Release scope、NFR、Security等の横断Requirement
+4. ADR / design decision（判断理由と再検討条件）
+5. integration / traceability文書（過去資料がどこへ統合されたかを追跡する履歴）
 
-PostgreSQLはDomain単位で局所的にDDLを完成させず、全Table/Relationを先にレビューし、共通型 -> Nullability -> FK -> UNIQUE/CHECK -> Deletion -> Index -> Transaction/Lock -> Concurrency -> Outbox/Idempotency -> Migration -> DDLの順で横断詳細化します。
+実行可能Schema、migration、generated code、runtime configuration等について設計文書が実装Repositoryを正本として明示している場合は、そのRepositoryの最新状態を併せて確認します。
 
-## 必ず読む正本
+## 現行の主要正本
 
-1. `/system/v5-design-integration-policy` — v5と既存GitHub設計の競合解決
-2. `/system/v5-design-coverage` — v5全項目のA/B/C/D traceability
-3. `/system/application-detailed-design-baseline` — Application/Domain横断Contract
-4. `/system/implementation-cross-cutting-baseline` — Implementation/Cross-cutting Baseline
-5. 対象Domainの`use-cases / authorization / data-model / physical-data-model / consistency-transactions / design-decisions`
-6. `/system/data/physical-model-conventions`と`/system/data`
-7. 対象実装repositoryのschema・設定・実装・test
+- `/first-release` — Initial Releaseの機能範囲
+- `/system/application-detailed-design-baseline` — Application / Domain横断contract
+- `/system/implementation-cross-cutting-baseline` — 実装横断contract
+- `/system/api/graphql` — GraphQLのsemantic contract
+- `/system/api/schema-ownership` — GraphQL SDL / generated artifactの所有境界
+- `/system/api/http-media-upload` — Media Upload HTTP contract
+- `/system/application-implementation-boundaries` — Backend Application / Adapter / Worker境界
+- `/system/runtime-process-model` — Backend runtime process responsibility
+- `/system/implementation-test-matrix` — Backend実装のtest contract
+- `/system/data/physical-model-conventions` と各Domainの `physical-data-model` — Persistence contract
+- User / Community / Media各領域のuse case、authorization、data model、consistency / transaction文書
+- `/screens` — Screen Specification
+- `/system/infrastructure` — Infrastructure設計。Backend API設計から推測して上書きしない
 
-## 現行Infrastructure Baseline
+## 現行の横断原則
 
-Productionは単一EC2への全component同居をBaselineにしません。PostgreSQLはPrimary + Standby HA、streaming replication、multi-host/multi-AZ方向です。Redisは1 Primary + 2 Replicas + Sentinel x3/quorum 2です。ReplicationとBackupを分離し、WAL archive/restore/PITRを別途設計します。
+PostgreSQLをdurable application truthとし、Redis Streamsはdelivery / triggerとして扱います。DB更新と非同期配送はTransactional Outbox等のdurable stateで接続し、Redis配送完了を通常のAPI成功条件にしません。
 
-DevelopmentでもRedis Data x3 / Sentinel x3を標準構成としてDocker Composeで再現し、failover、client reconnect、election、recoveryを検証可能にします。同一Docker Host上の構成はsoftware-level HA検証用であり、Infrastructure-level HAとはみなしません。
+Application / DomainはTransportやInfrastructureの型へ依存しません。Public API、Worker、Query Service、Repository、Transactionの責務境界は各Backend正本に従います。
 
-MongoDBは現行のDevelopment / Production componentとして採用しません。具体的なDocument Databaseのユースケースが生じた場合に、PostgreSQL / JSONBとの比較を含めて再評価します。
-
-## 現行Persistence / Async Baseline
-
-PostgreSQLがpersistent application truthです。Redis Streamsはdelivery/temporary stateでありbusiness truthにしません。APIは通常Redisへ直接publishせず、DB transactionでTransactional Outboxを記録しPublisherが配送します。Workerはat-least-once deliveryを前提にidempotentにします。
-
-Media本体へUser/Community ownership IDを埋め込まず、`media_custodies`で管理関係を分離します。Community Access、Media Event、Custody Transfer等はInitial Releaseで機能提供しなくても将来設計として維持します。
-
-## 合意済みoverride
-
-- Community roleは`member | admin`。
-- Invitation acceptはMembershipを直接成立させる。Join Requestは独立した将来機能。
-- Media GroupはDAGを維持し、Group scopeはGroup自身が保持する。
-- ProcessingJob / Image / ImageVariant / atomic publicationはv5方式を採用する。
-- User lifecycle/account deletionはGitHub現行設計を維持しInitial Release対象。User物理削除後、保持MediaのUploader FKはNULL化しPII snapshotを残さない。
-- ULIDはPostgreSQLで`varchar(26)`等、既存で確定済みのPersistence規約を未決定へ戻さない。
-- `Initial Release外`と`将来を見越したDomain/Persistence設計`を分離する。未提供を理由に将来設計を削除しない。
+Initial Releaseで提供しないことと、将来拡張可能なDomain / Persistence境界を維持することは分離します。未提供であることだけを理由に、合意済みの将来境界を削除しません。
 
 ## Screen Specificationの責務境界
 
 Screen Specificationは、利用者が確認するInformation、実行するAction、区別すべきState、Navigation上の意味、制約、Responsiveで維持するCapabilityを正本とします。
 
-具体的なlayout、visual design、Component構成、および `Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view` 等のpresentationは後続のUI具体化で決定し、Screen Specificationでは原則固定しません。presentation自体がProduct要件である場合だけ、その理由を明記して例外とします。既存のmemoria-web実装やDesign System Patternの存在を、そのままProduct仕様へ昇格させません。
+具体的なlayout、visual design、Component構成、および `Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view` 等のpresentationは、presentation自体がProduct要件である場合を除いてUI具体化側で決定します。既存実装やDesign System Patternの存在だけをProduct仕様へ昇格させません。
 
-Screen Specificationの作成・Reviewでは `/screens`、`/design-document-templates#screen-specification`、`/system/frontend-ui-development` を併せて確認します。
+## 設計判断と履歴の保持
 
-## 実装時の判断
+設計変更時は、現行contractだけでなく「なぜその判断をしたか」「何を採用しなかったか」「どの条件で再検討するか」を失わないよう、対象正本のDecision節またはADRへ残します。
 
-既存仕様・実装を推測せず、対象GitHub repositoryの最新状態を確認します。設計と実装が違う場合は設計を勝手に実装へ合わせず差分を報告します。大きな設計判断が必要なら人間と合意してから変更します。
+`v5-design-integration-policy` と `v5-design-coverage` は、v5 checkpointをGitHub正本へ統合した**履歴・traceability資料**です。現在の仕様を決める文書ではなく、現行仕様は上記の各正本から読み取ります。
 
-未確定のImplementation DetailはIssueで管理し、確定した重要Decisionは対応する正本またはADRへ反映します。
+## 実装時の原則
+
+既存仕様・実装を推測せず、対象GitHub repositoryの最新状態を確認します。設計と実装が異なる場合は設計を勝手に実装へ合わせず差分を確認します。新しい重要な設計判断が必要な場合は合意後に正本へ反映します。
+
+本当に未解決の事項だけをIssueまたは明示的なOpen Items文書で追跡し、解消済みTODOや過去の作業順序を現行仕様として残しません。
