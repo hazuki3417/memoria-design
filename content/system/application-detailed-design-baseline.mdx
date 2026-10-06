@@ -2,7 +2,7 @@
 
 ## 位置づけ
 
-この文書は、v5 checkpointが継承するApplication / Domain詳細設計の横断BaselineをGitHub側の正本として保持するための索引兼Contractです。Domain固有の詳細はUser / Community / Media各正本を優先し、API・Cross-cutting・Webの詳細はそれぞれのSystem正本を参照します。
+この文書はApplication / Domain詳細設計の横断contractです。Domain固有の詳細はUser / Community / Media各正本を優先し、API・Cross-cutting・Webの詳細はそれぞれのSystem正本を参照します。過去checkpointの進行状態ではなく、現在も有効な横断原則だけを保持します。
 
 設計優先順位は `Correctness -> Simplicity -> Explicitness -> Observability -> Optimize when needed` とします。将来拡張できる構造は壊しませんが、将来機能を初期Releaseへ先回り実装しません。
 
@@ -129,10 +129,6 @@ Original / Variantはprivate storageを基本とし、signed URLをlog/traceへ�
 
 将来機能を見越したDomain/Persistence構造は維持しますが、Initial Release外の機能は`first-release.mdx`のscopeに従います。Sharing、ownership transfer、human-unique handle/search、standalone Tag management、collaborative tag editing、usage projection、managed DB/cache、external search、CDN等は具体Requirementが発生した時点で再検討します。
 
-## Implementation Detailed Designへの移行
+## 実装との関係
 
-Application詳細設計はBaseline確定済みとして扱い、次はImplementation Detailed Designへ進みます。PersistenceはDomainごとの部分最適ではなく、全Table / Relationをレビューしてから共通型、Nullability、FK、UNIQUE/CHECK、Deletion、Index、Transaction/Lock、Concurrency、Outbox/Idempotency、Migration、DDLの順で横断詳細化します。
-
-
-## Implementation handoff
-
+このBaselineは具体的なGo package名、interface signature、GraphQL SDL全文を固定するものではありません。Backendの具体的な実装境界は[Application実装境界](/system/application-implementation-boundaries)、Public APIは[GraphQL契約](/system/api/graphql)および[Media Upload HTTP](/system/api/http-media-upload)を正本とします。
