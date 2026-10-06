@@ -36,7 +36,7 @@ Queryや同じ値を設定する単純な更新に一律で導入しません。
 
 Outbox Publisherは、Redis送信成功後から`published_at`更新前に停止する可能性があります。そのため同じ`event_id`が複数回配送されても、Workerは同じjobを重複実行しないようにします。
 
-派生fileのkeyはMedia IDと変換条件から決定し、同じjobのretryで別の派生物を増やしません。DB更新はunique constraint、状態遷移、必要なrow lockで保護します。
+画像Variantのkeyは`media/{mediaId}/variants/{jobId}/{width}.webp`とし、同じJobのretryでは同じJob-scoped keyを再利用して別の派生物を増やしません。明示的なreprocessは新しいJob IDを使用するため、既存公開Variantとは別keyへ完全な集合を生成してからDB参照を切り替えます。DB更新はunique constraint、状態遷移、必要なrow lockで保護します。
 
 ## 削除Jobと外部service
 
