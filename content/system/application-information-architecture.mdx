@@ -84,9 +84,12 @@ Initial ReleaseのApplication routeは次を正本とします。Personal contex
 | Community | Media Upload | `/communities/[communityId]/media/upload` |
 | Community | Media Update | `/communities/[communityId]/media/edit` |
 | Community | Group Browser | `/communities/[communityId]/groups` |
-| Context非依存 | Settings | `/settings` |
+| Context非依存 | Settings入口 | `/settings` → `/settings/profile` |
+| Context非依存 | Profile | `/settings/profile` |
+| Context非依存 | Preferences | `/settings/preferences` |
+| Context非依存 | Usage | `/settings/usage` |
+| Context非依存 | Account | `/settings/account` |
 | Context非依存 | Account Deletion | `/settings/account/delete` |
-| Context非依存 | User Profile | `/profile` |
 | 登録Flow | User Registration | `/register` |
 
 Media Updateは複数Mediaを同時に更新するbulk editing画面であるため、単一Mediaを表す `[mediaId]` をPathへ含めません。編集対象Mediaの集合はURL pathをidentityの正本とせず、画面遷移時のApplication stateと、将来接続するAPI契約に従って扱います。
@@ -99,7 +102,7 @@ URLを現在のApplication contextの正本とします。`/`は公開入口・R
 
 Context Navigationでは現在contextを維持したまま対応routeへ遷移します。例えばPersonal MediaからGroupsへ移動する場合は `/groups`、Community MediaからGroupsへ移動する場合は `/communities/[communityId]/groups` へ遷移します。
 
-Settings、Profile、account削除はApplication contextから独立したUser本人のdestinationです。Community利用中でもPersonalへ切り替えず直接遷移できます。
+Settings配下のProfile、Preferences、Usage、Accountとaccount削除はApplication contextから独立したUser本人のdestinationです。Community利用中でもPersonalへ切り替えず直接遷移できます。
 
 ### Media画面内の主要遷移
 
