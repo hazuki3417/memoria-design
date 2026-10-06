@@ -8,7 +8,6 @@ API request servingとdurable async componentのprocess責務、health、shutdow
 
 Initial Release runtimeは論理的に次の責務を独立させます。
 
-- Web / BFF: Browser session、Auth0 redirect/callback、GraphQL / upload proxy
 - API: GraphQLとMedia upload HTTP、Application public use case
 - Outbox Publisher: PostgreSQL Outbox claim → Redis Stream delivery
 - Media Worker: Redis Consumer Group → Processing Job execution
@@ -16,7 +15,7 @@ Initial Release runtimeは論理的に次の責務を独立させます。
 - Reconciliation: orphan scan等のperiodic operation
 - Deletion Worker: User / Community / Media lifecycle cleanup
 
-同じcontainer image / binaryを再利用してもよいですが、long-running async責務をHTTP server goroutineのbest-effort background taskとしてだけ所有しません。各責務は独立してrestart / shutdownでき、durable stateから再開できる必要があります。
+同じcontainer image / binaryを再利用してもよいですが、long-running async責務をHTTP server goroutineのbest-effort background taskとしてだけ所有しません。各process roleは独立して起動・restart / shutdown / scaleでき、durable stateから再開できる必要があります。実際のDocker container / EC2配置はInfrastructure設計の責務です。
 
 ## Startup
 
@@ -52,4 +51,3 @@ process role、environment、versionをlow-cardinality resource attributeとし�
 
 API latency/error、DB pool、Outbox backlog、PEL pending/idle、Processing Job state、Storage Operation backlog/failure、reconciliation deletion countを責務ごとに観測可能にします。
 
-Production alertの通知channelとon-call責任はInfrastructure / Operations最終判断で確定します。
