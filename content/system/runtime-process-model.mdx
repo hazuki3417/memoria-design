@@ -1,0 +1,55 @@
+# Runtime Process Model
+
+## 目的
+
+API request servingとdurable async componentのprocess責務、health、shutdownを定義します。AWS resource topologyやHA配置の最終形はProduction infrastructure判断と分離します。
+
+## Process responsibilities
+
+Initial Release runtimeは論理的に次の責務を独立させます。
+
+- Web / BFF: Browser session、Auth0 redirect/callback、GraphQL / upload proxy
+- API: GraphQLとMedia upload HTTP、Application public use case
+- Outbox Publisher: PostgreSQL Outbox claim → Redis Stream delivery
+- Media Worker: Redis Consumer Group → Processing Job execution
+- Storage Operation Worker: durable Storage Operation claim → S3 side effect
+- Reconciliation: orphan scan等のperiodic operation
+- Deletion Worker: User / Community / Media lifecycle cleanup
+
+同じcontainer image / binaryを再利用してもよいですが、long-running async責務をHTTP server goroutineのbest-effort background taskとしてだけ所有しません。各責務は独立してrestart / shutdownでき、durable stateから再開できる必要があります。
+
+## Startup
+
+process startupはconfigurationをvalidateし、必要client / poolを構築してからtraffic / claimを開始します。必須secret欠落、invalid endpoint、schema compatibility failure等の恒久的configuration errorはfail fastします。
+
+startup時にRedis / S3等へ不要なdestructive probeを行いません。
+
+## Health
+
+livenessはprocess自体が生存しevent loop / serverを継続できることを示します。RedisやS3の一時障害だけでlivenessを落としてrestart loopを作りません。
+
+readinessはそのprocessが新しい仕事を安全に受けられることを示します。APIは少なくともPostgreSQLへ必要なread/writeができない場合readyにしません。async Workerは必要dependencyへ接続できず新しいclaimを安全に処理できない場合claimを開始しません。
+
+dependency degradationはhealth endpointだけでなくmetric / structured log / alert対象にします。
+
+## Graceful shutdown
+
+APIは新規request受付を停止し、期限付きgrace period内でin-flight requestを完了してからDB / HTTP clientをcloseします。
+
+Outbox / Storage workerは新しいclaimを停止し、現在の外部I/OとDB state確定を安全な境界まで完了させます。
+
+Media Workerは新規XREADGROUP / XAUTOCLAIMを停止し、処理中messageについてRedis ownership heartbeatとpublication safetyを既存async契約どおり維持できる間だけ完了を試みます。shutdown deadlineを超える場合はexclusive ownershipを仮定してpublicationせず、PEL reclaimによるretryへ委ねます。
+
+periodic reconciliationは1 iterationをidempotentにし、途中終了後の次回scanで再評価できるようにします。
+
+## Configuration
+
+environment固有値はsourceへhardcodeせずvalidated configurationから注入します。secretはsecret store / runtime injectionを使用しlogへ出しません。timeout、pool、batch、retry等の既に正本化された値は重複した別defaultを各processへ持たせません。
+
+## Observability
+
+process role、environment、versionをlow-cardinality resource attributeとして付与します。request / job correlationはtrace / structured fieldで扱い、User ID / Media IDをmetric labelにしません。
+
+API latency/error、DB pool、Outbox backlog、PEL pending/idle、Processing Job state、Storage Operation backlog/failure、reconciliation deletion countを責務ごとに観測可能にします。
+
+Production alertの通知channelとon-call責任はInfrastructure / Operations最終判断で確定します。
