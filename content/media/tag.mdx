@@ -32,7 +32,7 @@ Tag名はscope内でTagを識別する名称です。
 - 大文字・小文字、全角・半角、連続空白等をSystemが自動統合しない
 - 保存した名称の完全一致を名称同一性判定に使用する
 
-Tag名の最大文字数、scope内Tag数、MediaあたりTag数等の具体的上限は、Product上必要な値をAPI / DB contractと合わせて決定します。既存物理modelの型幅をそのままProduct上限として扱いません。
+Initial ReleaseではTag名をtrim後50文字以下とします。scope内Tag本体の総数にはProduct上限を設けません。Media 1件あたりに付与できるTagは30件を暫定上限とします。この30件は利用実績に基づく恒久的なProduct limitではなく、Initial Releaseで過度な分類を抑えるための暫定値であり、実利用を確認して再検討できます。API / DBはこれらのProduct contractを満たしつつ、実装上必要な安全性を別途確保します。既存物理modelの型幅をProduct上限の根拠にはしません。
 
 ## Mediaとの関係
 
@@ -166,8 +166,6 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 
 次はTagのdomain semanticsを変更せず、API / UI実装契約を進める段階で確定します。
 
-- Tag名の最大文字数等の具体的入力上限
-- scope内Tag数、MediaあたりTag数の具体的上限
 - Tag一覧のsort、検索、pagination契約
 - GraphQL Operation名、Input / Payload、error表現
 - Mantine `TagsInput`によるfree text入力時の補完・候補表示、保存Actionの具体的presentation
