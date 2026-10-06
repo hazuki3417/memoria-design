@@ -135,7 +135,7 @@ Context SwitcherはApplication固有のhidden session stateを切り替える機
 
 Navigation先から現在contextを判定できることを基本とし、reload、deep link、browser historyからCommunity固有の画面へ直接到達した場合も、そのNavigation先に対応するCommunityを現在contextとして表現します。
 
-Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communityId]`とします。`communityId`にはAPIが公開する安定した識別子を使用し、表示名をURL上の識別子として扱いません。Community固有の他画面も`/communities/[communityId]/...`配下に配置し、具体的な末尾Pathは各画面の詳細設計で決定します。
+Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communityId]/dashboard`とします。`communityId`にはAPIが公開する安定した識別子を使用し、表示名をURL上の識別子として扱いません。Community固有の他画面も`/communities/[communityId]/...`配下に配置し、具体的な末尾Pathは各画面の詳細設計で決定します。
 
 ### Switcherの状態と遷移
 
@@ -180,7 +180,7 @@ Settingsの具体的な仕様は[User Settings](/screens/user-settings)、Profil
 
 ### Application
 
-認証・User登録完了後に通常のApplicationへ入る場合、Initial ReleaseではPersonal Dashboardを標準entryとします。認証・User登録完了後はPersonal Dashboardの`/dashboard`を標準entryとします。
+認証・User登録完了後に通常のApplicationへ入る場合、Initial ReleaseではPersonal Dashboardの`/dashboard`を標準entryとします。
 
 最後に利用したcontextを自動復元するrecent-context behaviorはInitial Releaseの必須要件としません。将来必要性が確認された場合に独立したNavigation behaviorとして検討します。
 
