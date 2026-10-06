@@ -38,3 +38,8 @@ DataLoaderのcacheとbatch範囲は1 GraphQL requestに限定します。request
 ULID、Date、DateTime、Timeなどのscalarは契約上の意味、nullable条件、形式を明示します。具体的なSDL、operation、fragment、生成型は所有Repositoryを正本とし、生成codeを手編集しません。
 
 初回Releaseに必要なOperation、認可、error、画面対応は[GraphQL契約の詳細設計](https://github.com/hazuki3417/memoria-design/issues/17)で確定します。
+
+
+## Schema ownership
+
+設計正本、実行可能SDL、Web Operation、generated codeの所有と変更順序は[API Schema Ownershipと同期](./schema-ownership)を正本とします。Cross-repository同時deployを前提にせず、additive API → Web migration → deprecated removalの順で互換性を維持します。
