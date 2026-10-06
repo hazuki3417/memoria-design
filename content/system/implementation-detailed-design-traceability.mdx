@@ -215,3 +215,36 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - [Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)を、UploadからVariant publication・failure recoveryまでの横断的な理解を補助する入口として追加した。
 - このguideは新しい仕様の正本を作るものではなく、Media transaction、Processing Job、Outbox、Idempotency、Redis ownership、Storage Operation、orphan reconciliationの既存正本が解決する問題と責務を関連付ける。
 - 正常系、DB rollback compensation、Outbox delivery、Processing Job state、Redis data loss recovery、Job-scoped Variant publicationをMermaid図で可視化し、APIからRedisへ直接publishしない等の非採用理由も記録する。
+
+
+## System-wide detailed design pass
+
+Media registration / processing architecture確定後、Initial Release全体をDomain単位ではなく、DB → Application → Transport → Web → Runtime / Operations → Testの縦方向で再レビューする。
+
+### このpassで確定済みとして扱う事項
+
+- Product / Domain semantics、Transaction / lock、Media processing runtimeは既存正本を変更しない。
+- GraphQLのOperation naming、ScopeInput、bulk result、Invitation URL、Original download、Group / Tag sort、Group relation editor、Media分類、User Preferences、Community Accent、Usage contractはGraphQL正本の確定事項を引き継ぐ。
+- Account deletion reauthenticationはGraphQL本文とUser physical modelにあるServer-side review bindingを採用済みとして扱う。BFFがAuth0 `prompt=login + max_age=0`を実施し、APIはreview/Userにbindingされた10分のPostgreSQL stateを検証・consumeする。旧レビュー一覧の「保留」はstale記述として修復する。
+- PersistenceのInitial executable DDL contractとmigration baselineは既存PostgreSQL reviewを引き継ぎ、古いopen-itemsに残る解消済み項目を再度未決定扱いしない。
+
+### 実装引き渡しとして追加詳細化する領域
+
+1. HTTP Media upload endpointのroute、multipart field、success/error response、idempotency transport。
+2. Community member listのsort / cursor / cross-domain query contract。
+3. GraphQL schema mirror / generated codeの同期とCI drift detection。
+4. Application package / port / transaction runner境界とWorker internal operation境界。
+5. WebのBFF / GraphQL operation / Apollo cache / upload transport / reauthentication callback境界。
+6. Runtime health / readiness / graceful shutdown、async componentのprocess ownership。
+7. Test pyramidとcontract / transaction / concurrency / async failure acceptance matrix。
+
+### 最終合意が必要な事項
+
+次は既存正本だけから一意に決めず、設計案を作成したうえでUserと一件ずつ合意する。
+
+- Production topologyとHA baseline。現行IaCはcost-first single EC2で、NFR側のHA表現と適用時期を整合させる必要がある。
+- PostgreSQL production failover / backup方式とRedis production HA placement。managed serviceを初期Releaseで採用するかを含む。
+- Production alert delivery channelと運用責任境界。
+- GraphQL protection limitsの具体値（request size / depth-or-complexity / timeout / rate limit）。Security / UXと実測値のtrade-offがあるため固定値は合意後に正本化する。
+
+これらの合意前にProduct behaviorを変更する値やProduction cost topologyを確定しない。
