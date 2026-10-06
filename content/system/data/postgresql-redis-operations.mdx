@@ -54,7 +54,7 @@ Redis ClusterはSharding / Horizontal Scaleが具体的に必要になった場�
 
 Redis Streamsを使用するためAOFをBaselineとし、永続領域を明示します。初期構成では強いmessage durabilityを保証せず、Redis標準の非同期replicationを使用します。`WAIT` / `WAITAOF`などの追加の書き込み確認は初期前提にせず、必要な配送保証が具体化した時点で再評価します。具体的なfsync方式、memory上限、eviction policyなどの運用parameterは、実装・検証・運用で必要性が判明した時点で調整します。
 
-Worker停止によるpending messageはConsumer GroupのPELとXAUTOCLAIMなどで回復します。Redis dataが失われた場合はPostgreSQLのOutbox、Processing Job、配送状態から未処理対象を照合し、冪等にRedis Streamsへ再publish / re-enqueueします。恒久失敗はPostgreSQLのJob状態を正本とします。
+Worker停止によるpending messageはConsumer GroupのPELと`XAUTOCLAIM`などで回復します。通常のfresh messageとreclaimされたpending messageは実行資格を区別し、`NEW + PROCESSING`をduplicateとして再実行しません。Redis dataが失われた場合は、旧Redis ownershipで動作していたWorkerを停止またはfencingして並行実行不能であることを確認してから、PostgreSQLのOutbox、Processing Job、配送状態を照合します。`PROCESSING` Jobは`PENDING`へ戻し、新しいOutbox Eventを同一transactionで作成して通常のPublisher経路から再enqueueします。fencing前にJobを`PENDING`へ戻しません。恒久失敗はPostgreSQLのJob状態を正本とします。
 
 ## Development topology
 
