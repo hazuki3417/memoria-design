@@ -242,9 +242,17 @@ Media registration / processing architecture確定後、Initial Release全体を
 
 次は既存正本だけから一意に決めず、設計案を作成したうえでUserと一件ずつ合意する。
 
-- Production topologyとHA baseline。現行IaCはcost-first single EC2で、NFR側のHA表現と適用時期を整合させる必要がある。
 - PostgreSQL production failover / backup方式とRedis production HA placement。managed serviceを初期Releaseで採用するかを含む。
 - Production alert delivery channelと運用責任境界。
 - GraphQL protection limitsの具体値（request size / depth-or-complexity / timeout / rate limit）。Security / UXと実測値のtrade-offがあるため固定値は合意後に正本化する。
 
-これらの合意前にProduct behaviorを変更する値やProduction cost topologyを確定しない。
+これらの合意前にProduct behaviorを変更する値や未合意のProduction cost topologyを確定しない。
+
+### Production topology / HA baseline（確定）
+
+- Initial Release Productionはcost-firstのsingle EC2を正式baselineとし、Application、PostgreSQL、Redis等を同一Hostへ配置できる。
+- single EC2はInfrastructure-level HAではなく、Host failureを単一障害点として明示的に受容する。
+- 初期の信頼性は自動failoverではなく、日次backup、durable state、IaC、immutable image、restore手順と復旧演習で保証する。
+- 現行NFRのRPO 24時間 / RTO 24時間 / 月間99.0%運用目標を維持し、これを満たせなくなった場合はHA移行triggerとする。
+- 負荷、停止許容、restore実績、利用規模、自己運用負荷、費用を見直し条件とし、managed serviceとHA化はcomponentごとに評価する。
+- local / same-host Redis multi-nodeはsoftware failover検証には利用できるが、Host failureに対するProduction HAとは数えない。
