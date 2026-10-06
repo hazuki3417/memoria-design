@@ -53,7 +53,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 - DB更新と非同期処理の連動にはTransactional Outboxを使用する。
 - Outbox配送の重複は`event_id`、Worker処理は`job_id` / `step_id`を冪等性境界として扱う。
 - 複数Publisherのclaimには`FOR UPDATE SKIP LOCKED`を利用する。
-- Redis消失・Worker停止からPostgreSQL上のOutbox / Processing Jobを基準に再enqueue可能にする。
+- Redis消失・Worker停止からPostgreSQL上のOutbox / Processing Jobを基準に再enqueue可能にする。Redis全損時は旧Workerを停止またはfencingした後、`PROCESSING -> PENDING`と新規Outbox Event作成を同一transactionで行い、通常配送経路から復旧する。
 
 ### Frontend
 
@@ -126,7 +126,7 @@ Issue #59 の Implementation Detailed Design について、共有済み設計�
 
 - Redis Streamは`media-processing`、Consumer Groupは`media-workers`で確定。ConsumerはWorker processごとの一意なruntime identityを使用する
 - `MEDIA_PROCESSING_REQUESTED` v1は`aggregate_id = media_id`、payload `{ job_id }`の最小参照契約で確定
-- Processing Jobは`GENERATE_IMAGE_VARIANTS`、最大3 attempts・reclaim idle 5分、1分間隔の`XCLAIM` heartbeatでownershipを維持する
+- Processing Jobは`GENERATE_IMAGE_VARIANTS`、最大3 attempts・reclaim idle 5分、1分間隔の`XCLAIM` heartbeatでownershipを維持する。`NEW + PROCESSING`はduplicateとしてACKし、`RECLAIMED + PROCESSING`だけをretry実行する
 - Image Variant keyは`media/{mediaId}/variants/{jobId}/{width}.webp`とし、DB参照をpublicationの正本とする
 - Storage Operationは最大10 attempts、30秒開始・最大30分の指数backoff、lease 5分、COMPLETED 7日保持、FAILED自動削除なしで確定
 - orphan reconciliationは1時間ごと・24時間graceでOriginal/Variantを照合し、candidateはStorage Operationへ引き渡す
@@ -206,3 +206,5 @@ Issue #59のtraceability作業は、以下を満たした時点で完了とす�
 - Variant Object keyはJob固有namespaceを使い、Object path自体にstaging/published状態を持たせない。
 - Orphan reconciliationは1時間間隔・24時間graceで実行し、削除はStorage Operation経由とする。
 - 利用者向けGraphQLはProcessing Job内部状態を直接公開せず、Media-level `PROCESSING` / `READY` / `FAILED`へ写像する。
+
+- Processing Jobの実行資格はRedis message取得経路とDB stateを組み合わせ、`NEW + PENDING`を初回実行、`NEW + PROCESSING`をfresh duplicate、`RECLAIMED + PROCESSING`を正当なretryとして扱う。Redis全損recoveryではfencing後にJobを`PENDING`へ戻して新しいOutbox Eventを作る。
