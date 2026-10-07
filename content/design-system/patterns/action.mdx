@@ -1,0 +1,103 @@
+# Action
+
+## Purpose
+
+Userが現在のTaskで実行できるActionの意味、優先順位、対象との関係を一貫して理解できるようにします。
+
+Action DesignはButtonの見た目を分類するComponent catalogではありません。Product上のAction RoleとPlacementを定義し、Button、ActionIcon、Menu等の具体的なpresentationはTaskとUI Contextに応じて選択します。
+
+## When to Use
+
+Page、Form、Dialog、Collection、Selection、Object、Media等に対してUserが明示的なActionを実行できるUIへ適用します。同格のChoiceへ、Primaryを一つにするためだけの恣意的な優先順位は付けません。
+
+## Action Role
+
+### Primary Action
+
+現在のAction ContextでTaskを前進または完了させる推奨Actionです。推奨Actionが存在する場合、一つのAction ContextにPrimary Actionは原則一つとします。一画面に一つという意味ではなく、Page、Form、Selection等の独立したAction ContextはそれぞれPrimaryを持てます。
+
+通常のPrimary Actionは[Color System](/design-system#color-system)のEffective Accentを利用します。
+
+### Secondary Action
+
+Primaryを補助する、Taskを戻す、または現在のTaskを確定せず終了する等、Primaryと同等の視覚的強度を必要としないActionです。
+
+### Quiet Action
+
+利用可能である必要はあるものの、通常時に強い注意を要求しない補助Actionです。Toolbar、Viewer等でProgressive DisclosureやContextual Actionと組み合わせます。
+
+### Danger Action
+
+削除、破棄等の損失または破壊的なConsequenceを持つActionです。DangerはPrimary / Secondaryとは独立したSemanticで、PrimaryかつDangerも成立します。Context Accentでは上書きせずDanger Semantic Colorを使用します。Confirmation / Undoの必要性は[Content Design](/design-system/content-design)に従います。
+
+## Placement
+
+Actionは固定座標ではなく、Action対象との関係が理解できる場所へ配置します。
+
+- **Page Action**: Page全体に作用する。Page introduction / header付近を標準的な候補とするが固定位置とはせず、主要Contentを妨げない発見可能な場所を選ぶ。
+- **Form Action**: Form全体の変更確定・破棄等をFormとの関係が理解できる領域へ配置する。長いFormでは主要Actionへの到達性を維持する。
+- **Dialog Action**: Dialog全体の確定・キャンセルActionは原則Action areaへ集約し、本文へ同じ確定Actionを重複させない。
+- **Collection / Selection Action**: 選択集合へのActionは選択状態・対象数との関係が理解できる領域へ配置する。
+- **Contextual Action**: 特定Object / SectionへのActionは対象の近くへ配置し、低頻度Actionは必要に応じてProgressive Disclosureする。
+- **Media Overlay Action**: Mediaへの操作はMediaとの空間的関係を維持し、Media Firstを阻害しない強度と配置にする。
+
+局所Actionを発見性だけを理由にPage Actionへ昇格させません。Empty State等で同じPage ActionをよりContextualに提示する場合は不要な重複を避けます。
+
+## Action Group
+
+横方向ではPrimary Actionを進行方向の終端側へ配置します。LTRの現在のMemoria UIでは通常右側です。Primaryと直接対になるSecondaryはその手前へ配置します。
+
+Navigation、Flow離脱、補助Action等で意味が異なる場合は必要に応じて別Groupとして空間的に分離します。これはPrimaryを画面右端へ固定する規則ではなく、Group自体のalignmentはTaskとContainerに応じて決定します。同じPattern内では順序を理由なく変更しません。
+
+## Responsive Behavior
+
+Compact等でAction Groupを縦方向へStackする場合、Primary Actionを原則先頭、Secondaryをその後に配置します。Responsive後もHierarchy、主要Taskへの到達性、十分な操作対象を維持します。
+
+戻る / 次へ等のNavigation Pairのように空間的関係自体がInteraction理解に重要な場合は、機械的にPrimary-firstへ変換せずPattern / Screen Contractで定義します。
+
+狭い領域へ無理に横並びにしてlabelを切り詰めるよりStack、Grouping、Menu等へ適応します。ただしPrimaryをスペース不足だけを理由にMenuへ隠しません。
+
+## Presentation
+
+Main Taskではなく、発見性を下げてもTask達成を妨げず、開いた後も対象との関係を理解できるActionはMenu等へProgressive Disclosureできます。
+
+IconだけでActionを十分理解できるContextではActionIconを利用できます。Close、Previous / Next、Zoom等が代表例です。重要なProduct ActionやIconだけでは結果を判断しにくいActionはlabel付きを基本とし、ActionIconにはaccessible nameを提供します。
+
+IconはAction理解を補助する場合に利用し、Decorationとして機械的に追加しません。Iconの有無でHierarchyを表現しません。
+
+## Label
+
+Action labelは[Content Design](/design-system/content-design)を正本とします。UI ContextからActionが一意に理解できる場合は、OK、保存、次へ、戻る、キャンセル等の必要十分な抽象度を利用できます。Contextだけでは結果や対象を安全に判断できない場合は必要な対象またはActionをlabelへ含めます。
+
+## State
+
+Disabledは現在実行できないことを表しますが、理由を説明する仕組みとは扱いません。Userが解決可能なConstraintをContextから理解できない場合は適切な情報から理由を理解できるようにします。
+
+Action受付後に同じActionの重複実行を防ぐ必要がある場合、実行可能な状態のまま放置しません。Loading / Processingの具体presentationは対象Taskの非同期BehaviorとScreen Contractが確定した時点で設計し、本Patternでは固定しません。
+
+## Visual Foundation
+
+Button height、padding、radius、Typography、hover、pressed、focus、disabled appearance、Icon spacing等はMantineへ委譲します。
+
+Mantineのfilled / default / light / subtle / outline等をProduct上のAction Roleとして再定義しません。具体的なComponent / variant mappingはFrontend実装契約として決定し、Mantine標準でProduct Contractを満たせない場合だけMemoria固有ruleを追加します。
+
+## Accessibility
+
+- Keyboardで主要Actionへ到達・実行できる。
+- Focusを視認できる。
+- Touchでも十分な操作対象を確保する。
+- Icon-only Actionにaccessible nameを提供する。
+- Danger、Disabled、Selected等をColorだけに依存して伝えない。
+- Visual orderと意味的な操作順序を不必要に乖離させない。
+- Responsive後も主要Actionへ到達できる。
+
+標準HTMLとMantineのaccessible primitiveを優先します。
+
+## Constraints
+
+- 一画面にPrimary Actionを一つだけと解釈しない。
+- 同格のChoiceへPrimaryを一つにするためだけの優先順位を付けない。
+- Primaryを常に画面右端へ配置する規則と解釈しない。
+- Dangerを単に赤いButtonのVisual variantとして扱わない。
+- Mantine variant名をProduct上のRoleとして仕様化しない。
+- Loading / Processingの具体表現をAPI・非同期Behaviorの設計前に固定しない。
