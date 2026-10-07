@@ -1,0 +1,45 @@
+# File Input
+
+## Purpose
+
+Local fileをProductへ渡すInteractionで、選択方法と選択済み対象の確認・Validationを予測可能にします。Media Uploadの具体的なUpload lifecycleとは分離し、fileを選ぶ段階の共通Contractを定義します。
+
+## Input Methods
+
+File picker、Drag & Drop、OS / deviceが提供する選択方法はpresentationの選択肢です。Drag & Dropだけを唯一の入力方法にしません。
+
+Touch / Compact環境ではOS標準pickerやphoto library等、その環境で利用可能な方法から同じCapabilityへ到達できるようにします。
+
+## Drop Target
+
+Drag & Dropを提供する場合、drop可能領域とdrag-over stateを認識できるようにします。Drop targetを視覚効果だけで表現せず、同じfile selectionへKeyboard / Pointerから到達できる明示的な入口を維持します。
+
+## Selected Files
+
+選択後はTaskに必要な粒度でfileを識別し、送信前に対象を確認・除外できるようにします。Preview可能なMediaではpreviewを利用できますが、file名、Validation state等、Taskに必要な情報をpreviewだけへ依存させません。
+
+複数file選択を一つのdomain objectやatomic operationと仮定しません。上限、許可type、size等の具体制約は対象Screen / processing contractを正本とします。
+
+## Validation
+
+Clientで判定可能な明らかな問題は送信前に対象fileとの関係が分かる形で提示できます。Client validationをServer validation / authorizationの代替にしません。
+
+複数選択で一部fileが不正な場合、Screen Contractが全体atomicであると明示しない限り、問題fileを識別できるようにし、他の有効fileまで一律に無効とみなしません。
+
+## Upload Boundary
+
+File Inputは選択・事前確認までを扱います。Upload request、Progress、Processing、Retry、partial success等は対象TaskのScreen / async contractを正本とし、本Patternから具体presentationを固定しません。
+
+## Accessibility
+
+- File pickerへKeyboardから到達できる。
+- Drag & DropだけにCapabilityを依存させない。
+- 選択済みfileとValidation stateを非visualにも識別できる。
+- file除外等のActionへAccessible Nameを提供する。
+
+## Constraints
+
+- Drag & Dropを必須入力方法にしない。
+- Previewだけをfile identityにしない。
+- Client validationをSecurity boundaryにしない。
+- File Input PatternからUpload lifecycleを推測しない。
