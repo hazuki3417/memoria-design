@@ -1,0 +1,164 @@
+# Navigation / Wayfinding
+
+## Purpose
+
+UserがApplication内で現在地、現在のProduct Context、移動可能なDestinationを理解し、予測可能に移動できるようにします。
+
+Navigation DesignはLink、Tabs、Breadcrumb、Menu等のComponent catalogではありません。Navigationの意味的なHierarchy、Wayfinding、Movement、Responsive capabilityを定義し、具体的なPresentationは標準HTML semantics、Mantine、Application / Screen Contractへ委譲します。
+
+## When to Use
+
+Application、Product Context、Page / Feature内部、Content内で別のLocationやViewへ移動するUIへ適用します。
+
+Application固有のContext Switcher / Context NavigationのDestinationは[Application Information Architecture](/system/application-information-architecture)、Application-level UIの所有責務は[Application Shell](/design-system/patterns/application-shell)、状態を変更する操作は[Action](/design-system/patterns/action)を正本とします。
+
+## Navigation Hierarchy
+
+Navigationは次の責務を区別します。
+
+- **Global Navigation**: Application全体から利用する、特定のProduct Contextへ依存しないNavigation。
+- **Context Navigation**: 現在選択しているProduct Context内の主要Destinationへ移動するNavigation。
+- **Local Navigation**: 現在のPage / Feature / Task Context内部でSectionやViewを切り替えるNavigation。
+
+これは全Screenへ3階層のNavigation UIを常時表示する規則ではなく、Navigationの所有責務を分類するmodelです。
+
+URL hierarchyをNavigation hierarchyとしてそのまま表示しません。URLはApplication IA上のAddressであり、Navigation UIはUserのTask、Product Context、Wayfindingから設計します。
+
+## Current Context
+
+Userが重要なActionを行う前に、現在どのProduct Contextを操作しているか判断できる必要があります。
+
+Context名、Personal / Community等の意味、Context Switcher等を利用し、Context Accentだけへ識別を依存させません。
+
+### Context Switch
+
+Context Switchは通常のPage Navigationとは区別します。Page Navigationが現在Context内のDestinationを変更するのに対し、Context Switchは操作対象となるProduct Contextそのものを変更します。
+
+通常のNav item一覧へContextを機械的に混在させません。Context変更後のDestinationはApplication IA / Screen Contractで定義します。
+
+## Current Location / Page Identity
+
+Navigation surfaceでは現在のDestinationを識別できるようにします。Active / Current stateをColorだけへ依存させず、Mantineの標準Presentationと適切なsemantic stateを利用します。
+
+NavigationはApplication内での位置を示し、Page Titleは現在見ているContent / Taskを表します。Nav labelとPage Titleが常に同一であることは要求しません。
+
+## Navigation and Action
+
+NavigationとActionは見た目ではなく意味で区別します。
+
+- **Navigation**: 別のLocation / Viewへ移動する。
+- **Action**: 現在の対象またはSystem stateを変更する。
+
+NavigationにはLink semantics、ActionにはButton semanticsを基本とします。Buttonのように見えるNavigationでも意味的にはLinkとして実装できます。
+
+MutationとNavigationが連続する場合も責務を曖昧に混在させません。例えばCommunity離脱後に別Pageへ移動する場合、離脱はAction、その結果としての移動はNavigationです。
+
+## Back Navigation
+
+「戻る」は次の二つを区別します。
+
+- **History Back**: Userが直前にいたLocationへ戻る。
+- **Hierarchy Back**: Product上の親Destinationへ移動する。
+
+「Media一覧へ戻る」等、Destination自体に意味があるNavigationを単純なbrowser historyへ置き換えません。Direct Accessや外部経由で到達した場合にも意図したDestinationへ移動できる必要があります。
+
+Browser Back / ForwardはUser AgentのNavigation capabilityとして尊重します。Filterや一時的なUI stateの変更ごとに不自然なHistoryを積む等、予測困難なHistoryを作りません。push / replaceの選択はScreen Interaction Contractに従います。
+
+## Breadcrumb
+
+BreadcrumbはDefault Page chromeとして要求しません。
+
+Userが階層的なLocationを理解し、そのAncestorへ移動すること自体にProduct上の価値がある場合に利用します。URL segmentをそのままBreadcrumbへ変換しません。
+
+## Tabs
+
+Tabsは同じContext / Taskの中で並列なSectionまたはViewを切り替える場合に利用します。独立したPage / TaskへのNavigationを単に横並びにする目的では使用しません。
+
+URLが変わるかどうかだけでTabsかPage Navigationかを判断しません。共有・復元のためTabsがURL-addressableでもよく、同じURL内でも意味的に別TaskならTabsが適切とは限りません。
+
+Active state、Keyboard interaction等はMantine Tabsと標準semanticsをFoundationとして利用します。
+
+## In-content Navigation
+
+Content内から関連Destinationへ移動するContextual Navigationを利用できます。Global / Context Navigationに存在するDestinationを発見性だけのためにContent内へ大量に重複させず、現在のContentから自然な次Taskを支援する場合に提示します。
+
+## Menu / Progressive Disclosure
+
+低頻度、Secondary、Contextual等、常時表示する必要がなく、発見性を下げてもTask達成を妨げないNavigationはMenu等へProgressive Disclosureできます。
+
+主要Navigationを単なるスペース不足だけで無条件にMenuへ隠しません。ただしCompactでApplication Shell全体がDrawer / Menu等のPresentationへ適応することはできます。
+
+## Responsive Behavior
+
+Viewportやinput modalityに応じてNavigationのPresentationは変更できますが、主要Capabilityと意味的Hierarchyを維持します。
+
+WideのSidebarがCompactでDrawerへ変わる等は許容します。一方、Compactであることだけを理由に主要Destination自体を削除することはCapability変更であり、Product上の理由とScreen / Application Contractを必要とします。
+
+CompactではCurrent Context、Current Location、主要Destinationの発見性を優先し、Secondary destinationをProgressive Disclosureできます。
+
+Bottom Navigation、Sidebar等の具体的なLayoutをDesign System全体の標準として先に固定しません。実画面でNavigation hierarchy、頻度、Media First、利用可能領域から必要性が確認された場合に採用します。
+
+## Label / Icon
+
+Navigation labelは[Content Design](/design-system/content-design)に従い、UI Contextと合わせてDestinationを予測できる必要十分な具体性を使用します。対象が明らかなContextで対象名を機械的に繰り返しません。
+
+Icon-only NavigationはConventionが十分強く、Contextから意味が明確で、Accessible Nameを提供できる場合に限定します。Iconは理解を補助する場合に利用し、全Nav itemへDecorationとして機械的に追加しません。
+
+## External Navigation
+
+Application外へ移動する場合もDestinationを予測できる必要があります。すべてのExternal Linkへ機械的にExternal iconを追加せず、新しいTabで開くこともUserのTask上の理由がある場合に限定します。
+
+## Navigation State / Permission
+
+Navigation visibilityやDisabled stateをAuthorizationそのものとして扱いません。Frontend NavigationはSecurity Boundaryではなく、Backend Authorizationを独立して適用します。
+
+Permissionや利用条件によって到達できないDestinationを常にDisabled Navigationとして残すことは要求しません。非表示、説明、別Action、Access時のFeedback等から、そのProduct Contextに適切な表現を選択します。
+
+## Deep Link / Restoration
+
+Product上意味のあるLocationは、共有、復元、再訪の価値がある場合Direct Access可能にすることを基本とします。
+
+Tabs、Modal、Viewer等の全UI stateをURL化することは要求しません。その状態を共有・復元・再訪するProduct上の意味があるかを基準に判断します。
+
+Navigation後のScroll位置もTask Contextから決定します。新しいPageでは開始位置が自然な場合が多い一方、DetailからCollectionへ戻る等では以前の位置の復元がTask継続に重要な場合があります。一律のScroll policyへ固定しません。
+
+## Transition / Focus
+
+意味のあるNavigationを受け付けたのに何も起きていないように見える状態を不必要に作らず、Design SystemのImmediate Feedback原則に従います。
+
+Loading / Transitionの具体的なProgress、Skeleton、pending presentationは対象Screenの非同期Contractが確定した時点で設計し、本Patternでは固定しません。
+
+Client-side transition等でもKeyboard / Assistive Technology UserがLocation changeを認識できる必要があります。具体的なFocus managementはBrowser / Next.js semanticsを尊重し、それだけではLocation changeを認識できないInteractionで追加対応します。
+
+## Visual Foundation
+
+NavLink、Tabs、Menu、Breadcrumb、Drawer等の一般的なVisual、Typography、spacing、hover、focus、active foundationはMantine / Browserへ委譲します。
+
+MemoriaはNavigation Hierarchy、Context、Current Location、Semantics、Responsive capability、WayfindingをProduct Contractとして定義します。Mantine標準でContractを満たせない場合のみMemoria固有ruleを追加します。
+
+## Accessibility
+
+- NavigationにはLink semantics、状態変更にはButton semanticsを基本とする。
+- Current LocationをColorだけでなくsemanticにも表現する。
+- Keyboardで主要Destinationへ到達できる。
+- Focusを視認できる。
+- Icon-only NavigationにAccessible Nameを提供する。
+- Navigation landmark、heading等から構造を理解できるようにする。
+- Responsive後も主要Destinationへ到達できる。
+- Drawer / Menu等の展開時に適切なFocus behaviorを維持する。
+- Visual orderとDOM / Focus orderを不必要に乖離させない。
+
+標準HTML semanticsとMantineのaccessible primitiveを優先します。
+
+## Constraints
+
+- URL hierarchyをNavigation hierarchyとしてそのまま表示しない。
+- 全ScreenへGlobal / Context / Localの3階層を常時表示する規則と解釈しない。
+- BreadcrumbをDefault Page chromeにしない。
+- History BackとHierarchy Backを同一視しない。
+- Tabsを単なる横型Page Navigationとして利用しない。
+- Context Switchを通常のPage Navigationと同一視しない。
+- Active / Current stateをColorだけで伝えない。
+- Compactであることだけを理由に主要Capabilityを削除しない。
+- Navigation visibilityをAuthorizationの代替にしない。
+- Loading / Transitionの具体presentationを非同期Contract確定前に固定しない。
