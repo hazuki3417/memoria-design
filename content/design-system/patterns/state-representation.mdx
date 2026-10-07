@@ -1,0 +1,38 @@
+# State Representation
+
+## Purpose
+
+Status、Role、Visibility、Selection等の状態を、必要な場所で一貫して理解できるようにします。Badge catalogを作るのではなく、状態をいつ・どの強さで提示するかを定義します。
+
+## Visibility
+
+状態はUserの判断・比較・Action availabilityに影響する場合に表示します。内部stateが存在することだけを理由に常時Badge化しません。
+
+## Semantic Categories
+
+Success / Info / Warning / DangerはColor Systemのsemantic roleに従います。Role、Visibility、Custody、Selection等のdomain stateをseverity colorへ機械的にmappingしません。
+
+## Representation
+
+Text、Badge、Icon、inline state、row / thumbnail selection等からContextに適した表現を選びます。Colorだけへ意味を依存させません。
+
+Roleのように比較対象となる状態はMembers Table等で明示できます。一方、PermissionそのものをBadgeで大量表示することは要求しません。
+
+## Permission Presentation
+
+Capabilityがないことと、一時的に実行不能であることを区別します。権限上存在しないActionは非表示が適切な場合があり、現在constraintにより実行不能なActionはDisabled＋理由等が適切な場合があります。Frontend表示はAuthorizationの代替ではありません。
+
+## Processing
+
+Loading / Processing / Progressの具体的な共通presentationはAPI / async lifecycle設計まで保留します。内部Job statusをそのままUser-facing statusへしません。
+
+## Accessibility
+
+状態をColorだけで伝えず、必要なtext / semantic state / accessible nameを提供します。
+
+## Constraints
+
+- domain stateをすべてBadge化しない。
+- Role / VisibilityをSuccess / Warning等へ機械的に変換しない。
+- Permission表示をBackend authorizationの代替にしない。
+- 内部Processing statusを直接表示しない。
