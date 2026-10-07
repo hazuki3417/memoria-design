@@ -89,7 +89,7 @@ Acceptance Criteriaは、第三者がEvidenceを確認してYes / Noを判定で
 
 完了条件を機械的に表現するためだけに細かな子Issueを作りません。Issue分割は、独立した成果として優先順位・依存関係・Review・中断再開・検証を管理する価値があるかで判断します。
 
-子IssueがすべてClosedでも、親IssueのGoalが自動的に成立するとは限りません。親IssueをCloseする前に、子Issueを統合した結果が親のGoalとAcceptance Criteriaを満たすことをConsistency Reviewで確認します。
+子IssueがすべてClosedでも、親IssueのGoalが自動的に成立するとは限りません。親IssueをCloseする前に、子Issueを統合した結果が親のGoalとAcceptance Criteriaを満たすことを成果統合時の整合性確認で確認します。
 
 Acceptance Criteriaを`[x]`へ変更する際、PR、正本文書、code、schema、test、Closed child Issue等のEvidenceを確認します。Evidenceを確認できない項目を推測で完了扱いにしません。
 
@@ -130,7 +130,7 @@ Issue本文は、そのIssueを開始した背景、当初のScope、Acceptance 
 - 既存のPurpose、Scope、Out of Scope、Acceptance Criteria、Constraint、Deferred等は原則として削除しない
 - 既存内容が後の判断で無効または変更になった場合、旧内容を`~~取り消し線~~`で残し、その近くに現在の内容または参照先を追記する
 - Acceptance Criteriaの達成は`[ ]`から`[x]`への更新を許容する。条件そのものを変更する場合は旧条件を削除せず、取り消し線と新条件で変更を表現する
-- 作業進捗、日付付きの設計判断、検証結果、Deferred解消、PR反映状況、Consistency Review結果、close理由等の時系列情報は本文へ追記せず、原則としてコメントへ記録する
+- 作業進捗、日付付きの設計判断、検証結果、Deferred解消、PR反映状況、成果統合時の整合性確認結果、close理由等の時系列情報は本文へ追記せず、原則としてコメントへ記録する
 - IssueをCloseするために本文を完成形へ全面的に書き換えない。最終EvidenceとResolution理由はコメントから確認できる状態にする
 - 誤字脱字、format、意味を変えない表現修正、単純なlink保守等は、設計判断の履歴を失わない範囲で直接修正できる
 
@@ -192,14 +192,14 @@ Issueをイテレーションへ入れる前に、少なくとも目的、対象
 5. 設計、実装、test、結合確認を行い、小さなPRを作成する
 6. PRのマージ前にIssueの受け入れ条件とチェックリストを実績に基づいて更新する
 7. 人間の確認後にPRを`develop`へ統合し、関連IssueのOpen／Closedが実態と一致することを確認する
-8. 対象成果物の主要部分が概ね揃った段階でConsistency Reviewを行い、Use Case、設計、Visual Prototype、実装・testの整合性を確認する
+8. 対象成果物の主要部分が概ね揃った段階で成果統合時の整合性確認を行い、Use Case、設計、Visual Prototype、実装・testの整合性を確認する
 9. Goalと受け入れ条件に対して成果をReviewする
 10. 未完了項目を再評価し、理由と後続Issueを記録してBacklogへ戻す
 11. Processと技術上の学びを振り返り、具体的な改善Taskを決める
 
 ## 整合性確認の二層構造
 
-Memoriaでは、成果物間の整合性を一つの確認工程だけへ依存させません。通常のTaskで変更影響を局所的に揃える**Change-time Consistency**と、個別Taskを越えて蓄積したsemantic driftを横断的に検出する**Consistency Audit**を併用します。両者は代替関係ではなく、異なるfailure modeを補完します。
+Memoriaでは、成果物間の整合性を一つの確認工程だけへ依存させません。通常のTaskで変更影響を局所的に揃える**変更時の整合性確認**と、個別Taskを越えて蓄積したsemantic driftを横断的に検出する**全体整合性監査**を併用します。両者は代替関係ではなく、異なるfailure modeを補完します。
 
 ### 全体像
 
@@ -209,7 +209,7 @@ flowchart TD
     B --> C["変更対象・Owner・Contractを特定"]
     C --> D["影響するConsumer・依存成果物を特定"]
     D --> E["設計 / Guideline / Schema / Code / Test / Prototypeを変更"]
-    E --> F["Change-time Consistency<br/>影響範囲を同じTaskで照合"]
+    E --> F["変更時の整合性確認<br/>影響範囲を同じTaskで照合"]
 
     F --> G{"不整合・未反映があるか"}
     G -- "No" --> H["検証・Evidence確認"]
@@ -219,13 +219,13 @@ flowchart TD
     J --> H
 
     H --> K["Task / Increment完了"]
-    K --> L{"Auditの実施契機か"}
+    K --> L{"全体整合性監査の実施契機か"}
     L -- "No" --> M["次のTask / Iteration"]
     M --> A
-    L -- "Yes" --> N["Consistency Audit<br/>個別Taskを越えて横断確認"]
+    L -- "Yes" --> N["全体整合性監査<br/>個別Taskを越えて横断確認"]
 
     N --> O["Product Vision / Domain / Guideline<br/>Screen Spec / Architecture / Schema<br/>Implementation / Prototype / Test"]
-    O --> P{"Audit結果"}
+    O --> P{"監査結果"}
     P -- "一致" --> Q["整合状態を確認"]
     P -- "不一致" --> R["原因・Owner・正しい意図を確認"]
     P -- "未定義" --> R
@@ -238,16 +238,16 @@ flowchart TD
     V --> W
     W --> X["関連成果物を同期 / 必要ならIssue化"]
 
-    Q --> Y["Audit完了"]
+    Q --> Y["監査完了"]
     S --> Y
     T --> Y
     X --> Y
     Y --> M
 ```
 
-この図の上段は通常Taskごとの**Change-time Consistency**、下段は節目で行う**Consistency Audit**を表します。Auditは通常Taskの代替ではなく、局所的な影響範囲確認だけでは発見できなかったsemantic driftを検出するSafety Netです。変更方向は一方向に限定せず、設計から実装への具体化、実装・検証から設計へのFeedback、GuidelineからScreen Specificationへの反映など、どの方向でも同じ整合性原則を適用します。
+この図の上段は通常Taskごとの**変更時の整合性確認**、下段は節目で行う**全体整合性監査**を表します。全体整合性監査は通常Taskの代替ではなく、局所的な影響範囲確認だけでは発見できなかったsemantic driftを検出するSafety Netです。変更方向は一方向に限定せず、設計から実装への具体化、実装・検証から設計へのFeedback、GuidelineからScreen Specificationへの反映など、どの方向でも同じ整合性原則を適用します。
 
-### Change-time Consistency
+### 変更時の整合性確認
 
 要求、設計、Guideline、schema、code、test、Visual Prototype等を変更するときは、Context mapで影響範囲を特定し、関連するSource of Truthと成果物を同じTaskの中で照合します。設計から実装へ具体化する場合だけでなく、実装・検証で得た知見を設計へ戻す場合や、横断GuidelineからScreen Specificationを見直す場合にも適用します。
 
@@ -260,11 +260,11 @@ Taskの完了判断では、少なくとも次を確認します。
 3. 実装・Prototype・test等から得た新しい知見を、必要な上流Source of Truthへ反映している
 4. 意図的に差異を残す場合、その理由、owner、Revisit conditionまたは追跡Issueを確認できる
 
-### Consistency Audit
+### 全体整合性監査
 
-Change-time Consistencyは、影響範囲を正しく発見できることを前提とするため、それだけでProduct全体の整合性を保証しません。複数TaskやIterationをまたいで蓄積したtransitive dependency、古い前提、更新漏れ、Source of Truth間の矛盾を検出するSafety Netとして、対象領域を横断するConsistency Auditを行います。
+変更時の整合性確認は、影響範囲を正しく発見できることを前提とするため、それだけでProduct全体の整合性を保証しません。複数TaskやIterationをまたいで蓄積したtransitive dependency、古い前提、更新漏れ、Source of Truth間の矛盾を検出するSafety Netとして、対象領域を横断する全体整合性監査を行います。
 
-Auditでは、対象範囲に応じてProduct Vision、Domain設計、Cross-cutting Guideline、Screen Specification、Architecture、実行可能なschema・設定、実装、Visual Prototype、test等を横断してsemantic consistencyを確認します。表面的な文言一致ではなく、目的、Capability、責務、状態、権限、contract、User Experienceが同じ判断を表しているかを確認します。
+全体整合性監査では、対象範囲に応じてProduct Vision、Domain設計、Cross-cutting Guideline、Screen Specification、Architecture、実行可能なschema・設定、実装、Visual Prototype、test等を横断して意味上の整合性を確認します。表面的な文言一致ではなく、目的、Capability、責務、状態、権限、contract、User Experienceが同じ判断を表しているかを確認します。
 
 実施契機は固定日だけに限定せず、次のような節目を使用します。
 
@@ -272,18 +272,18 @@ Auditでは、対象範囲に応じてProduct Vision、Domain設計、Cross-cutt
 - 複数Issue・PR・RepositoryにまたがるGoalの主要成果が揃ったとき
 - Design Coverageの主要領域をReady / Validatedへ進める判断をするとき
 - Release candidateを評価する前
-- Consistency Reviewや通常Taskで、局所的な差異では説明できないdriftが見つかったとき
+- 成果統合時の整合性確認や通常Taskで、局所的な差異では説明できないdriftが見つかったとき
 - 複数Iterationを通じた変更蓄積を見直す必要があると判断したとき
 
-Audit結果は少なくとも**一致 / 不一致 / 未定義 / 意図的差異 / Deferred**を区別します。不一致を発見しても、設計、実装、Guideline等のどれかを階層だけで機械的に正しいものとして更新しません。Owner Document、actual behavior、現在のProduct Goalを確認し、重要な判断は人間との合意後に正本へ反映します。現在解消しない項目はIssueで追跡します。
+監査結果は少なくとも**一致 / 不一致 / 未定義 / 意図的差異 / Deferred**を区別します。不一致を発見しても、設計、実装、Guideline等のどれかを階層だけで機械的に正しいものとして更新しません。Owner Document、actual behavior、現在のProduct Goalを確認し、重要な判断は人間との合意後に正本へ反映します。現在解消しない項目はIssueで追跡します。
 
-Auditは通常Taskの整合性責任を置き換えません。「後でAuditする」ことを理由に、変更時に判明している差異を放置しません。
+全体整合性監査は通常Taskの整合性責任を置き換えません。「後で全体整合性監査を行う」ことを理由に、変更時に判明している差異を放置しません。
 
-## Consistency Review
+## 成果統合時の整合性確認
 
-Memoriaでは、作業の種類を問わず、対象作業の主要な成果が概ね揃った時点で、関連する前提・正本・成果物・依存関係・後続作業との整合性を確認します。この確認をConsistency Reviewと呼び、開発の基本プロセスとして扱います。
+Memoriaでは、作業の種類を問わず、対象作業の主要な成果が概ね揃った時点で、関連する前提・正本・成果物・依存関係・後続作業との整合性を確認します。この確認を成果統合時の整合性確認と呼び、開発の基本プロセスとして扱います。
 
-Consistency Reviewは特定の工程だけに適用するGateではなく、要求整理、Use Case、設計、Visual Prototype、実装、test、Infrastructure、Migration、運用手順、Process改善など、独立した成果を作る作業全般へ適用します。作業途中の細かな変更ごとには実施せず、主要な論点や成果が概ね出揃い、個別修正より横断的な照合から得られるFeedbackの価値が高くなった時点で行います。
+成果統合時の整合性確認は特定の工程だけに適用するGateではなく、要求整理、Use Case、設計、Visual Prototype、実装、test、Infrastructure、Migration、運用手順、Process改善など、独立した成果を作る作業全般へ適用します。作業途中の細かな変更ごとには実施せず、主要な論点や成果が概ね出揃い、個別修正より横断的な照合から得られるFeedbackの価値が高くなった時点で行います。
 
 「すべて完成するまでReviewしない」運用にはしません。不整合や漏れを発見した場合にまだ安全に調整できる時点で実施し、Review後の変更によって前提や関連成果物が変わった場合は必要な範囲で再度Reviewします。
 
@@ -293,7 +293,7 @@ Consistency Reviewは特定の工程だけに適用するGateではなく、要�
 
 例えば、Use CaseならActor・目的・主要フロー・結果等の洗い出しが概ね終わった時点、設計なら主要判断と必要な詳細化が揃った時点、Visual Prototypeなら目的達成に必要な画面・状態・Interactionが一通り具体化された時点、実装なら主要code・contract・testを結合して振る舞いを確認できる時点が該当します。これらは適用対象を限定する工程一覧ではなく、共通原則の適用例です。
 
-複数Issue、PR、Repository、Component、Phase等をまたいで一つのGoalを成立させる場合も、個々の成果だけでなく統合した状態でConsistency Reviewを行います。
+複数Issue、PR、Repository、Component、Phase等をまたいで一つのGoalを成立させる場合も、個々の成果だけでなく統合した状態で成果統合時の整合性確認を行います。
 
 ### 確認内容
 
@@ -318,7 +318,7 @@ Reviewでは対象作業に関係する最新のGitHub正本を読み直し、�
 
 ### 現時点で確定・対応できない課題
 
-Consistency Reviewに限らず、通常の作業過程で現在は判断材料や依存成果物が不足している、適切な対応時期が後続にある、または現在のScopeから独立して追跡すべき課題が判明した場合、暗黙のTODOや会話上の申し送りだけで保持しません。
+成果統合時の整合性確認に限らず、通常の作業過程で現在は判断材料や依存成果物が不足している、適切な対応時期が後続にある、または現在のScopeから独立して追跡すべき課題が判明した場合、暗黙のTODOや会話上の申し送りだけで保持しません。
 
 追跡が必要な課題はIssueを正本として管理し、少なくとも次を記録します。
 
@@ -336,7 +336,7 @@ Design Coverage MapでBlockingまたはDeferredとして表現する価値があ
 
 ### Review結果
 
-Review結果は対象Issue、PR、イテレーションIssue等、現在の作業を追跡している正本から確認できるようにし、Consistency Review専用の恒久台帳は作りません。
+Review結果は対象Issue、PR、イテレーションIssue等、現在の作業を追跡している正本から確認できるようにし、成果統合時の整合性確認専用の恒久台帳は作りません。
 
 Review後は、整合して次の作業へ進める状態、不整合を修正して関連成果物を同期した状態、後続Issueへ適切に分離した状態、またはBlockingが残り現在の作業へ戻る状態のいずれであるかを明確にします。
 
