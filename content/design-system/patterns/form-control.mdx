@@ -1,0 +1,174 @@
+# Form Control
+
+## Purpose
+
+Userが値を入力・選択するときに、Fieldの意味、入力要否、Constraint、Validation、Commit方法を予測可能な形で理解し、落ち着いてTaskを完了できるようにします。
+
+Form Control PatternはTextInput、Select、Checkbox等の見た目を再設計するComponent catalogではありません。Product上の入力・選択の意味とInteraction Contractを定義し、具体的なControlとVisual Foundationは標準HTML semanticsとMantineを優先します。
+
+## When to Use
+
+Form、Dialog、Settings、Search等でUserが値を入力、選択、切替するUIへ適用します。保存済みデータとの差分管理や未保存変更の離脱確認は[Editable Form](/design-system/patterns/editable-form)、ActionのHierarchyとPlacementは[Action](/design-system/patterns/action)を正本とします。
+
+## Field Structure
+
+Fieldは必要に応じて次の意味的な順序で構成します。
+
+1. LabelとOptional indicator
+2. Description / Constraint
+3. Control
+4. Validation / Feedback
+
+すべての要素を常時表示する必要はありません。同じ情報をLabel、Description、Placeholder、Error等へ重複させません。
+
+### Label
+
+Userが値を入力・選択するFieldは原則として可視Labelを持ちます。PlaceholderをLabelの代替として使用しません。
+
+Search等、Controlの目的が周囲のUI Contextから十分明確で、別途Accessible Nameを提供できるInteractionでは可視Labelを省略できます。
+
+### Required / Optional
+
+Userが入力要否を判断できるようにします。通常は必須Fieldを基本状態とし、Optional Fieldへ「任意」を表示します。
+
+Formの大半がOptional等、この表現が冗長になる場合はForm全体のContextを含めてより明確な表現を選択します。Required / Optionalの意味をアスタリスクやColorだけへ依存させません。
+
+### Description / Constraint
+
+Labelだけでは入力前の判断に不足する用途、影響、Constraintを補足する場合に表示します。Labelの単なる言い換えや、UserのTaskに不要な内部制約は表示しません。
+
+Constraintは可能であれば失敗後だけでなく、Userが入力前に知る必要がある時点で提示します。
+
+### Placeholder
+
+Placeholderは入力例や形式の補助に利用できますが、Labelや重要なConstraintの代替にはしません。入力開始によって消える情報だけへTask遂行に必要な意味を依存させません。
+
+## Validation
+
+### Initial Validation
+
+通常のFieldでは、Userが初回入力している途中にErrorを積極的に提示しません。BlurまたはFormのSubmit / Commitを基本的な初回Validation契機とします。
+
+### Correction
+
+一度Errorを提示したFieldは、Userの修正に応じて再評価し、問題が解消したことを速やかにFeedbackします。修正済みなのに古いErrorを不要に残しません。
+
+### Immediate Validation
+
+入力中のFeedback自体がTask遂行を支援する場合はImmediate Validationを利用できます。Password requirement、availability確認等が該当し得ます。
+
+Immediate Validationは「Errorを早く表示する」ためではなく、入力中にUserが判断・修正する必要がある場合に採用します。
+
+### Error Placement
+
+Field固有の問題は対象Controlとの関係が理解できる位置へ表示します。複数Fieldにまたがる問題やForm全体の保存失敗等はForm-level Feedbackとして扱い、Field Errorへ無理に押し込みません。
+
+Backendから返されたErrorであること自体はPlacementを決めません。特定Fieldへ意味的に帰属するValidation failureはField Errorへmappingできます。生のBackend / GraphQL errorをUser-facing contractとして扱いません。
+
+Submit時にInvalidな場合は、Userが修正対象を発見できる必要があります。長いFormでのFocus、Scroll、Error summary等はForm規模とAccessibility上の必要性に応じて選択し、すべてのFormへ一律に要求しません。
+
+### Error Content
+
+Error単体へすべてを説明することを要求せず、Label、Description、Control等を含むUI Contextと合わせて、現在の問題と必要な修正を理解できる必要十分なContentにします。[Content Design](/design-system/content-design)を正本とします。
+
+通常の有効入力へ「正しい入力です」等のSuccess stateを機械的に表示しません。成功していること自体がUserの判断材料になる場合のみPositive Feedbackを提示します。
+
+## Control Selection
+
+Controlは見た目ではなく、Userが何を決定するかで選択します。
+
+- **Checkbox**: 独立したYes / No、同意、または複数選択。
+- **Radio**: 少数の相互排他的な候補から一つを選択し、候補を比較できることが重要な場合。
+- **Select / Combobox**: 相互排他的な候補が多い、検索が必要、または候補を常時一覧表示する価値が低い場合。
+- **Switch**: On / Offの状態そのものを切り替える場合。
+- **Segmented Control**: 少数の相互排他的な状態を素早く切り替え、現在状態を並列に把握する価値がある場合。
+
+CheckboxとSwitchを見た目の好みだけで交換しません。Switchであることと即時保存であることは同義ではありません。
+
+具体的なProduct requirementから入力semanticsを決め、その後にMantineのTextInput、Textarea、NumberInput、Select / Combobox、Checkbox、Radio、Switch等の適切なprimitiveへmappingします。
+
+## Commit Model
+
+Controlの種類とは独立して、変更の確定方法を設計します。
+
+### Immediate Commit
+
+操作自体が完結した意思決定で、結果が理解しやすく、安全に変更できる場合は選択・切替を即時反映できます。
+
+### Explicit Commit
+
+複数Fieldを一つの変更として扱う場合や、編集内容を確認してから確定すべき場合は、明示的なPrimary ActionでまとめてCommitします。
+
+SwitchだからImmediate、CheckboxだからExplicit等、Control typeからCommit Modelを機械的に決定しません。
+
+## Layout / Responsive
+
+Fieldを横並びにするのは、意味的に強い関係があり、一緒に認識することでTaskを理解しやすく、十分な入力領域を確保できる場合です。単なる省スペースを目的に無関係なFieldを横並びにしません。
+
+Compactでは必要に応じて横並びFieldをStackし、入力可能領域と可読性を優先します。ただし複数Controlが一つの意味を形成する場合まで機械的に分離しません。
+
+ResponsiveによってLabelの意味、Field order、Required / Optional、Validation、入力Capabilityを失わせません。具体的なbreakpointはMantine FoundationとScreen Contractに従います。
+
+## State
+
+### Disabled
+
+Disabledは現在Userが操作できないControlを表します。Userが条件を満たすことで利用可能になる場合、その条件がContextから理解できる必要があります。Disabled appearanceだけを理由説明として扱いません。
+
+### Read-only
+
+Read-onlyは値を表示するが編集対象ではない状態です。Disabledとは区別します。
+
+編集できない情報を常にDisabled Inputで表示することは要求しません。単なる情報であればTextとして表示し、選択・コピー等Inputとしての性質が必要な場合にRead-only Controlを選択します。
+
+### Character Counter
+
+文字数上限が存在するだけでCounterを常時表示しません。制限へ近づきながら文章を調整することがTask上有用な場合等に利用します。
+
+## Async Validation / Processing
+
+Remote ValidationはLocal Validationを満たした上で必要な場合に実行します。
+
+API integrationと非同期Behaviorが確定していない段階では、debounce時間、validating indicator、race condition presentation、network failure presentation等を本Patternで固定しません。
+
+同様にForm submission中のLoading / Processingの具体表現も、対象Taskの非同期Contractが確定した時点で設計します。
+
+## Focus / Keyboard
+
+AutofocusはTask開始点が明確で、Focus移動が予測可能であり、Compact環境でのSoftware Keyboard表示等がTaskを妨げない場合に利用します。Dialogを開いたことだけを理由に最初のInputへ機械的にAutofocusしません。
+
+Keyboard behaviorは標準HTMLとMantineを優先します。独自Shortcutを理由なく追加せず、Textarea内のEnter等、Control本来の操作をForm Submitで奪いません。
+
+Focus appearanceの具体表現はMantine Foundationへ委譲しますが、Keyboard操作時に現在のFocus対象を識別できることをProduct Contractとします。
+
+## Visual Foundation
+
+Control height、Border、Radius、Typography、Padding、Focus appearance、Hover、Disabled appearance、Checkbox / Radio / Switch geometry、Select presentation等の一般的なVisual FoundationはMantineへ委譲します。
+
+Memoria固有のProduct Contractを満たせないことが確認された場合だけSemantic Token、Pattern、Component ruleを追加します。Colorは[Color System](/design-system#color-system)のAccent / Status semanticsに従います。
+
+## Accessibility
+
+- ControlにAccessible Nameを提供する。
+- DescriptionとErrorを対象Controlへ意味的に関連付ける。
+- Required / OptionalやErrorをColorだけで伝えない。
+- Keyboardで操作可能にする。
+- Focusを視認可能にする。
+- Radio、Checkbox等のGroup関係をsemanticに表現する。
+- Disabled理由がUserの判断に必要な場合は理解可能にする。
+- Visual orderとDOM / Focus orderを不必要に乖離させない。
+- Responsive後もLabelとControlの関係、入力Capabilityを維持する。
+
+標準HTML semanticsとMantineのaccessible primitiveを優先します。
+
+## Constraints
+
+- PlaceholderをLabelの代替にしない。
+- Required / OptionalをアスタリスクやColorだけで伝えない。
+- 初回入力中にErrorを機械的に表示しない。
+- Checkbox / Radio / Switch / Selectを見た目だけで選択しない。
+- SwitchとImmediate Commitを同義にしない。
+- 編集不可の情報を機械的にDisabled Inputで表示しない。
+- Character CounterやSuccess FeedbackをすべてのFieldへ追加しない。
+- MantineのVisual FoundationをMemoria独自Component catalogとして再実装しない。
+- API contract確定前にAsync Validation / Processingの具体presentationを固定しない。
