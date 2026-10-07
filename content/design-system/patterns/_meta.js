@@ -1,5 +1,6 @@
 export default {
   "application-shell": "Application Shell",
+  "action": "Action",
   "editable-form": "Editable Form",
   "creation-dialog": "Creation Dialog",
   "feedback": "Feedback",
