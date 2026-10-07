@@ -1,0 +1,189 @@
+# Overlay / Temporary Surface
+
+## Purpose
+
+現在のContextとの関係を維持したまま、一時的な判断、操作、情報確認を行うInteraction Surfaceを一貫して選択・設計できるようにします。
+
+OverlayはPageを作るほどではないという理由だけで選択しません。独立したTaskや恒久的に参照するContentはPageを基本とし、現在Contextとの関係を保つこと自体に意味がある一時的InteractionでOverlayを利用します。
+
+Modal、Drawer、Popover、Menu、Tooltip等のVisual Component catalogを再設計するPatternではありません。Surface selection、Context relationship、Dismiss semantics、Focus、Responsive behaviorをProduct Contractとして定義し、一般的なVisualとInteraction mechanicsはMantine / Browserへ委譲します。
+
+## When to Use
+
+Application / Screen上で、現在のContextを維持した一時的なTask、判断、補助Interaction、Progressive Disclosure、補助説明を提示する場合に適用します。
+
+Action hierarchyは[Action](/design-system/patterns/action)、Field behaviorは[Form Control](/design-system/patterns/form-control)、Navigation / Deep Linkは[Navigation / Wayfinding](/design-system/patterns/navigation-wayfinding)、dirty stateは[Editable Form](/design-system/patterns/editable-form)、結果やErrorは[Feedback](/design-system/patterns/feedback)を正本とします。
+
+## Surface Selection
+
+最初の判断基準を次のように扱います。
+
+- **Page**: 独立したTask / Destination。長時間作業、多段階、再訪・共有等に意味がある場合。
+- **Dialog**: 現在Contextを維持したままFocusを一時的な限定Taskまたは判断へ集中させる場合。
+- **Confirmation Dialog**: 重大なConsequenceを理解して意思決定する必要がある場合。
+- **Drawer**: 元Contextとの空間的連続性を維持した補助Panel、Navigation、Filter、Inspector等。
+- **Popover**: 特定Trigger / Objectとの空間的関係を維持した短いInteraction。
+- **Menu**: ActionまたはNavigation候補のProgressive Disclosure。
+- **Tooltip**: Task遂行に必須ではない短い補助説明。
+
+Componentの大きさやField数だけではSurfaceを決定しません。Task complexity、Context relationship、再訪性、必要なFocusから選択します。
+
+## Dialog
+
+Dialogは現在のApplication Contextを維持しながら、UserのFocusを一時的なTaskまたは判断へ集中させます。
+
+Dialogが適するTaskはScopeと判断が限定され、元のContextへ戻ることが自然で、独立したNavigation destinationとして扱う必要性が低いものです。多段階、長時間作業、多くの情報参照、Deep Link / Share / Revisitに価値があるTaskはPageを優先します。
+
+Field数やViewport sizeだけでPage / Dialogを機械的に切り替えません。
+
+### Structure
+
+Dialogは必要に応じてTitle、Description / Context、Content、Action Areaで構成します。Titleは原則として目的を理解できるものを持ち、視覚上省略する特殊SurfaceでもAccessible Nameを提供します。
+
+Dialog内ActionのHierarchy、Danger、Group、Responsive orderはAction Patternに従います。
+
+### Close / Cancel
+
+CloseとCancelがUserにとって同じ結果を意味する場合、複数の明示的Actionとして不要に重複させません。
+
+明示的Cancel Actionが必要なDialogでは、同じ意味のclose Actionを機械的に追加しません。Cancelが不要な軽量Dialogではclose Actionを利用できます。
+
+## Dismiss Behavior
+
+Escape、outside click、close Action等によるDismiss behaviorはOverlay typeだけで決定せず、Dismissによって失われるものとConsequenceから決定します。
+
+User inputを失わず、destructive consequenceがなく、Task理解を壊さない軽量Surfaceは容易にDismissできます。意味のあるDraftや重要な判断を失う場合はaccidental dismissを防ぎます。
+
+Escape入力やoutside clickそのものと「データを破棄する」というConsequenceを同一視しません。
+
+意味のある未保存変更はEditable Form Patternに従います。Overlay System独自のdirty-state ruleは定義しません。
+
+## Confirmation
+
+ConfirmationはDanger Action専用ではありません。不可逆、復旧困難、大きな損失、予測しにくい結果、高い影響等、Userが実行前にConsequenceを明示的に確認する価値がある場合に利用します。
+
+予測可能で容易に修正・復旧できるActionへ機械的にConfirmationを追加しません。Confirmationの濫用によって重要な判断の意味を弱めないようにします。
+
+ConfirmationではUI Contextと合わせて何が起きるかを判断できる必要があります。必要に応じて対象、失われるもの、復旧可能性、影響範囲を説明します。
+
+Action labelはContent DesignとAction Patternに従い、Contextから結果が一意なら「削除」「OK」等の簡潔なlabelを利用でき、対象が不明確なら必要な具体性を追加します。
+
+### Typed Confirmation
+
+対象名等の入力を要求するTyped Confirmationは強いfrictionとして扱い、損失規模、不可逆性、誤操作可能性から必要な場合だけScreen Contractで採用します。Dangerであることだけを理由に要求しません。
+
+## Drawer
+
+DrawerをMobile版Dialogとは定義しません。
+
+DialogがTaskへのFocusを強く要求するのに対し、Drawerは元Contextとの空間的連続性を維持する補助Panel、Navigation、Filter、Inspector等に適します。
+
+Viewportが変わったことだけを理由にDialogをDrawerへ機械的に変換しません。
+
+## Popover
+
+Popoverは特定Trigger / Objectとの空間的関係を維持した短いInteractionまたは情報提示に利用します。小規模なPicker、Contextual settings、軽量な選択等が候補です。
+
+多数のField、複数Step、複雑なValidation、長い説明、大きなConfirmation等をPopoverへ押し込まず、Task complexityが増えた場合はDialog / Pageへの昇格を検討します。
+
+Popoverは通常容易にDismissできる軽量Surfaceを基本とします。意味のあるDraftを失うためoutside clickを強く制限する必要が生じる場合は、Popoverが適切なSurfaceか再検討します。
+
+## Menu
+
+MenuはActionまたはNavigationのProgressive Disclosureです。独立したTask Surfaceとして扱いません。
+
+各Menu itemはAction / Navigationのsemanticsを維持します。Danger itemはDanger semanticを維持できますが、Primary TaskをMenuへ隠すことを標準にはしません。
+
+深いNested Menuは避けます。Groupingで解決できず階層を記憶しながら操作する必要がある場合は、Popover、Dialog、Page等の別Surfaceを検討します。
+
+### Menu and Popover
+
+Userが候補からAction / Destinationを選ぶ場合はMenu、対象に関連した小さなInteractionを行う場合はPopoverを基本とします。
+
+## Tooltip
+
+Tooltipは補助的な短い説明に限定し、Task遂行に必要な情報をTooltipだけへ置きません。
+
+Error、Required constraint、Permission reason、Action consequence、Navigation destination等、Userが判断・修正するために必要な情報をHover依存にしません。
+
+Icon-only Action等でTooltipを理解補助に利用できますが、TooltipはAccessible Nameの代替ではありません。
+
+## Hover / Input Modality
+
+OverlayによるCapabilityをHoverだけへ依存させません。Keyboard、Touch、Pointerで必要なInteractionへ到達できるようにします。
+
+Touchで失われる可能性があるTooltip等へ重要情報を置かない原則もこの要件に含まれます。
+
+## Nested Overlay
+
+Nested Overlayは原則として避けますが、Interaction上必要な場合は禁止しません。
+
+編集DialogからDestructive Confirmationへ進む等、元Taskを破棄せず一時的な判断を上位へ提示する場合は、元Context / Draftを保持します。ConfirmationをCancelした場合は元Taskへ戻れるようにします。
+
+Overlayを重ねる場合、現在Userが判断すべき最上位Surfaceを明確にし、背景Overlayを誤操作できないようにします。不要な多層Stackが必要になる場合はInteraction構造自体を再検討します。
+
+## Focus
+
+Modal DialogではFocusをDialog内へ保持することを基本とし、Menu / Popover等はMantineと標準HTMLのInteraction semanticsを優先します。
+
+Dialogを開いたことだけを理由に最初のInputへ機械的にAutofocusしません。Task開始点、Software Keyboard、Confirmationの性質等から適切なInitial Focusを決定します。Destructive ConfirmationでDanger Actionへ自動FocusすることをDefaultにはしません。
+
+Overlayを閉じた場合は原則Trigger / Interaction開始点へFocusを戻します。Action成功等によってTriggerが消滅した場合は、新しいUI状態でTaskを継続できる適切なFocus destinationを選択します。
+
+## Responsive Behavior
+
+ResponsiveでSurfaceを変更する場合もInteractionの意味とCapabilityを維持します。
+
+Desktop PopoverをCompactで別Surfaceへ変更する等は可能ですが、Desktop = Modal / Mobile = Drawerのような固定mappingは定義しません。利用可能領域、input modality、Context relationship、Task complexityからSurfaceを選択します。
+
+## URL / Deep Link
+
+Overlay presentationであることとURLを持つかどうかは独立して判断します。
+
+Media Viewer等、共有・復元・直接到達にProduct上の意味があるInteractionはOverlay-like presentationでもURL-addressableにできます。一方、Menuや小さなPicker等を機械的にURL化しません。Navigation / Wayfinding PatternのDeep Link原則に従います。
+
+## Media Viewer
+
+Media Viewerは単純な大きいModalとして本Patternへ固定しません。Media First、Previous / Next Navigation、Zoom、Metadata、Contextual Action、Deep Link等の固有責務を持ち得るため、必要性が確認された時点で独立したMedia Viewer Patternとして設計します。
+
+## Async / Processing
+
+Overlay内でもAction受付後に重複実行を防ぐ必要がある場合、同じActionを通常実行可能な状態のまま放置しません。
+
+Loading / Processingの具体的なSpinner、Progress、pending presentationは対象TaskのAPI / async lifecycleが確定した時点で設計し、本Patternでは固定しません。
+
+## Visual Foundation
+
+Modal geometry、Drawer animation、Popover / Menu / Tooltip appearance、Backdrop、Shadow、Border、Radius、Transition、一般的なFocus mechanics等はMantine / Browserへ委譲します。
+
+MemoriaはSurface selection、Context relationship、Dismiss semantics、Action relationship、Responsive meaning、Focus contractを定義します。Mantine標準でProduct Contractを満たせない場合のみMemoria固有ruleを追加します。
+
+## Accessibility
+
+- DialogにAccessible Nameを提供し、必要なDescriptionを意味的に関連付ける。
+- Modal Dialogでは適切にFocusをcontainする。
+- Open時にTaskへ適したFocus destinationを選ぶ。
+- Close後に適切な場所へFocusを戻す。
+- Escape behaviorを予測可能にする一方、意味のあるDraftを無条件に破棄しない。
+- MenuをKeyboard操作できる。
+- TooltipへTask遂行に必要な情報を依存させない。
+- HoverのみでCapabilityを提供しない。
+- Nested Overlayでは最上位Surfaceを操作対象にする。
+- ResponsiveでSurfaceが変わっても主要Capabilityを維持する。
+
+標準HTML semanticsとMantineのaccessible primitiveを優先します。
+
+## Constraints
+
+- Pageを作るほどではないという理由だけでOverlayを選択しない。
+- Page / DialogをField数やViewport sizeだけで決定しない。
+- DrawerをMobile版Dialogと定義しない。
+- Dismiss behaviorをSurface typeだけで決定しない。
+- Dangerであることだけを理由にConfirmationやTyped Confirmationを要求しない。
+- 複雑なTaskをPopoverへ押し込まない。
+- Primary TaskをProgressive Disclosureだけを理由にMenuへ隠さない。
+- TooltipへTask遂行に必要な情報を置かない。
+- Hoverだけへ重要なCapabilityを依存させない。
+- Desktop / Compact間のSurfaceを固定mappingしない。
+- Media Viewerを単純なModalとして先に固定しない。
+- Loading / Processingの具体presentationを非同期Contract確定前に固定しない。
