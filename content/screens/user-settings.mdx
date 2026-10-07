@@ -8,6 +8,15 @@ Application ShellのAccount Menuから到達し、既存のApplication Informati
 
 ## Information Architecture
 
+Settingsは次の領域をそれぞれ独立したURLを持つpageとして扱います。`/settings`へのアクセスは`/settings/profile`へRedirectします。
+
+| 領域 | URL |
+| --- | --- |
+| Profile | `/settings/profile` |
+| Preferences | `/settings/preferences` |
+| Usage | `/settings/usage` |
+| Account | `/settings/account` |
+
 Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[User Profile](/screens/user-profile)を正本とする。
@@ -235,3 +244,19 @@ Initial ReleaseのAccount領域では、User account lifecycleに関する操作
 - System / Light / Darkの選択状態と即時反映が明確であること
 - Light / Dark双方で主要Screen、Dialog、feedback、focus stateのcontrastとsemantic roleが維持されること
 - Theme切り替え時にlayout shift、入力消失、Navigation stateの消失が発生しないこと
+
+## Settings NavigationとURL state
+
+Settingsの現在sectionはURLを正本とし、Screen Component内部にURLと独立した選択section stateを保持しません。
+
+- `/settings/profile` はProfileを表示します。
+- `/settings/preferences` はPreferencesを表示します。
+- `/settings/usage` はUsageを表示します。
+- `/settings/account` はAccountを表示します。
+- `/settings` は `/settings/profile` へRedirectします。
+
+WideのSettings side navigationとCompactのsection selectorは、route変更後にURLへ対応するsection内容と選択状態を表示します。Browserの戻る・進む、reload、deep linkでもURLから同じsectionを復元します。
+
+SettingsはApplication contextから独立したUser本人のdestinationですが、認証後Applicationの一部として共通Application Shell内に表示します。Settings各sectionやAccount Deletion Flowが個別にShellを重複所有しません。
+
+Account領域の「アカウントを削除する」は `/settings/account/delete` へのNavigationとして扱います。

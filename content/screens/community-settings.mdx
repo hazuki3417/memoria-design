@@ -1,12 +1,12 @@
-# Community Settings
+# Community Preferences
 
 ## 概要
 
-Community Settingsは、現在UserがそのCommunityを利用するときのUser固有の設定を扱う画面です。
+Community Preferencesは、現在UserがそのCommunityを利用するときのUser固有の設定を扱う画面です。
 
-Community自体へ影響するAdministrator向け操作は[Community Management](/screens/community-management)へ分離します。Community Settingsへのアクセス権とCommunity ManagementのAdministrator権限を同一視しません。
+Community自体へ影響する設定は[Community Settings](/screens/community-management)へ分離します。Community PreferencesはUser × Community scope、Community SettingsはCommunity scopeとして責務を分離します。
 
-> 実装状況: 本仕様に対応するCommunity Settings UIは未実装です。
+> 実装状況: 本仕様に対応するCommunity Preferences UIは未実装です。
 
 ## 目的
 
@@ -35,7 +35,7 @@ UserがCommunityへ参加した時点で、そのUser向けの初期Accent Color
 
 Membershipを維持している間、保存済みAccentをContext集合の変化だけを理由に自動再割当しません。Communityを新しく作成・参加しても既存CommunityのAccentをshuffleしません。
 
-Membership離脱時にUser × Community Settingsを削除し、同じCommunityへ再参加した場合は以前のAccentを復元せず、新しい初期Accentを生成します。
+Membership離脱時にUser × Community Preferencesを削除し、同じCommunityへ再参加した場合は以前のAccentを復元せず、新しい初期Accentを生成します。
 
 ## 変更Behavior
 
@@ -51,9 +51,9 @@ Userの手動選択では `#RRGGBB` 全域を許可し、明度による入力�
 
 ## Navigation
 
-有効なMembershipを持つMemberはCommunity Context NavigationからCommunity Settingsへ到達できます。
+有効なMembershipを持つMemberは `/communities/[communityId]/preferences` からCommunity Preferencesへ到達できます。
 
-AdministratorにはCommunity Settingsとは別に[Community Management](/screens/community-management)への入口を提供します。SettingsはUser固有のCommunity利用設定、ManagementはCommunity自体へ影響する管理操作という責務を維持します。
+Community PreferencesはUser × Community scopeの個人設定、[Community Settings](/screens/community-management)はCommunity scopeの設定という責務を維持します。Community Settings内の変更Actionは各Capabilityのauthorizationに従います。
 
 ## 状態
 
@@ -71,15 +71,15 @@ AdministratorにはCommunity Settingsとは別に[Community Management](/screens
 
 ### Membership失効
 
-Membershipが失効した場合はCommunity Settingsを継続利用させず、Application IAに従って安全なdestinationへ移動します。
+Membershipが失効した場合はCommunity Preferencesを継続利用させず、Application IAに従って安全なdestinationへ移動します。
 
 ## 制約
 
-- Initial ReleaseのCommunity SettingsはAccent Colorだけを扱います。
+- Initial ReleaseのCommunity PreferencesはAccent Colorだけを扱います。
 - Accent変更は他Userの表示へ影響しません。
 - Accent変更によってauthorization、Community data、Media data等のDomain behaviorを変更しません。
-- Community自体の名称、Invitation、削除等はCommunity Managementを正本とします。
-- AccentはMembership従属のUser × Community Settingsとしてaccount側に永続化し、GraphQLでは現在User本人のCommunity Settingsとして取得・更新します。
+- Community自体の名称、Invitation、削除等はCommunity Settingsを正本とします。
+- AccentはMembership従属のUser × Community Preferencesとしてaccount側に永続化し、GraphQLでは現在User本人のCommunity Preferencesとして取得・更新します。
 
 ## Responsive対応
 

@@ -52,7 +52,7 @@ Community管理Mediaが残っている場合もこのFlowからCommunityを削�
 
 ### Cancel
 
-削除を実行せずCommunity Managementへ戻れます。
+削除を実行せずCommunity Settingsへ戻れます。
 
 ## 状態
 
@@ -86,9 +86,9 @@ Community管理Mediaが残っている場合もこのFlowからCommunityを削�
 
 ## Navigation
 
-Community ManagementからCommunity削除確認を開始します。
+Community Settings（`/communities/[communityId]/settings`）からCommunity削除確認（`/communities/[communityId]/settings/delete`）を開始します。
 
-Cancel時は対象CommunityのManagementへ戻ります。
+Cancel時は対象CommunityのSettingsへ戻ります。
 
 削除成功後は削除済みCommunityへ戻らず、Personal Dashboard（`/dashboard`）へ移動します。Community削除は現在context自体を消失させるため、別Communityを暗黙に選択したり直前contextを推測して復元したりしません。
 

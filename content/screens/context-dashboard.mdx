@@ -41,3 +41,13 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 - 必要なGraphQL Operationと既存Media Browserとの取得契約の整合。
 
 関連: [Application Information Architecture](/system/application-information-architecture)、[Personal Media](/screens/personal-media)、[Media Browser / Detail](/screens/media-browser-detail)、[Frontend UI Development](/system/frontend-ui-development)。
+
+## DashboardからCollectionへの遷移
+
+「最近のMedia」の「すべて見る」は現在contextのMedia Browserへ遷移します。「最近のGroup」の「すべて見る」は現在contextのGroup Browserへ遷移します。Personal Dashboardではそれぞれ `/media` と `/groups`、Community Dashboardでは `/communities/[communityId]/media` と `/communities/[communityId]/groups` を使用します。
+
+### Context間のvisual contract
+
+Personal DashboardとCommunity Dashboardは同じDashboard visual contractを使用します。Context切り替えによって基本layout、section配置、spacing、Responsive Behaviorを変更しません。表示対象データ、Context Accent、Context固有Capability等の仕様上必要な差分だけを切り替えます。
+
+「最近のMedia」「最近のGroup」の「すべて見る」と、各sectionのEmpty Stateから対応Collectionへ移動するActionは画面Navigationです。実装ではLink semanticsを持つNavigation要素として扱い、同じcontextのdestinationへ遷移します。
