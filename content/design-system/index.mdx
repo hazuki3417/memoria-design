@@ -4,6 +4,46 @@ Memoria Design Systemは、実際のScreen設計から確認された再利用�
 
 実装Foundation、Design Systemの成長方針、UX Principles等の全体方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)を正本とします。
 
+## Design Direction
+
+MemoriaのVisual DesignとInteraction Designは、Product Visionで定義する「現実のCommunityで生まれたMediaを一緒に見て、整理し、残していく場所」と、Content First / Media Firstを基礎に、次の方向性を共通の判断軸とします。
+
+### Product Character
+
+Memoriaは **Personal / Trustworthy / Calm / Enduring** なProductとして設計します。
+
+個人や身近な人たちとの思い出を、安心して一緒に見て、整理し、時間をかけて残していける、静かで信頼できる場所を目指します。公開SNSのようにAttentionや反応を競う場所、汎用Storageや業務用Media管理Toolのような無機質な作業空間、過去を懐かしむことだけに特化したRetro / Nostalgicな体験には寄せません。
+
+### Emotional Goal
+
+利用者がMemoriaを使うときの感情的なGoalを **Reassured / Familiar / Unhurried / Attached** とします。
+
+- **Reassured**: 大切なMediaを安心して置き、共有範囲や重要な操作の結果を予測できる。
+- **Familiar**: 無機質なStorageではなく、自分や身近な人たちの場所だと感じられる。
+- **Unhurried**: 新着消費や反応を急かされず、自分たちのペースでMediaを見て整理できる。
+- **Attached**: UI自体への装飾的な愛着を作るのではなく、蓄積されたMediaとCommunityへの愛着が時間とともに育つことを支える。
+
+### Visual Personality
+
+Visual Designは次を基準とします。
+
+- **Neutral foundation + Emerald identity**: 基本UIはNeutralで落ち着かせ、Emerald GreenをMemoriaのIdentityを表す主要な色の方向性とする。画面全体をGreenで染めず、Mediaを主役にしたまま必要な場所でIdentityを与える。具体的なpalette、shade、semantic tokenはColor Systemで別途定義する。
+- **Neutral temperature**: 冷たく無機質なCoolさにも、NostalgicなWarmさにも振り切らない。Emeraldが持つ自然な生命感と親しみを加えながら、全体はNeutralに保つ。
+- **Clean / Refined / Slightly Sharp**: 親しみや安心感を保ちながら、輪郭はすっきりと洗練し、ややSharpで現代的な印象とする。過度なroundnessや「かわいさ」を目的とした造形へ寄せない。
+- **Content-led**: 視覚的な主役はUserのMediaとDataとし、UI自体が競合しない。装飾を減らすこと自体を目的とするMinimalismにはしない。
+- **Purposeful Visuals / Meaningful Decoration**: Icon、Shadow、Color、Motion等は、理解、情報階層、操作性、状態変化、親しみ、質感、Brand Identityを伝える意味がある場合に利用する。単なる賑やかしとして追加しない。
+- **Quiet by Default, Expressive with Purpose**: 通常時は静かにContentを支える。一方、選択、重要なAction、状態変化、Warning、Error等、利用者の注意や理解が必要な場面では目的を持って明確に表現する。
+
+### Interaction Philosophy
+
+意味のあるUser Actionには、Systemが入力を認識したこと、処理中であること、または結果として何が変化したかを、利用者が知覚できるFeedbackとして返します。
+
+Interactionは必要に応じて **Action → Acknowledgement → Progress / Transition → Result** のlifecycleで捉えます。すべてのActionに各段階を個別表示することは要求せず、即時に完了する選択であればSelected stateへの変化だけで成立します。Upload等の時間を要する処理では、受付、進行、処理状態、完了または失敗をTaskに必要な粒度で追跡できるようにします。
+
+Animationは装飾やModernさ自体を目的とせず、状態遷移、空間的な関係、操作への応答を理解しやすくするFeedback手段として利用します。Animation以外にもpressed / selected state、Progress、Notification、Inline Feedback等、そのInteractionに適した表現を選択します。
+
+このInteraction Philosophyは[Frontend UI設計・開発方針](/system/frontend-ui-development)の **Immediate Feedback** を具体化するDesign Directionであり、Feedback Patternの具体的なsurface選択は[Feedback](/design-system/patterns/feedback)に従います。
+
 ## UX設計・レビュー
 
 - [Content Design](/design-system/content-design): UI上の言葉をインターフェースとして設計し、情報選択、Voice & Tone、Content Role、共通Pattern、AI Reviewの基準を定義します。
