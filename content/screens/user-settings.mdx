@@ -52,13 +52,13 @@ System選択中にOS / browserのcolor schemeが変化した場合は、reload�
 
 Personal ContextのAccent Colorは、Personalを他のApplication Contextから視覚的に識別するためのUser向けpresentation設定です。
 
-初期値はDesign Systemで定めるPersonalのdefault Accentを使用します。Prototypeで使用している青系を初期候補としますが、具体的な色値はVisual Reviewを経て確定します。
+初期値は[Design SystemのColor System](/design-system#color-system)で定めるMemoria EmeraldをSourceとするdefault Accentを使用します。具体的なEmerald paletteとshadeはDesign SystemのVisual Reviewを通して確定します。
 
 UserはColor Pickerから任意の `#RRGGBB` 値へ変更できます。Personal ContextはUserごとに1つのため、Community Accentのようなランダム初期生成や重複回避は行いません。
 
 色を選択した時点で明示的なSave操作を要求せず、即時保存・即時反映します。保存失敗時は最後に確認できている保存済み色へ戻し、再試行可能なFeedbackを提示します。
 
-Personal AccentはLight / Darkで同じ値を使用し、Theme preferenceとは独立して扱います。Accentの適用範囲、色だけに依存しないContext識別、Surfaceとの境界補償は[Design System](/design-system#表示テーマとcontext-accentvisual-review中)を正本とします。
+Personal AccentはLight / Darkで同じ保存済み値をSourceとして扱い、Theme preferenceとは独立して扱います。UIへ適用するResolved ColorはThemeごとのAccessibilityと視認性を保つため[Design SystemのColor System](/design-system#color-system)に従って解決し、shadeやforeground等まで同一であることは要求しません。色だけにContext識別を依存しません。
 
 Personal AccentはUser accountに紐づくpresentation preferenceとしてdevice / browser間で同期します。Themeがbrowser / device-localであることを理由にPersonal Accentをlocal preferenceへ含めません。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
 
