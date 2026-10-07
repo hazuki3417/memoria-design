@@ -197,6 +197,42 @@ Issueをイテレーションへ入れる前に、少なくとも目的、対象
 10. 未完了項目を再評価し、理由と後続Issueを記録してBacklogへ戻す
 11. Processと技術上の学びを振り返り、具体的な改善Taskを決める
 
+## 整合性確認の二層構造
+
+Memoriaでは、成果物間の整合性を一つの確認工程だけへ依存させません。通常のTaskで変更影響を局所的に揃える**Change-time Consistency**と、個別Taskを越えて蓄積したsemantic driftを横断的に検出する**Consistency Audit**を併用します。両者は代替関係ではなく、異なるfailure modeを補完します。
+
+### Change-time Consistency
+
+要求、設計、Guideline、schema、code、test、Visual Prototype等を変更するときは、Context mapで影響範囲を特定し、関連するSource of Truthと成果物を同じTaskの中で照合します。設計から実装へ具体化する場合だけでなく、実装・検証で得た知見を設計へ戻す場合や、横断GuidelineからScreen Specificationを見直す場合にも適用します。
+
+変更のたびに全Repository・全文書を機械的に読むことは要求しません。変更内容から影響するcontract、owner、consumer、依存成果物を特定し、その範囲を確認します。影響があるのに現在のTaskで解消できない差異は暗黙に残さず、理由と影響を明示してIssueまたは既存の追跡先へ接続します。
+
+Taskの完了判断では、少なくとも次を確認します。
+
+1. 変更元と、その変更を受ける直接の成果物が一致している
+2. 変更によって意味・責務・contractが変わるconsumerや依存成果物を確認している
+3. 実装・Prototype・test等から得た新しい知見を、必要な上流Source of Truthへ反映している
+4. 意図的に差異を残す場合、その理由、owner、Revisit conditionまたは追跡Issueを確認できる
+
+### Consistency Audit
+
+Change-time Consistencyは、影響範囲を正しく発見できることを前提とするため、それだけでProduct全体の整合性を保証しません。複数TaskやIterationをまたいで蓄積したtransitive dependency、古い前提、更新漏れ、Source of Truth間の矛盾を検出するSafety Netとして、対象領域を横断するConsistency Auditを行います。
+
+Auditでは、対象範囲に応じてProduct Vision、Domain設計、Cross-cutting Guideline、Screen Specification、Architecture、実行可能なschema・設定、実装、Visual Prototype、test等を横断してsemantic consistencyを確認します。表面的な文言一致ではなく、目的、Capability、責務、状態、権限、contract、User Experienceが同じ判断を表しているかを確認します。
+
+実施契機は固定日だけに限定せず、次のような節目を使用します。
+
+- Domain、Screen Specification、Design System、Architecture等の大きな設計更新が一巡したとき
+- 複数Issue・PR・RepositoryにまたがるGoalの主要成果が揃ったとき
+- Design Coverageの主要領域をReady / Validatedへ進める判断をするとき
+- Release candidateを評価する前
+- Consistency Reviewや通常Taskで、局所的な差異では説明できないdriftが見つかったとき
+- 複数Iterationを通じた変更蓄積を見直す必要があると判断したとき
+
+Audit結果は少なくとも**一致 / 不一致 / 未定義 / 意図的差異 / Deferred**を区別します。不一致を発見しても、設計、実装、Guideline等のどれかを階層だけで機械的に正しいものとして更新しません。Owner Document、actual behavior、現在のProduct Goalを確認し、重要な判断は人間との合意後に正本へ反映します。現在解消しない項目はIssueで追跡します。
+
+Auditは通常Taskの整合性責任を置き換えません。「後でAuditする」ことを理由に、変更時に判明している差異を放置しません。
+
 ## Consistency Review
 
 Memoriaでは、作業の種類を問わず、対象作業の主要な成果が概ね揃った時点で、関連する前提・正本・成果物・依存関係・後続作業との整合性を確認します。この確認をConsistency Reviewと呼び、開発の基本プロセスとして扱います。
