@@ -1,0 +1,43 @@
+# Media Presentation
+
+## Purpose
+
+Media Firstを具体化し、Mediaそのものを中心に発見・閲覧できる共通Contractを定義します。[Media Browser / Detail](/screens/media-browser-detail)のScreen Contractを一般化するPatternです。
+
+## Browser
+
+Media collectionではvisual contentを主要な識別情報とします。titleやOriginal file名、Uploader、Custodian等を全thumbnailへ常時表示しません。誤操作防止や現在Taskに必要な補助情報だけを追加します。
+
+Grid / List、thumbnail size、column数、aspect treatmentの具体値は固定せず、Mediaを識別し、選択状態と異常状態を認識できることを優先します。
+
+## Thumbnail / Preview
+
+ThumbnailはMediaのvisual previewです。表示用Variantが利用できない場合に正常thumbnailが存在するように見せません。Processing terminal failure等、Mediaは存在するがpreviewを利用できない状態を識別可能にします。
+
+Crop / contain等の具体的fit ruleはMedia typeとVisual Reviewで決定し、一つのaspect ratioへ全Mediaを強制しません。
+
+## Detail / Viewer
+
+Detailでは選択Media自体を主役とし、MetadataとActionは補助領域として扱います。Metadataを常時展開することは要求せず、Wideでは同時表示、Compactでは段階表示等へ変更できます。
+
+Browser contextからDetailを開いた場合、現在Collectionの条件と順序を維持して前後Mediaへ移動できることを基本とします。Detailを閉じた場合は可能な範囲でCollection state、scroll、起点focusを維持します。
+
+Initial Releaseの具体的なMedia Detail surfaceはScreen Specを正本とします。Viewer固有責務が増えた場合は独立Patternへ昇格できます。
+
+## Metadata
+
+file size、dimensions、Upload日時、Uploader、Custody / sharing等はUserの理解やAction判断に必要な場合に提示します。Storage key、Variant record、Processing Job等の内部情報は通常UIへ露出しません。
+
+## Responsive / Accessibility
+
+Media閲覧、Detail、前後移動、主要ActionをViewportやpointer hoverの有無にかかわらず利用可能にします。Mediaを大きく見せることとActionを隠すことを同一視しません。
+
+Mediaに必要なAccessible Name / alternative informationをScreen semanticsに応じて提供し、選択・失敗・利用不能等をvisual overlayだけへ依存させません。
+
+## Constraints
+
+- UI chromeをMediaより視覚的な主役にしない。
+- file名をMedia Browserの標準identityにしない。
+- 正常previewがない状態を正常thumbnailで偽装しない。
+- Metadataを全Mediaへ常時重ねない。
+- Media Detailの利用元ScreenだけでProduct Action availabilityを変えない。
