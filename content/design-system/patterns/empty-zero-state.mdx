@@ -1,0 +1,43 @@
+# Empty / Zero State
+
+## Purpose
+
+正常に取得できた「0件」を、Loading、Error、No Results、Permission問題と区別し、Userが現在状態と次の行動を理解できるようにします。
+
+## State Classification
+
+- **Initial Empty**: 現在scopeに対象がまだ存在しない。
+- **No Results**: Search / Filter条件に一致する対象がない。
+- **Relation Empty**: Entityは存在するが、parent / child、Media relation等の特定関係が0件。
+- **Unavailable / Permission**: 0件ではなく、閲覧不能またはCapabilityがない。
+- **Load Failure**: 取得失敗。Emptyとして表示しない。
+
+## Initial Empty
+
+空であること自体が正常状態であると伝えます。Userが作成・追加Capabilityを持ち、それが自然な次TaskならActionを提示できます。
+
+権限がないUserへ実行不能な作成Actionを提示しません。Community Mediaのように追加方法によって結果の意味が異なる場合は、その差を理解できるようにします。
+
+## No Results
+
+現在のSearch / Filter条件を認識できる状態を維持し、条件変更・解除を主要な復旧手段とします。Collection自体が存在しないように表現しません。
+
+## Relation Empty
+
+「Parentsがない」「GroupにMediaがない」等は対象Entityの不存在ではありません。関係が0件であることを対象Context内で簡潔に示します。
+
+## Content / Visual
+
+Illustrationや大きなHero treatmentをDefaultにはしません。Media First / Calmを保ち、説明と必要なActionが十分なら静かなpresentationを選択します。
+
+## Responsive / Accessibility
+
+Compactでも状態、scope、主要な次Actionを理解できるようにします。IconやColorだけでEmptyの意味を伝えません。
+
+## Constraints
+
+- ErrorをEmptyとして表示しない。
+- No ResultsをInitial Emptyとして扱わない。
+- Permission不足を「何もありません」と偽装しない。
+- すべてのEmptyへCreate Actionを置かない。
+- 装飾的Illustrationを必須にしない。
