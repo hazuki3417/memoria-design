@@ -1,0 +1,44 @@
+# Content Presentation
+
+## Purpose
+
+Content / Dataを、UserのTaskに必要な情報階層を保って提示します。Card、List、Table、Badge、Avatar等を一律のComponent catalogとして定義せず、対象を識別・比較・操作するために必要な情報からpresentationを選択します。
+
+## Presentation Selection
+
+- **Visual collection**: Media等、visual content自体が主要な識別情報の場合。
+- **List**: 項目を順に走査し、主情報と少量の補助情報を比較する場合。
+- **Table**: 複数項目を同じ属性軸で比較すること自体がTask上重要な場合。
+- **Card / Item**: 一つの対象をまとまりとして認識する必要があり、属性の列比較が主目的でない場合。
+- **Metadata**: 主Contentの理解・Action判断を補助する情報。
+
+同じEntityだから常に同じpresentationを使うのではなく、Screen Goalを基準にします。
+
+## Information Hierarchy / Density
+
+常時表示する情報は識別、比較、主要判断に必要なものへ限定します。低頻度Metadataや技術情報はProgressive Disclosureできます。
+
+Compact / Comfortable等のdensity modeを先にDesign System化しません。情報量、入力方式、可読性、誤操作riskからScreenごとに決定し、単なる表示件数最大化をGoalにしません。
+
+## Identity / Date & Time
+
+AvatarはPerson / Community等のidentity理解を実際に助ける場合に利用し、Entityが存在するだけで必須にしません。画像がなくても名前等の非画像情報で識別可能にします。
+
+Date / TimeはUserが判断する意味に合わせ、相対時刻、絶対日時、日付のみ等を機械的に統一しません。Timezoneや省略で意味が変わる場合は必要な具体性を保ちます。
+
+## Responsive / Accessibility
+
+Presentationは変えてよい一方、対象識別、重要な属性関係、主要Actionへの到達性を維持します。Tableを狭いViewportだから自動的にCardへ変換する規則は設けません。
+
+semantic table / list等、情報関係に適したHTML semanticsを優先し、Colorや画像だけにidentity / stateを依存させません。
+
+## Visual Foundation
+
+Typography、Card、Table、Avatar、Badge等の一般VisualはMantineへ委譲します。
+
+## Constraints
+
+- Entity typeだけでCard / List / Tableを決めない。
+- 常時表示できるからという理由でMetadataを増やさない。
+- Compactで属性間の意味的関係を失わせない。
+- Avatar / Badgeを装飾目的で機械的に追加しない。
