@@ -27,7 +27,7 @@ Memoriaは **Personal / Trustworthy / Calm / Enduring** なProductとして設�
 
 Visual Designは次を基準とします。
 
-- **Neutral foundation + Emerald identity**: 基本UIはNeutralで落ち着かせ、Emerald GreenをMemoriaのIdentityを表す主要な色の方向性とする。画面全体をGreenで染めず、Mediaを主役にしたまま必要な場所でIdentityを与える。具体的なpalette、shade、semantic tokenはColor Systemで別途定義する。
+- **Neutral foundation + Emerald identity**: 基本UIはNear-neutralでわずかにCoolなGrayを基調として落ち着かせ、Emerald GreenをMemoriaのBrand Identityを表す主要な色の方向性とする。画面全体をGreenで染めず、Mediaを主役にしたまま必要な場所でIdentityを与える。EmeraldはContextが独自のAccentを持たない場合のdefault Accentでもあり、具体的なpalette、shade、semantic tokenはColor Systemで定義する。
 - **Neutral temperature**: 冷たく無機質なCoolさにも、NostalgicなWarmさにも振り切らない。Emeraldが持つ自然な生命感と親しみを加えながら、全体はNeutralに保つ。
 - **Clean / Refined / Slightly Sharp**: 親しみや安心感を保ちながら、輪郭はすっきりと洗練し、ややSharpで現代的な印象とする。過度なroundnessや「かわいさ」を目的とした造形へ寄せない。
 - **Content-led**: 視覚的な主役はUserのMediaとDataとし、UI自体が競合しない。装飾を減らすこと自体を目的とするMinimalismにはしない。
@@ -43,6 +43,49 @@ Interactionは必要に応じて **Action → Acknowledgement → Progress / Tra
 Animationは装飾やModernさ自体を目的とせず、状態遷移、空間的な関係、操作への応答を理解しやすくするFeedback手段として利用します。Animation以外にもpressed / selected state、Progress、Notification、Inline Feedback等、そのInteractionに適した表現を選択します。
 
 このInteraction Philosophyは[Frontend UI設計・開発方針](/system/frontend-ui-development)の **Immediate Feedback** を具体化するDesign Directionであり、Feedback Patternの具体的なsurface選択は[Feedback](/design-system/patterns/feedback)に従います。
+
+## Color System
+
+Color Systemは、具体的な色をComponentへ直接割り当てるのではなく、Memoriaが色の意味と解決規則を定義し、実際のColor resolutionとMantine Componentへの適用は可能な限りMantineが提供するTheme / Colorの概念・機能・仕組みに委譲します。Mantineで表現できる責務を再実装する独自Color Engineは設けません。
+
+### Semantic Color
+
+基本的なSemantic Roleを次のように扱います。
+
+- **Neutral**: Background、Surface、Text、Border、Disabled等の通常UI。Near-neutralでわずかにCoolなGrayを基調とし、冷たく無機質なBlue Grayや黄みの強いWarm Grayには寄せない。
+- **Accent**: 現在のContextにおける主要なInteractive emphasis。具体色を固定せず、Context-awareに解決する。
+- **Success**: 成功、完了、正常なPositive state。
+- **Info**: 中立的な情報、Processing等のInformative state。
+- **Warning**: 注意、確認を要する状態。
+- **Danger**: Error、失敗、破壊的Action。
+
+Success / Info / Warning / Dangerは状態の意味を表すSemantic Colorであり、Context Accentによって上書きしません。また、状態や意味をColorだけで伝えず、Icon、Label、Text、形状等、そのUIに適切な非色情報を併用します。
+
+### Brand ColorとAccent Color
+
+**Memoria Brand Color** と **Accent Color** は別の概念として扱います。
+
+Memoria Brand ColorはProduct Identityを表す **Emerald Green** とします。Emeraldの方向性は **Balanced / Slightly Deep / Clear** とし、落ち着きと信頼感を持ちながら、古さや重さを感じさせない色を目指します。具体的なpaletteとshadeはVisual Reviewを通して確定します。
+
+Accent Colorは現在のContextにおけるInteractive emphasisを表すSemantic Roleです。Effective Accentは次の規則で解決します。
+
+```text
+effectiveAccent = contextAccent ?? memoriaEmerald
+```
+
+Context Accentが存在する場合、通常のInteractive UIではContext AccentがMemoria Emeraldに代わってAccentとして機能します。Context Accentが存在しない場合はMemoria Emeraldをdefault Accentとして使用します。これにより、Brand IdentityとしてのEmeraldを維持しながら、一つのContext内で複数のAccentが競合することを避けます。
+
+Primary Action、Selected / Active / Focus等、Mantine標準ComponentのどのstateにAccentを適用するかは、Memoria側でComponentごとのColor ruleを重複定義せず、原則としてMantineのThemeとComponent behaviorへ委譲します。Media固有表現等、Mantineの標準的な仕組みではDesign Contractを満たせない場合のみ、該当するPattern / Componentで追加の規則を定義します。
+
+### Context AccentとColor Resolution
+
+Context AccentはCommunityのbranding / domain identityではなく、UserごとのContext presentation設定です。同じCommunityでもUserごとに異なる色を使用できます。
+
+Userが設定・保存するContext Accentのraw valueと、UIで利用するEffective Accentの表現は分離します。任意の `#RRGGBB` を直接すべてのComponent stateへ適用することを前提とせず、Mantineが提供するColor / Theme機構を利用して、必要なpalette、shade、variant、foreground等へ解決します。
+
+Color resolutionの具体的なAPI、palette生成方法、shade選択、contrast補償等は、利用するMantine versionの標準機能を確認した上でFrontend実装契約として決定します。Memoria独自のColor resolutionを追加する場合は、Mantineでは満たせないDesign Contractが明確な場合に限定します。
+
+Light / Dark Themeでは同じ保存済みContext AccentをSourceとして扱いますが、Accessibilityと各Theme上での視認性を保つため、UIへ適用されるshadeやforeground等のResolved Colorまで同一であることは要求しません。
 
 ## UX設計・レビュー
 
@@ -65,16 +108,13 @@ Animationは装飾やModernさ自体を目的とせず、状態遷移、空間�
 ## 表示テーマとContext Accent（Visual Review中）
 
 - 表示モードは「システム」「ライト」「ダーク」の3種類とし、システム選択時はOSの表示設定に追従する。ユーザーの選択として扱い、Contextを切り替えても表示モードを維持する。
-- Context Accent Colorは、現在のContextを視覚的に識別するための補助的なpresentationとする。ヘッダー、選択中Navigation、Context Switcherのindicator等、Context識別に必要な場所へ限定して使用し、一般的なAction / status / text colorのsemantic roleとして使用しない。
+- Context Accentは[Color System](#color-system)で定義するAccentのContext-specificなSourceとする。Context Accentが存在する場合はMemoria Emeraldに代わってEffective Accentとして解決し、存在しない場合はMemoria Emeraldへfallbackする。
 - 色だけをContext識別手段にせず、Context名や選択状態等の非色情報を併用する。
-- Accent ColorはLight / Darkで共通の値を使用する。ThemeごとにAccentを再割当せず、Themeによって見え方の強さが異なることは許容する。
-- Accent Colorを文字色として使用することは前提にしない。将来Accentを背景としてforegroundを重ねる場合、そのforegroundの可読性は別途保証する。
-- Accentと隣接Surfaceの識別が難しい場合は境界表現で補償する。境界の具体的な色差アルゴリズム・閾値はFrontend実装とVisual Reviewで決定し、Accent自体をThemeごとに変更して解決しない。
 - Community AccentはCommunityのbranding / domain identityではなく、UserごとのContext presentation設定とする。同じCommunityでもUserごとに異なる色を使用できる。
 - Community参加時にUser向けの初期Accentをランダム生成する。同一Userが現在所属する他CommunityのAccentと完全一致する値は避けるが、類似色まで自動的に排除することは要求しない。
 - 初期Accent生成では極端な明度を避ける。具体的な生成範囲・乱数方式はFrontend / API / Data実装契約で決定する。
-- Community AccentはUserが後からColor Pickerで任意の `#RRGGBB` 値へ変更できる。手動選択では明度による制限を設けず、見分けにくい組み合わせはUser自身が変更できる。
+- Community AccentはUserが後からColor Pickerで任意の `#RRGGBB` 値へ変更できる。保存値を直接Component colorとして利用せず、Color SystemのColor resolutionを通してEffective Accentへ解決する。
 - Community Accentの変更は[Community Settings](/screens/community-settings)から行い、選択時に即時保存・即時反映する。保存失敗時は保存済みの色へ戻し、再試行可能なFeedbackを提示する。
 - Context Switcherでは各ContextのAccent indicatorを表示し、切替前にもContext名と色を併用して識別できるようにする。
 - Community Accentの具体的な永続化model / API contractは後続のBackend設計で確定する。Presentation設定であることを理由にCommunity entityのbranding fieldとして扱わない。
-- Personal AccentはUserごとのpresentation preferenceとし、[User Settings](/screens/user-settings)から任意の `#RRGGBB` へ変更できる。初期値は固定default Accentとし、Communityのようなランダム生成・重複回避は行わない。変更は即時保存・即時反映し、失敗時は保存済み値へ戻す。
+- Personal AccentはUserごとのpresentation preferenceとし、[User Settings](/screens/user-settings)から任意の `#RRGGBB` へ変更できる。初期値はMemoria EmeraldをSourceとするdefault Accentとし、Communityのようなランダム生成・重複回避は行わない。変更は即時保存・即時反映し、失敗時は保存済み値へ戻す。
