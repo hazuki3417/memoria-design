@@ -50,31 +50,74 @@ Memoria Design Systemと、特定Featureに依存しないUI primitive / pattern
 
 GraphQL Client、認証Integration、環境設定等、外部SystemやFrameworkとのIntegrationを所有します。`infrastructure` からProduct Featureへ依存しません。
 
-`shared`、`common` はTop-level directoryとして設けません。また `utils`、`lib`、`hooks`、`types`、`constants` のようなCode形態だけを表すTop-level directoryを標準化しません。既存分類に収まらない真の横断責務が見つかった場合は、実例に基づいて新しいArchitecture Boundaryを検討します。
+`shared`、`common` はTop-level directoryとして設けません。また `utils`、`lib`、`hooks`、`types`、`constants`、`providers` のようなCode形態だけを表すTop-level directoryを標準化しません。既存の `src/components`、`src/lib`、`src/providers`、`src/prototypes` はlegacy / migration structureとして扱い、新規Codeの標準配置先にはしません。変更対象になった時点で意味のownerを再評価します。
+
+上記4領域は閉じた絶対的な集合ではありません。既存分類へ自然に属さず、独立したArchitecture責務が実例として成立した場合は新しいTop-level Boundaryを設計できます。ただしFile数、Code種別、将来の可能性、整理上の都合だけを理由に先回りして追加しません。
+
+Codeは再利用性や技術的な種類ではなく、**その意味を所有する対象・責務の近くへ配置する**ことを全体原則とします。複数箇所で似たCodeが存在するだけでは共通化せず、同じsemantic contractと独立したownerが確認できるまで局所的な重複を許容します。
 
 ## Feature内部構成
 
-すべてのFeatureへ `domain/application/infrastructure/presentation` 等の固定Layerを作成しません。一方、Featureごとに同じ名前を異なる意味で使用することも避けます。
-
-> Directoryの存在を全Featureで統一するのではなく、Directory名と分類規則の意味をWeb全体で統一します。
-
-例:
+FeatureはURL、Screen、Entity、Code量ではなく、独立したUser Purpose / Use Case / Behaviorをownerとします。Feature directoryは `src/features` 直下へkebab-caseでflatに配置し、URLやProduct namespaceをDirectory hierarchyとして表現しません。同じFeatureを複数routeから利用できます。
 
 ```text
 features/
-└── media/
-    ├── browser/
-    │   ├── components/
-    │   ├── hooks/
-    │   └── ...
-    └── detail/
-        ├── components/
-        └── ...
+├── media-browser/
+│   ├── index.ts
+│   ├── MediaBrowser.tsx
+│   ├── MediaBrowser.stories.tsx
+│   ├── MediaTile.tsx
+│   ├── filterMedia.ts
+│   ├── filterMedia.test.ts
+│   └── GetMediaBrowser.graphql
+├── media-detail/
+├── media-upload/
+├── community-members/
+└── account-deletion/
 ```
 
-単純なFeatureではProduct namespace直下に配置し、複雑になった場合だけSliceを追加します。空のDirectoryや将来利用を想定したDirectoryを機械的に作成しません。
+Feature数の多さ自体をArchitecture問題とはみなしません。探索性、ownership、命名、dependencyに具体的な問題が発生してから境界を再評価し、将来の規模を予測してnamespace directoryを作りません。
 
-`components/` はFeature/Slice固有Componentの配置に利用できます。`hooks/` はReact固有Hookが複数存在して分類価値がある場合に利用します。`types` や `utils` を雑多な置き場として作成せず、型・関数はownerと利用箇所へ近接配置します。
+Feature内部はflatをdefaultとします。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のtechnical-type directoryを標準化しません。独立した責務のまとまりが生じた場合だけ、`selection/` 等のresponsibility名でnestingします。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。
+
+Feature rootの `index.ts` はArchitecture BoundaryとしてPublic APIを定義します。外部consumerはFeature rootからimportし、内部Fileへdeep importしません。Public APIは実際に必要なsymbolだけをexplicit exportし、`export *` で内部実装を公開しません。Feature内部では `index.ts` を経由せずrelative importを使用します。
+
+```ts
+// Feature外部
+import { MediaBrowser } from "@/features/media-browser"
+
+// Feature内部
+import { MediaTile } from "./MediaTile"
+```
+
+Feature間の直接依存はtype-only importを含め原則として禁止します。複数FeatureのCompositionは通常 `app` が所有します。Compositionが複雑な場合はroute-local Componentへ分離しますが、Compositionだけを目的としたfake Featureや汎用Screen Layerを作りません。
+
+### `app` のroute-local構成
+
+App Routerの通常DirectoryはURL route segmentを表します。routeを作らないprivate Componentは `app/.../_components/` へ配置できます。`_components` はApp Router上でroute-local Componentをまとめるための明示的な例外であり、`_hooks`、`_utils`、`_types` 等のtechnical bucketを一般化しません。
+
+`page.tsx` は責務上thinに保ちますが、1 Featureだけをrenderする必要はありません。複数FeatureのCompositionも可能です。route-local Codeを別routeからimportせず、再利用が必要になった場合はownershipを再評価します。Route Groupはlayout、loading、access boundary等のrouting上の意味がある場合に使用し、File整理だけを目的にしません。
+
+### `ui` のModule Boundary
+
+`src/ui` はFeature-independentなMemoria UI Component / Patternをownerとします。Mantineを隠すためだけのwrapperや、複数箇所で利用されるだけのComponentを移しません。
+
+UI Component / PatternはPascalCase DirectoryをModule Boundaryとして持ち、root `index.ts` からexplicitなPublic APIを公開します。`src/ui/index.ts` の巨大なglobal barrelは標準化しません。
+
+```text
+ui/
+└── EmptyState/
+    ├── index.ts
+    ├── EmptyState.tsx
+    ├── EmptyState.stories.tsx
+    └── EmptyState.test.tsx
+```
+
+### `infrastructure` のModule Boundary
+
+`src/infrastructure` は外部technology / service / runtime integrationをownerとし、integration purposeでDirectoryを分けます。Library名より `graphql`、`auth`、`environment` 等の責務名を優先します。
+
+各integration rootは `index.ts` でexplicitなPublic APIを定義し、consumerはrootからimportします。Product GraphQL OperationやProduct RuleをInfrastructureへ移しません。Providerもtechnical formだけを理由にTop-levelへ集約せず、GraphQL ProviderはGraphQL integration、Auth ProviderはAuth integration等、実際のownerへ配置します。Application-level Provider Compositionは `app` が所有し、必要なら `app/_components/ApplicationProviders.tsx` 等へ分離します。
 
 ## Component Architecture
 
@@ -105,11 +148,9 @@ Component分割は「将来再利用できるか」ではなく、独立した�
 
 ### Composition Root
 
-各Feature / Sliceの代表ComponentをComposition Rootとして利用できます。`Container`、`Presenter`、`Composition` 等の専用命名やDirectoryは標準化しません。
+GraphQL、Mapper、React State、Pure Logic、Feature Component等を接続するComposition責務は必要ですが、`Composition Root`、`Container`、`Presenter` 等の固定Layer・命名・Directoryを標準化しません。接続Codeは実際のownershipに最も近い境界へ配置し、下位Componentへ外部Integrationの詳細を漏らしません。
 
-Composition RootはGraphQL、Mapper、React State、Pure Logic、Feature Component等を接続し、下位Componentへ外部Integrationの詳細を漏らさない責務を持ちます。`page.tsx` はNext.js entryとして薄く保ち、Product LogicやGraphQL Interactionを蓄積しません。
-
-Composition Rootが肥大化した場合は、新しい抽象Layerを先回りして追加するのではなく、責務に応じてPure Logic、Mapper、Custom Hook、Componentへ分離します。
+`page.tsx` はNext.js entryとして責務上thinに保ちますが、複数FeatureのCompositionを行えます。Compositionが肥大化した場合は新しい抽象Layerを先回りして追加せず、実際の責務に応じてPure Logic、Mapper、Custom Hook、route-local Component等へ分離します。
 
 ## Logic Isolation
 
@@ -350,6 +391,112 @@ StorybookはProduct Specificationではなく、実装を独立して観察・�
 - Generated Codeを直接編集しません。
 - 新しいDirectory分類を導入する場合、その名称と意味をWeb全体で一貫させます。
 
+### File / Componentの分割
+
+File sizeやComponent sizeに固定の行数上限を設けません。大きさは責務混在を発見するsignalにはなりますが、それ自体を違反とはみなしません。独立したcontract、変更理由、Interaction lifecycle、Test / Story boundary、React非依存のProduct Judgment等が識別できる場合に分離を検討します。Code量を減らすことだけを目的にComponent、Hook、helperへ分割しません。
+
+### Component API
+
+PropsはGraphQL等の外部data shapeではなく、そのComponent自身が必要とする意味のある最小contractとして設計します。primitiveへ機械的に分解せず、Componentにとって意味のあるまとまりはModelとして渡せます。
+
+Callbackはconsumer側の実装手段ではなく、Componentから見たeventの意味で `onSelect`、`onDelete`、`onLoadMore` 等と命名します。Booleanは肯定的で意味が明確な名前を使用し、`is` / `has` / `can` prefixを機械的に強制しません。
+
+`children` / slotはComposition自体がcontractである場合に使用し、抽象化やProps数削減だけを目的に導入しません。Props spreadによってGraphQL object等の外部data shapeを暗黙にComponent contractへしません。
+
+Controlled / uncontrolledはStateのauthoritative ownerで決定します。外部Compositionが所有する必要があるStateはcontrolled、Component内部だけで完結する一時的Interactionはlocal stateとします。同じStateを親子で同期保持せず、将来の再利用を予測したcontrolled/uncontrolled両対応や `defaultXxx` APIを先回りして追加しません。
+
+### UI State Modeling
+
+Loading、Error、Empty、Processing等はScreen Specification上の意味を保持します。排他的なStateを複数Booleanで表してinvalid combinationを許容する場合はdiscriminated union等で有効なStateを型として表現します。一方、独立して同時成立するStateを巨大な単一State Machineへ統合しません。
+
+Empty、Error等もProduct上意味が異なる場合は区別します。主要なUI StateはStorybook等から自然に再現できるComponent contractとし、Story / Test専用PropsをProduction APIへ追加しません。
+
+### Responsive Behavior
+
+Responsive BehaviorはScreen Specification / Design SystemをSource of Truthとします。Spacing、Layout、Visibility等のvisual differenceはCSS / Mantine responsive APIを優先し、BehaviorやComposition自体が変化する場合だけ `useMediaQuery` 等によるJavaScript判定を使用します。
+
+Desktop / Compactを別Featureとして分離しません。BreakpointをComponentごとに恣意的に追加せず、Design Systemの定義を利用します。Responsive切り替えによって同一Product Stateを不必要に失わず、主要なResponsive StateはStorybookで検証可能にします。
+
+### Styling / Mantine
+
+Mantine ComponentはFeature / UIから直接利用でき、Libraryを隠すことだけを目的としたwrapperを作りません。`src/ui` への抽出はMemoria独自のFeature-independentなvisual / interaction contractが成立した場合に行います。
+
+Styleも対象責務の近くへ配置し、汎用 `styles/` Directoryを標準化しません。Mantine Props、CSS Module等は責務を最も明確に表現できる方法を選びます。Design System上意味を持つ値はTheme / Tokenを利用しますが、局所値を機械的にglobal token化しません。Mantine等のLibrary内部DOMや生成classへ依存せず、公開されたextension pointを利用します。
+
+### Async Operation / Error
+
+External / Library ErrorをそのままFeature UI contractへ露出しません。ExpectedなProduct FailureはFeatureのState / Resultとして解釈し、unexpected exceptionと区別します。Backend / GraphQL / Libraryの生Error messageをUser向け標準表示に使用せず、Screen Specificationに基づくpresentationへmappingします。通常発生し得るProduct FailureをError Boundaryへ委ねません。
+
+Async OperationはtechnicalなPromise StateではなくProduct上のlifecycleとして表現します。単純なOperationは単純なStateで実装し、複雑性が生じた場合だけ明示的なState Modelへ昇格させます。Pending中の操作可否、Cancel、Retry、Navigation、二重実行はProduct Behaviorとして扱います。
+
+同一Operationの意図しない重複実行をUIで防止しますが、必要なidempotency / concurrency保証をFrontendだけに依存させません。Optimistic UpdateはLibrary capabilityではなくProduct Behaviorとして妥当でrollbackが定義できる場合に利用します。非同期であることだけを理由に汎用 `useAsync` 等へ抽象化しません。
+
+### TypeScript Value / Escape Hatch
+
+Primitive Valueを一律にValue Object / branded typeへ変換しません。ID、Date / Time、URL等は少なくとも命名でProduct semanticsを保持し、型安全性に実益がある場合に型を強化します。有限なProduct Stateにはunion等を活用します。Display stringや外部表現を無自覚にProduct contractへ伝播させません。
+
+GraphQL由来の `null` をFeatureへ機械的に伝播させず、Feature上のabsence semanticsに合わせます。`null` / `undefined` の全面禁止は行いません。
+
+`any`、type assertion (`as`)、non-null assertion (`!`)、`@ts-ignore` を型Errorを消す通常手段として使用しません。型不明な外部値には `unknown` を使用し、Boundaryでvalidation / narrowingします。不可避なescape hatchはintegration boundaryの最小範囲へ隔離します。意図的な型Error抑制が必要な場合は理由を伴う `@ts-expect-error` を優先し、型推論を維持してcontractを検証できる場面では `satisfies` を活用します。
+
+### Comment / JSDoc / TODO
+
+CommentはCodeから自明な「何をしているか」の翻訳ではなく、Codeだけでは表現できない「なぜ」を残すために使用します。Commentで複雑な設計や不明瞭な命名を補う前にCode構造を改善します。
+
+JSDocを全exportへ機械的に付与せず、型だけでは表現できない非自明なPublic Contractがある場合に使用します。CommitされるTODO / FIXME / HACKは原則として追跡可能なIssue等へ関連付け、理由と解消条件を明確にします。長期的な設計判断やProduct SpecificationをCode Commentだけに保持しません。
+
+### Import / Dependency
+
+Module内部はrelative import、Architecture Module外部は `@/` absolute importを基本とします。Architecture Boundaryを越える場合はModule rootのPublic APIを経由し、Feature / UI / Infrastructureの内部Fileへdeep importしません。Module内部から自身の `index.ts` を逆輸入しません。
+
+Feature間の直接dependency、UIからFeatureへのdependency、InfrastructureからFeatureへのdependency、route-private Codeのroute間共有を避けます。`import type` もArchitecture dependencyとして扱います。Circular dependencyはimport techniqueで隠さずownershipを再評価します。
+
+### Environment / Configuration
+
+Environment variableはexternal runtime integrationとして扱い、Feature / UIから `process.env` を直接参照せず、`infrastructure/environment` 等のownerでvalidation / normalizationします。Server-only secretとClientへ公開可能なconfigurationを明確に分離します。
+
+Environment configurationによってProduct Ruleを暗黙に表現しません。Feature FlagはEnvironment variableと同一視せず、実際の要件が生じた時点でevaluation ownership、lifecycle、removal条件を含めて設計します。Raw environment valueへnon-null assertionで依存せず、Application Boundaryでconfiguration contractを検証します。
+
+### Security-sensitive Coding
+
+AuthenticationとAuthorizationを分離し、Product上の権限判断をAuthentication状態だけから推測しません。Frontend上の表示制御をsecurity boundaryとせず、最終AuthorizationはBackendで保証します。
+
+Token、Cookie、Session、CSRF等の認証技術詳細をFeatureへ漏らさず、適切なInfrastructure Boundaryで一貫して扱います。URL、Form、Storage、File等の外部inputを信頼済みとして扱わず、riskとcontractに応じてBoundaryでvalidationします。
+
+Raw HTML、redirect、external URL、file upload等のsecurity-sensitive処理はad-hoc implementationを避けます。Frontend validationをsecurity guaranteeとみなさず、Secretや不要なsensitive dataをClient / Logへ露出させません。Auth、Cookie、CSRF、Environment exposure等のsecurity contract変更は通常のRefactorとして扱わず、明示的なsecurity reviewを必要とします。
+
+### Accessibility
+
+Native semantic HTMLと既存Componentのaccessible behaviorを優先し、ARIAによる独自再実装を避けます。重要な操作はMouse / Touchだけに依存せずKeyboardでも利用可能にします。Interactive controlには認識可能なaccessible nameを持たせ、Form ErrorやStateを色・視覚表現だけで伝えません。
+
+Dialog等ではfocus managementを含むInteraction contractを維持します。Responsive変更によって操作や情報へのaccessを失わせません。AccessibilityはDesign / Component contractの一部として扱い、可能な範囲をautomated testで検証しますが、自動検査だけを適合性の保証とはしません。
+
+### Performance
+
+PerformanceをProduct Qualityの一部として扱いますが、具体的な要件、明確なcost、measurementなしに予防的な複雑化を行いません。`useMemo`、`useCallback`、`memo` を機械的に使用せず、必要性を説明できる場合に利用します。Derived StateをPerformance目的で複製しません。
+
+Large List、virtualization、code splitting等は実際のscaleとUX contractを踏まえて判断します。Mediaは用途に適したthumbnail / preview / original等のrepresentationを利用し、Original assetの不要な取得を避けます。GraphQL / Network optimizationのためにFeature ownershipやUse Case Boundaryを壊しません。Performance問題は可能な限りmeasurementに基づいて改善します。
+
+### Test Levelの選択
+
+Testは実装単位ではなく、守るべきcontractに最適なlevelで記述します。React非依存のProduct Judgment / State TransitionはVitest、Userから観測可能なComponent BehaviorはComponent / Interaction Test、visual / state variationはStorybook、重要なsystem-wide User FlowはPlaywrightを基本とします。
+
+Implementation detailへのTest dependencyと過剰なinternal mockを避けます。Bug regressionは再発を防止できる最も低い適切なTest Levelへ追加します。固定のTest Pyramid比率やCoverage percentageを品質目標とせず、重要なProduct / Behavior contractが検証されていることを優先します。
+
+### Quality Gate / Definition of Done
+
+Implementationの完了はCode changeだけでなく、変更によって影響を受けるcontractの検証までを含みます。Repositoryで定義されたstatic checkと関連Testを実行し、UI変更ではScreen Specification、Prototype、既存contractと比較してvisual / behavioral / responsive regressionがないことを確認します。
+
+Storybook、Code Generation、Documentation等も変更内容に応じて更新・検証します。すべての変更へ同一のQuality Gateを機械的に適用せず、影響するcontractに応じて必要な検証を選択します。実行できなかった検証を成功扱いせず、verified / unverifiedを明確に報告します。
+
+### Coding Agent Implementation Workflow
+
+Coding Agentは実装前にGitHub上の最新Source of Truthと対象implementationを確認し、変更するcontractと維持するcontractを特定します。その後、意味のownerを決定し、現在必要な最小のArchitectureで実装します。
+
+仕様・Architecture上の重要な未決事項を実装者判断で補完せず、必要な合意を得ます。将来利用を予測したgeneric abstraction、shared layer、base component、factory、汎用Hook等を先回りして作りません。「最小」は既存Behaviorや必要なCapabilityを削る意味ではありません。
+
+実装後は影響するcontractを検証し、Refactorでは変更前とのvisual / behavioral regressionも確認します。新たに確定した長期的判断や未解決事項は適切なSource of Truth / Issueへ反映します。GitHubへのwriteは成功responseだけで完了とせず、最新状態を再取得して実際の反映を確認します。
+
 ### Source Codeの自動編集と改行
 
 AI、GitHub API、script等を利用してSource Codeを作成・更新する場合、tool呼び出し用のescape表現と、実際にfileへ書き込むSource Codeを区別します。
@@ -365,6 +512,6 @@ AI、GitHub API、script等を利用してSource Codeを作成・更新する場
 
 ## 命名と品質
 
-ComponentはPascalCase、Hookは `use` で始め、variableとfunctionはcamelCaseとします。GraphQL Operation名はPascalCaseとし、Fragment名はsemantic ownerと対象が識別できる名称にします。
+Directory名は原則kebab-caseとし、React Component FileはPascalCase、Hookは `useXxx.ts`、React非依存のTypeScript責務はcamelCase Fileとします。Storyは `<Component>.stories.tsx`、Testは対象Fileに対応する `.test.ts` / `.test.tsx` として近接配置します。GraphQL Operation名はPascalCaseとし、1 Operationを1 `.graphql` Fileに配置してFile名をOperation名へ一致させます。Operation-private Fragmentは同じFileに置けますが、複数Operationで同じsemantic contractとして共有するFragmentは独立したFragment名のFileへ分離できます。Fragment名はsemantic ownerと対象が識別できる名称にします。
 
 TypeScriptのstrictな型検査を基本とし、`any` を避け、外部から受け取る未知の値は `unknown` から絞り込みます。FormatとLintには既存のBiomeを使用し、同じ責務のESLintやPrettierを追加前提にしません。検証は[テスト設計](/test-design)とGitHub ActionsのQuality Gateに従います。
