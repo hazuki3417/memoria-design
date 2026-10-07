@@ -201,6 +201,52 @@ Issueをイテレーションへ入れる前に、少なくとも目的、対象
 
 Memoriaでは、成果物間の整合性を一つの確認工程だけへ依存させません。通常のTaskで変更影響を局所的に揃える**Change-time Consistency**と、個別Taskを越えて蓄積したsemantic driftを横断的に検出する**Consistency Audit**を併用します。両者は代替関係ではなく、異なるfailure modeを補完します。
 
+### 全体像
+
+```mermaid
+flowchart TD
+    A["Task開始 / 変更要求"] --> B["最新のSource of Truthを確認"]
+    B --> C["変更対象・Owner・Contractを特定"]
+    C --> D["影響するConsumer・依存成果物を特定"]
+    D --> E["設計 / Guideline / Schema / Code / Test / Prototypeを変更"]
+    E --> F["Change-time Consistency<br/>影響範囲を同じTaskで照合"]
+
+    F --> G{"不整合・未反映があるか"}
+    G -- "No" --> H["検証・Evidence確認"]
+    G -- "Yes / Task内で解消可能" --> I["関連成果物・Source of Truthを同期"]
+    I --> F
+    G -- "Yes / 現在は解消しない" --> J["理由・影響・Ownerを明示<br/>Issue / Deferredへ接続"]
+    J --> H
+
+    H --> K["Task / Increment完了"]
+    K --> L{"Auditの実施契機か"}
+    L -- "No" --> M["次のTask / Iteration"]
+    M --> A
+    L -- "Yes" --> N["Consistency Audit<br/>個別Taskを越えて横断確認"]
+
+    N --> O["Product Vision / Domain / Guideline<br/>Screen Spec / Architecture / Schema<br/>Implementation / Prototype / Test"]
+    O --> P{"Audit結果"}
+    P -- "一致" --> Q["整合状態を確認"]
+    P -- "不一致" --> R["原因・Owner・正しい意図を確認"]
+    P -- "未定義" --> R
+    P -- "意図的差異" --> S["理由とContractを確認"]
+    P -- "Deferred" --> T["Revisit conditionと追跡先を確認"]
+
+    R --> U{"重要な設計判断が必要か"}
+    U -- "Yes" --> V["人間と合意"]
+    U -- "No" --> W["所有するSource of Truthへ反映"]
+    V --> W
+    W --> X["関連成果物を同期 / 必要ならIssue化"]
+
+    Q --> Y["Audit完了"]
+    S --> Y
+    T --> Y
+    X --> Y
+    Y --> M
+```
+
+この図の上段は通常Taskごとの**Change-time Consistency**、下段は節目で行う**Consistency Audit**を表します。Auditは通常Taskの代替ではなく、局所的な影響範囲確認だけでは発見できなかったsemantic driftを検出するSafety Netです。変更方向は一方向に限定せず、設計から実装への具体化、実装・検証から設計へのFeedback、GuidelineからScreen Specificationへの反映など、どの方向でも同じ整合性原則を適用します。
+
 ### Change-time Consistency
 
 要求、設計、Guideline、schema、code、test、Visual Prototype等を変更するときは、Context mapで影響範囲を特定し、関連するSource of Truthと成果物を同じTaskの中で照合します。設計から実装へ具体化する場合だけでなく、実装・検証で得た知見を設計へ戻す場合や、横断GuidelineからScreen Specificationを見直す場合にも適用します。
