@@ -59,6 +59,17 @@ TypographyはMantineのTypography SystemをFoundationとして利用します。
 
 Mantineの `Title`、`Text`、size、weight等の標準的な仕組みを基本とし、Page Title、Section Heading、Metadata等にMemoria固有の一貫した意味や表現が必要であることが実画面から確認された場合に、そのRoleとContractを追加します。具体的なpx値や既存画面の局所指定を、Visual ReviewやProduct上の必要性なしにDesign Systemへ固定しません。
 
+
+### Spacing / Layout / Responsive
+
+SpacingはMantineのSpacing scaleをFoundationとして利用し、Product固有の必要性が確認されていない段階でMemoria独自のSpacing scaleを定義しません。
+
+Responsive breakpointは[Frontend UI設計・開発方針](/system/frontend-ui-development)に従い、原則としてMantine標準Breakpointを利用します。Breakpointは「いつLayoutを変えるか」を表すFoundation上の境界であり、各Screenで「何をどのように変えるか」というResponsive behaviorとは分離して扱います。Responsive behaviorはScreenの主要Goal、情報優先度、Interactionに基づいてScreen Contractとして設計します。
+
+Content WidthはBreakpointとは別のLayout constraintとして扱います。既存実装に存在する `max-width` 等の具体値は、狭いViewportへ追従するResponsiveな実装であっても、その数値のDesign上の根拠がSource of Truthから確認できない場合、それだけを理由に共通Layout Tokenへ昇格させません。
+
+Content Widthの具体値はScreenの目的、Contentの性質、Media First、可読性、操作性等から決定し、必要に応じてVisual Reviewで妥当性を確認します。複数Screenで同じ意味を持つLayout constraintが繰り返し確認された場合に、共通のLayout ContractやTokenへの昇格を検討します。
+
 ## Color System
 
 Color Systemは、具体的な色をComponentへ直接割り当てるのではなく、Memoriaが色の意味と解決規則を定義し、実際のColor resolutionとMantine Componentへの適用は可能な限りMantineが提供するTheme / Colorの概念・機能・仕組みに委譲します。Mantineで表現できる責務を再実装する独自Color Engineは設けません。
