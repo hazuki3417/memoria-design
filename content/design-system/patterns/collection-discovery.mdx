@@ -1,0 +1,51 @@
+# Collection Discovery
+
+## Purpose
+
+Search、Filter、Sort、Pagination / Infinite Loadingを、Collectionから目的の対象を発見するための共通概念として整理します。すべてのCollectionへ同じControl一式を追加するPatternではありません。
+
+## Search
+
+SearchはUserが既知または言語化可能な識別情報から対象を探す必要がある場合に提供します。検索対象とmatching semanticsは各Screen / Domain Contractを正本とします。
+
+Media Browserのようにfree text searchを提供しないScreenへ、共通Patternを理由にSearchを追加しません。
+
+## Filter
+
+Filterは現在Collectionのscopeを保ったまま条件で集合を絞り込みます。適用中のFilterを認識・解除できる必要があります。結果0件はCollection自体のEmptyと区別します。
+
+複数条件のAND / OR、Tag semantics等はDomain / Screen Contractを正本とし、Design Systemで統一しません。
+
+## Sort
+
+Sortは比較・発見にUser controlが必要な場合だけ提供します。既定順がProduct semanticsとして十分なCollectionへsort UIを追加しません。
+
+Sort key、direction、single / multi-columnはScreen Contractで定義します。Membersの単一column sortとMediaの固定作成日時降順を同じUI ruleへ統合しません。
+
+## State / URL
+
+共有・復元・BackでのTask継続に意味がある条件はURL state候補ですが、すべてをURL化しません。Navigation / WayfindingのDeep Link原則に従います。
+
+Selection中に条件変更が対象集合の意味を変える場合はSelection / Bulk Action Patternに従います。
+
+## Pagination / Infinite Loading
+
+Pagination、Load More、Infinite LoadingはCollection size、順序、Task、API contractから選択します。UIの好みだけで統一しません。
+
+追加取得中・追加取得失敗でも既に表示済みContentと成立済みSelection / Filterを不必要に破棄しません。取得済み件数を総件数として誤表示しません。
+
+## No Results
+
+Search / Filter結果0件では適用条件を維持し、変更・解除へ到達できるようにします。新規作成を常に主要復旧Actionにはしません。
+
+## Responsive
+
+Compactでも現在条件と解除方法を理解できる必要があります。ControlをMenu / Popover等へProgressive Disclosureしても条件そのものを不可視にしません。
+
+## Constraints
+
+- Search / Filter / SortをCollectionの標準三点セットにしない。
+- Search algorithmをUI Patternから推測しない。
+- 固定Product orderへ不要なsort UIを追加しない。
+- Filter結果0件をEmpty collectionと同一視しない。
+- Infinite Loadingを全CollectionのDefaultにしない。
