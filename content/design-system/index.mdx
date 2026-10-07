@@ -44,6 +44,21 @@ Animationは装飾やModernさ自体を目的とせず、状態遷移、空間�
 
 このInteraction Philosophyは[Frontend UI設計・開発方針](/system/frontend-ui-development)の **Immediate Feedback** を具体化するDesign Directionであり、Feedback Patternの具体的なsurface選択は[Feedback](/design-system/patterns/feedback)に従います。
 
+
+## Foundationの利用方針
+
+Memoriaは、Visual Designの基礎となるscaleや一般的なComponent behaviorを独自に再設計することを目的とせず、MantineをDesign Systemの実装Foundationとして可能な限りそのまま利用します。
+
+Font size、Line height、Font weight、Spacing、Radius等について、Product固有のDesign Contractが確認されていない段階でMemoria独自のTokenやscaleを網羅的に定義しません。Mantineの標準的なDesign Systemで要求を満たせる場合はそれを採用し、実際のScreen設計・実装・Visual Reviewを通して繰り返し必要となる意味や、Mantineでは表現できないProduct固有の要求が確認された場合に限り、Memoria固有のSemantic Token、Pattern、Component contractへ昇格します。
+
+この方針はMantineの既定値を無条件に仕様化することを意味しません。既存実装上の局所的な指定や慣習も、それだけを理由にDesign Systemへ昇格させません。Product要件、Screen Contract、Accessibility、再利用される意味を基準に、追加設計の必要性を判断します。
+
+### Typography
+
+TypographyはMantineのTypography SystemをFoundationとして利用します。Font family、Font size scale、Line height、Font weight、Heading scale等について、現段階ではMemoria独自のscaleやSemantic Typography Tokenを網羅的に定義しません。
+
+Mantineの `Title`、`Text`、size、weight等の標準的な仕組みを基本とし、Page Title、Section Heading、Metadata等にMemoria固有の一貫した意味や表現が必要であることが実画面から確認された場合に、そのRoleとContractを追加します。具体的なpx値や既存画面の局所指定を、Visual ReviewやProduct上の必要性なしにDesign Systemへ固定しません。
+
 ## Color System
 
 Color Systemは、具体的な色をComponentへ直接割り当てるのではなく、Memoriaが色の意味と解決規則を定義し、実際のColor resolutionとMantine Componentへの適用は可能な限りMantineが提供するTheme / Colorの概念・機能・仕組みに委譲します。Mantineで表現できる責務を再実装する独自Color Engineは設けません。
