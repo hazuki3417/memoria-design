@@ -105,11 +105,11 @@ role変更はMembers上の対象User表示へ即時反映します。他Userの�
 
 ## Navigation
 
-Community MembersはCommunity contextのContext Navigationから利用します。
+Community Membersは `/communities/[communityId]/members` から利用します。有効なMembershipを持つAdministrator / Memberの双方が閲覧できます。
 
 role変更・参加者除外のために独立したAdministrator専用参加者管理画面へ移動することは前提としません。対象Userを確認しているMembers contextから管理Actionを開始します。
 
-Community名変更、Invitation、Community削除等のCommunity自体の設定はMembersでは扱わず、Administrator向けCommunity Managementの責務とします。
+Community名変更、Invitation、Community削除等のCommunity自体の設定はMembersでは扱わず、Community Settingsの責務とします。
 
 Context Switcher、Context Navigation、Account Menuとの関係は[Application Information Architecture](/system/application-information-architecture)に従います。
 
