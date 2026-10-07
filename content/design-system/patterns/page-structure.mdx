@@ -1,0 +1,51 @@
+# Page Structure
+
+## Purpose
+
+Pageの目的、現在Context、主要Content、Page-level Actionを理解しやすく配置するための共通構造を定義します。固定Templateや共通max-widthを先に作るものではありません。
+
+## Semantic Regions
+
+Pageは必要に応じて次の責務を持ちます。
+
+- **Page Identity**: 現在のContent / Taskを識別するTitle等。
+- **Introduction / Context**: 判断に必要な説明やContext。
+- **Page Action**: Page全体へ作用するAction。
+- **Primary Content**: Pageの主要Task / Content。
+- **Secondary Information**: Metadata、補助説明、低優先度Content。
+
+すべてのPageへ全Regionを要求しません。
+
+## Page Identity / Navigation
+
+Page Titleは現在Task / Contentを表し、Navigation labelと常に同じである必要はありません。BreadcrumbをPage StructureのDefaultにはしません。
+
+## Page Action
+
+Page-level Primary ActionはAction Patternに従い、Page目的との関係が理解しやすく主要Contentを妨げない位置へ配置します。局所ActionをPage headerへ機械的に昇格させません。
+
+## Sections
+
+Sectionは情報階層またはTaskのまとまりに意味がある場合に使用します。Cardで囲うこととSection化を同義にしません。
+
+## Width / Layout
+
+Content max-width、column数、sticky region等はContentの性質、Media First、可読性、操作性から決定します。既存magic numberや一つのPage widthを共通Tokenへ昇格させません。
+
+Media Browserのようなvisual collection、Members Table、Settings Form等へ同じcontainer幅を強制しません。
+
+## Responsive
+
+主要Goalと情報順序を維持しつつ、Regionの並び・同時表示・Progressive Disclosureを変更できます。Wideの二columnをCompactでStackすることは可能ですが、意味的な優先順位をDOM / Focus orderと不必要に乖離させません。
+
+## Accessibility
+
+Page identityをheading structureから理解でき、landmarkとfocus orderがvisual hierarchyと整合するようにします。
+
+## Constraints
+
+- 全Pageへ同じheader templateを強制しない。
+- Breadcrumbを標準Page chromeにしない。
+- Section = Cardとしない。
+- 共通max-widthを根拠なく固定しない。
+- local ActionをPage Actionへ機械的に昇格させない。
