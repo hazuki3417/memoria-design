@@ -299,6 +299,15 @@ AIは提案に対して利点・懸念・代替案と推奨理由を述べ、合
 9. PRは通常の状態で作成し、人間が明示した場合だけDraftとする
 10. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
 
+### 成果物間の整合性を確認する
+
+1. 通常Taskでは[アジャイル開発とイテレーション運用の「整合性確認の二層構造」](/development-process#整合性確認の二層構造)に従い、変更の影響範囲を特定してChange-time Consistencyを確認する
+2. 設計・Guideline・schema・code・test・Visual Prototype等の変更方向を固定せず、具体化や検証で得た知見が上流Source of Truthへ戻る場合も同じTaskで照合する
+3. 変更ごとに全成果物を機械的に読むのではなく、owner、contract、consumer、依存関係から必要な確認範囲を決める
+4. 大きな設計更新の完了、複数成果物の統合、Design Coverageの重要な状態変更、Release前等の節目ではConsistency Auditを行い、個別Taskを越えたsemantic driftを確認する
+5. Audit結果は一致、不一致、未定義、意図的差異、Deferredを区別し、不一致を機械的に片方へ合わせない
+6. 重要な判断は人間との合意後に所有するSource of Truthへ反映し、現在解消しない差異はIssueで追跡する
+
 ### Issueを定期的に棚卸しする
 
 1. [アジャイル開発とイテレーション運用](/development-process#issueの定期棚卸し)で実施契機と完了判断を確認する
