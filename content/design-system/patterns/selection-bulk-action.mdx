@@ -1,0 +1,42 @@
+# Selection / Bulk Action
+
+## Purpose
+
+Collection内の複数対象へ一つのUser intentを適用するとき、対象集合とAction scopeを予測可能にします。
+
+## Selection Model
+
+Selectionは明示的なInteraction stateです。通常の閲覧・Navigationと区別し、選択中であること、選択件数、終了方法を認識できるようにします。
+
+対象はUserが明示的に選択したitem集合を基本とします。Screen Contractが明示しない限り、未取得page、現在filterに一致する全件、将来追加されるitemを暗黙に含めません。
+
+## Select All
+
+Select Allを共通Capabilityとして要求しません。提供する場合は「現在表示済み」「現在page」「query全件」等のscopeを曖昧にせず、Backend operation semanticsと一致させます。
+
+## Bulk Action
+
+選択集合全体に意味があり、現在Userが実行可能なActionだけを提示します。
+
+Bulk Actionは一つのUser intentでもdomain上atomicであるとは限りません。Mediaのようにitem単位で結果が独立する場合は部分成功を維持し、成功済み結果を他itemの失敗だけでrollbackしません。
+
+## Collection Changes
+
+Selection中のfilter / sort / scope変更が対象集合を曖昧にする場合は変更を制限するか、Selectionをどう扱うかをScreen Contractで明示します。Selectionを維持したまま対象の意味を暗黙に変えません。
+
+## Result
+
+部分成功では成功・失敗の概要と、Userが次に判断・復旧する必要がある失敗対象を識別できるようにします。技術Errorをそのまま大量表示しません。
+
+## Responsive / Accessibility
+
+Selection件数、終了Action、主要bulk ActionへCompactでも到達できるようにします。Hoverだけでselection affordanceやbulk Actionを提供しません。
+
+選択状態をColorだけに依存させず、Keyboard / Touchでも選択・解除・Action実行が可能であることを要求します。
+
+## Constraints
+
+- query全件選択を暗黙に導入しない。
+- bulk = atomic transactionと仮定しない。
+- Selection中にscopeを暗黙変更しない。
+- 選択対象外itemへActionが適用されるように見せない。
