@@ -1,20 +1,20 @@
-# Community管理
+# Community Settings
 
 ## 概要
 
-Community AdministratorがCommunity自体の設定を管理する画面です。
+Community自体の設定を扱う画面です。Initial Releaseで変更Actionを実行できるのはAdministratorです。
 
 参加者の確認、role変更、除外は[Community Members](/screens/community-members)で扱い、本画面ではCommunity名、Invitation、Community削除への入口を扱います。
 
-> 実装状況: 本仕様に対応するCommunity Management UIは未実装です。
+> 実装状況: 本仕様に対応するCommunity Settings UIは未実装です。
 
 ## 目的
 
 AdministratorがCommunity自体に対する管理操作を一か所から理解・実行できるようにします。
 
-日常的なMedia利用や参加者管理とは分離し、Administratorだけが必要とするCommunity設定をまとめます。
+日常的なMedia利用や参加者管理とは分離し、Community scopeの設定をまとめます。Initial ReleaseのCommunity名変更、Invitation管理、Community削除はAdministratorだけが実行できますが、SettingsをAdministrator専用の管理領域として定義しません。
 
-Initial Releaseでは1つのManagement画面を **General / Invitation / Danger Zone** の3 sectionで構成します。設定項目ごとに別Pageへ分割せず、Community自体の管理対象を一か所で把握できることを優先します。ただし不可逆なCommunity削除の最終確認は専用Flowへ分離します。
+Initial Releaseでは1つのSettings画面を **General / Invitation / Danger Zone** の3 sectionで構成します。設定項目ごとに別Pageへ分割せず、Community自体の管理対象を一か所で把握できることを優先します。ただし不可逆なCommunity削除の最終確認は専用Flowへ分離します。
 
 ## 関連Use Case
 
@@ -48,7 +48,7 @@ Invitation tokenそのものを必要以上の場所へ露出させず、log、�
 
 通常設定やInvitation操作と、不可逆なCommunity削除を視覚的・意味的に区別するsectionです。
 
-Community削除が不可逆な管理操作であることを短く説明し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。Management上では削除影響の全内容やCommunity名確認入力を重複して提示せず、最終判断は削除確認Flowへ委ねます。
+Community削除が不可逆な管理操作であることを短く説明し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。Settings上では削除影響の全内容やCommunity名確認入力を重複して提示せず、最終判断は削除確認Flowへ委ねます。
 
 ## 操作
 
@@ -84,7 +84,7 @@ AdministratorはInvitationを再発行できます。
 
 AdministratorはCommunity Deletion Confirmationへ進めます。
 
-Management画面上の単純な確認だけでCommunity削除を確定しません。
+Settings画面上の単純な確認だけでCommunity削除を確定しません。
 
 ## 状態
 
@@ -116,7 +116,7 @@ role変更等により現在UserがAdministratorではなくなった場合、�
 
 ## Navigation
 
-Community ManagementはAdministratorだけがCommunity Context Navigationから到達できます。
+Community Settingsは `/communities/[communityId]/settings` をdestinationとします。画面・Actionの利用可否は現在のMembershipと各Capabilityのauthorizationで決定し、`management` のようなAdministrator専用route領域は設けません。
 
 参加者一覧・role変更・除外は[Community Members](/screens/community-members)へ集約します。
 
@@ -132,7 +132,7 @@ Context全体のNavigation責務は[Application Information Architecture](/syste
 - Communityごとに同時に利用可能なInvitationは1件です。
 - Invitationの発行・無効化・再発行・状態確認はAdministratorだけが実行できます。
 - Invitation URLはsecretとして扱い、不要な送信・記録を行いません。
-- Community削除の成立条件と影響確認は[Community削除確認](/screens/community-deletion-confirmation)の仕様を正本とし、Management上の単純な実行Actionだけで削除を確定しません。具体的なpresentationは固定しません。
+- Community削除の成立条件と影響確認は[Community削除確認](/screens/community-deletion-confirmation)の仕様を正本とし、Settings上の単純な実行Actionだけで削除を確定しません。具体的なpresentationは固定しません。
 - domain ruleは[Communityユースケース](/community/use-cases)と[Community権限](/community/authorization)を正本とします。
 
 ## Responsive対応
