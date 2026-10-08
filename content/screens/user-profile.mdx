@@ -64,7 +64,7 @@ ACTIVE Userは[User Settings](/screens/user-settings)の`/settings/profile`か�
 
 Profile更新のために別の画面へ遷移することは前提とせず、この画面上で確認・編集・保存を行います。
 
-意味のある未保存変更が存在する状態で、その編集内容を失うNavigationを行う場合は[Editable Form Pattern](/design-system/patterns/editable-form)に従って破棄確認を行います。
+初回Releaseのnickname編集は再入力の負担が小さいため、キャンセル時は確認Dialogを表示せず、編集値を最後に保存されたnicknameへ戻します。他画面へ移動する際も破棄確認を表示せず、未保存の編集値を破棄して移動します。Profile項目が増える等、編集内容を失う影響が変化した場合は[Editable Form Pattern](/design-system/patterns/editable-form)の判断基準に基づいて対策を再評価します。
 
 ## 制約
 
