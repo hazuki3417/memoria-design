@@ -54,7 +54,7 @@ Profileの更新が完了したことを[Feedback Pattern](/design-system/patter
 
 ### 更新失敗
 
-一時的な失敗等、Userによる再試行が可能な場合は、[Feedback Pattern](/design-system/patterns/feedback)のOperation FeedbackとしてProfileが更新されていないことを伝え、編集内容を失わずに再試行できるようにします。
+一時的な失敗等、Userによる再試行が可能な場合は、[Feedback Pattern](/design-system/patterns/feedback)のOperation Feedbackとして保存が完了したことを確認できなかった旨を伝え、編集内容を失わずにUserが手動で再試行できるようにします。通信障害やServer Errorの発生を契機に`me`を自動で再取得して保存結果を照合する処理は行いません。通信障害ではServer側の更新が成立している可能性があるため、未保存と断定する文言は避けます。次回画面を表示する際は、通常のProfile取得処理で現在値を取得します。
 
 User状態の変化等によりProfileの変更を継続できない場合はBlocking Errorとして扱い、短時間で消えるNotificationだけに依存せず、現在の状態と次に取れる行動を伝えます。
 
