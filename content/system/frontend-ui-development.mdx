@@ -337,6 +337,12 @@ Design DocumentへComponent API、pixel値、実装上のlayout detail、Storybo
 具体的な変更検知方法、GitHub Actions構成、代表viewport、Browser matrixは `memoria-web` のtest infrastructure設計で決定します。
 
 
+### Storybook・VRT・E2Eの役割分担
+
+Storybookは本体と共通のUI部品を使い、画面の表示状態を再現します。VRTはStoryのCanvasを撮影し、見た目、配置、画面幅ごとの差分を確認します。VRTのために実際の画面遷移やURL変更を発生させません。
+
+実際のURL変更、画面遷移、ブラウザ履歴、切り替え先のデータなど、複数画面にまたがる振る舞いはE2Eテストで検証します。Application Shellの利用範囲切り替えでは、切り替え先にも対応ページがあればそのページへ移動し、なければDashboardへ移動することをE2Eで確認します。判定を独立した関数にする場合は単体テストで補えますが、E2Eの代替にはしません。
+
 ## Collectionの読み込みとNavigation
 
 Memoria Webでは、一覧にページ番号を表示して移動するページ送り型Paginationを提供せず、**Relay Connectionを利用した無限ローディング**を標準とします。適用対象はMedia一覧に限らず、追加読み込みが必要なCollection全般です。各画面の具体的な取得条件・順序・空状態は対象ScreenとGraphQL契約で定義します。
