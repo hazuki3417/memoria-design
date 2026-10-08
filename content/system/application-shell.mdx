@@ -4,8 +4,6 @@
 
 Application Shellは、画面を横断する共通ヘッダー、利用範囲の切り替え、ナビゲーション、アカウント操作を提供します。
 
-この設計は、先に作成された[Application ShellのVisual Prototype](https://github.com/hazuki3417/memoria-web/blob/develop/src/prototypes/ApplicationShell/ApplicationShellPrototype.tsx)と[Story](https://github.com/hazuki3417/memoria-web/blob/develop/src/prototypes/ApplicationShell/ApplicationShellPrototype.stories.tsx)を現在の比較基準として整理します。既存の見た目・配置・操作・画面幅への対応を、明示的な合意なしに変更しません。
-
 適用画面と例外の網羅的な一覧は、現段階では未確定です。ただし、一部の画面では利用者が進行中の操作に集中できるよう、サイドメニューの開閉と利用範囲の切り替えを意図的に提供しません。これは機能の欠落ではなく、画面ごとの設計上の制約です。
 
 ## 共通領域と役割
@@ -49,7 +47,7 @@ Application Shellは、画面を横断する共通ヘッダー、利用範囲の
 
 ## 画面幅と入力方法
 
-現在のStoryは `Personal`、`Community`、`Compact` の3種類です。これらを既存表示の比較基準とします。画面幅によって共通領域の配置・開閉方法・情報量を変更する場合は、既存Prototypeとの差異を先に確認します。
+現在のStoryは `Personal`、`Community`、`Compact` の3種類です。画面幅によって共通領域の配置・開閉方法・情報量が変わる場合も、必要な操作に到達できるようにします。
 
 ナビゲーションの開閉操作には、現在の実装で開閉状態を示す属性と説明が用意されています。キーボード操作や焦点移動を含む動作は、実装とStorybookで追加確認が必要です。
 
@@ -75,4 +73,3 @@ E2Eテストでは、利用範囲の切り替えによるURL変更、切り替�
 - 設定画面、ログアウト、Community作成への接続
 - 画面幅と入力方法ごとの追加検証が必要な振る舞い
 
-これらは既存Prototypeを変更するための決定事項ではありません。差異を伴う実装を始める前に確認します。
