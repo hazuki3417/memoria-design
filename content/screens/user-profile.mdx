@@ -26,7 +26,7 @@ UserがMemoriaで利用する自身のProfileを確認し、必要に応じて�
 
 ### Profileを変更する
 
-Userは編集可能なProfile項目を変更し、保存できます。
+Userはページ上に直接配置された入力欄で編集可能なProfile項目を変更し、同じページに配置された保存ボタンで保存できます。表示モードと編集モードは分けず、編集開始ボタン、キャンセルボタン、保存前の確認画面は設けません。
 
 初回Releaseではnicknameだけを変更できます。変更確定の共通挙動は[Editable Form Pattern](/design-system/patterns/editable-form)に従います。
 
@@ -64,7 +64,7 @@ ACTIVE Userは[User Settings](/screens/user-settings)の`/settings/profile`か�
 
 Profile更新のために別の画面へ遷移することは前提とせず、この画面上で確認・編集・保存を行います。
 
-初回Releaseのnickname編集は再入力の負担が小さいため、キャンセル時は確認Dialogを表示せず、編集値を最後に保存されたnicknameへ戻します。他画面へ移動する際も破棄確認を表示せず、未保存の編集値を破棄して移動します。Profile項目が増える等、編集内容を失う影響が変化した場合は[Editable Form Pattern](/design-system/patterns/editable-form)の判断基準に基づいて対策を再評価します。
+初回Releaseのnickname編集は再入力の負担が小さいため、キャンセルボタンは設けません。他画面へ移動する際も破棄確認を表示せず、未保存の編集値を破棄して移動します。Profile項目が増える等、編集内容を失う影響が変化した場合は[Editable Form Pattern](/design-system/patterns/editable-form)の判断基準に基づいて対策を再評価します。
 
 ## 制約
 
