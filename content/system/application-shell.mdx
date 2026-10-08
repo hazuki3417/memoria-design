@@ -6,7 +6,7 @@ Application Shellは、画面を横断する共通ヘッダー、利用範囲の
 
 この設計は、先に作成された[Application ShellのVisual Prototype](https://github.com/hazuki3417/memoria-web/blob/develop/src/prototypes/ApplicationShell/ApplicationShellPrototype.tsx)と[Story](https://github.com/hazuki3417/memoria-web/blob/develop/src/prototypes/ApplicationShell/ApplicationShellPrototype.stories.tsx)を現在の比較基準として整理します。既存の見た目・配置・操作・画面幅への対応を、明示的な合意なしに変更しません。
 
-適用画面と例外（未認証画面など）の網羅的な一覧は、現段階では未確定です。
+適用画面と例外の網羅的な一覧は、現段階では未確定です。ただし、一部の画面では利用者が進行中の操作に集中できるよう、サイドメニューの開閉と利用範囲の切り替えを意図的に提供しません。これは機能の欠落ではなく、画面ごとの設計上の制約です。
 
 ## 共通領域と役割
 
@@ -17,6 +17,12 @@ Application Shellは、画面を横断する共通ヘッダー、利用範囲の
 - **本文領域**: 個別画面の内容を表示します。Application ShellのPrototypeではダミーのコンテンツ領域を使用します。
 
 上記はPrototypeから確認できる責務の整理です。実際の認可、通信、遷移先の確定は別途関連仕様を確認します。
+
+## 共通操作を提供しない画面
+
+一部の画面では、Application Shellを利用していてもサイドメニューの開閉や利用範囲の切り替えを提供しません。これらの操作を常に表示・利用可能にすることを共通仕様とはしません。画面ごとに提供しない操作とその理由を明示し、実装・Storybookで意図せず復活させないようにします。
+
+現在のWeb実装には `applicationChrome.tsx` に `authenticated` と `pre-registration` の表示区分があり、`pre-registration` ではナビゲーション、利用範囲切り替え、アカウントメニューを表示しない定義があります。ただし、どの画面が各区分を使用するか、ほかの例外画面があるかは別途確認が必要です。
 
 ## 現在のPrototypeで確認できる状態と操作
 
@@ -63,7 +69,7 @@ E2Eテストでは、利用範囲の切り替えによるURL変更、切り替�
 
 次の事項は現行Prototypeだけでは決定できないため、現時点で仕様として確定しません。
 
-- Shellの適用対象と、未認証・例外画面での扱い
+- 共通操作を提供しない画面の網羅的な一覧と、画面ごとの制限理由
 - 利用範囲の切り替え時の未保存情報の保持と、実際のURL遷移の実装方法
 - 権限喪失、利用範囲の取得失敗、対象消失時の表示と復旧
 - 設定画面、ログアウト、Community作成への接続
