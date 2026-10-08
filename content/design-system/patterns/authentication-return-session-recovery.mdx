@@ -60,7 +60,7 @@ Loginやsession recovery前にUserが意図していたUpload、保存、共有�
 
 Auth0認証済みでもMemoria Userが存在しない場合はUser Registrationへ進みます。
 
-Registration開始前に安全なreturn destinationが存在する場合は、登録完了後にそのdestinationへ戻ります。Registration完了だけを、Invitation accept等の元operation成立とはみなしません。
+Registration開始前に安全なreturn destinationが存在する場合は、登録完了後にそのdestinationへ戻ります。登録要求が`CONFLICT`となった場合や通信障害で登録結果が不明な場合は、現在のUserを再取得してACTIVEであることを確認してから復帰します。取得不能や利用不可状態を登録成功とみなさず、登録処理を無条件に再送しません。Registration完了だけを、Invitation accept等の元operation成立とはみなしません。
 
 ## Variations
 
