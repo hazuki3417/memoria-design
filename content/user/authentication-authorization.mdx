@@ -34,7 +34,7 @@ Login・登録後の復帰先はallowlistに一致する内部相対URLだけを
 
 ## 取得する認証情報
 
-Auth0からはissuer、subjectと登録画面のnickname初期値に使う表示名だけを利用します。emailとprofile画像は要求・保存せず、issuer・subjectを画面や通常logへ出力しません。
+Auth0からはissuer、subjectと登録画面のnickname初期値に使う表示名だけを利用します。表示名が取得できない場合も、issuer・subjectが正常に確定していればnicknameの手入力による登録を許可します。表示名の取得失敗を認証失敗とは扱いません。一方、issuer・subjectを確定できない場合は登録を許可せず、再Loginを案内します。emailとprofile画像は要求・保存せず、issuer・subjectを画面や通常logへ出力しません。
 
 ## GraphQLでの登録状態の解決
 
