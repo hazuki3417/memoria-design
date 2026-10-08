@@ -8,7 +8,7 @@ Application ShellのAccount Menuから到達し、既存のApplication Informati
 
 ## Information Architecture
 
-Settingsは次の領域をそれぞれ独立したURLを持つpageとして扱います。`/settings`へのアクセスは`/settings/profile`へRedirectします。
+Settingsは次の領域をそれぞれ独立したURLを持つpageとして扱います。**User ProfileとSettingsのProfileは同一の画面（`/settings/profile`）です。** 別画面として実装・管理せず、Storybookでも同じ画面Componentを使用します。`/settings`へのアクセスは`/settings/profile`へRedirectします。
 
 | 領域 | URL |
 | --- | --- |
