@@ -1,0 +1,53 @@
+# Application Shell：機能仕様
+
+## 概要と適用範囲
+
+Application Shellは、画面を横断する共通ヘッダー、利用範囲の切り替え、ナビゲーション、アカウント操作を提供します。
+
+この設計は、先に作成された[Application ShellのVisual Prototype](https://github.com/hazuki3417/memoria-web/blob/develop/src/prototypes/ApplicationShell/ApplicationShellPrototype.tsx)と[Story](https://github.com/hazuki3417/memoria-web/blob/develop/src/prototypes/ApplicationShell/ApplicationShellPrototype.stories.tsx)を現在の比較基準として整理します。既存の見た目・配置・操作・画面幅への対応を、明示的な合意なしに変更しません。
+
+適用画面と例外（未認証画面など）の網羅的な一覧は、現段階では未確定です。
+
+## 共通領域と役割
+
+- **ヘッダー**: Memoriaの名称、ナビゲーション開閉操作、現在の利用範囲、アカウント操作を提供します。現在の利用範囲に応じたアクセント色を使用します。
+- **利用範囲の切り替え**: PersonalとCommunityの選択肢を表示し、現在の利用範囲を識別します。PrototypeではPersonal、家族のアルバム、旅行の思い出を例示します。
+- **ナビゲーション**: 現在の利用範囲に応じた項目を表示し、選択中の項目を識別します。開閉できる領域として表示します。
+- **アカウント操作**: ユーザー情報に基づくメニューを提供します。
+- **本文領域**: 個別画面の内容を表示します。Application ShellのPrototypeではダミーのコンテンツ領域を使用します。
+
+上記はPrototypeから確認できる責務の整理です。実際の認可、通信、遷移先の確定は別途関連仕様を確認します。
+
+## 現在のPrototypeで確認できる状態と操作
+
+| 対象 | 現在のPrototypeで確認できること | 未接続・未確定のこと |
+| --- | --- | --- |
+| 利用範囲 | Personalと2つのCommunityを切り替えられる | 実データの取得、利用可能な範囲の判定 |
+| ナビゲーション | 開閉し、現在の利用範囲に応じた項目を選択できる | 実際のURL遷移、画面データの読み込み |
+| 利用範囲の変更 | 切り替え時に選択中の項目をDashboardへ戻し、ナビゲーションを閉じる | 遷移途中の未保存データ、切り替え失敗時の扱い |
+| アカウント操作 | メニューを表示するための共通部品を使用する | 設定画面への遷移、ログアウト処理 |
+| Community作成 | 操作を受け取るための接続点がある | 実際の作成画面への遷移と作成処理 |
+
+## 画面幅と入力方法
+
+現在のStoryは `Personal`、`Community`、`Compact` の3種類です。これらを既存表示の比較基準とします。画面幅によって共通領域の配置・開閉方法・情報量を変更する場合は、既存Prototypeとの差異を先に確認します。
+
+ナビゲーションの開閉操作には、現在の実装で開閉状態を示す属性と説明が用意されています。キーボード操作や焦点移動を含む動作は、実装とStorybookで追加確認が必要です。
+
+## 関連する設計情報
+
+- [Frontend UI設計・開発方針](/system/frontend-ui-development)
+- [Dashboard画面詳細仕様](/screens/context-dashboard) — 現在の利用範囲の識別をApplication Shellへ委ねています。
+- [設計書テンプレート](/design-document-templates)
+
+## 確認が必要な事項
+
+次の事項は現行Prototypeだけでは決定できないため、現時点で仕様として確定しません。
+
+- Shellの適用対象と、未認証・例外画面での扱い
+- 利用範囲の切り替え時の実際の画面遷移、未保存情報の保持
+- 権限喪失、利用範囲の取得失敗、対象消失時の表示と復旧
+- 設定画面、ログアウト、Community作成への接続
+- 画面幅と入力方法ごとの追加検証が必要な振る舞い
+
+これらは既存Prototypeを変更するための決定事項ではありません。差異を伴う実装を始める前に確認します。
