@@ -8,6 +8,7 @@ export default {
   "media-upload-workflow-trial": "Media登録設計の限定試行記録",
   "workflow-db-design-applicability-trial": "DB設計へのテンプレート適用検討",
   "database-design-process": "DB設計プロセス（試行用）",
-  "database-design-process-trial": "DB設計プロセスの試行記録"
+  "database-design-process-trial": "DB設計プロセスの試行記録",
+  "database-design-change-trial": "DB設計変更プロセスの試行準備"
 }
 
