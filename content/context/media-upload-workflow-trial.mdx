@@ -44,3 +44,33 @@
 - 関連する正本を参照経路から追加発見できた。
 - 未確認の設計範囲がある状態で「問題なし」と総括することを防げた。
 - 一方、参照経路をどこまで追えば探索完了とするか、探索の打ち切り条件をより具体化する余地がある。
+
+
+## 再開後の追加探索（2026-10-09）
+
+中断後に作業ブランチの最新状態を確認し、前回見つかった次の5資料を取得しました。
+
+| 資料 | 取得結果 | 確認した役割 |
+| --- | --- | --- |
+| `content/media/consistency-transactions.mdx` | 取得済み | Original PUT、DB commit、失敗時の補償処理 |
+| `content/system/api/transactional-outbox.mdx` | 取得済み | DB commitとRedis配送の分離 |
+| `content/system/api/idempotency.mdx` | 取得済み | Client、Event、Jobごとの重複抑止 |
+| `content/system/data/storage.mdx` | 取得済み | OriginalとJob単位のVariant保存key |
+| `content/media/physical-data-model.mdx` | 取得済み | Media、Processing Job、Storage Operation等の物理定義 |
+
+### 追加資料を含む暫定照合
+
+| 番号 | 比較観点 | 暫定所見 | 参照箇所 |
+| --- | --- | --- | --- |
+| M-06 | Original PUTとDB commitの順序 | 確認範囲で整合 | Mediaの整合性とTransaction「Upload」、登録アーキテクチャ「なぜOriginalを先に保存するのか」 |
+| M-07 | Outboxによる配送保証 | 確認範囲で整合 | Transactional Outbox「処理の流れ」「配送保証の境界」、登録アーキテクチャ「なぜTransactional Outboxが必要なのか」 |
+| M-08 | 重複操作の識別子 | 確認範囲で整合 | 冪等性と再試行「Client request」「非同期処理」、登録アーキテクチャ「各仕組みが解決する問題」 |
+| M-09 | Variantの保存keyと公開参照 | 確認範囲で整合 | Mediaストレージ「Path」、登録アーキテクチャ「なぜVariantを同じkeyへ上書きしないのか」 |
+
+### 現在の状態
+
+- 工程02（関連資料の探索）：**実行中**。追加資料にある参照先の探索と採用・除外理由の整理が未完了。
+- 工程03以降：**未着手**。資料を取得したことと必須資料の探索を完了したことを混同しない。
+- 作業全体：**中断時の報告を更新した状態**。M-06〜M-09は正式な工程05の判定ではない。
+
+再開に必要な作業は、対象を「Upload受付からVariant公開まで」と明示したうえで、追加資料から到達する正本の採用・除外理由を記録し、必須資料の一覧を確定することです。未確認の資料が残る限り、全体を「問題なし」とは判定しません。
