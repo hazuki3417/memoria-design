@@ -6,6 +6,7 @@ export default {
   "design-consistency-verification-process": "設計書間の整合性検証（試行用）",
   "workflow-consistency-trial-record": "作業プロセス適用の試行記録",
   "media-upload-workflow-trial": "Media登録設計の限定試行記録",
-  "workflow-db-design-applicability-trial": "DB設計へのテンプレート適用検討"
+  "workflow-db-design-applicability-trial": "DB設計へのテンプレート適用検討",
+  "database-design-process": "DB設計プロセス（試行用）"
 }
 
