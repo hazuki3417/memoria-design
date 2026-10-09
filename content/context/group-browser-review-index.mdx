@@ -82,6 +82,77 @@ Storyは2件であり、状態・権限・Personal/Communityの各組合せをSt
 - したがって、**P2：仕様見出し・Story・本体主要構造・代表境界の列挙を試行済み。P3：全確認項目への詳細化は未完了。P4〜P7：全体完了判定不可。**
 - **索引を完成させたと誤認しないこと**：見出しの列挙と仕様文の規定をすべて抽出することは異なる。Community権限、relation更新、失敗・競合、Media Detail接続等は節内に多数の条件を含む。
 
+## 仕様本文からの確認候補の展開（第2回試行）
+
+見出し索引の次に、各段落の独立した期待動作を候補として展開した。以下の**56件**はレビュー単位の設計を検証するための中間粒度であり、すべての条件分岐を1件ずつ判定できる最終台帳ではない。各候補を必要に応じてPersonal/Community、権限、成功/失敗、Wide/Compactに分割する。
+
+| 候補ID | 分類 | 確認する振る舞い | 暫定担当 | 状態 |
+| --- | --- | --- | --- | --- |
+| G-D-01 | 表示情報 | flatな全Group・名前順 | G-B | 要詳細照合 |
+| G-D-02 | 表示情報 | ページタイトル非重複とcontrol高さ | G-B | 要詳細照合 |
+| G-D-03 | 表示情報 | direct Media最大4件のpreview | G-B | 要詳細照合 |
+| G-D-04 | 表示情報 | 2×2 Cellと不足時Group Cell | G-B | 要詳細照合 |
+| G-D-05 | 表示情報 | 5件以上のcontinuation cue | G-B | 要詳細照合 |
+| G-D-06 | 表示情報 | Group Cellのaggregate素材割当・fallback | G-B | 要詳細照合 |
+| G-D-07 | 表示情報 | previewはMedia Detail入口ではない | G-B | 要詳細照合 |
+| G-D-08 | 表示情報 | Group itemのidentity・selected・総件数 | G-B | 要詳細照合 |
+| G-D-09 | 表示情報 | 選択GroupのHeader・権限別Action | G-B | 要詳細照合 |
+| G-D-10 | 表示情報 | aggregate Mediaの重複排除と総件数 | G-B | 要詳細照合 |
+| G-D-11 | 表示情報 | breadcrumbを使わない | G-B | 要詳細照合 |
+| G-D-12 | 表示情報 | direct parent/childのみ表示 | G-B | 要詳細照合 |
+| G-D-13 | 表示情報 | metadataの非Navigationと文言 | G-B | 要詳細照合 |
+| G-D-14 | 表示情報 | relationの編集入口 | G-B | 要詳細照合 |
+| G-D-15 | 表示情報 | relation各10件・0件・配置 | G-B | 要詳細照合 |
+| G-O-01 | 操作 | scope全体の名前検索と結果からの選択 | G-B | 要詳細照合 |
+| G-O-02 | 操作 | 検索と選択状態の独立 | G-B | 要詳細照合 |
+| G-O-03 | 操作 | 検索失敗時の選択保持と再試行 | G-B | 要詳細照合 |
+| G-O-04 | 操作 | 選択時のaggregate Collection・順序・URL保持 | G-B | 要詳細照合 |
+| G-O-05 | 操作 | 選択Group内の追加Filterなし・Relay追加取得 | G-B | 要詳細照合 |
+| G-O-06 | 操作 | 作成権限・名称だけで作成 | G-B | 要詳細照合 |
+| G-O-07 | 操作 | 編集Dialogの名前とParents/Children | G-B | 要詳細照合 |
+| G-O-08 | 操作 | 編集Draft保持・破棄確認 | G-B | 要詳細照合 |
+| G-O-09 | 操作 | relation候補検索・disabled理由・循環等 | G-B | 要詳細照合 |
+| G-O-10 | 操作 | relation選択済みTag順序・固定領域 | G-B | 要詳細照合 |
+| G-O-11 | 操作 | relation検索追加取得・失敗時保持 | G-B | 要詳細照合 |
+| G-O-12 | 操作 | 保存時rename反映・relation部分成功 | G-B | 要詳細照合 |
+| G-O-13 | 操作 | relation変更後Collection再取得・scrollリセット | G-B | 要詳細照合 |
+| G-O-14 | 操作 | 編集Dialogと削除Dialogの重なり・Draft保持 | G-B | 要詳細照合 |
+| G-O-15 | 操作 | 削除の説明・権限・確認 | G-B | 要詳細照合 |
+| G-O-16 | 操作 | 削除成功・失敗時の選択とFeedback | G-B | 要詳細照合 |
+| G-O-17 | 操作 | Header管理Actionの集約と権限非表示 | G-B | 要詳細照合 |
+| G-O-18 | 操作 | Group Media→共通Detailの入口 | G-M | 要詳細照合 |
+| G-O-19 | 操作 | Detailの全Action・Collection前後・復帰 | G-M | 要詳細照合 |
+| G-O-20 | 操作 | GroupではMedia bulk Actionなし | G-B | 要詳細照合 |
+| G-S-01 | 状態 | Groupあり・権限別Action | G-B | 要詳細照合 |
+| G-S-02 | 状態 | Groupなしと作成Action | G-B | 要詳細照合 |
+| G-S-03 | 状態 | GroupありMedia0件・relation0件 | G-B | 要詳細照合 |
+| G-S-04 | 状態 | 検索結果0件とEmptyの区別 | G-B | 要詳細照合 |
+| G-S-05 | 状態 | 一覧／選択Groupの読み込み失敗・再試行 | G-B | 要詳細照合 |
+| G-S-06 | 状態 | 選択Group利用不能とFeedback | G-B | 要詳細照合 |
+| G-S-07 | 状態 | Community context利用不能時の安全な移動 | G-B | 要詳細照合 |
+| G-S-08 | 状態 | Community role変更時の管理Action停止 | G-B | 要詳細照合 |
+| G-S-09 | 状態 | 操作中重複防止・Draft lock | G-B | 要詳細照合 |
+| G-S-10 | 状態 | 競合時の再評価と理由提示 | G-B | 要詳細照合 |
+| G-N-01 | Navigationと制約 | Personal/Communityのscope分離 | G-B | 要詳細照合 |
+| G-N-02 | Navigationと制約 | 同じURLでGroup選択・履歴非変更・再入場初期化 | G-B | 要詳細照合 |
+| G-N-03 | Navigationと制約 | DAG/flat discovery・breadcrumbなし | G-B | 要詳細照合 |
+| G-N-04 | Navigationと制約 | Group名grapheme 1〜100・scope内一意 | G-B | 要詳細照合 |
+| G-N-05 | Navigationと制約 | 権限はAPI検証の代替にしない | G-B | 要詳細照合 |
+| G-N-06 | Navigationと制約 | TagとGroupの操作を同一視しない | G-B | 要詳細照合 |
+| G-R-01 | Responsive | 全表示幅で基本操作を維持 | G-B | 要詳細照合 |
+| G-R-02 | Responsive | Wideの2-pane・Media優先・relation表示 | G-B | 要詳細照合 |
+| G-R-03 | Responsive | Compactの面切替と戻り | G-B | 要詳細照合 |
+| G-R-04 | Responsive | Mediumのbreakpointは固定せず実表示確認 | G-B | 要詳細照合 |
+| G-R-05 | Responsive | touch/keyboardで主要操作に到達 | G-B | 要詳細照合 |
+
+### 第2回試行で見つかった問題
+
+- 仕様本文の長い段落には複数の条件が含まれる。**候補数は網羅率ではない**。特にrelation selector、部分成功、Context喪失は条件別の確認結果を必要とする。
+- Group Browserの`MediaGrid`にMedia Detailの入口がないという静的な差異の疑いは、G-M側で管理し、共通Media Detailの機能自体の確認と混同しない。
+- 一覧の「検索0件」と「Groupなし」、選択Groupの「Media0件」、relationの「0件」は別の状態である。単にEmptyという項目に統合しない。
+- 仕様に「具体的なbreakpointは後続のVisual Reviewで決定」とあるため、固定の数値を新しい期待値として捏造しない。表示領域が変わっても機能が維持されるかを確認する。
+- 画面仕様の実装状況欄は既知の差分を示すが、現時点のコードに対する合否判定の代替にはしない。
+
 ## この試行から得られた改善要件
 
 1. 仕様索引では見出し単位を初期単位とし、**複数の独立した条件・操作を含む段落は確認項目へ分割**する。見出しの列挙完了を仕様全体の確認完了と呼ばない。
