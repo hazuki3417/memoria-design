@@ -1,0 +1,40 @@
+# DB設計変更プロセスの試行準備：Issue #28
+
+> [Issue #28](https://github.com/hazuki3417/memoria-design/issues/28)の未対応事項を用いた試行準備です。Migrationの新しい仕様判断や設計書の変更はまだ行いません。
+
+## 対象候補と開始条件
+
+- 候補：DB schema migrationと段階的移行に関する未決定事項。
+- 参照先：`memoria-design` の `docs/workflow-execution-state-and-coverage`、`content/system/data/schema-migration.mdx`、`content/system/data/physical-model-conventions.mdx`、`content/system/data/postgresql-implementation-review.mdx`、Issue #28。
+- 実装正本：`memoria-api`。Migration SQLは`schemas/postgres/migrations/00001_initial.sql`を確認済み。
+- 許可範囲：既存課題の調査と試行準備。未決定の設計を独断で確定しない。
+
+## 確認した既存方針
+
+- gooseを採用し、versioned SQL migrationを正本とする。
+- `schema.sql`は生成snapshotでありmigration履歴の代替ではない。
+- Application起動時にはmigrationを自動実行せず、deploy工程で専用containerを実行する。
+- migration成功後にApplicationをdeployする。
+- 実データを持つ環境では互換性、復旧、段階的移行を必要に応じて検討する。
+
+## 未決定事項と試行範囲の切り分け
+
+| 候補 | 状態 | 今回の扱い |
+| --- | --- | --- |
+| gooseのversion・directory・command | Issueでは未完了。ただし実装正本の最新状態との再照合が必要 | 変更案を作る前に実装を確認 |
+| migration適用履歴とlock方式 | 未決定事項として列挙 | 設計判断が必要 |
+| backfillのcheckpointと再開方式 | 未決定事項として列挙 | 設計判断が必要 |
+| timeoutの具体値 | 未決定事項として列挙 | 推測で数値を採用しない |
+| 失敗時の復旧手順 | 未決定事項として列挙 | deploy・運用設計への影響が大きい |
+| schemaとApplicationの適用順序 | 大枠は確定済み、詳細は未完了 | 既存方針を維持 |
+
+## 工程の状態
+
+| 工程 | 状態 | 理由 |
+| --- | --- | --- |
+| 01 対象と開始条件の確定 | 実行中 | Issue #28は複数の独立した設計判断を含み、試行対象の小さな変更をまだ一意に特定していない |
+| 02〜08 | 未着手 | 工程01の完了条件を満たしていない |
+
+**作業全体の状態：中断。** 次に、Issue #28のうち一つの未決定事項を対象として選び、最新の実装・関連設計を確認してから工程02へ進む。重要な設計判断は人間の合意を得てから反映する。
+
+この試行準備から、未対応Issue全体をそのまま「小規模なDB設計変更」とみなすべきではないことが確認できた。
