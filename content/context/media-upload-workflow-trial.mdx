@@ -1,0 +1,46 @@
+# Media登録設計の整合性検証：限定試行記録
+
+> 作業プロセスの実効性を確認するための限定試行です。Media登録全体の設計審査や実装検証を完了したものではありません。
+
+## 目的・対象
+
+- **検証目的**：Media登録と画像派生物生成に関する設計の主要な関係が、資料間で矛盾なく記述されているかを確認する。
+- **参照先**：`docs/workflow-execution-state-and-coverage`。以下の資料は同ブランチから取得。
+- **確認した資料**：`content/media/index.mdx`、`content/media/use-cases.mdx`、`content/media/processing.mdx`、`content/media/upload-processing-architecture.mdx`、`content/system/api/asynchronous-processing.mdx`、`content/context/index.mdx`。
+- **対象外**：実装との照合、実際の動作、全状態遷移の網羅性、削除や再処理の全失敗経路。
+
+## 工程と状態
+
+| 工程 | 状態 | 記録 |
+| --- | --- | --- |
+| 01 対象の確定 | 完了 | Media登録からVariant生成の主要な設計関係に限定 |
+| 02 関連資料の探索 | 実行中 | Context mapとアーキテクチャの参照先を確認。追加の正本が見つかった |
+| 03 必須資料の取得 | 未着手 | 全必須資料の一覧確定前のため完了判定を行わない |
+| 04〜08 | 未着手 | 先行工程の完了条件を満たしていない |
+
+**作業全体の状態：中断。** 下記は工程05の正式な完了結果ではなく、探索中に確認した暫定的な比較メモです。共通実行ルールv0.3に従い、後続工程の完了には算入しません。
+
+## 探索中の暫定的な比較メモ
+
+| 番号 | 比較観点 | 暫定所見 | 根拠 |
+| --- | --- | --- | --- |
+| M-01 | 初回Releaseの静止画像限定 | 確認した範囲で整合 | Media概要とUse Caseが静止画像に限定し、処理設計も画像Variantを具体化 |
+| M-02 | 1 request・1 Job・1 Media | 確認した範囲で整合 | Use Caseの1 request・1 Mediaと処理設計の1 request・1 Processing Job・1 Media |
+| M-03 | Variantの非同期生成 | 確認した範囲で整合 | Use Caseの非同期生成、処理設計のJob、アーキテクチャのOutbox→Redis→Workerが一致 |
+| M-04 | Originalと公開Variantの分離 | 確認した範囲で整合 | Media処理と派生物はOriginal不変、アーキテクチャはJob単位生成後にDB参照を一括切替 |
+| M-05 | GraphQLの処理状態 | 確認した範囲で整合 | 非同期処理設計はPROCESSING・READY・FAILEDを公開し、Upload応答はPROCESSING |
+
+これらは限られた文書間の比較であり、他の正本を含めた最終判定ではありません。
+
+## 中断理由と再開条件
+
+アーキテクチャ文書から、`content/media/consistency-transactions.mdx`、`content/system/api/transactional-outbox.mdx`、`content/system/api/idempotency.mdx`、`content/system/data/storage.mdx`、`content/media/physical-data-model.mdx` など、追加で確認すべき正本が判明しました。対象探索と必須資料の確定が未完了のため、正式な工程03以降へは進みません。
+
+再開時は同ブランチの最新commitを確認し、関連する参照先の探索、対象に含める・除外する理由の記録、必須資料の取得を終えてから検証項目を確定します。
+
+## 試行による評価
+
+- 限定的な比較結果と正式な完了判定を区別できた。
+- 関連する正本を参照経路から追加発見できた。
+- 未確認の設計範囲がある状態で「問題なし」と総括することを防げた。
+- 一方、参照経路をどこまで追えば探索完了とするか、探索の打ち切り条件をより具体化する余地がある。
