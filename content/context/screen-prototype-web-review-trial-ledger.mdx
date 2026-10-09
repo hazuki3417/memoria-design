@@ -1,6 +1,6 @@
 # 画面仕様・Prototype・Web実装の整合性確認：試行台帳（Media / Group）
 
-> 状態：**部分試行・未完了**。2026-10-09時点の両Repositoryの `develop` を読み取り、[整合性確認プロセス草案 v0.2](/context/screen-prototype-implementation-review-process) の台帳・境界割当を試すための記録。Backend、実装変更、画面の実表示・操作試験は対象外。以下は対象画面の全項目を列挙した完成台帳ではない。
+> 状態：**部分試行・未完了**。2026-10-09時点の両Repositoryの `develop` を読み取り、[整合性確認プロセス草案 v0.3](/context/screen-prototype-implementation-review-process) の台帳・境界割当を試すための記録。Backend、実装変更、画面の実表示・操作試験は対象外。以下は対象画面の全項目を列挙した完成台帳ではない。
 
 ## 参照した成果物
 
@@ -49,6 +49,35 @@ M-Dを共通機能の主担当、G-MをGroup利用元固有の接続項目とす
 - Personal / Community Media：Upload、共有・共有解除、削除、Membership / Custodyに応じたAction、状態・遷移
 - Group Browser：DAG relation、編集・削除・作成の制約、検索結果なし、Empty、読み込み失敗、選択中Group利用不能、競合・部分成功、管理権限、全Responsive、Collection再取得
 - Storyと実装からの全要素逆探索、全共通Componentの参照探索、実表示・操作・focus・アクセシビリティ・画面幅別比較
+
+## v0.3対象索引の試作（部分）
+
+以下は既存の13確認項目と索引の対応を試すための**代表行**。画面仕様の全節・全Story・全routeを列挙した索引ではない。索引が未完成のため、担当単位の完了は宣言しない。
+
+| 索引ID | 種類 | 対象（代表例） | 担当単位 | 対応する確認項目 |
+| --- | --- | --- | --- | --- |
+| S-M-01 | 仕様 | `personal-media.mdx` 表示情報・状態 | M-B | MB-01、MB-03 |
+| S-M-02 | 仕様 | `community-media.mdx` 表示情報・状態 | M-B | MB-02 |
+| S-M-03 | 仕様 | `media-browser-detail.mdx` 選択・Detail・前後移動 | M-B / M-D | MB-04、MD-01、MD-02 |
+| S-G-01 | 仕様 | `group-browser.mdx` discovery・選択・検索 | G-B | GB-01、GB-03 |
+| S-G-02 | 仕様 | `group-browser.mdx` 権限・Responsive | G-B | GB-02、GB-04 |
+| S-G-03 | 仕様 | `group-browser.mdx` 144〜150行の共通Detail接続 | G-M | GM-01〜GM-03 |
+| T-M-01 | Story | Media `Default`、`Community`、`TrueEmpty`、`FilteredEmpty`、`LoadError`等 | M-B | MB-01〜MB-03 |
+| T-M-02 | Story | Media `Selection`、Dialog系 | M-B | MB-04 |
+| T-M-03 | Story | Media `Detail`、`CommunityDetail`等 | M-D | MD-01、MD-02 |
+| T-G-01 | Story | Group `Wide`、`Compact` | G-B / G-M | GB-01〜GB-04、GM-01〜GM-03（未表現の条件も追跡） |
+| W-M-01 | 本体 | Personal/Community Media route → `MediaBrowser` | M-B / M-D | MB-01、MB-02、MD-01 |
+| W-G-01 | 本体 | Personal/Community Groups route → `GroupBrowser` | G-B | GB-01、GB-02 |
+| W-G-02 | 本体 | `GroupBrowser`の選択・`MediaGrid` | G-B / G-M | GB-03、GB-04、GM-01 |
+| C-GM-01 | 境界 | Group aggregate Media → 共通Media Detail | G-M | GM-01 |
+| C-GM-02 | 境界 | Group Collectionで前後移動 → Detailを閉じてGroupへ復帰 | G-M | GM-02、GM-03 |
+
+### 索引方式の追加評価
+
+- **良かった点**：GroupのStoryが2件しかなくても、仕様と本体routeからCommunityの条件や共通Detail接続を索引化できる。13確認項目に対して、どの根拠から抽出したかを遡れる。
+- **改善余地**：上表では1行に複数Storyや仕様節をまとめている。正式な対象索引では、**Storyはexportごと**、仕様は確認内容を追跡できる節ごと、実装はroute・操作入口ごとに分けて記録する必要がある。これを省略すると「全Storyを列挙した」ことを証明できない。
+- **境界**：索引は網羅性を管理し、詳細台帳は判定を管理する。両者を1つの巨大な表に統合しない。
+- **完了判定**：今回の索引は代表例であり、全Story・全仕様・全実装を照合していないため、P2/P3も全体完了とはしない。
 
 ## v0.2の評価
 
