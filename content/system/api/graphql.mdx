@@ -259,7 +259,7 @@ extend type Query {
   communityUsage(communityId: ID!): CommunityUsage!
 }
 
-UsageはCustodian scopeで集計します。me.usageはUserがCustodianであるPersonal Mediaだけを対象とし、Community管理Mediaを含みません。communityUsageは指定CommunityがCustodianであるMediaだけを対象とし、User管理の共有Mediaや他CommunityのMediaを含みません。いずれも登録が確定したOriginalのみを件数・容量に算入し、Variant等の派生物を除外します。formatBreakdownはJPEG（.jpg / .jpegを統合）、PNG、WebP、HEIF family（.heic / .heifを統合）のOriginal件数・Original byte数を返し、総値と内訳の合計を一致させます。communityUsageは有効なMembershipを持つAdministrator / Memberが閲覧できます。Personal accountと各CommunityのeffectiveLimitBytesはそれぞれ5,000,000,000 bytesで独立し、相互に使用量を共有しません。
+UsageはCustodian scopeで集計します。me.usageはUserがCustodianであるPersonal Mediaだけを対象とし、Community管理Mediaを含みません。communityUsageは指定CommunityがCustodianであるMediaだけを対象とし、User管理の共有Mediaや他CommunityのMediaを含みません。いずれも登録が確定したOriginalのみを件数・容量に算入し、Variant等の派生物を除外します。formatBreakdownはOriginal実内容の検証済みcanonical formatに基づき、JPEG（.jpg / .jpegを統合）、PNG、WebP、HEIF family（.heic / .heifを統合）のOriginal件数・Original byte数を返し、総値と内訳の合計を一致させます。file extensionやClient申告MIMEは分類の正本にしません。communityUsageは有効なMembershipを持つAdministrator / Memberが閲覧できます。Personal accountと各CommunityのeffectiveLimitBytesはそれぞれ5,000,000,000 bytesで独立し、相互に使用量を共有しません。
 
 input RegisterUserInput {
   nickname: String!
