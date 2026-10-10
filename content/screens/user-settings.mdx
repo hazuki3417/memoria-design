@@ -212,7 +212,7 @@ Personal accountのStorage上限は **5 GB**（5,000,000,000 bytes）です。�
 | WebP | .webp |
 | HEIC / HEIF | .heic、.heif |
 
-同じformatの別名拡張子は統合します。JPEGの.jpgと.jpegは一つのJPEG行に、.heicと.heifは一つのHEIC / HEIF行に集計します。各行には登録済みOriginalの件数とOriginal byte数から導出した使用量を表示します。総件数・総使用量はformat別内訳の合計と一致します。
+同じformatの別名拡張子は統合します。JPEGの.jpgと.jpegは一つのJPEG行に、.heicと.heifは一つのHEIC / HEIF行に集計します。format分類はfile extensionやClient申告MIMEではなく、Originalの実内容を検証して確定したcanonical formatを正本とします。表中の拡張子は利用者向けの表示例です。各行には登録済みOriginalの件数とOriginal byte数から導出した使用量を表示します。総件数・総使用量はformat別内訳の合計と一致します。
 
 内訳はMediaの業務分類や操作対象ではなく、Personal Storage Usageの説明情報です。ここからMediaをformat別に一括削除・変換するActionは提供しません。
 
