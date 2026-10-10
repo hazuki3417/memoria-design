@@ -112,11 +112,11 @@ Userによる対応が不要なCommunity関連ステップはFlow条件に従っ
 
 Application ShellのNavigationと、削除Flow内のBack / Next / Cancelを別の責務として扱います。
 
-- Step 1ではBack / CancelをFlow Navigationとして表示せず、前進Actionまたは再試行を提示します。Flowから離れる場合はApplication Navigationを使用します。
-- Step 2以降は必要に応じてBackを提供します。
-- Step 2以降でCancelした場合は削除Flowを終了します。
-- Step 2以降で破棄される選択・入力が存在する状態からApplication Navigationで離脱する場合は、破棄確認を行います。
-- 破棄される状態がない場合は、不要な確認を挟まずApplication Navigationで離脱できます。
+- `/settings/account/delete` は `restricted-flow` の共通ヘッダーを使用し、ハンバーガーメニュー、Context Switcher、Account MenuおよびNavigation Drawerは表示しません。Memoriaタイトル位置は通常のApplication Headerと一致させます。
+- Step間の「戻る」は削除Flow内の前の段階へ戻り、削除手続きの中止とは区別します。
+- 全Stepで画面本文の下部に「削除手続きを中止して設定に戻る」を表示します。中止の遷移先は `/settings/account` です。
+- 中止時に破棄される選択・入力が存在する場合は、既存の中止確認Dialogを表示します。確認を続ける場合はFlowに留まり、破棄を承認した場合のみ設定画面へ戻ります。破棄状態がない場合は確認を挟みません。
+- Step 2以降の既存のCancel Actionは、上記と同じ中止処理へ接続します。
 - Flow内の前進Actionはその段階で削除を実行しない限り「削除」と表記せず、次の確認へ進む意味を表します。
 - 最終的にaccount削除を実行するActionだけを破壊的Actionとして明確に区別します。
 
