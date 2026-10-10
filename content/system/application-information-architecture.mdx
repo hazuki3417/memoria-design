@@ -26,6 +26,7 @@ flowchart LR
     Switcher --> Community["Community context"]
     Community --> CDashboard["Dashboard"]
     Community --> CMedia["Media"]
+    Community --> CUsage["Usage"]
     Community --> CGroups["Groups"]
     Community --> CMembers["Members"]
     Community --> CPreferences["Preferences"]
@@ -63,6 +64,7 @@ Initial Releaseでは次を主要領域とします。
 
 - **Dashboard**: 各Community contextの標準entry。そのCommunityのMediaや活動に関する情報を提示する。最近のMediaと主要機能への入口を提供する。詳細は[Context Dashboard](/screens/context-dashboard)を参照する。
 - **Media**:Communityで閲覧可能なMediaを表示し、権限に応じて直接Upload等を行う。
+- **Usage**: 現在CommunityがCustodianであるMedia OriginalのStorage Usageと登録件数を確認する。Communityの全Active Memberが閲覧できる。詳細は[Community Usage](/screens/community-usage)を参照する。
 - **Groups**: Community内で閲覧可能なMediaをCommunity専用のGroupで整理する。
 - **Members**: 有効なMembershipを持つ参加者とroleを確認する。Administratorには同じ画面でrole変更・除外Actionを追加する。
 - **Preferences**: User × Community scopeの個人設定を扱う。Initial ReleaseではAccent Colorを提供する。
@@ -85,6 +87,7 @@ Initial ReleaseのApplication routeは次を正本とします。Personal contex
 | Personal | Group Browser | `/groups` |
 | Community | Dashboard | `/communities/[communityId]/dashboard` |
 | Community | Media Browser | `/communities/[communityId]/media` |
+| Community | Usage | `/communities/[communityId]/usage` |
 | Community | Media Upload | `/communities/[communityId]/media/upload` |
 | Community | Media Update | `/communities/[communityId]/media/edit` |
 | Community | Group Browser | `/communities/[communityId]/groups` |
@@ -110,7 +113,7 @@ URLを現在のApplication contextの正本とします。`/`は公開入口・R
 
 Context Navigationでは現在contextを維持したまま対応routeへ遷移します。例えばPersonal MediaからGroupsへ移動する場合は `/groups`、Community MediaからGroupsへ移動する場合は `/communities/[communityId]/groups` へ遷移します。
 
-Settings配下のProfile、Preferences、Usage、Accountとaccount削除はApplication contextから独立したUser本人のdestinationです。Community利用中でもPersonalへ切り替えず直接遷移できます。
+Settings配下のProfile、Preferences、Usage、Accountとaccount削除はApplication contextから独立したUser本人のdestinationです。/settings/usageはPersonal accountのUsageだけを表示し、Community Usageは含みません。Community利用中でもPersonalへ切り替えず直接遷移できます。Community Usageは現在のCommunity contextのdestinationとしてContext Navigationから利用します。
 
 ### Media画面内の主要遷移
 
@@ -160,7 +163,7 @@ Context Navigationは、現在contextの中でUserが何を行うかを選択す
 
 Personal contextではDashboard、Media、Groupsを提供します。Tagの付与・解除・絞り込みはMedia内で提供します。
 
-Community contextではDashboard、Media、Groups、Members、Preferences、Settingsを提供します。Membersは全Memberが閲覧でき、role変更・除外等のAdministrator限定Actionは同じDestination内でauthorizationに応じて提供します。PreferencesはUser × Community scopeの個人設定、SettingsはCommunity自体の設定を扱います。Administrator専用のManagement領域は設けず、Navigation hierarchyと各Actionのauthorizationを分離します。
+Community contextではDashboard、Media、Usage、Groups、Members、Preferences、Settingsを提供します。Usageは現在Communityの使用量のみを表示し、有効なMembershipを持つAdministrator / Memberが閲覧できます。Membersは全Memberが閲覧でき、role変更・除外等のAdministrator限定Actionは同じDestination内でauthorizationに応じて提供します。PreferencesはUser × Community scopeの個人設定、SettingsはCommunity自体の設定を扱います。Administrator専用のManagement領域は設けず、Navigation hierarchyと各Actionのauthorizationを分離します。
 
 Contextを切り替えた場合、Dashboard、Media Browser、Groups Browserは選択先contextの対応Destinationへ遷移します。対応画面がないDestinationから切り替える場合は選択先Dashboardへ遷移します。
 

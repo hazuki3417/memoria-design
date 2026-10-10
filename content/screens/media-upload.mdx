@@ -67,11 +67,19 @@ file picker、drag and drop等の具体的な入力presentationは固定しま�
 
 Clientで明らかに判定できる不正なfileはUpload開始前に識別し、他の有効fileまで一律に失敗させません。
 
-ServerはClient validationを信頼せず、file内容、許可形式、size等を再検証します。
+ServerはClient validationを信頼せず、file内容、許可形式、size等を再検証します。Initial Releaseで受け付ける静止画像形式はJPEG（.jpg / .jpeg）、PNG（.png）、WebP（.webp）、HEIC / HEIF（.heic / .heif）です。AVIF、動画、PDF、Office文書、音声単体は対象外です。実fileのsignature / containerを解析し、許可形式として識別でき、画像としてdecode可能であることを正本の受理条件とします。[Media処理と派生物](/media/processing)を参照してください。
 
-許可する画像形式、MIME / file signature validation、file size、pixel count、width / height等の具体的上限は静止画像処理contractで確定します。UI都合や既存実装値からProduct制約を逆算しません。
+1 fileあたりのOriginal size上限は128 MiBです。1回のUploadで選択・実行できるfileは最大100件です。これらのUpload単位制約とStorage quotaは別の制約です。
 
-不正なfileが選択集合に含まれていても、他の有効fileはUpload可能です。Userは問題のあるfileを識別し、対象から外すか、可能な場合は別fileへ置き換えられます。
+### ContextごとのStorage quota
+
+Upload先contextに対して独立した5 GB（5,000,000,000 bytes）の上限を適用します。Personal UploadはUser accountのPersonal Usage、Community Uploadは現在CommunityのUsageだけを消費します。PersonalとCommunity間、および異なるCommunity間で上限・使用量を共有しません。
+
+quotaの使用量は登録が確定したOriginalのbyte数です。Variant等の派生fileは算入しません。Clientは選択fileのOriginal sizeを用いて現在の残容量を案内できますが、最終的な受理可否はServerが登録確定時に再検証します。
+
+選択中のUpload対象が現在のcontextの残容量を超える場合、全体の必要量と残容量を明示し、超過fileを除くか選び直してからUploadを開始できるようにします。選択file全体が残容量内に収まるまではUploadを開始しません。Upload後に登録が確定したOriginalのみをUsageへ反映します。既に登録が確定したOriginalや別Mediaの成功を、容量超過によってrollbackしません。
+
+不正なformat、1 fileあたりのsize超過等はfileごとにvalidation errorとして示します。他の有効fileはUpload可能です。
 
 ## Upload実行
 
@@ -229,7 +237,9 @@ Upload完了を理由にApplication contextを切り替えません。Upload後�
 - UploaderとCustodianを同一概念として扱わない
 - Variant生成完了を同期Upload requestの成功条件にしない
 - 直接Object Storage UploadはInitial Release対象外
-- file形式・size等の具体値は静止画像処理contractを正本とする
+- 許可する静止画像形式はJPEG、PNG、WebP、HEIC / HEIF。具体的な実file判定は静止画像処理contractを正本とする
+- 1 fileあたり最大128 MiB、1回あたり最大100件とする
+- Storage quotaはPersonal account / 各Communityごとに独立した5 GB（5,000,000,000 bytes）とし、登録済みOriginalだけを算入する
 - Client validationをServer validation / authorizationの代替にしない
 
 ## Responsive対応
