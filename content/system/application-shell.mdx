@@ -42,7 +42,7 @@ Web実装の `applicationChrome.tsx` は `authenticated`、`pre-registration`、
 
 ## Viewportとスクロール
 
-Application Shellは表示領域の高さを基準に固定し、Headerをスクロール対象に含めません。画面内容が表示領域を超える場合はHeaderより下のMainコンテンツ領域で縦スクロールを提供し、ブラウザのページ全体を縦スクロールさせません。長いフォームやアカウント削除の各ステップでもこの原則を維持します。Main領域の上端はHeaderの直下、下端はviewportの下端と一致させます。Mantine AppShell.Mainが自動で設定するHeaderオフセットと独自の高さ指定を重複適用しないようにします。Compact / Wideの両方で、Header位置、スクロールバーの上下端、コンテンツ操作への到達性を確認します。
+Application Shellは表示領域の高さを基準に固定し、Headerをスクロール対象に含めません。画面内容が表示領域を超える場合はHeaderより下のMainコンテンツ領域で縦スクロールを提供し、ブラウザのページ全体を縦スクロールさせません。長いフォームやアカウント削除の各ステップでもこの原則を維持します。Main領域はviewportを基準に配置し、上端はHeaderの直下、下端はviewportの下端と一致させます。親要素の高さや追加要素によってスクロール領域の高さが短くならないようにします。Mantine AppShell.Mainが自動で設定するHeaderオフセットと独自の高さ指定を重複適用しないようにします。Compact / Wideの両方で、Header位置、スクロールバーの上下端、コンテンツ操作への到達性を確認します。
 
 ## 画面幅と入力方法
 
