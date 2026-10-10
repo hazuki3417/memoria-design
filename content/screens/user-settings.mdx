@@ -4,7 +4,7 @@
 
 User Settingsは、現在のPersonal / Community contextに依存しないUser本人の設定を扱う画面です。
 
-Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界と、Initial Releaseで確定したPreferences / Usageを定義します。
+Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、AccountをSettings配下とし、参照専用のPersonal UsageはSettingsと同階層の独立したdestinationとして扱います。本ページではSettings全体の境界と、Initial Releaseで確定したPreferences / Usageを定義します。
 
 ## Information Architecture
 
@@ -14,14 +14,13 @@ Settingsは次の領域をそれぞれ独立したURLを持つpageとして扱�
 | --- | --- |
 | Profile | `/settings/profile` |
 | Preferences | `/settings/preferences` |
-| Usage | `/settings/usage` |
 | Account | `/settings/account` |
 
-Settingsは次の領域を持ちます。
+Settingsは次の領域を持ちます。Personal Usageは `/usage` に独立して配置し、Personal / CommunityいずれのcontextからもAccount Menuを通して到達します。旧 `/settings/usage` のRedirectは提供しません。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[設定：プロフィール](/screens/user-settings-profile)を正本とする。
 - **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、Personal Accent Color、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
-- **Usage**: User本人がCustodianであるPersonal Mediaの利用状況を確認する。Initial Releaseではアカウント用5 GB上限、オリジナルfileのStorage Usage、file format別内訳、登録済みオリジナル件数を提供する。Community管理Mediaの使用量は含めず、各Community contextのUsageから確認する。Uploadの入力制約はMedia Uploadの操作contextで提示する。
+- **Personal Usage（Settings外）**: User本人がCustodianであるPersonal Mediaの利用状況を確認する。Initial Releaseではアカウント用5 GB上限、オリジナルfileのStorage Usage、file format別内訳、登録済みオリジナル件数を提供する。Community管理Mediaの使用量は含めず、各Community contextのUsageから確認する。Uploadの入力制約はMedia Uploadの操作contextで提示する。
 - **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
 SettingsはCommunity管理設定とは分離します。Community contextを利用中でもPersonal contextへ切り替えずAccount Menuから直接到達でき、Settings内の値は現在のCommunityによって変化しません。
@@ -189,7 +188,7 @@ Detailを開いたままviewportが変化した場合は、breakpointを跨ぐ�
 
 ### Scope
 
-Settings > Usageは現在のUser accountがCustodianであるPersonal Mediaの利用状況だけを表示します。Community管理MediaやCommunityの使用量は含めません。Personal MediaをCommunityへ共有してもCustodianはUserのままのため、そのOriginalはPersonal Usageだけに計上します。Communityへ直接Uploadされ、CommunityがCustodianとなったOriginalはCommunity Usageだけに計上します。
+Personal Usage（`/usage`）は現在のUser accountがCustodianであるPersonal Mediaの利用状況だけを表示します。Community管理MediaやCommunityの使用量は含めません。Personal MediaをCommunityへ共有してもCustodianはUserのままのため、そのOriginalはPersonal Usageだけに計上します。Communityへ直接Uploadされ、CommunityがCustodianとなったOriginalはCommunity Usageだけに計上します。
 
 Community Usageは現在のCommunity contextに属する別destinationです。具体的な表示・Navigationは[Community Usage](/screens/community-usage)を正本とします。
 
@@ -218,7 +217,7 @@ Personal accountのStorage上限は **5 GB**（5,000,000,000 bytes）です。�
 
 ### Upload制約の扱い
 
-Settings > Usageに1回のUpload可能件数、1 fileあたりの最大size、対応formatの操作制約一覧を常設しません。これらはMedia Uploadの操作contextで提示し、具体的なUpload条件は[Media Upload](/screens/media-upload)と[Media処理と派生物](/media/processing)に従います。
+Personal Usage（`/usage`）に1回のUpload可能件数、1 fileあたりの最大size、対応formatの操作制約一覧を常設しません。これらはMedia Uploadの操作contextで提示し、具体的なUpload条件は[Media Upload](/screens/media-upload)と[Media処理と派生物](/media/processing)に従います。
 
 Upload後に登録が確定したOriginalは、Personal accountまたはCommunityそれぞれのUsageへ反映します。Upload画面での容量超過時の挙動は[Media Upload](/screens/media-upload)に従います。
 
@@ -260,9 +259,10 @@ Settingsの現在sectionはURLを正本とし、Screen Component内部にURLと�
 
 - `/settings/profile` はProfileを表示します。
 - `/settings/preferences` はPreferencesを表示します。
-- `/settings/usage` はUsageを表示します。
 - `/settings/account` はAccountを表示します。
 - `/settings` は `/settings/profile` へRedirectします。
+
+Settings NavigationにUsageを含めません。Personal UsageはAccount Menuから開く独立画面とし、Personal / Communityいずれのcontextからも `/usage` に遷移します。旧 `/settings/usage` へのRedirectは設けません。
 
 WideのSettings side navigationとCompactのsection selectorは、route変更後にURLへ対応するsection内容と選択状態を表示します。Browserの戻る・進む、reload、deep linkでもURLから同じsectionを復元します。
 
