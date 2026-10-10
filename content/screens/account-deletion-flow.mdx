@@ -140,3 +140,5 @@ Application ShellのMainがスクロールコンテナであるため、削除Fl
 ### Auth0 / Backend 未接続時のWeb実装境界
 
 本体WebはAccountDeletionGatewayを介してReview作成、再認証、最終確定を実行します。開発時のMock Gatewayは成功・失敗・キャンセル・期限切れを再現し、同一Reviewへの単回の確定操作と10分間の有効期限を模擬します。Mock Gatewayは実アカウントやデータを削除しません。実GatewayはAuth0再認証およびBackendによるReview・再認証結果の検証が実装されるまでfail-closedとし、削除確定を許可しません。Mockの画面表示は本番で削除済みと誤認させない文言を使います。Mock内の有効期限検証はBackendの認証・認可の代替ではありません。
+
+Mock実行は非本番の本体Web画面に限定し、本番ビルドでは未接続Gatewayを使用してfail-closedとします。再認証結果はStep 4から前のStepへ戻る際にも破棄します。
