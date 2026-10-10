@@ -259,8 +259,6 @@ extend type Query {
   communityUsage(communityId: ID!): CommunityUsage!
 }
 
-UsageはCustodian scopeで集計します。me.usageはUserがCustodianであるPersonal Mediaだけを対象とし、Community管理Mediaを含みません。communityUsageは指定CommunityがCustodianであるMediaだけを対象とし、User管理の共有Mediaや他CommunityのMediaを含みません。いずれも登録が確定したOriginalのみを件数・容量に算入し、Variant等の派生物を除外します。formatBreakdownはOriginal実内容の検証済みcanonical formatに基づき、JPEG（.jpg / .jpegを統合）、PNG、WebP、HEIF family（.heic / .heifを統合）のOriginal件数・Original byte数を返し、総値と内訳の合計を一致させます。file extensionやClient申告MIMEは分類の正本にしません。communityUsageは有効なMembershipを持つAdministrator / Memberが閲覧できます。Initial ReleaseではPersonal accountと各CommunityのeffectiveLimitBytesをそれぞれ5,000,000,000 bytesとし、独立して適用します。
-
 input RegisterUserInput {
   nickname: String!
 }
@@ -298,6 +296,8 @@ extend type Mutation {
 }
 ```
 
+UsageはCustodian scopeで集計します。me.usageはUserがCustodianであるPersonal Mediaだけを対象とし、Community管理Mediaを含みません。communityUsageは指定CommunityがCustodianであるMediaだけを対象とし、User管理の共有Mediaや他CommunityのMediaを含みません。いずれも登録が確定したOriginalのみを件数・容量に算入し、Variant等の派生物を除外します。formatBreakdownはOriginal実内容の検証済みcanonical formatに基づき、JPEG（.jpg / .jpegを統合）、PNG、WebP、HEIF family（.heic / .heifを統合）のOriginal件数・Original byte数を返し、総値と内訳の合計を一致させます。file extensionやClient申告MIMEは分類の正本にしません。communityUsageは有効なMembershipを持つAdministrator / Memberが閲覧できます。Initial ReleaseではPersonal accountと各CommunityのeffectiveLimitBytesをそれぞれ5,000,000,000 bytesとし、独立して適用します。
+
 `me` はUser自体をnullableとし、Access Tokenが有効でMemoria Userが未登録の場合は `null` を返します。Userはissuer・subject、email、内部状態を公開しません。DELETING Userは通常Product操作と同様に拒否します。
 
 `registerUser` はAccess Tokenから認証主体を確定し、Clientからissuer・subjectを受け取りません。登録済み主体による再登録は `CONFLICT` です。
@@ -308,7 +308,7 @@ extend type Mutation {
 
 `updateUserPreferences` は複数のaccount同期Preferenceを1つのモデル更新I/Fとして部分更新します。Inputは少なくとも1 fieldを指定し、未指定fieldは現在値を維持します。明示的な `null` は設定値として受理せず `VALIDATION` とします。Personal Accentは `#RRGGBB` を受理し、他のPreferenceと同様に成功時の保存済み `UserPreferences` を返します。連続する即時保存はWebがrequestを直列化し、保存中の変更を必要に応じてcoalesceして最新のUser intentを次requestとして送ります。APIにPreference versionやClient sequenceを追加せず、各Mutationは受信時の入力をatomicに保存します。
 
-`User.usage` はUser Settings > Usageで必要な現在の総Media件数とStorage Usageを返します。Storageは現在使用中のbyte数と、その時点でUserへ適用されているeffective limitを返し、Plan / Quota等の算出モデルをGraphQL契約へ露出しません。使用率・残容量・表示単位への変換はWebで導出します。累積Storage値は32-bit `Int` の範囲を超え得るため、既存APIに存在する `Int64` を使用します。JavaScriptのsafe integer境界へ依存しないよう、GraphQL responseでは符号付き64-bit整数を10進文字列としてserializeし、Inputへ将来使用する場合も同じ10進文字列表現を受理します。Webは生成型上もnumberとして扱わず、表示・計算時にBigInt等の安全な表現へ変換します。
+`User.usage`はUser Settings > Usageで必要なPersonal Mediaの登録済みOriginal件数、Storage使用byte数、有効上限、file format別内訳を返します。Community管理Mediaは含めません。`communityUsage(communityId)`は有効なMembershipを持つAdministrator / Memberが閲覧でき、指定CommunityがCustodianである登録済みOriginalだけを返します。共有されたUser Custodian MediaはCommunity Usageに含めません。各内訳はJPEG、PNG、WebP、HEIC / HEIFのOriginal件数・byte数を返し、.jpg / .jpegと.heic / .heifはそれぞれ統合します。各対応formatの行を常に返し、件数・容量0も明示します。Initial Releaseでは5 GB（5,000,000,000 bytes）の上限をUser accountごと・各Communityごとに独立適用し、effectiveLimitBytesとして返します。Plan / Quota等の算出モデルはGraphQL契約へ露出しません。使用率・残容量・表示単位への変換はWebで導出します。累積Storage値は32-bit `Int` の範囲を超え得るため、`Int64`を使用し、GraphQL responseでは符号付き64-bit整数を10進文字列としてserializeします。Webは生成型上もnumberとして扱わず、表示・計算時にBigInt等の安全な表現へ変換します。
 
 ## Community
 
@@ -1117,7 +1117,8 @@ Auth0再認証成功だけでは削除operationを開始しません。BFF callb
 | `registerUser` | 未登録認証主体 | ACTIVE User作成 |
 | `updateUserProfile` | ACTIVE User本人 | nickname更新 |
 | `User.preferences` / `updateUserPreferences` | ACTIVE User本人 | account同期Preference取得・部分更新 |
-| `User.usage` | ACTIVE User本人 | Media件数・Storage Usage取得 |
+| `User.usage` | ACTIVE User本人 | Personal Mediaの登録済みOriginal件数・Storage Usage・format別内訳取得 |
+| `communityUsage` | ACTIVE Member / Admin | 指定Communityの登録済みOriginal件数・Storage Usage・format別内訳取得 |
 | `myCommunities` | ACTIVE User | 自身のMembership一覧 |
 | `community` / `Community.members` | Member / Admin | Community内部情報取得 |
 | `createCommunity` | ACTIVE User | Community + admin Membership作成 |
@@ -1212,6 +1213,6 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 14. **Community Accent lifecycle（確定）**: AccentはUser × Community settingとして `Community.mySettings` から取得する。Membership作成と同一transactionで初期生成し、退会・除外時に削除する。再参加時は過去値を復元せず新規生成する。
 15. **即時保存ordering（確定）**: Accent / Preferenceの連続変更はWebがrequestを直列化し、保存中の変更をcoalesceして最新意図を次requestへ送る。APIへClient sequence / versionを追加しない。
 16. **Media Update / UploadのTag保存（確定）**: 画面専用の最終Tag集合Mutationは追加せず、Tag作成とTag分類CommandをWeb Operationが編成する。各Mutationは独立transactionとし、部分失敗後はServerの成立済み状態を再取得して差分を再評価する。
-17. **Usage契約（確定）**: APIは総Media件数、Storage使用byte数、その時点のeffective limitを返す。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値は既存 `Int64` scalarを使用し、wire上は10進文字列としてserializeする。
+17. **Usage契約（更新）**: `User.usage`はUser Custody Media、`communityUsage`は指定Community Custody Mediaの登録済みOriginalだけを集計する。Initial Releaseでは5 GB（5,000,000,000 bytes）の上限をUser accountごと・各Communityごとに独立適用する。APIは総Original件数、Original使用byte数、effective limit、JPEG / PNG / WebP / HEIC・HEIFのformat別件数・byte数を返す。派生Variantは算入しない。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値は既存 `Int64` scalarを使用し、wire上は10進文字列としてserializeする。
 
 これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。上記項目はInitial ReleaseのTransport contractとして確定済みです。専用HTTP upload endpointのroute / multipart形式など、GraphQL外のtransport詳細はSystem-wide detailed designで引き渡します。
