@@ -20,7 +20,7 @@ Application Shellは、画面を横断する共通ヘッダー、利用範囲の
 
 一部の画面では、Application Shellを利用していてもサイドメニューの開閉や利用範囲の切り替えを提供しません。これらの操作を常に表示・利用可能にすることを共通仕様とはしません。画面ごとに提供しない操作とその理由を明示し、実装・Storybookで意図せず復活させないようにします。
 
-現在のWeb実装には `applicationChrome.tsx` に `authenticated` と `pre-registration` の表示区分があり、`pre-registration` ではナビゲーション、利用範囲切り替え、アカウントメニューを表示しない定義があります。ただし、どの画面が各区分を使用するか、ほかの例外画面があるかは別途確認が必要です。
+Web実装の `applicationChrome.tsx` は `authenticated`、`pre-registration`、`restricted-flow` の表示区分を持ちます。`pre-registration`（`/register`）と `restricted-flow`（`/settings/account/delete`）では、ナビゲーション、利用範囲切り替え、アカウントメニューを表示しません。共通のApplication Headerを使用し、非表示のナビゲーションTriggerの領域を確保してMemoriaタイトル位置を通常画面と一致させます。`restricted-flow` ではNavigation Drawerも提供しません。削除画面の離脱は画面内の明示的な中止操作で行います。ほかの例外画面は個別に検討します。
 
 ## 現在のPrototypeで確認できる状態と操作
 
@@ -62,7 +62,7 @@ E2Eテストでは、利用範囲の切り替えによるURL変更、遷移先�
 
 次の事項は現行Prototypeだけでは決定できないため、現時点で仕様として確定しません。
 
-- 共通操作を提供しない画面の網羅的な一覧と、画面ごとの制限理由
+- 上記以外で共通操作を提供しない画面の一覧と、画面ごとの制限理由
 - 利用範囲の切り替え時の未保存情報の保持と、実際のURL遷移の実装方法
 - 権限喪失、利用範囲の取得失敗、対象消失時の表示と復旧
 - 設定画面、ログアウト、Community作成への接続
