@@ -32,9 +32,10 @@ flowchart LR
     Community --> CPreferences["Preferences"]
     Community --> CSettings["Settings"]
     Account["Account Menu"] --> Settings["Settings"]
+    Account --> Usage["Personal Usage"]
     Settings --> Profile["Profile"]
     Settings --> Preferences["Preferences"]
-    Settings --> Usage["Usage"]
+    Account --> Usage["Personal Usage"]
     Settings --> AccountSettings["Account"]
     AccountSettings --> Deletion["account削除Flow"]
     Account --> Logout["logout"]
@@ -98,7 +99,7 @@ Initial ReleaseのApplication routeは次を正本とします。Personal contex
 | Context非依存 | Settings入口 | `/settings` → `/settings/profile` |
 | Context非依存 | Profile | `/settings/profile` |
 | Context非依存 | Preferences | `/settings/preferences` |
-| Context非依存 | Usage | `/settings/usage` |
+| Context非依存 | Personal Usage | `/usage` |
 | Context非依存 | Account | `/settings/account` |
 | Context非依存 | Account Deletion | `/settings/account/delete` |
 | 登録Flow | User Registration | `/register` |
@@ -113,7 +114,7 @@ URLを現在のApplication contextの正本とします。`/`は公開入口・R
 
 Context Navigationでは現在contextを維持したまま対応routeへ遷移します。例えばPersonal MediaからGroupsへ移動する場合は `/groups`、Community MediaからGroupsへ移動する場合は `/communities/[communityId]/groups` へ遷移します。
 
-Settings配下のProfile、Preferences、Usage、Accountとaccount削除はApplication contextから独立したUser本人のdestinationです。/settings/usageはPersonal accountのUsageだけを表示し、Community Usageは含みません。Community利用中でもPersonalへ切り替えず直接遷移できます。Community Usageは現在のCommunity contextのdestinationとしてContext Navigationから利用します。
+Settings配下のProfile、Preferences、Accountとaccount削除、および独立したPersonal UsageはApplication contextから独立したUser本人のdestinationです。/usageはPersonal accountのUsageだけを表示し、Community Usageは含みません。Community利用中でもPersonalへ切り替えず直接遷移できます。Community Usageは現在のCommunity contextのdestinationとしてContext Navigationから利用します。
 
 ### Media画面内の主要遷移
 
@@ -184,7 +185,7 @@ Initial Releaseでは少なくとも次への入口を持ちます。
 - Settings
 - logout
 
-Profile、Preferences、Usage、account lifecycleに関する操作はSettingsへ集約し、Account Menuに個別の入口を重複して設けません。Account Menuを利用するためにPersonal contextへ切り替える必要はなく、Community contextを利用中でもSettingsへ直接移動できます。
+Profile、Preferences、account lifecycleに関する操作はSettingsへ集約します。参照専用のPersonal UsageはSettingsと同階層の `/usage` に配置し、Account Menuから直接アクセスします。Account Menuを利用するためにPersonal contextへ切り替える必要はなく、Community contextを利用中でもSettingsへ直接移動できます。
 
 Settingsの具体的な仕様は[User Settings](/screens/user-settings)、Profileは[User Profile](/screens/user-profile)、account削除は[Account Deletion Flow](/screens/account-deletion-flow)を参照します。
 
