@@ -126,6 +126,10 @@ Flow冒頭の説明は「アカウントを削除した場合の影響と、削�
 
 各Stepのlabelは、その段階でUserが理解・判断する対象を短く表し、内部処理や実装上の状態名をそのままUser-facing labelにしません。不可逆な結果、削除対象、Communityへの影響等、意思決定に必要な説明は省略しません。
 
+### Stepperのスクロール追従
+
+Application ShellのMainがスクロールコンテナであるため、削除FlowのStepperはMain内の上端（`sticky top: 0`）へ追従させます。Headerの高さ40pxをStepper側で再加算しません。これによりスクロール時にはStepperがHeader直下へ接する配置を維持します。本体WebとVisual Prototypeで同じ位置関係とします。
+
 ### Responsive Behavior
 
 表示領域が変わっても、現在の段階、残る確認、前進・後退・中止の意味を理解できることを維持します。CompactでWideと同じStepper presentationを維持することは要求せず、現在位置とFlow全体の関係を理解できる適切な表現へ変更できます。
