@@ -1,0 +1,41 @@
+# Visual Prototype実装ガイド
+
+## 目的と位置付け
+
+この文書は、Visual PrototypeをStorybook上で実装・確認するときに必要となる実装上の規則を定めます。Storybookの実行環境やAPI未接続のために必要となる表現方法を扱い、Memoriaの製品仕様は定義しません。
+
+製品として利用者へ保証する情報、操作、状態、Navigationの意味は、対象Screen SpecificationとDesign Systemを正本とします。画面構成やVisual Reviewの判断は[Frontend UI設計・開発方針](/system/frontend-ui-development)に従います。本ガイドは、Prototypeと本体の実装を接続する方法およびStorybook固有の表現を所有します。
+
+## 共通原則
+
+- StorybookとWeb本体では、画面の表示・操作を担うUI Componentを可能な範囲で共有します。
+- Storybook用のfixture、操作代替、画面内の状態切替はPrototype側のcompositionやadapterで提供します。本体用ModuleからStorybook用adapterやfixtureへ依存させません。
+- Storybook上の表現方法が本体と異なっても、Screen Specificationが定める利用者向けの意味や本体の実際の振る舞いを変更する理由にはしません。
+- Storybookを利用するための配置やModule境界は、memoria-webの最新の[Frontend実装規約](/system/web/implementation-conventions)とrepository内の規則に従います。過去のPrototype用Directory構成を新規実装へそのまま適用しません。
+
+## Storybookでの画面遷移
+
+Screen Specificationが定める遷移先、操作の意味、遷移後に利用者が得る画面は本体で実装します。Storybookでは、その操作によってStoryの外や無関係なApplication routeへ移動してしまう場合、Story内に留まる表現を選びます。
+
+- Story内のSection切替は、Storybook専用のlocal stateまたは操作adapterで表現できます。
+- 操作部品、選択状態、表示内容は、可能な範囲でScreen Specificationの利用者向けContractに沿わせます。
+- Storybookでlocal stateを使うことを理由に、本体のroute、browser history、deep linkの要件を省略・変更しません。
+- 実URL変更、browser history、直接アクセス、遷移先データの結合は、本体の実装と適切なIntegration / E2E検証で確認します。StorybookとVRTでは、StoryのCanvas内で表示と操作状態を確認します。
+
+このガイドに沿ってStory内に留める実装は、製品仕様・本体実装の不一致ではありません。整合性確認では、Storybook側の表現と本体側のroute実装をそれぞれの責務で確認します。
+
+## API未接続時のサンプルデータ
+
+StorybookでAPIの実データを利用できない場合は、Story専用のfixtureを使います。fixtureは表示・操作を検討するためのサンプルであり、製品の固定初期値や実在Userの値を意味しません。
+
+- fixtureやモック値は、MOCK_PROFILE、profileFixtureなど、名前からサンプルであると識別できるようにします。Storyのdescriptionまたはfixtureの近くにも、その値がどの状態を表す例かを記録できます。
+- fixtureは実在する個人情報を含めず、再現性のため決定的な値を使います。randomな値や現在時刻に依存する値を避けます。
+- APIの成功・失敗、保存中、再試行等を再現する処理はStory用adapterで与え、本体のUI Componentへ固定値やStory専用状態を埋め込みません。
+- Productの初期値や固定値は、Screen Specification、Domain設計、API Contract等の正本で定義します。Story fixtureから製品仕様を推測しません。
+- fixtureであることを利用者向け画面に表示する必要はありません。Sample表示が製品要件に見えるおそれがある場合は、Storybookの説明やコード上の命名で区別します。
+
+## 整合性確認での扱い
+
+本ガイドが許容するStorybook上の表現差は、製品の振る舞いに関する差異とは別に扱います。画面遷移については本体のrouteとStory内の表現を、データについてはfixtureと本体のデータ接続を分けて照合します。
+
+Storybook用の表現が利用者向けの情報、操作、状態の意味を変えている場合、本体のContractが欠けている場合、またはガイドの適用条件を満たさない場合は、通常の不一致または未定義として扱います。整合性確認の分類と報告は[アジャイル開発とイテレーション運用](/development-process#整合性確認の二層構造)に従います。

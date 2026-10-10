@@ -230,6 +230,7 @@ flowchart TD
     P -- "不一致" --> R["原因・Owner・正しい意図を確認"]
     P -- "未定義" --> R
     P -- "意図的差異" --> S["理由とContractを確認"]
+    P -- "ガイドライン上のPrototype表現差" --> S["適用ガイドとProduct Contractを確認"]
     P -- "Deferred" --> T["Revisit conditionと追跡先を確認"]
 
     R --> U{"重要な設計判断が必要か"}
@@ -259,6 +260,7 @@ Taskの完了判断では、少なくとも次を確認します。
 2. 変更によって意味・責務・contractが変わるconsumerや依存成果物を確認している
 3. 実装・Prototype・test等から得た新しい知見を、必要な上流Source of Truthへ反映している
 4. 意図的に差異を残す場合、その理由、owner、Revisit conditionまたは追跡Issueを確認できる
+5. Storybook固有の表現差は[Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)に沿うことを確認し、仕様・本体実装の未処理差異と分けて記録する
 
 ### 全体整合性監査
 
@@ -275,7 +277,9 @@ Taskの完了判断では、少なくとも次を確認します。
 - 成果統合時の整合性確認や通常Taskで、局所的な差異では説明できないdriftが見つかったとき
 - 複数Iterationを通じた変更蓄積を見直す必要があると判断したとき
 
-監査結果は少なくとも**一致 / 不一致 / 未定義 / 意図的差異 / Deferred**を区別します。不一致を発見しても、設計、実装、Guideline等のどれかを階層だけで機械的に正しいものとして更新しません。Owner Document、actual behavior、現在のProduct Goalを確認し、重要な判断は人間との合意後に正本へ反映します。現在解消しない項目はIssueで追跡します。
+監査結果は少なくとも**一致 / 不一致 / 未定義 / 意図的差異 / ガイドライン上のPrototype表現差 / Deferred / 未確認**を区別します。不一致を発見しても、設計、実装、Guideline等のどれかを階層だけで機械的に正しいものとして更新しません。Owner Document、actual behavior、現在のProduct Goalを確認し、重要な判断は人間との合意後に正本へ反映します。現在解消しない項目はIssueで追跡します。
+
+[Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)に定めるStorybook固有の表現差は、製品仕様・本体実装の不一致へ数えません。適用ガイドと本体のContractを確認できた場合は「ガイドライン上のPrototype表現差」として確認済みにし、未処理差異の件数から除外します。根拠が確認できない場合はこの扱いにせず、通常の不一致または未確認として記録します。
 
 全体整合性監査は通常Taskの整合性責任を置き換えません。「後で全体整合性監査を行う」ことを理由に、変更時に判明している差異を放置しません。
 
@@ -411,13 +415,13 @@ Reactに依存しない処理は、不要にcustom hookへ包まずpure function
 
 UI Componentへ含める見た目は、そのComponent自身の意味、状態、interactionを表現する装飾に限定します。区切り線、外側の余白、隣接要素との位置関係等、親layoutや他Componentとの関係によって成立する装飾は子Componentへ内包せず、Composition Rootまたはlayoutを所有する親Componentの責務として扱います。StorybookではComponent単体の責務が確認できる状態を基本とし、親layout由来の装飾を単体Storyへ持ち込みません。
 
-一方、固定fixture、Storybookのreview state、API成功・失敗の模倣、Prototypeだけの画面遷移等はPrototype adapter側へ残し、本体利用可能なmoduleへ混在させません。Prototypeはこれらのadapterから本体利用可能なComponent、hook、pure function、configurationへ入力を与える構造にします。
+固定fixture、Storybookのreview state、API成功・失敗の模倣、Prototype内の画面切替等、Storybook固有の実装規則は[Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)を正本とします。
 
 Application Shellのような横断UIは、Navigation、Context Switcher、Account Menu等の具体的な子要素をShell本体へ固定せず、呼び出し側をComposition Rootとして注入・配置できる構造を基本とします。利用状態によってChrome要素の表示可否が変わる場合は、Shell自身へ画面固有の分岐を埋め込まず、React非依存の表示Policyを正本とし、必要に応じて軽量なwrapper Componentから利用します。これにより本体layoutは必要な部品を直接構成し、PrototypeはPrototype adapterで標準構成を再利用できます。
 
 表示Policyのwrapperはstateやeffectを持たず、表示対象外ではDOMを生成しない単純な境界とします。大量描画されるComponentと同様の先行最適化は行わず、性能上の問題が実測された場合はpure functionを直接利用する等、Compositionを維持したまま最適化できる構造を保ちます。
 
-Web frontendでは、本体利用可能なUI ComponentとVisual Prototypeの所在を分離します。本体利用可能なComponentは`src/components`、Visual PrototypeおよびPrototype専用adapterは`src/prototypes`へ配置します。依存方向は`src/prototypes`から`src/components`を基本とし、本体ComponentからPrototype moduleへ依存させません。Prototype専用の共通compositionも`src/components`へ置かず、`src/prototypes`内で共有します。
+Prototypeと本体のModule境界、配置、依存方向は[Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)およびmemoria-webの最新Frontend実装規約を正本とし、ここでは重複定義しません。
 
 分離そのものを目的にはしません。独立した仕様・変更理由・test価値を持たない細かなJSXやlogicまで機械的に分割し、追跡costを増やすことは避けます。
 
