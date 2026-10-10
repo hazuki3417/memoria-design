@@ -106,7 +106,7 @@ Group Browserの選択中Groupも同様に画面内Interaction stateとし、Gro
 
 ### Contextとrouteの対応
 
-URLを現在のApplication contextの正本とします。`/`は公開入口・Redirect専用とし、認証済みの場合はPersonal Dashboardの`/dashboard`へServer Redirectします。Personal routeからCommunity route、またはCommunity間でContext Switcherを操作した場合は、Initial Releaseでは選択先contextのDashboardへ遷移します。同名sectionを暗黙に引き継ぎません。
+URLを現在のApplication contextの正本とします。`/`は公開入口・Redirect専用とし、認証済みの場合はPersonal Dashboardの`/dashboard`へServer Redirectします。Context Switcherでは、現在のDestinationが選択先contextにも存在する場合、その対応画面へ遷移します。Initial ReleaseではDashboard、Media Browser、Groups Browserを共通Destinationとします。それ以外のDestinationに対応画面がない場合は選択先contextのDashboardへ遷移します。切り替え前context固有のMediaやGroupの識別子、画面内の選択・絞り込み状態は引き継ぎません。
 
 Context Navigationでは現在contextを維持したまま対応routeへ遷移します。例えばPersonal MediaからGroupsへ移動する場合は `/groups`、Community MediaからGroupsへ移動する場合は `/communities/[communityId]/groups` へ遷移します。
 
@@ -150,7 +150,7 @@ Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communi
 
 - Community一覧の読み込み中は現在contextの表示を維持し、Switcher内で読み込み中であることを伝えます。取得失敗は空一覧と混同せず、再試行を提供します。
 - 参加Communityがない場合もPersonalとACTIVE User向けCommunity作成の入口を維持します。
-- Context選択時は対象Dashboardへ遷移します。切り替え処理中は重複操作を防ぎ、遷移先の取得に失敗した場合はエラーを表示し、現在の利用可能なcontextを維持します。
+- Context選択時は上記のDestination対応規則に従って遷移します。切り替え処理中は重複操作を防ぎ、遷移先の取得に失敗した場合はエラーを表示し、現在の利用可能なcontextを維持します。
 - URLを現在contextの正本とし、Switcher独自の永続的な選択状態を持ちません。Browserの戻る・進むと直接アクセス時にもURLから現在contextを復元します。
 - Membership喪失・存在しないURL・閲覧不可・回復不能な取得失敗は、個別の専用画面を設けず共通エラー表示を使用します。APIの公開エラーコードによる内部処理の区別は維持します。認証Session失効時は従来どおりログインへ誘導します。
 
@@ -162,7 +162,7 @@ Personal contextではDashboard、Media、Groupsを提供します。Tagの付�
 
 Community contextではDashboard、Media、Groups、Members、Preferences、Settingsを提供します。Membersは全Memberが閲覧でき、role変更・除外等のAdministrator限定Actionは同じDestination内でauthorizationに応じて提供します。PreferencesはUser × Community scopeの個人設定、SettingsはCommunity自体の設定を扱います。Administrator専用のManagement領域は設けず、Navigation hierarchyと各Actionのauthorizationを分離します。
 
-Contextを切り替えた場合、移動先contextのDashboardへ進むことを基本とします。異なるcontext間で同名のGroupや同等のsub-pageを暗黙に対応付けて遷移しません。
+Contextを切り替えた場合、Dashboard、Media Browser、Groups Browserは選択先contextの対応Destinationへ遷移します。対応画面がないDestinationから切り替える場合は選択先Dashboardへ遷移します。
 
 ### 目的に応じたNavigation原則
 
@@ -199,13 +199,13 @@ Personal contextの標準entryはDashboardです。
 
 ### Community
 
-各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Communityの切り替え後は対象CommunityのDashboardへ移動し、URLから対象Communityを識別できるようにします。Community DashboardのURLは`/communities/[communityId]/dashboard`です。Dashboardの情報構成は[Context Dashboard](/screens/context-dashboard)で定義します。
+各Community contextの標準entryは、そのCommunity固有のDashboardです。Personalと各CommunityのDashboardは同一の共通Dashboardではありません。Context SwitcherでDashboardから切り替えた場合は対象CommunityのDashboardへ移動し、Media BrowserまたはGroups Browserから切り替えた場合は対応するCommunity画面へ移動します。Community DashboardのURLは`/communities/[communityId]/dashboard`です。Dashboardの情報構成は[Context Dashboard](/screens/context-dashboard)で定義します。
 
 ## DashboardとContextの関係
 
 - Dashboardは現在contextの主要領域の一つであり、Context SwitcherはDashboard内の表示filterではなくApplicationの操作対象そのものを切り替えます。
 - Personal Dashboardと各Community DashboardをInitial Releaseの画面構成に含め、双方に最近のMediaを最大12件と主要機能への入口を提供します。DashboardにUpload入口は設けず、各ContextのMedia画面からUploadを開始します。Media件数等の統計と活動履歴は後続リリースで検討します。詳細は[Context Dashboard](/screens/context-dashboard)を参照します。
-- Context切り替え時は前のcontextの同名画面や直前画面を復元せず、移動先のDashboardへ進みます。最近利用したcontextの自動復元はInitial Releaseの必須機能ではありません。
+- Context切り替え時は共通Destinationの画面種別を維持します。選択先contextに対応画面がない場合はDashboardへ進みます。最近利用したcontextの自動復元はInitial Releaseの必須機能ではありません。
 - DashboardからMediaへ到達できるようにしますが、Dashboardの導入を理由にMediaの閲覧・Upload・分類をDashboardへ統合しません。
 
 ## Navigationと権限
