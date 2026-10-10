@@ -21,7 +21,7 @@ Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[設定：プロフィール](/screens/user-settings-profile)を正本とする。
 - **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、Personal Accent Color、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
-- **Usage**: User本人の利用状況に関する情報を確認する。Initial ReleaseではStorage Usageと総Media件数を提供する。Upload制約一覧はUsageへ常設せず、User input制約のSystem方針に従って各Capabilityの操作contextで必要に応じて提示する。
+- **Usage**: User本人がCustodianであるPersonal Mediaの利用状況を確認する。Initial Releaseではアカウント用5 GB上限、オリジナルfileのStorage Usage、file format別内訳、登録済みオリジナル件数を提供する。Community管理Mediaの使用量は含めず、各Community contextのUsageから確認する。Uploadの入力制約はMedia Uploadの操作contextで提示する。
 - **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
 SettingsはCommunity管理設定とは分離します。Community contextを利用中でもPersonal contextへ切り替えずAccount Menuから直接到達でき、Settings内の値は現在のCommunityによって変化しません。
@@ -187,31 +187,40 @@ Detailを開いたままviewportが変化した場合は、breakpointを跨ぐ�
 
 ## Usage
 
+### Scope
+
+Settings > Usageは現在のUser accountがCustodianであるPersonal Mediaの利用状況だけを表示します。Community管理MediaやCommunityの使用量は含めません。Personal MediaをCommunityへ共有してもCustodianはUserのままのため、そのOriginalはPersonal Usageだけに計上します。Communityへ直接Uploadされ、CommunityがCustodianとなったOriginalはCommunity Usageだけに計上します。
+
+Community Usageは現在のCommunity contextに属する別destinationです。具体的な表示・Navigationは[Community Usage](/screens/community-usage)を正本とします。
+
 ### Storage Usage
 
-Initial Releaseでは、Userが現在のStorage消費状況と利用可能な残量を判断できるようにStorage Usageを提供します。少なくとも現在の使用中容量、現在適用されている上限容量、および両者の関係が分かる使用率または残容量を提示します。
+Personal accountのStorage上限は **5 GB**（5,000,000,000 bytes）です。これは各User accountに個別適用され、Communityの上限と連動しません。各Communityには別途5 GBの独立した上限を適用します。上限値はProduct policyとして固定し、画面上では現在適用中の上限、使用量、残容量または使用率を提示します。
 
-Storage上限をどのProduct概念・契約・Plan等から決定するかは本Screen Specificationでは定義しません。Usageは、その時点でUserへ適用されている有効な上限を表示する責務を持ちます。具体的な上限値もScreen Specificationへ固定しません。
+容量・件数に算入するのは、Media登録が確定したOriginal fileだけです。表示用Variant等の派生file、処理中間データ、未登録・未確定のUploadは含めません。Media登録後に派生fileのProcessingが失敗しても、登録済みOriginalは使用量・件数に含みます。
 
-容量表示にはPreferencesで選択したファイルサイズ単位を適用します。割合や残量のpresentationは、Userが現在の消費状況と残りの利用可能量を誤解なく把握できることを優先します。
+容量表示はPreferencesのファイルサイズ単位に従います。Initial Releaseの初期設定はDecimalのため、通常はGB表記です。Binaryを選択した場合は同じbyte数をMiB / GiB等で表示し、上限の実体は5,000,000,000 bytesのままです。
 
-Storage UsageはGraphQLの`User.usage.storage`から`usedBytes`と`effectiveLimitBytes`を取得し、割合・残量・表示単位はWebで導出します。Plan / Quota等の内部算出modelは画面へ公開しません。
+### File format別内訳
+
+使用量と登録件数の両方を、利用者が意味を理解しやすいOriginalのformat単位で表示します。
+
+| 表示分類 | 含める拡張子 |
+| --- | --- |
+| JPEG | .jpg、.jpeg |
+| PNG | .png |
+| WebP | .webp |
+| HEIC / HEIF | .heic、.heif |
+
+同じformatの別名拡張子は統合します。JPEGの.jpgと.jpegは一つのJPEG行に、.heicと.heifは一つのHEIC / HEIF行に集計します。各行には登録済みOriginalの件数とOriginal byte数から導出した使用量を表示します。総件数・総使用量はformat別内訳の合計と一致します。
+
+内訳はMediaの業務分類や操作対象ではなく、Personal Storage Usageの説明情報です。ここからMediaをformat別に一括削除・変換するActionは提供しません。
 
 ### Upload制約の扱い
 
-Initial ReleaseのSettings > Usageには、1回のUpload可能件数、1 Mediaあたりの最大file size、対応file format等のUpload制約一覧を常設しません。これらは利用状況そのものではなくUser inputの受理条件であり、具体値や提示方法はMedia Upload Capability側で設計します。
+Settings > Usageに1回のUpload可能件数、1 fileあたりの最大size、対応formatの操作制約一覧を常設しません。これらはMedia Uploadの操作contextで提示し、具体的なUpload条件は[Media Upload](/screens/media-upload)と[Media処理と派生物](/media/processing)に従います。
 
-Upload制約はUIへhard-codeせず、System全体のUser input制約方針に従ってMedia Domain / APIを正本とします。Userが事前に知ることで失敗を避けられる制約はUploadの操作contextで必要に応じて提示し、制約違反時は修正可能なvalidation feedbackを提供します。
-
-### Media Usage
-
-Initial Releaseでは、User本人の利用規模を把握できる指標として総Media件数を表示します。Storage使用量とは別の利用状況指標として扱います。
-
-JPEG / PNG等のfile format別の件数・容量内訳はInitial Releaseでは表示しません。現在のProductではformat別内訳から直接つながる整理・変換・削除等のUser Actionを定義しておらず、利用状況の把握に必要な情報を超えて複雑性を増やすためです。
-
-将来、Storage消費要因の分析等のProduct needが確認された場合は、Media type別、file format別等の分析軸をその時点のMedia Capabilityに合わせて再設計します。Media typeとfile formatを同一概念として扱いません。
-
-総Media件数はGraphQLの`User.usage.mediaCount`を正本として取得します。画面側でMedia一覧を全件取得して件数を再計算しません。
+Upload後に登録が確定したOriginalは、Personal accountまたはCommunityそれぞれのUsageへ反映します。Upload画面での容量超過時の挙動は[Media Upload](/screens/media-upload)に従います。
 
 ## Accessibility / Design System
 
