@@ -28,13 +28,15 @@ Application Shellは、画面を横断する共通ヘッダー、利用範囲の
 | --- | --- | --- |
 | 利用範囲 | Personalと2つのCommunityを切り替えられる | 実データの取得、利用可能な範囲の判定 |
 | ナビゲーション | 開閉し、現在の利用範囲に応じた項目を選択できる | 実際のURL遷移、画面データの読み込み |
-| 利用範囲の変更 | 選択先のDashboardへ移動し、ナビゲーションは閉じる | 遷移途中の未保存データ、切り替え失敗時の扱い |
+| 利用範囲の変更 | 共通Destination（Dashboard、Media Browser、Groups Browser）は選択先contextの対応画面へ移動し、それ以外は選択先Dashboardへ移動する。ナビゲーションは閉じる | 遷移途中の未保存データ、切り替え失敗時の扱い |
 | アカウント操作 | メニューを表示するための共通部品を使用する | 設定画面への遷移、ログアウト処理 |
 | Community作成 | 操作を受け取るための接続点がある | 実際の作成画面への遷移と作成処理 |
 
 ## 利用範囲を切り替えた際の遷移規則
 
-利用範囲を切り替える際は、選択先contextのDashboardへ遷移します。PersonalからCommunity、CommunityからPersonal、Community間の切り替えはいずれも同じ規則に従います。切り替え先に同名のページが存在しても、現在のページ種別は引き継ぎません。遷移先URLとcontextの対応は[Application Information Architecture](/system/application-information-architecture)を正本とします。
+利用範囲を切り替える際は、現在のDestinationが選択先contextにも存在する場合、その対応画面へ遷移します。Initial ReleaseではDashboard、Media Browser、Groups Browserを共通Destinationとします。例えばPersonalの`/media`からCommunityへ切り替えると、選択先Communityの`/communities/[communityId]/media`へ移動します。対応画面がない場合は選択先contextのDashboardへ遷移します。遷移先URLとcontextの対応は[Application Information Architecture](/system/application-information-architecture)を正本とします。
+
+切り替え時に引き継ぐのはDestination種別です。切り替え前context固有のMediaやGroupの識別子、画面内の選択・絞り込み状態を同一のものとして引き継ぎません。未保存入力の扱いと切り替え失敗時の復旧は未確定のままとします。
 
 ページ種別を維持することは、切り替え前の利用範囲に属する個別のメディアやグループの識別子まで引き継ぐことを意味しません。未保存の入力がある場合の扱いなど、別途判断が必要な事項は未確定のままとします。
 
@@ -48,7 +50,7 @@ Application Shellは、画面を横断する共通ヘッダー、利用範囲の
 
 StorybookとVRTは、共通ヘッダー、ナビゲーション、利用範囲の切り替えUIの表示状態・レイアウト・画面幅ごとの差分を確認します。VRTの撮影対象はStoryのCanvasとし、実際のURL遷移は行いません。
 
-E2Eテストでは、利用範囲の切り替えによるURL変更、選択先Dashboardとそのデータ、ブラウザ履歴を確認します。Personal・Community間およびCommunity間の切り替えで、選択先contextのDashboardへ遷移することを検証します。必要に応じて遷移先の判定を単体テストで補いますが、画面遷移の最終的な確認はE2Eで行います。
+E2Eテストでは、利用範囲の切り替えによるURL変更、遷移先画面とデータ、ブラウザ履歴を確認します。Dashboard・Media Browser・Groups Browserでは選択先contextの対応画面へ、対応画面がないDestinationでは選択先Dashboardへ遷移することを検証します。必要に応じて遷移先の判定を単体テストで補いますが、画面遷移の最終的な確認はE2Eで行います。
 
 ## 関連する設計情報
 
