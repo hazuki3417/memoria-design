@@ -355,4 +355,4 @@ Group DetailのダミーMediaサムネイルを操作可能にし、MediaBrowser
 
 ### Image Detailの開閉アニメーション
 
-MediaBrowserおよびGroupBrowserのいずれを起点とする場合も、Image Detailの全画面Modalには同一の開閉アニメーションを適用する。Mantine Modalの`transitionProps`に`pop`を指定し、開くとき220ms、閉じるとき160ms、`ease-out`で表示する。Image Detail内部の前後画像切り替え、回転、情報パネル開閉アニメーションは変更しない。本体WebとVisual Prototypeで同一設定を使用する。
+MediaBrowserの既存Image Detail Modalの標準開閉挙動を正本とし、GroupBrowser起点でも同じ挙動を維持する。独自の`transitionProps`は指定しない。GroupBrowserはDialogをサムネイル押下時に初めてマウントするのではなく、閉じた状態で常時マウントしておき、選択Mediaの変更によって`opened`を切り替える。これにより既存Modalの開閉トランジションを利用する。Image Detail内部の前後画像切り替え、回転、情報パネル開閉アニメーションは変更しない。本体WebとVisual Prototypeで同じ開閉方式を使用する。
