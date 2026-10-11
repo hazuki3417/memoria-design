@@ -267,3 +267,8 @@ Application Shell上のDialog / ModalはfeatureごとにHeaderとのz-index競�
 ### 選択モードのGroup追加・Media削除後のFeedback
 
 選択モードの「Groupに追加」「Mediaを削除」は確認Dialogの確定後に処理結果をNotificationで伝えます。実APIの成功時のみ成功Notificationを表示し、失敗時はエラーを通知して失敗した処理を成功扱いしません。現行Webは処理API未接続のため、Dialog確定時には実データを変更せず、情報Notificationでデモ操作であることとデータが変更されていないことを明示します。キャンセルではNotificationを表示しません。
+
+
+### 選択モードの追加先・共有先の選択数
+
+Group追加では複数Groupを同時に選択できます。選択したすべてのMediaを、選択したすべてのGroupへ追加する直積の操作とし、既存の所属関係は重複作成しません。Group未選択では確定できません。Communityへの共有は選択Mediaが複数でも、1操作あたり共有先Communityを必ず1つだけ選択します。Group追加はMultiSelect、Community共有は単一Selectを使用します。実API未接続時は追加結果を成功として扱わず、デモであることをNotificationに明示します。
