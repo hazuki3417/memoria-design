@@ -325,3 +325,8 @@ PersonalのMedia Detail情報Panelでは、「共有先Community」見出し右�
 Tags編集、Groups編集、Community共有、Community共有解除は、操作目的・入力・検証・確定結果が異なる独立したDialogとして画面仕様を定義します。Dialogを閉じる際は、閉じるtransitionが完了するまで開いていたDialogのタイトル、入力内容、Action labelを維持し、別の操作の内容へ一瞬切り替わらないことをvisual / behavior contractとします。キャンセルは変更を確定せず、既存のFeedback、操作条件、Responsive、focus等のcontractを維持します。
 
 現段階は画面設計とVisual Prototypeの検証を優先します。UI上の操作境界と、React Component境界・private/publicの公開範囲・ファイル分割は別の設計判断として扱います。実装時は責務を根拠に共通化可能な基盤と固有の入力・検証・Actionを区別し、独立ファイル化や汎用化を先に固定しません。既存のModal構造のリファクタリングは画面設計の安定後に検討します。現行のキャンセル時の一瞬の内容切替は解消対象として扱い、実装・回帰検証が済むまで解決済みとしません。
+
+
+### 情報Panelの展開・折りたたみ操作
+
+Groups、Tags、共有先Communityの超過件数を表示するActionは、いずれもSection下部の中央に配置します。Action labelは閉じた状態で「ほかN件を表示」、開いた状態で「折りたたむ」とし、Chevronは閉じた状態で右向き、開いた状態で下向きに変化します。初期表示件数（Groups・Tagsは6件、Communityは3件）は常時表示し、超過分だけをMantine Collapseによって200msで開閉します。展開中もCommunityごとの共有解除Actionを維持し、開閉ボタンにはaria-expandedを付与します。通常件数では展開Actionを表示しません。
