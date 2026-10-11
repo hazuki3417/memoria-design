@@ -318,3 +318,10 @@ PersonalのMedia Detail情報Panelでは、「共有先Community」見出し右�
 ### 情報PanelのSection区切りとStorybook検証データ
 
 ファイル情報・Groups・Tags・共有先CommunityのSection間は控えめなDividerと一貫した余白で区切ります。Groups・Tags・Communityの大量件数と長い名称を検証できる専用Storybook fixtureを用意し、初期表示、全件展開、折りたたみ、Compactでのスクロールを確認可能にします。Fixtureは本番データと分離し、通常のMedia Browser表示には影響させません。Storybook navigationはMedia BrowserとImage Detailを分離し、同じPrototype実装を共有してViewerの見た目と挙動を保持します。
+
+
+### Media Detail Dialogの画面設計優先と開閉Contract
+
+Tags編集、Groups編集、Community共有、Community共有解除は、操作目的・入力・検証・確定結果が異なる独立したDialogとして画面仕様を定義します。Dialogを閉じる際は、閉じるtransitionが完了するまで開いていたDialogのタイトル、入力内容、Action labelを維持し、別の操作の内容へ一瞬切り替わらないことをvisual / behavior contractとします。キャンセルは変更を確定せず、既存のFeedback、操作条件、Responsive、focus等のcontractを維持します。
+
+現段階は画面設計とVisual Prototypeの検証を優先します。UI上の操作境界と、React Component境界・private/publicの公開範囲・ファイル分割は別の設計判断として扱います。実装時は責務を根拠に共通化可能な基盤と固有の入力・検証・Actionを区別し、独立ファイル化や汎用化を先に固定しません。既存のModal構造のリファクタリングは画面設計の安定後に検討します。現行のキャンセル時の一瞬の内容切替は解消対象として扱い、実装・回帰検証が済むまで解決済みとしません。
