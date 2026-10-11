@@ -277,3 +277,8 @@ Group追加では複数Groupを同時に選択できます。選択したすべ�
 ### 選択モードのAction配置順
 
 選択モードのActionは左から「編集 → Group → 共有 → 削除」の順序とします。Community Contextでは共有Actionを表示しないため「編集 → Group → 削除」とします。削除は破壊的Actionとして右端に置きます。既存のAction内容・有効条件・表示条件は維持します。
+
+
+### Media Detail分類編集のFeedback（Visual Prototype）
+
+Media DetailのTags・Groups・共有先Communityの編集Dialogで確定すると、画面内のデモ状態を更新し、成功種別のNotificationで「画面上の変更を反映した」ことを通知します。実API未接続の間はタイトルに「（デモ）」を付け、サーバーに保存されていない旨を本文に明示します。実際の永続化成功を意味する通知はBackend Mutationの成功応答を確認してから表示します。キャンセルでは通知しません。
