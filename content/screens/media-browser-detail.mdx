@@ -296,3 +296,10 @@ Backend未接続のVisual Prototypeと本体デモでは、共有・共有解除
 Media Detailの情報・分類Panelでは、TagsとGroupsの集合編集は各Section見出し付近の小さな「編集」label付きButtonで提供します。Personal contextの共有先Communityは「共有」label付きActionを設け、各共有先の「共有解除」は対象Communityの行にlabel付きで配置します。共有解除を「×」や削除Icon単独で表現せず、Media削除との違いと共有範囲への影響を明確にします。Iconは必要に応じてlabelを補助できますが、装飾目的で追加しません。
 
 一方、Viewerの前後移動、Zoom、回転、情報Panel開閉等はIcon-onlyを利用できます。Icon-onlyにはaccessible nameを設定し、Touch / Keyboardでも操作可能にします。情報PanelのContextual ActionはContent / Media Firstを妨げないQuietな強度とし、具体的なサイズ・余白・Responsive配置はVisual Reviewで確認します。Compactでも重要なProduct Actionのlabelを省スペース化のためだけに削除しません。共通の判断基準は[Action Pattern](/design-system/patterns/action)に従います。
+
+
+### Media DetailのDownloadと情報Panel下部Action
+
+OriginalのDownloadは閲覧・表示調整のFooterから外し、情報Panel内のファイル情報に近接した、label付きの控えめなActionとして配置します。DownloadはMediaの管理上必要な補助Actionであり、Viewer上で常時露出させるPrimary Actionとはしません。情報Panelの表示切替はViewer Footerに残します。Compactでも情報Panel経由でDownload Actionへ到達可能とします。
+
+情報Panel全体に対する汎用の「編集」Actionは、Tags・Groups・共有先Communityの各Sectionに固有Actionがあるため撤去します。Media自体の「削除」Actionは別のConsequenceを持つため、情報Panel最下部の独立したDanger Actionとして残します。既存のDownload / DeleteがBackend未接続または処理未実装の場合、配置変更だけで処理の成立を保証せず、MutationやDownload処理の実装・Feedbackは別途検証します。
