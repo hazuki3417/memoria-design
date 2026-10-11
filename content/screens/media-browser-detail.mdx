@@ -262,3 +262,8 @@ Detailを開いてもBrowserのTag filter・読み込み済みCollection・可�
 ### Overlay / Dialog layering
 
 Application Shell上のDialog / ModalはfeatureごとにHeaderとのz-index競合を解決せず、Application Shellが提供する共通modal portal layerへ描画します。feature固有のz-index値を積み重ねる方式は採用しません。Select / Combobox等を含むDialogでは、Dialog open時のinitial focusによってdropdownが意図せず自動展開しないようにします。
+
+
+### 選択モードのGroup追加・Media削除後のFeedback
+
+選択モードの「Groupに追加」「Mediaを削除」は確認Dialogの確定後に処理結果をNotificationで伝えます。実APIの成功時のみ成功Notificationを表示し、失敗時はエラーを通知して失敗した処理を成功扱いしません。現行Webは処理API未接続のため、Dialog確定時には実データを変更せず、情報Notificationでデモ操作であることとデータが変更されていないことを明示します。キャンセルではNotificationを表示しません。
