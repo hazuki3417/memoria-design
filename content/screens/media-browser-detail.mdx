@@ -282,3 +282,10 @@ Group追加では複数Groupを同時に選択できます。選択したすべ�
 ### Media Detail分類編集のFeedback（Visual Prototype）
 
 Media DetailのTags・Groups・共有先Communityの編集Dialogで確定すると、画面内のデモ状態を更新し、成功種別のNotificationで「画面上の変更を反映した」ことを通知します。実API未接続の間はタイトルに「（デモ）」を付け、サーバーに保存されていない旨を本文に明示します。実際の永続化成功を意味する通知はBackend Mutationの成功応答を確認してから表示します。キャンセルでは通知しません。
+
+
+### Media Detailの共有先Community操作粒度
+
+Personal contextのMedia Detailでは共有先Communityの現在の一覧を表示します。共有Actionは未共有のCommunityから1つだけ選択し、その1 Communityへ共有します。共有済みCommunityにはそれぞれ独立した「共有解除」Actionを設け、対象Communityを明示する確認Dialogを経て、その1 Communityの共有relationだけを解除します。複数Communityへの共有・共有解除は操作を繰り返すことで可能ですが、1操作でCommunity集合全体をMultiSelect編集するUIは提供しません。これはMedia Browserの「1操作あたり共有先1 Community」と一致させるためです。共有解除はMedia本体、他Communityへの共有を削除しません。Group・Tagの集合編集とは異なるInteractionとして扱います。
+
+Backend未接続のVisual Prototypeと本体デモでは、共有・共有解除を画面上の状態にのみ反映し、成功種別のNotificationには「（デモ）」とサーバー未保存を明示します。キャンセルでは変更も通知も行いません。実API接続後は権限・現在状態を再検証し、実際のMutation成功を確認してから成功通知します。
