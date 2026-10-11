@@ -119,3 +119,8 @@ User Profile更新画面と同じフォーム・Field Error・Alert／Notificati
 
 現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なlayoutは実装で決定します。
 
+
+
+### 登録成功後の遷移と通知
+
+登録処理が成功した場合はPersonal ContextのDashboard（`/dashboard`）へ遷移し、遷移先で成功Notification「登録しました / 登録が完了しました。」を一度だけ表示します。登録画面上で成功Notificationを表示してから遷移するのではなく、遷移先のDashboardで表示します。登録失敗時は登録画面に留まり、入力内容を保持します。現行Webの登録処理はモックであり、Backend接続後は登録APIの成功応答を遷移条件とします。
