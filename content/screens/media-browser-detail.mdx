@@ -272,3 +272,8 @@ Application Shell上のDialog / ModalはfeatureごとにHeaderとのz-index競�
 ### 選択モードの追加先・共有先の選択数
 
 Group追加では複数Groupを同時に選択できます。選択したすべてのMediaを、選択したすべてのGroupへ追加する直積の操作とし、既存の所属関係は重複作成しません。Group未選択では確定できません。Communityへの共有は選択Mediaが複数でも、1操作あたり共有先Communityを必ず1つだけ選択します。Group追加はMultiSelect、Community共有は単一Selectを使用します。実API未接続時は追加結果を成功として扱わず、デモであることをNotificationに明示します。
+
+
+### 選択モードのAction配置順
+
+選択モードのActionは左から「編集 → Group → 共有 → 削除」の順序とします。Community Contextでは共有Actionを表示しないため「編集 → Group → 削除」とします。削除は破壊的Actionとして右端に置きます。既存のAction内容・有効条件・表示条件は維持します。
