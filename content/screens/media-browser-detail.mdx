@@ -330,3 +330,8 @@ Tags編集、Groups編集、Community共有、Community共有解除は、操作�
 ### 情報Panelの展開・折りたたみ操作
 
 Groups、Tags、共有先Communityの超過件数を表示するActionは、いずれもSection下部の中央に配置します。Action labelは閉じた状態で「ほかN件を表示」、開いた状態で「折りたたむ」とし、ChevronはAction labelの右側に置き、閉じた状態で下向き、開いた状態で上向きに回転します。初期表示件数（Groups・Tagsは6件、Communityは3件）は常時表示し、超過分だけをMantine Collapseによって200msで開閉します。展開中もCommunityごとの共有解除Actionを維持し、開閉ボタンにはaria-expandedを付与します。通常件数では展開Actionを表示しません。
+
+
+### Original downloadの状態表示（画面設計）
+
+Original downloadはInitial Release対象です。Media DetailのOriginal download ActionはMediaごとに利用可否が異なっても常時同じ位置に表示し、利用可能時は有効、権限不足・Original処理中は非活性とします。非活性時はhoverに依存しない短い補助説明をボタン直下に表示し、Compact・Keyboard操作・支援技術でも理由を把握できるようにします。Actionと説明の間に余分なDividerを挿入せず、ファイル情報・ActionのまとまりとGroupsの間のDividerは常に1本です。Prototypeのavailable / forbidden / processingは表示検証用fixtureであり、認可判定や実ダウンロード処理の実装を意味しません。本実装の権限判定はCustodian、Community Administrator、参加中のUploader本人等のdomain権限に従い、サーバー側でも再検証します。処理失敗等の状態の詳細文言は別途検証します。
