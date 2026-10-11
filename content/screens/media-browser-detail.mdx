@@ -313,3 +313,8 @@ PersonalのMedia Detail情報Panelでは、「共有先Community」見出し右�
 ### Media Detail情報Panelの分類順と大量件数への対応
 
 ファイル情報とOriginal Downloadの後に、Groups → Tags → 共有先Community（Personalのみ）の順で表示します。各Sectionは見出し、現在件数、Contextual Action、値の一覧を共通した階層と余白で表示します。GroupsはMediaの整理、Tagsは分類・検索、Communityは共有状態を示します。Groups・Tagsは初期6件、共有先Communityは初期3件を表示し、超過時は「ほかN件を表示」から全件展開でき、折りたたみで初期表示に戻せます。0件時は未設定／未共有を表示し、編集・共有操作は維持します。長い名称は領域内で折り返し、共有解除Actionの領域を圧迫させません。情報Panel本文はスクロール可能とし、Media削除Actionは下部に独立して固定します。共有解除の確認Dialogは維持します。表示制限は情報の省略ではなくProgressive Disclosureであり、編集Dialogの選択対象数や保存対象には影響させません。
+
+
+### 情報PanelのSection区切りとStorybook検証データ
+
+ファイル情報・Groups・Tags・共有先CommunityのSection間は控えめなDividerと一貫した余白で区切ります。Groups・Tags・Communityの大量件数と長い名称を検証できる専用Storybook fixtureを用意し、初期表示、全件展開、折りたたみ、Compactでのスクロールを確認可能にします。Fixtureは本番データと分離し、通常のMedia Browser表示には影響させません。Storybook navigationはMedia BrowserとImage Detailを分離し、同じPrototype実装を共有してViewerの見た目と挙動を保持します。
