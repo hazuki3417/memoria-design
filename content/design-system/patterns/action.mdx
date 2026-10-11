@@ -101,3 +101,10 @@ Mantineのfilled / default / light / subtle / outline等をProduct上のAction R
 - Dangerを単に赤いButtonのVisual variantとして扱わない。
 - Mantine variant名をProduct上のRoleとして仕様化しない。
 - Loading / Processingの具体表現をAPI・非同期Behaviorの設計前に固定しない。
+
+
+## LabelとIconの選択判断（Media First / Trustworthy）
+
+ActionのPresentationはIconの省スペース性だけで決めず、Userが操作対象・結果・影響を予測できることを優先します。MemoriaのPersonal / Trustworthy / Calm / EnduringおよびMedia Firstに従い、重要なProduct ActionやIconだけでは意味が曖昧になるActionは、短く明確なテキストlabelを基本とします。見出しに隣接するContextual Actionは小さなQuiet / Subtle presentationによりContentの視覚的優先度を維持できます。Iconは理解を補助する場合のみ併用し、Decorationや一律のIcon化を目的にしません。
+
+Close、Previous / Next、Zoom、回転、情報Panel開閉等、周囲のContextで意味が十分明確なViewer補助ActionにはIcon-onlyを採用できます。ただしaccessible name、Keyboard / Touchからの到達性、十分な操作対象を必須とし、Hover tooltipのみを意味の伝達手段にしません。特に共有・共有解除等のアクセス範囲を変えるActionは「+」「×」「ゴミ箱」だけで表現せず、関係の変更とMedia自体の削除を区別できるlabelを用います。狭い画面でも主要Actionの意味を失わせるIcon-onlyへの機械的置換を行わず、配置・Stack・Menu等をTaskに応じて調整します。
