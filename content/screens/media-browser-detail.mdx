@@ -289,3 +289,10 @@ Media DetailのTags・Groups・共有先Communityの編集Dialogで確定する�
 Personal contextのMedia Detailでは共有先Communityの現在の一覧を表示します。共有Actionは未共有のCommunityから1つだけ選択し、その1 Communityへ共有します。共有済みCommunityにはそれぞれ独立した「共有解除」Actionを設け、対象Communityを明示する確認Dialogを経て、その1 Communityの共有relationだけを解除します。複数Communityへの共有・共有解除は操作を繰り返すことで可能ですが、1操作でCommunity集合全体をMultiSelect編集するUIは提供しません。これはMedia Browserの「1操作あたり共有先1 Community」と一致させるためです。共有解除はMedia本体、他Communityへの共有を削除しません。Group・Tagの集合編集とは異なるInteractionとして扱います。
 
 Backend未接続のVisual Prototypeと本体デモでは、共有・共有解除を画面上の状態にのみ反映し、成功種別のNotificationには「（デモ）」とサーバー未保存を明示します。キャンセルでは変更も通知も行いません。実API接続後は権限・現在状態を再検証し、実際のMutation成功を確認してから成功通知します。
+
+
+### Media DetailのAction label / Icon方針
+
+Media Detailの情報・分類Panelでは、TagsとGroupsの集合編集は各Section見出し付近の小さな「編集」label付きButtonで提供します。Personal contextの共有先Communityは「共有」label付きActionを設け、各共有先の「共有解除」は対象Communityの行にlabel付きで配置します。共有解除を「×」や削除Icon単独で表現せず、Media削除との違いと共有範囲への影響を明確にします。Iconは必要に応じてlabelを補助できますが、装飾目的で追加しません。
+
+一方、Viewerの前後移動、Zoom、回転、情報Panel開閉等はIcon-onlyを利用できます。Icon-onlyにはaccessible nameを設定し、Touch / Keyboardでも操作可能にします。情報PanelのContextual ActionはContent / Media Firstを妨げないQuietな強度とし、具体的なサイズ・余白・Responsive配置はVisual Reviewで確認します。Compactでも重要なProduct Actionのlabelを省スペース化のためだけに削除しません。共通の判断基準は[Action Pattern](/design-system/patterns/action)に従います。
