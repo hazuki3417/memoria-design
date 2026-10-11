@@ -308,3 +308,8 @@ OriginalのDownloadは閲覧・表示調整のFooterから外し、情報Panel�
 ### 共有先Communityの追加・解除Actionの分離
 
 PersonalのMedia Detail情報Panelでは、「共有先Community」見出し右側の「共有」と、一覧先頭の「共有解除」が近接して誤操作を誘発しないよう、見出しと一覧の間に十分な余白と控えめなDividerを設けます。Community行は最低32pxの高さと行間を確保し、各Community名の右側に対応する「共有解除」を維持します。共有解除の確認Dialogも維持します。過剰な行ごとの区切り線は設けず、情報密度と操作の区別を両立します。
+
+
+### Media Detail情報Panelの分類順と大量件数への対応
+
+ファイル情報とOriginal Downloadの後に、Groups → Tags → 共有先Community（Personalのみ）の順で表示します。各Sectionは見出し、現在件数、Contextual Action、値の一覧を共通した階層と余白で表示します。GroupsはMediaの整理、Tagsは分類・検索、Communityは共有状態を示します。Groups・Tagsは初期6件、共有先Communityは初期3件を表示し、超過時は「ほかN件を表示」から全件展開でき、折りたたみで初期表示に戻せます。0件時は未設定／未共有を表示し、編集・共有操作は維持します。長い名称は領域内で折り返し、共有解除Actionの領域を圧迫させません。情報Panel本文はスクロール可能とし、Media削除Actionは下部に独立して固定します。共有解除の確認Dialogは維持します。表示制限は情報の省略ではなくProgressive Disclosureであり、編集Dialogの選択対象数や保存対象には影響させません。
