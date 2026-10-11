@@ -303,3 +303,8 @@ Media Detailの情報・分類Panelでは、TagsとGroupsの集合編集は各Se
 OriginalのDownloadは閲覧・表示調整のFooterから外し、情報Panel内のファイル情報に近接した、label付きの控えめなActionとして配置します。DownloadはMediaの管理上必要な補助Actionであり、Viewer上で常時露出させるPrimary Actionとはしません。情報Panelの表示切替はViewer Footerに残します。Compactでも情報Panel経由でDownload Actionへ到達可能とします。
 
 情報Panel全体に対する汎用の「編集」Actionは、Tags・Groups・共有先Communityの各Sectionに固有Actionがあるため撤去します。Media自体の「削除」Actionは別のConsequenceを持つため、情報Panel最下部の独立したDanger Actionとして残します。既存のDownload / DeleteがBackend未接続または処理未実装の場合、配置変更だけで処理の成立を保証せず、MutationやDownload処理の実装・Feedbackは別途検証します。
+
+
+### 共有先Communityの追加・解除Actionの分離
+
+PersonalのMedia Detail情報Panelでは、「共有先Community」見出し右側の「共有」と、一覧先頭の「共有解除」が近接して誤操作を誘発しないよう、見出しと一覧の間に十分な余白と控えめなDividerを設けます。Community行は最低32pxの高さと行間を確保し、各Community名の右側に対応する「共有解除」を維持します。共有解除の確認Dialogも維持します。過剰な行ごとの区切り線は設けず、情報密度と操作の区別を両立します。
