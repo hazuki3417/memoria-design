@@ -51,3 +51,7 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 Personal DashboardとCommunity Dashboardは同じDashboard visual contractを使用します。Context切り替えによって基本layout、section配置、spacing、Responsive Behaviorを変更しません。表示対象データ、Context Accent、Context固有Capability等の仕様上必要な差分だけを切り替えます。
 
 「最近のMedia」「最近のGroup」の「すべて見る」と、各sectionのEmpty Stateから対応Collectionへ移動するActionは画面Navigationです。実装ではLink semanticsを持つNavigation要素として扱い、同じcontextのdestinationへ遷移します。
+
+### Page幅の責務分離
+
+Dashboardはページ幅を最大1280px・中央揃え（狭いViewportでは利用可能幅まで縮小）とします。一方、Media Browser・Group BrowserはApplication Shell内の利用可能幅を使うfluidレイアウトです。これは画面本体Componentの責務ではなく、Route / Prototypeなどのページ構成層が共通PageWidth（contained / fluid）を指定する責務です。Dashboard本体はページ最大幅や中央寄せを持たず、Visual Prototypeも同じ幅指定の境界を利用します。既存のSection構造・内容・Responsive Behaviorを維持します。
