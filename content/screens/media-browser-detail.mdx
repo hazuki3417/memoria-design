@@ -352,3 +352,7 @@ Group Detailのサムネイルは操作可能な要素とし、押下したMedia
 ### 暫定接続の実装状態（2026-10-11）
 
 Group DetailのダミーMediaサムネイルを操作可能にし、MediaBrowser内の既存Image Detailをdetail-onlyモードで呼び出す接続を本体・Visual Prototypeに追加した。Group起点の前後移動は24件のダミーMedia列を対象とする。Media起点の既存Viewerは変更しない方針である。現段階では既存MediaBrowserを再利用する暫定アダプタであり、Image Detailの状態管理と編集Dialogを独立した共通Componentへ完全抽出する作業は未完了（memoria-web Issue #91）。ブラウザ・型・lint・visual/behavioral regressionの検証も未実施である。
+
+### Image Detailの開閉アニメーション
+
+MediaBrowserおよびGroupBrowserのいずれを起点とする場合も、Image Detailの全画面Modalには同一の開閉アニメーションを適用する。Mantine Modalの`transitionProps`に`pop`を指定し、開くとき220ms、閉じるとき160ms、`ease-out`で表示する。Image Detail内部の前後画像切り替え、回転、情報パネル開閉アニメーションは変更しない。本体WebとVisual Prototypeで同一設定を使用する。
