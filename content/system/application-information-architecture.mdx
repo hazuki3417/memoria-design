@@ -68,7 +68,7 @@ Initial Releaseでは次を主要領域とします。
 - **Groups**: Community内で閲覧可能なMediaをCommunity専用のGroupで整理する。
 - **Members**: 有効なMembershipを持つ参加者とroleを確認する。Administratorには同じ画面でrole変更・除外Actionを追加する。
 - **Preferences**: User × Community scopeの個人設定を扱う。Initial ReleaseではAccent Colorを提供する。
-- **Settings**: Community自体の設定を扱う。Initial ReleaseではCommunity名、Invitation、Community削除への入口を提供し、これらの変更ActionはAdministratorに限定する。
+- **Settings**: Community自体の設定を扱う。Initial Releaseでは全Active MemberがCommunity名を閲覧でき、AdministratorにはCommunity名変更、Invitation管理、Community削除への入口を提供する。MemberにはInvitationのsecret情報と管理Actionを表示しない。
 
 CommunityにAdministrator専用の「Management領域」は設けません。Navigation hierarchy自体をroleで管理領域と利用領域へ分離するのではなく、各destinationと各Actionに必要なauthorizationを定義します。これによりMembersのように全Memberが閲覧しAdministratorだけ追加Actionを持つCapabilityや、将来Memberにも許可されるCommunity設定を同じCommunity IAの中で拡張できます。
 
@@ -163,7 +163,7 @@ Context Navigationは、現在contextの中でUserが何を行うかを選択す
 
 Personal contextではDashboard、Media、Groupsを提供します。Tagの付与・解除・絞り込みはMedia内で提供します。
 
-Community contextではDashboard、Media、Usage、Groups、Members、Preferences、Settingsを提供します。Usageは現在Communityの使用量のみを表示し、有効なMembershipを持つAdministrator / Memberが閲覧できます。Membersは全Memberが閲覧でき、role変更・除外等のAdministrator限定Actionは同じDestination内でauthorizationに応じて提供します。PreferencesはUser × Community scopeの個人設定、SettingsはCommunity自体の設定を扱います。Administrator専用のManagement領域は設けず、Navigation hierarchyと各Actionのauthorizationを分離します。
+Community contextではDashboard、Media、Usage、Groups、Members、Preferences、Settingsを提供します。Usageは現在Communityの使用量のみを表示し、有効なMembershipを持つAdministrator / Memberが閲覧できます。Membersは全Memberが閲覧でき、role変更・除外等のAdministrator限定Actionは同じDestination内でauthorizationに応じて提供します。PreferencesはUser × Community scopeの個人設定、SettingsはCommunity自体の設定を扱い、全Active Memberが閲覧できます。変更ActionはAdministratorだけに提供します。Administrator専用のManagement領域は設けず、Navigation hierarchyと各Actionのauthorizationを分離します。
 
 Contextを切り替えた場合、Dashboard、Media Browser、Groups Browserは選択先contextの対応Destinationへ遷移します。対応画面がないDestinationから切り替える場合は選択先Dashboardへ遷移します。
 
