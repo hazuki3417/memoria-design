@@ -112,3 +112,10 @@ Community TagはAdministratorとMemberが作成し、既存Tagを使って閲覧
 | Membershipを失ったUploaderの操作 | 拒否 |
 | User起点Join Requestの同時承認・拒否・取消し（将来） | 先にcommitした状態を採用 |
 | User削除とInvitation acceptの競合 | 削除済みUserの参加を禁止 |
+
+## Community人数制約（2026-10合意）
+
+- Initial Release: 有効なMembershipの総数はCommunityあたり最大30人（Administratorを含む）。
+- Administratorは最低1人・最大3人。最後のAdministratorの退会・降格・除外は禁止する。
+- 当面は全Community共通の固定値。将来のプラン別上限を想定し、ドメイン制約の値を変更可能な形で管理する。
+- 招待受諾による新規Membership作成およびAdministrator昇格時に、上限をサーバー側で検証する。競合時にも制約を保持する。
