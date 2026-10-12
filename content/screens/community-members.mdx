@@ -143,6 +143,6 @@ Members画面の独立した「Communityから退会する」導線から、Acco
 
 退会APIが未接続のPrototypeでは確認ステップのみ動作させ、退会成功を偽装しない。API接続後は成功時にPersonal Dashboardへ遷移し、操作結果を通知する。
 
-## 人数上限（未決定）
+## 人数上限（2026-10合意）
 
-Community参加者数とAdministrator数の最大値は未合意。現段階で任意の上限値を実装に埋め込まない。上限・境界条件・招待への影響は別途設計合意を要する。
+Initial Releaseでは有効なMembershipを持つ参加者はCommunityあたり合計30人まで（Administratorを含む）、Administratorは最大3人・最低1人とする。現段階では全Community共通の固定値とし、将来はプラン別の上限へ拡張可能な制約として扱う。招待による参加・Administratorへの昇格は上限超過時に拒否し、同時操作でも上限を超えないこと。
