@@ -29,7 +29,7 @@ Initial Releaseではprofile画像、email address、Auth0 identifier等を参�
 
 現在User自身を参加者一覧で識別できるようにします。具体的なvisual treatmentは固定しません。
 
-参加者は名前で検索できます。既定の並び順は名前順とします。名前・役割のcolumn labelを操作することで、そのcolumnをsort keyとして並び順を変更できます。sortは常に単一のcolumnだけをkeyとし、複数columnの値を組み合わせた複合sortは提供しません。別のcolumnを選択した場合は、それまでのsort keyを置き換えます。参加日時・参加順を表示またはsortへ使用しません。参加順からCommunity内の上下関係や序列を想起させるpresentationを避けます。Initial Releaseでは名前・役割以外の列を追加しません。
+参加者の名前検索と名前・役割によるsortは、取得済みの参加者集合に対するフロントエンド内の処理として提供します。検索・sortのための追加API requestは行いません。参加者は名前で検索できます。既定の並び順は名前順とします。名前・役割のcolumn labelを操作することで、そのcolumnをsort keyとして並び順を変更できます。sortは常に単一のcolumnだけをkeyとし、複数columnの値を組み合わせた複合sortは提供しません。別のcolumnを選択した場合は、それまでのsort keyを置き換えます。参加日時・参加順を表示またはsortへ使用しません。参加順からCommunity内の上下関係や序列を想起させるpresentationを避けます。Initial Releaseでは名前・役割以外の列を追加しません。
 
 ## 操作
 
@@ -133,3 +133,16 @@ Context Switcher、Context Navigation、Account Menuとの関係は[Application 
 表示領域や入力方式が変わっても、参加者とAdministrator roleの確認、自分の退会、およびAdministratorによるrole変更・除外というCapabilityを維持します。
 
 参加者一覧はCompact / Medium / WideのすべてでTableとしての名前・役割の対応関係を維持します。狭い表示領域でもこの2列の意味を失わせず、Administrator向けの各row末尾Action Menuをhoverだけに依存させません。自分自身の退会はviewportによらず他Userのrow Action Menuへ混在させず、Members画面の独立Actionとして維持します。Action Menuや独立Actionの具体的なvisual placementはVisual Reviewで確定します。
+
+## 退会確認UI（2026-10合意）
+
+Members画面の独立した「Communityから退会する」導線から、Account削除のStepperを参考にした2段階確認を開始します。
+
+1. 影響の確認: Communityアクセス喪失、User管理MediaのCommunity共有・分類解除、Account・Personal Media・Community管理Mediaは削除されないことを説明する。
+2. 最終確認: 「退会する」の明示入力を求め、実行前に最終確認する。最後のAdministratorの場合は退会を無効化し、Administratorの追加・変更を案内する。
+
+退会APIが未接続のPrototypeでは確認ステップのみ動作させ、退会成功を偽装しない。API接続後は成功時にPersonal Dashboardへ遷移し、操作結果を通知する。
+
+## 人数上限（未決定）
+
+Community参加者数とAdministrator数の最大値は未合意。現段階で任意の上限値を実装に埋め込まない。上限・境界条件・招待への影響は別途設計合意を要する。
