@@ -2,7 +2,7 @@
 
 ## 概要
 
-Community自体の設定を扱う画面です。Initial Releaseで変更Actionを実行できるのはAdministratorです。
+Community自体の設定を扱う画面です。Initial Releaseでは全Active Memberが画面を閲覧でき、変更Actionを実行できるのはAdministratorです。
 
 参加者の確認、role変更、除外は[Community Members](/screens/community-members)で扱い、本画面ではCommunity名、Invitation、Community削除への入口を扱います。
 
@@ -10,9 +10,9 @@ Community自体の設定を扱う画面です。Initial Releaseで変更Action�
 
 ## 目的
 
-AdministratorがCommunity自体に対する管理操作を一か所から理解・実行できるようにします。
+全Active MemberがCommunityの基本情報を確認でき、AdministratorがCommunity自体に対する管理操作を一か所から理解・実行できるようにします。
 
-日常的なMedia利用や参加者管理とは分離し、Community scopeの設定をまとめます。Initial ReleaseのCommunity名変更、Invitation管理、Community削除はAdministratorだけが実行できますが、SettingsをAdministrator専用の管理領域として定義しません。
+日常的なMedia利用や参加者管理とは分離し、Community scopeの設定をまとめます。Initial ReleaseのCommunity名変更、Invitation管理、Community削除はAdministratorだけが実行できますが、Settingsの閲覧は全Active Memberに許可し、Administrator専用の管理領域として定義しません。
 
 Initial Releaseでは1つのSettings画面を **General / Invitation / Danger Zone** の3 sectionで構成します。設定項目ごとに別Pageへ分割せず、Community自体の管理対象を一か所で把握できることを優先します。ただし不可逆なCommunity削除の最終確認は専用Flowへ分離します。
 
@@ -27,13 +27,13 @@ Initial Releaseでは1つのSettings画面を **General / Invitation / Danger Zo
 
 ### General
 
-Community自体の基本情報を扱うsectionです。Initial Releaseでは現在のCommunity名だけを表示し、Administratorが変更できるようにします。
+Community自体の基本情報を扱うsectionです。Initial Releaseでは現在のCommunity名だけを表示します。全Active Memberが閲覧でき、Administratorだけが変更できます。Memberには編集Actionを表示せず、閲覧専用の状態を提示します。
 
 Community説明、画像等の未提供Capabilityを、空の設定項目として先行表示しません。
 
 ### Invitation
 
-現在CommunityのInvitationについて、少なくとも次を理解できる状態を提示します。
+Administratorには現在CommunityのInvitationについて、少なくとも次を理解できる状態を提示します。MemberにはInvitation URLやtoken、発行・無効化・再発行Actionを表示せず、管理者のみが招待を管理できることを案内します。
 
 - 現在利用可能なInvitation URLが存在するか
 - 有効な場合のURL
@@ -48,7 +48,9 @@ Invitation tokenそのものを必要以上の場所へ露出させず、log、�
 
 通常設定やInvitation操作と、不可逆なCommunity削除を視覚的・意味的に区別するsectionです。
 
-Community削除が不可逆な管理操作であることを短く説明し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。Settings上では削除影響の全内容やCommunity名確認入力を重複して提示せず、最終判断は削除確認Flowへ委ねます。
+AdministratorにはCommunity削除が不可逆な管理操作であることを短く説明し、専用の[Community Deletion Confirmation](/screens/community-deletion-confirmation)へ進む入口を提供します。Settings上では削除影響の全内容やCommunity名確認入力を重複して提示せず、最終判断は削除確認Flowへ委ねます。
+
+MemberにはCommunity削除のActionを表示しません。
 
 ## 操作
 
@@ -90,7 +92,7 @@ Settings画面上の単純な確認だけでCommunity削除を確定しません
 
 ### 通常
 
-General / Invitation / Danger Zoneの順に、現在のCommunity名、Invitation状態、Community削除への入口を確認できます。破壊的操作を日常的な設定Actionと同じ優先度で強調しません。
+AdministratorにはGeneral / Invitation / Danger Zoneの順に、現在のCommunity名、Invitation状態、Community削除への入口を提示します。MemberにはGeneralのCommunity名を閲覧専用で提示し、Invitationは管理者限定の説明を表示し、Danger Zoneの削除Actionは表示しません。破壊的操作を日常的な設定Actionと同じ優先度で強調しません。
 
 ### Invitationなし / 利用不可
 
@@ -126,7 +128,7 @@ Context全体のNavigation責務は[Application Information Architecture](/syste
 
 ## 制約
 
-- 有効なAdministrator Membershipを持つUserだけが利用できます。
+- 有効なMembershipを持つAdministrator / Memberが画面を閲覧できます。変更ActionはAdministratorだけが実行できます。MemberにInvitationのsecret情報や削除Actionを公開しません。
 - Community名、Invitation、Community削除以外の設定項目をInitial Releaseの必要性なしに追加しません。
 - Community説明、画像、公開profile、Community検索設定はInitial Release対象外です。
 - Communityごとに同時に利用可能なInvitationは1件です。
