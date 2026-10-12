@@ -134,14 +134,15 @@ Context Switcher、Context Navigation、Account Menuとの関係は[Application 
 
 参加者一覧はCompact / Medium / WideのすべてでTableとしての名前・役割の対応関係を維持します。狭い表示領域でもこの2列の意味を失わせず、Administrator向けの各row末尾Action Menuをhoverだけに依存させません。自分自身の退会はviewportによらず他Userのrow Action Menuへ混在させず、Members画面の独立Actionとして維持します。Action Menuや独立Actionの具体的なvisual placementはVisual Reviewで確定します。
 
-## 退会確認UI（2026-10合意）
+## 退会確認UI（2026-10更新）
 
-Members画面の独立した「Communityから退会する」導線から、Account削除のStepperを参考にした2段階確認を開始します。
+Members画面の独立した「Communityから退会する」導線から、1画面の確認Dialogを開く。Stepperや「退会する」の文字入力は要求しない。操作の影響度に応じて確認UIを選択し、Community削除やAccount削除と同じ画面形式に揃えることは目的としない。影響説明、対象確認、実行前の明示的な同意、キャンセル、実行中の重複防止、失敗時の再試行、完了後の安全な遷移という操作体験を一貫させる。
 
-1. 影響の確認: Communityアクセス喪失、User管理MediaのCommunity共有・分類解除、Account・Personal Media・Community管理Mediaは削除されないことを説明する。
-2. 最終確認: 「退会する」の明示入力を求め、実行前に最終確認する。最後のAdministratorの場合は退会を無効化し、Administratorの追加・変更を案内する。
+Dialogでは、退会対象Community、Communityアクセス喪失、自分が管理するMediaの当該Community共有・分類解除、Account・Personal Media・Community管理Mediaは削除されないこと、退会後に元の参加状態へ自動的には戻らないことを理解できるようにする。「キャンセル」と破壊的な「退会する」を提示し、実行前なら中断できるようにする。最後のAdministratorは退会できず、Administratorの追加・変更を案内する。
 
-退会APIが未接続のPrototypeでは確認ステップのみ動作させ、退会成功を偽装しない。API接続後は成功時にPersonal Dashboardへ遷移し、操作結果を通知する。
+Dialogの寸法は情報量と可読性に合わせて選択する。Wide / Mediumでは `lg` と `xl` をVisual Prototypeで比較して決定し、Compactではviewport内で本文と操作を利用できるようにし、必要なら縦scrollを許容する。横幅の一律統一を要求しない。
+
+退会APIが未接続のPrototypeでは実行成功を偽装しない。API接続後は成功時にPersonal Dashboardへ遷移し、操作結果を通知する。
 
 ## 人数上限（2026-10合意）
 
