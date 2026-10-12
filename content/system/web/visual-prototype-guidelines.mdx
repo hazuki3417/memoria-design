@@ -32,7 +32,8 @@ StorybookでAPIの実データを利用できない場合は、Story専用のfix
 - fixtureは実在する個人情報を含めず、再現性のため決定的な値を使います。randomな値や現在時刻に依存する値を避けます。
 - APIの成功・失敗、保存中、再試行等を再現する処理はStory用adapterで与え、本体のUI Componentへ固定値やStory専用状態を埋め込みません。
 - Productの初期値や固定値は、Screen Specification、Domain設計、API Contract等の正本で定義します。Story fixtureから製品仕様を推測しません。
-- fixtureであることを利用者向け画面に表示する必要はありません。Sample表示が製品要件に見えるおそれがある場合は、Storybookの説明やコード上の命名で区別します。
+- Visual PrototypeのCanvas内には、サンプル・デモ・Prototype・モック・API未接続など開発・検証環境であることを示す文言、バッジ、専用コンポーネントを表示しません。利用者が実際に見る製品UIとして自然な表示にします。Story名、Controls、description、fixture名などCanvas外の開発者向け情報で区別します。
+- API未接続でも実際に保存・削除・退会したような成功表示を偽装しません。操作状態をStory adapterで安全に再現するか、製品上の自然なdisabled / error / loading状態として示します。
 
 ## 整合性確認での扱い
 
