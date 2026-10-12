@@ -146,3 +146,7 @@ Members画面の独立した「Communityから退会する」導線から、Acco
 ## 人数上限（2026-10合意）
 
 Initial Releaseでは有効なMembershipを持つ参加者はCommunityあたり合計30人まで（Administratorを含む）、Administratorは最大3人・最低1人とする。現段階では全Community共通の固定値とし、将来はプラン別の上限へ拡張可能な制約として扱う。招待による参加・Administratorへの昇格は上限超過時に拒否し、同時操作でも上限を超えないこと。
+
+## 参加者テーブルの表示領域（2026-10合意）
+
+参加者Tableの外枠には角丸を適用する。検索結果件数にかかわらずTableの表示領域の高さを一定に保ち、Headerと最大8行分の表示領域を確保する。9件以上はTable内部の縦ScrollAreaでスクロールし、Headerは固定する。検索結果が0〜7件でもTable表示領域を縮めない。検索・ソートは引き続きフロントエンドのみで処理する。
