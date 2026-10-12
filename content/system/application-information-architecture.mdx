@@ -280,3 +280,9 @@ Next.js App Routerでは、URLへ影響しないRoute Groupと `layout.tsx` を�
 Application contextをPersonal / Communityで切り替えても、同じCapabilityを表す画面の基本layout、spacing、visual designは変更しません。Context固有の情報・Action・accent等、仕様で定義された差分だけを切り替えます。特にDashboardはPersonal / Communityで同じvisual contractを維持します。
 
 単純な画面Navigationを提供するUIは、Buttonのclick handlerからimperativeにrouteを変更することを基本とせず、Link / NavLink等のNavigation semanticsを持つ要素として実装します。フォーム送信、Dialog表示、状態変更等のActionはButtonとして扱います。Select等の選択UIからNavigationを発生させる場合は、そのcontrolのInteraction semanticsを維持した上でrouteを変更します。
+
+## Settings内ナビゲーションの並び順とアイコン（2026-10合意）
+
+- Personal Settings: プロフィール（IconUser）→ アカウント（IconUserCircle）→ 環境設定（IconSettings）→ 利用状況（IconChartBar）。
+- Community Settings: 一般（IconAdjustments）→ メンバー（IconUsers）→ 環境設定（IconSettings）→ 利用状況（IconChartBar）。
+- 共通の画面名「環境設定」「利用状況」はPersonal / Communityでアイコンと相対的な並び順を統一する。Community固有の項目はそれぞれ固有アイコンを使用する。CompactのSelectとWideのサイドメニューで同一順序を使用する。
