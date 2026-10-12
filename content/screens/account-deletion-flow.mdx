@@ -112,11 +112,11 @@ Userによる対応が不要なCommunity関連ステップはFlow条件に従っ
 
 Application ShellのNavigationと、削除Flow内のBack / Next / Cancelを別の責務として扱います。
 
-- Step 1ではBack / CancelをFlow Navigationとして表示せず、前進Actionまたは再試行を提示します。Flowから離れる場合はApplication Navigationを使用します。
-- Step 2以降は必要に応じてBackを提供します。
-- Step 2以降でCancelした場合は削除Flowを終了します。
-- Step 2以降で破棄される選択・入力が存在する状態からApplication Navigationで離脱する場合は、破棄確認を行います。
-- 破棄される状態がない場合は、不要な確認を挟まずApplication Navigationで離脱できます。
+- `/settings/account/delete` は `restricted-flow` の共通ヘッダーを使用し、ハンバーガーメニュー、Context Switcher、Account MenuおよびNavigation Drawerは表示しません。Memoriaタイトル位置は通常のApplication Headerと一致させます。
+- Step間の「戻る」は削除Flow内の前の段階へ戻り、削除手続きの中止とは区別します。
+- 全Stepの操作行の横方向中央に「削除手続きを中止して設定に戻る」を1つだけ表示します。従来の「キャンセル」は廃止し、画面下部に独立した中止ボタンを重複表示しません。中止の遷移先は `/settings/account` です。Step 1は左側を空欄、中央に中止、右側に次へ／再試行を配置します。Step 2以降は左に戻る、中央に中止、右に前進操作を配置します。
+- 中止時に破棄される選択・入力が存在する場合は、既存の中止確認Dialogを表示します。確認を続ける場合はFlowに留まり、破棄を承認した場合のみ設定画面へ戻ります。破棄状態がない場合は確認を挟みません。
+- 中止操作は全Stepで同じ確認・離脱処理へ接続します。
 - Flow内の前進Actionはその段階で削除を実行しない限り「削除」と表記せず、次の確認へ進む意味を表します。
 - 最終的にaccount削除を実行するActionだけを破壊的Actionとして明確に区別します。
 
@@ -126,8 +126,25 @@ Flow冒頭の説明は「アカウントを削除した場合の影響と、削�
 
 各Stepのlabelは、その段階でUserが理解・判断する対象を短く表し、内部処理や実装上の状態名をそのままUser-facing labelにしません。不可逆な結果、削除対象、Communityへの影響等、意思決定に必要な説明は省略しません。
 
+### Stepperのスクロール追従
+
+Application ShellのMainがスクロールコンテナであるため、削除FlowのStepperはMain内の上端（`sticky top: 0`）へ追従させます。Headerの高さ40pxをStepper側で再加算しません。これによりスクロール時にはStepperがHeader直下へ接する配置を維持します。本体WebとVisual Prototypeで同じ位置関係とします。
+
 ### Responsive Behavior
 
 表示領域が変わっても、現在の段階、残る確認、前進・後退・中止の意味を理解できることを維持します。CompactでWideと同じStepper presentationを維持することは要求せず、現在位置とFlow全体の関係を理解できる適切な表現へ変更できます。
 
 操作ボタンをviewportへ固定することは要求せず、各段階のcontentとActionの関係が理解でき、keyboard / touchで操作できることを優先します。
+
+
+### Auth0 / Backend 未接続時のWeb実装境界
+
+本体WebはAccountDeletionGatewayを介してReview作成、再認証、最終確定を実行します。開発時のMock Gatewayは成功・失敗・キャンセル・期限切れを再現し、同一Reviewへの単回の確定操作と10分間の有効期限を模擬します。Mock Gatewayは実アカウントやデータを削除しません。実GatewayはAuth0再認証およびBackendによるReview・再認証結果の検証が実装されるまでfail-closedとし、削除確定を許可しません。Mockの画面表示は本番で削除済みと誤認させない文言を使います。Mock内の有効期限検証はBackendの認証・認可の代替ではありません。
+
+Mock実行は非本番の本体Web画面に限定し、本番ビルドでは未接続Gatewayを使用してfail-closedとします。再認証結果はStep 4から前のStepへ戻る際にも破棄します。
+
+### 削除最終確定後の画面状態
+
+最終削除Actionを押した直後は「削除リクエストを処理しています」を表示し、重複操作を防止します。BackendがDELETINGへの遷移と削除受付を確認した場合は「アカウント削除を受け付けました」を表示し、同期的なcleanup完了を待ちません。実接続時はセッションを終了し、認証を必要としない完了画面で結果を表示できるようにします。削除受付に失敗した場合は、受付済みかどうか不明な通信障害と明確な拒否を区別し、不明な場合は重複送信せず状態照会を優先します。
+
+現行WebのMock Gatewayでは受付成功のみを模擬し、「モック」であること、実際の削除やログアウトは行われないことを明示します。実Backend・Auth0接続と公開完了画面への遷移は未実装であり、未接続Gatewayはfail-closedです。

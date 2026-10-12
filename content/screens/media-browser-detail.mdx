@@ -262,3 +262,99 @@ Detailを開いてもBrowserのTag filter・読み込み済みCollection・可�
 ### Overlay / Dialog layering
 
 Application Shell上のDialog / ModalはfeatureごとにHeaderとのz-index競合を解決せず、Application Shellが提供する共通modal portal layerへ描画します。feature固有のz-index値を積み重ねる方式は採用しません。Select / Combobox等を含むDialogでは、Dialog open時のinitial focusによってdropdownが意図せず自動展開しないようにします。
+
+
+### 選択モードのGroup追加・Media削除後のFeedback
+
+選択モードの「Groupに追加」「Mediaを削除」は確認Dialogの確定後に処理結果をNotificationで伝えます。実APIの成功時のみ成功Notificationを表示し、失敗時はエラーを通知して失敗した処理を成功扱いしません。現行Webは処理API未接続のため、Dialog確定時には実データを変更せず、情報Notificationでデモ操作であることとデータが変更されていないことを明示します。キャンセルではNotificationを表示しません。
+
+
+### 選択モードの追加先・共有先の選択数
+
+Group追加では複数Groupを同時に選択できます。選択したすべてのMediaを、選択したすべてのGroupへ追加する直積の操作とし、既存の所属関係は重複作成しません。Group未選択では確定できません。Communityへの共有は選択Mediaが複数でも、1操作あたり共有先Communityを必ず1つだけ選択します。Group追加はMultiSelect、Community共有は単一Selectを使用します。実API未接続時は追加結果を成功として扱わず、デモであることをNotificationに明示します。
+
+
+### 選択モードのAction配置順
+
+選択モードのActionは左から「編集 → Group → 共有 → 削除」の順序とします。Community Contextでは共有Actionを表示しないため「編集 → Group → 削除」とします。削除は破壊的Actionとして右端に置きます。既存のAction内容・有効条件・表示条件は維持します。
+
+
+### Media Detail分類編集のFeedback（Visual Prototype）
+
+Media DetailのTags・Groups・共有先Communityの編集Dialogで確定すると、画面内のデモ状態を更新し、成功種別のNotificationで「画面上の変更を反映した」ことを通知します。実API未接続の間はタイトルに「（デモ）」を付け、サーバーに保存されていない旨を本文に明示します。実際の永続化成功を意味する通知はBackend Mutationの成功応答を確認してから表示します。キャンセルでは通知しません。
+
+
+### Media Detailの共有先Community操作粒度
+
+Personal contextのMedia Detailでは共有先Communityの現在の一覧を表示します。共有Actionは未共有のCommunityから1つだけ選択し、その1 Communityへ共有します。共有済みCommunityにはそれぞれ独立した「共有解除」Actionを設け、対象Communityを明示する確認Dialogを経て、その1 Communityの共有relationだけを解除します。複数Communityへの共有・共有解除は操作を繰り返すことで可能ですが、1操作でCommunity集合全体をMultiSelect編集するUIは提供しません。これはMedia Browserの「1操作あたり共有先1 Community」と一致させるためです。共有解除はMedia本体、他Communityへの共有を削除しません。Group・Tagの集合編集とは異なるInteractionとして扱います。
+
+Backend未接続のVisual Prototypeと本体デモでは、共有・共有解除を画面上の状態にのみ反映し、成功種別のNotificationには「（デモ）」とサーバー未保存を明示します。キャンセルでは変更も通知も行いません。実API接続後は権限・現在状態を再検証し、実際のMutation成功を確認してから成功通知します。
+
+
+### Media DetailのAction label / Icon方針
+
+Media Detailの情報・分類Panelでは、TagsとGroupsの集合編集は各Section見出し付近の小さな「編集」label付きButtonで提供します。Personal contextの共有先Communityは「共有」label付きActionを設け、各共有先の「共有解除」は対象Communityの行にlabel付きで配置します。共有解除を「×」や削除Icon単独で表現せず、Media削除との違いと共有範囲への影響を明確にします。Iconは必要に応じてlabelを補助できますが、装飾目的で追加しません。
+
+一方、Viewerの前後移動、Zoom、回転、情報Panel開閉等はIcon-onlyを利用できます。Icon-onlyにはaccessible nameを設定し、Touch / Keyboardでも操作可能にします。情報PanelのContextual ActionはContent / Media Firstを妨げないQuietな強度とし、具体的なサイズ・余白・Responsive配置はVisual Reviewで確認します。Compactでも重要なProduct Actionのlabelを省スペース化のためだけに削除しません。共通の判断基準は[Action Pattern](/design-system/patterns/action)に従います。
+
+
+### Media DetailのDownloadと情報Panel下部Action
+
+OriginalのDownloadは閲覧・表示調整のFooterから外し、情報Panel内のファイル情報に近接した、label付きの控えめなActionとして配置します。DownloadはMediaの管理上必要な補助Actionであり、Viewer上で常時露出させるPrimary Actionとはしません。情報Panelの表示切替はViewer Footerに残します。Compactでも情報Panel経由でDownload Actionへ到達可能とします。
+
+情報Panel全体に対する汎用の「編集」Actionは、Tags・Groups・共有先Communityの各Sectionに固有Actionがあるため撤去します。Media自体の「削除」Actionは別のConsequenceを持つため、情報Panel最下部の独立したDanger Actionとして残します。既存のDownload / DeleteがBackend未接続または処理未実装の場合、配置変更だけで処理の成立を保証せず、MutationやDownload処理の実装・Feedbackは別途検証します。
+
+
+### 共有先Communityの追加・解除Actionの分離
+
+PersonalのMedia Detail情報Panelでは、「共有先Community」見出し右側の「共有」と、一覧先頭の「共有解除」が近接して誤操作を誘発しないよう、見出しと一覧の間に十分な余白と控えめなDividerを設けます。Community行は最低32pxの高さと行間を確保し、各Community名の右側に対応する「共有解除」を維持します。共有解除の確認Dialogも維持します。過剰な行ごとの区切り線は設けず、情報密度と操作の区別を両立します。
+
+
+### Media Detail情報Panelの分類順と大量件数への対応
+
+ファイル情報とOriginal Downloadの後に、Groups → Tags → 共有先Community（Personalのみ）の順で表示します。各Sectionは見出し、現在件数、Contextual Action、値の一覧を共通した階層と余白で表示します。GroupsはMediaの整理、Tagsは分類・検索、Communityは共有状態を示します。Groups・Tagsは初期6件、共有先Communityは初期3件を表示し、超過時は「ほかN件を表示」から全件展開でき、折りたたみで初期表示に戻せます。0件時は未設定／未共有を表示し、編集・共有操作は維持します。長い名称は領域内で折り返し、共有解除Actionの領域を圧迫させません。情報Panel本文はスクロール可能とし、Media削除Actionは下部に独立して固定します。共有解除の確認Dialogは維持します。表示制限は情報の省略ではなくProgressive Disclosureであり、編集Dialogの選択対象数や保存対象には影響させません。
+
+
+### 情報PanelのSection区切りとStorybook検証データ
+
+ファイル情報・Groups・Tags・共有先CommunityのSection間は控えめなDividerと一貫した余白で区切ります。Groups・Tags・Communityの大量件数と長い名称を検証できる専用Storybook fixtureを用意し、初期表示、全件展開、折りたたみ、Compactでのスクロールを確認可能にします。Fixtureは本番データと分離し、通常のMedia Browser表示には影響させません。Storybook navigationはMedia BrowserとImage Detailを分離し、同じPrototype実装を共有してViewerの見た目と挙動を保持します。
+
+
+### Media Detail Dialogの画面設計優先と開閉Contract
+
+Tags編集、Groups編集、Community共有、Community共有解除は、操作目的・入力・検証・確定結果が異なる独立したDialogとして画面仕様を定義します。Dialogを閉じる際は、閉じるtransitionが完了するまで開いていたDialogのタイトル、入力内容、Action labelを維持し、別の操作の内容へ一瞬切り替わらないことをvisual / behavior contractとします。キャンセルは変更を確定せず、既存のFeedback、操作条件、Responsive、focus等のcontractを維持します。
+
+現段階は画面設計とVisual Prototypeの検証を優先します。UI上の操作境界と、React Component境界・private/publicの公開範囲・ファイル分割は別の設計判断として扱います。実装時は責務を根拠に共通化可能な基盤と固有の入力・検証・Actionを区別し、独立ファイル化や汎用化を先に固定しません。既存のModal構造のリファクタリングは画面設計の安定後に検討します。現行のキャンセル時の一瞬の内容切替は解消対象として扱い、実装・回帰検証が済むまで解決済みとしません。
+
+
+### 情報Panelの展開・折りたたみ操作
+
+Groups、Tags、共有先Communityの超過件数を表示するActionは、いずれもSection下部の中央に配置します。Action labelは閉じた状態で「ほかN件を表示」、開いた状態で「折りたたむ」とし、ChevronはAction labelの右側に置き、閉じた状態で下向き、開いた状態で上向きに回転します。初期表示件数（Groups・Tagsは6件、Communityは3件）は常時表示し、超過分だけをMantine Collapseによって200msで開閉します。展開中もCommunityごとの共有解除Actionを維持し、開閉ボタンにはaria-expandedを付与します。通常件数では展開Actionを表示しません。
+
+
+### Original downloadの状態表示（画面設計）
+
+Original downloadはInitial Release対象です。Media DetailのOriginal download ActionはMediaごとに利用可否が異なっても常時同じ位置に表示し、利用可能時は有効、権限不足・Original処理中は非活性とします。非活性時はhoverに依存しない短い補助説明をボタン直下に表示し、Compact・Keyboard操作・支援技術でも理由を把握できるようにします。Actionと説明の間に余分なDividerを挿入せず、ファイル情報・ActionのまとまりとGroupsの間のDividerは常に1本です。Prototypeのavailable / forbidden / processingは表示検証用fixtureであり、認可判定や実ダウンロード処理の実装を意味しません。本実装の権限判定はCustodian、Community Administrator、参加中のUploader本人等のdomain権限に従い、サーバー側でも再検証します。処理失敗等の状態の詳細文言は別途検証します。
+
+
+### 情報PanelのSection階層と操作の視覚的優先度
+
+情報Panelはファイル情報・Originalダウンロード、Groups、Tags、共有先CommunityのSection間だけにテーマ標準のDividerを配置します。DividerはFooter境界と同様にPanelの左右端まで伸ばし、各SectionのContentには従来どおり左右Paddingを保ちます。Sectionの見出しと内容は余白で区別し、内部Dividerは設けません。共有先Communityの「共有」は見出し側、「共有解除」は個別行に配置し、対象と操作の関係で誤操作を防ぎます。固定色を使わずライト・ダークテーマに追従し、件数・操作・展開animation・Responsiveの振る舞いは維持します。
+
+## Image Detail Dialogの複数画面からの利用（合意済み・実装未完了）
+
+Image DetailはMediaBrowser内部の専用実装ではなく、MediaBrowserとGroupBrowserの両方から呼び出せる共通Dialogとして抽出する。既存MediaBrowserのImage Detailをvisual / behavioral contractの基準とし、画像表示、ズーム、回転、リセット、ダウンロード状態、情報パネル、Tags / Groups / Communities編集、共有解除、前後移動、キーボード・Responsive動作を省略・変更しない。
+
+呼び出し元は開閉状態、選択Media、前後移動の対象となるMedia列、必要な操作ContextをDialogへ渡す。MediaBrowserからは現在の一覧、GroupBrowserからは現在のGroupに所属するMedia列を前後移動対象とする。新しい検索・ページング条件があっても、Dialog内の前後移動対象を呼び出し元の対象集合として扱う。実Backend未接続の段階では、Group内のダミーMedia列を用いて操作を表現する。表示・編集操作の権限やContextの違いはpropsや適切な責務境界で扱い、Group側の要件に合わせてMedia側のCapabilityを削除しない。
+
+Group Detailのサムネイルは操作可能な要素とし、押下したMediaを初期表示して共通Image Detail Dialogを開く。Dialogを閉じるとGroup Detailの選択状態・Pane幅・スクロール状態を維持する。Visual Prototypeと本体Webの両方を接続し、構文・型・lintだけでなくMedia起点とGroup起点の表示・操作・Responsive回帰を確認する。これは合意済み設計であり、記載時点では実装完了を意味しない。
+
+### 暫定接続の実装状態（2026-10-11）
+
+Group DetailのダミーMediaサムネイルを操作可能にし、MediaBrowser内の既存Image Detailをdetail-onlyモードで呼び出す接続を本体・Visual Prototypeに追加した。Group起点の前後移動は24件のダミーMedia列を対象とする。Media起点の既存Viewerは変更しない方針である。現段階では既存MediaBrowserを再利用する暫定アダプタであり、Image Detailの状態管理と編集Dialogを独立した共通Componentへ完全抽出する作業は未完了（memoria-web Issue #91）。ブラウザ・型・lint・visual/behavioral regressionの検証も未実施である。
+
+### Image Detailの開閉アニメーション
+
+MediaBrowserの既存Image Detail Modalの標準開閉挙動を正本とし、GroupBrowser起点でも同じ挙動を維持する。独自の`transitionProps`は指定しない。GroupBrowserはDialogをサムネイル押下時に初めてマウントするのではなく、閉じた状態で常時マウントしておき、選択Mediaの変更によって`opened`を切り替える。これにより既存Modalの開閉トランジションを利用する。Image Detail内部の前後画像切り替え、回転、情報パネル開閉アニメーションは変更しない。本体WebとVisual Prototypeで同じ開閉方式を使用する。
+
+Dialogのマウントと開閉の一般ルールは [`Dialogのライフサイクルと開閉制御`](../guidelines/dialog-lifecycle.mdx) を正本とする。Image Detailはこの共通ルールに従う。

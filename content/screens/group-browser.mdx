@@ -229,3 +229,23 @@ Compact等、Group discoveryと選択中Groupを同時表示するとMedia閲覧
 Mediumを含む具体的なlayout、2-pane表示から切り替え表示へ移行するbreakpoint、カラム幅等は、実装時の利用可能領域とVisual Reviewで確認して決定します。Compact / Medium / Wideという区分だけを理由に固定layoutを割り当てず、表示領域が変わってもGroup discoveryからMediaへ速やかに到達できるCapabilityを維持します。
 
 Group名検索、Group選択、管理Action、relation情報の確認をhoverだけに依存させず、touchとkeyboardでも主要Capabilityへ到達できるようにします。
+
+## Media / Group一覧の操作パネル配置規則
+
+MediaとGroupの一覧は、操作パネルをコンテンツの上に配置し、開始位置と余白を揃えます。検索・フィルターは左、件数は検索欄の隣、追加Actionおよび画面固有Actionは右に配置し、コンテンツとの境界にDividerを設けます。件数だけの独立した行は設けず、縦方向の占有を抑えます。Compactでは既存Actionの利用可能性を維持して必要に応じたResponsive配置を許容します。
+
+共通化するのは視覚的な配置ルールであり、操作パネルの実装Componentは共通化しません。MediaのTag検索・選択モード、Groupの入力時検索など既存の画面固有Capabilityと操作タイミングは維持します。
+
+### 検索確定とRelay Connectionのページング
+
+MediaとGroupの検索Inputのplaceholderはそれぞれ「Tagを検索」「Groupを検索」とする。両方に「検索」ボタンを配置し、入力途中のdraft条件と確定済みの検索条件を分離する。検索ボタンまたは検索formのEnterによって条件を確定し、該当Connectionを先頭ページから取得する。コンテンツ領域のスクロールによって同じ確定条件で次ページを取得する。条件を変更して再検索した場合は旧cursorを流用しない。Groupの検索実行・再取得は選択中GroupとそのMedia表示を解除しない。件数は取得済み要素数ではなく条件に一致する総件数を表す。
+
+現時点のVisual Prototypeと本体WebのモックではRelay/APIは接続せず、Groupは確定条件によるローカル絞り込み、MediaはTag metadataを持たないため検索条件の確定のみを表現する。実データの絞り込み・先頭ページ取得・スクロール追加取得はBackend接続時に実装する。MediaとGroupの操作パネルは共通Component化せず、視覚的配置規則のみ共有する。
+
+### Group作成導線のモック実装
+
+Group一覧の「Groupを作成」Actionは作成Dialogを開く。Dialogでは必須のGroup名（最大100文字）と任意のParents / Childrenを設定できる。キャンセルは変更を破棄し、作成Actionで登録を確定したときのみDialogを閉じ、一覧へ新規Groupを追加し成功Notificationを表示する。新規GroupのMedia件数は0件とする。現時点のWeb実装とVisual Prototypeでは画面内stateによるモック登録であり、Backend永続化やGraphQL mutationの成功を意味しない。
+
+### Group Detailの関係セクション開閉
+
+「このGroupとの関係」は可変幅Paneでも文言とChevronが離れないよう、左側に隣接配置する。閉時は右向き、開時は下向きとし、アイコンの回転と内容の開閉はそれぞれ200msでアニメーションする。配置の横断ルールは `content/guidelines/disclosure-controls.mdx` を正本とする。
