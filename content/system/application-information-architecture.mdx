@@ -42,6 +42,23 @@ flowchart LR
 
 この図はNavigationの意味的な責務を示すもので、Header / Sidebar等の配置や具体的なroute構造を規定しません。
 
+## Context navigationと設定内navigationの階層（2026-10合意）
+
+Application ShellのDrawerはcontext共通の主要機能を同じ粒度で示し、contextごとの機能差分は項目の表示・非表示で表現する。Personal contextではDashboard / Media / Groups、Community contextではDashboard / Media / Groups / Settingsを基本構成とする。User本人のProfile / Preferences / Usage / AccountはcontextにかかわらずAccount MenuからUser Settingsへ進む。
+
+Community contextのSettingsはCommunityに関する管理・参照・個人向け調整をまとめるnavigation上の入口とする。Settings内navigationは次の4カテゴリを持つ。
+
+| カテゴリ | 内容 | Scope / 権限 |
+| --- | --- | --- |
+| 一般 | Community名、Invitation URL、Community削除への入口 | Community scope。全Active Memberが閲覧、変更はAdministrator |
+| メンバー | 参加者一覧、role変更、除外、退会 | Community membership。閲覧は全Active Member、管理Actionは権限に従う |
+| 利用状況 | CommunityがCustodianのOriginalの容量・登録件数 | Community scope。全Active Memberが閲覧 |
+| 環境設定 | 現在User向けのCommunity Accent Color | User × Community scope。各Memberが自身の値を変更 |
+
+このグルーピングはnavigation上の分類であり、各画面のdomain scope、authorization、Capabilityを変更しない。特に環境設定はCommunity全体の設定ではないことをUIで明示する。Dashboard / Media / GroupsはSettings内navigationに含めない。Community Settingsの外側レイアウトはPersonal Settings同様の中央配置、Wideで左側navigationと右側content、Compactで選択UIへ切り替える構成を基準とする。Application Shell自体は各画面で複製しない。
+
+既存のMembers / Usage / Preferences / Settingsのrouteは、navigation再編に伴って直ちに廃止しない。URLの統合・redirect・deep link互換性は実装前に別途確定する。以下の既存route表は現時点の到達可能なdestinationとして維持し、Drawerの直接表示項目を示すものとは区別する。
+
 ## Application Context
 
 ### Personal context
