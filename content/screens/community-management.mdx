@@ -157,7 +157,7 @@ Invitation無効化・再発行のConfirmationは現在のInvitation状態やAdm
 
 ### Invitation URLの取得とsecret保護
 
-Invitation tokenはDBにhashのみを保存する既存Domain契約を維持する。発行直後のURL提示と、その後の画面再訪・再取得時にURLをどのように提供するかはAPI / Security Contractとの整合確認が必要であり、本Screen Specificationだけで復元方法や永続的な平文token保存を決定しない。URLを取得できない場合に存在しないURLを生成・表示しない。
+Invitation tokenは検証用hashと認証付き暗号文を保存し、平文を永続保存しない。現在のAdministrator権限をServerで検証した場合に限り、発行直後およびSettings再訪時に同じ有効なInvitation URLを取得・表示・コピーできる。MemberにはURLを返さない。失効済み・期限切れのURLを利用可能として提示しない。暗号鍵管理・復号監査・具体的なAPI response contractはSecurity / API設計で確定する。URLを取得できない場合に存在しないURLを生成・表示しない。
 
 ### 後続UX / Visual Reviewで確認する事項
 
