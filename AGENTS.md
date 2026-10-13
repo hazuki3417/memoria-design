@@ -73,3 +73,5 @@ Agent向けContextを追加・変更するときは、同じ規則を複数箇�
 - Domain / Screen / System文書: Product / System仕様そのものを所有する。
 
 新しい規則を追加する前にownerを一つ決め、他の入口からはlinkだけを追加します。時点依存の進行状況や一時的なBaselineを恒久的なBootstrap規則へ混在させません。
+
+情報が複数の文書やRepositoryに分かれていること自体は問題としません。各文書の責務を維持しながら、どのRepositoryの`AGENTS.md`から作業を始めても共通のContext mapと必要な正本へ到達できる参照経路を保ちます。入口や参照先を変更するときは、他Repositoryの`AGENTS.md`も含めてリンク先の存在、参照の一貫性、重要な制約や承認条件の欠落がないことを確認します。
