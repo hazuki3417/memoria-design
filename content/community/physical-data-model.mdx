@@ -74,7 +74,9 @@ AccentはApplicationで `#RRGGBB` へ正規化し、DBでも `^#[0-9A-F]{6Accent
 | id | varchar(26) | PK | 招待ID |
 | community_id | varchar(26) | FK communities ON DELETE CASCADE | 招待対象Community |
 | token_hash | varchar(128) | NOT NULL、UNIQUE | 推測困難なtokenの検証用hash |
-| token_ciphertext | text | NOT NULL | Administrator向けURL再表示用に認証付き暗号化したtoken。平文保存は禁止 |
+| token_ciphertext | text | NOT NULL | versioned envelope形式のAES-256-GCM暗号文（base64url） |
+| token_key_id | varchar(128) | NOT NULL | 復号鍵の非秘密識別子 |
+| token_nonce | varchar(32) | NOT NULL | 暗号化ごとに生成する96-bit nonceのbase64url表現 |
 | created_by_user_id | varchar(26) | FK users ON DELETE SET NULL | 発行Administrator |
 | created_at | timestamptz | NOT NULL | 発行時刻 |
 | expires_at | timestamptz | NOT NULL | 発行から7日後 |
@@ -128,3 +130,13 @@ Media domainが所有する`media_custodies`と`media_community_accesses`の削�
 ## 他domainとの境界
 
 `communities`、`community_memberships`、`community_invitations`、`community_join_requests`は本ページを設計上の正本とします。GraphQL・実行可能SQL schemaの正本は実装を所有する`memoria-api`です。
+
+## Invitation token暗号化・鍵管理 Contract（Issue #238）
+
+- tokenはCSPRNGで256-bit以上を生成し、URL-safe base64urlで表現する。token_hashはSHA-256等の一方向digest（既存実装と互換の方式をAPI実装時に確定）で検証し、平文tokenはDB・log・analytics・traceへ永続保存しない。
+- AES-256-GCMを使用し、256-bitの暗号鍵と暗号化ごとに新規生成する96-bit nonceを使う。AADは固定version prefix、Community ID、Invitation IDを長さ区切りで正規化したbyte列とし、同じ方式で復号する。GCM authentication tagは128-bitとし、暗号文とともに保存する。
+- `token_ciphertext`はversion付きのciphertext+tagをbase64urlで格納する。形式のversion、`token_key_id`、`token_nonce`を暗号化metadataとして扱う。DBのInvitation ID / Community IDとの不一致・認証tag不一致・未知versionは復号失敗とする。
+- 鍵はDBと分離したsecret manager / KMSで管理し、Applicationには最小権限で復号を許可する。鍵そのもの・平文token・復号結果を監査logへ記録しない。鍵識別子・実行主体・操作結果・Invitation IDのみを監査対象とする。
+- 鍵rotationでは新鍵をactive encryption keyに設定し、旧鍵をdecrypt-onlyとして保持する。既存Invitationを復号後、新nonceで新鍵へ再暗号化し、暗号文・key ID・nonceを同一rowの条件付き更新で原子的に置換する。期限切れ・失効済みのInvitationを再表示可能に戻さない。旧鍵削除は対象暗号文が残らず、復旧手順が検証された後に行う。
+- 鍵喪失・復号失敗時はURLを推測・再発行・失効したことにせず、秘密情報を含まない内部エラーとして返す。運用者が調査できるよう秘密情報を除いたaudit eventを残す。URL再表示障害がInvitation acceptのhash検証を妨げない設計とする。
+- Migrationは既存Invitation行の暗号文が存在しない場合を考慮する。復元できない既存tokenを生成したことにせず、移行期間のnullable列・再発行案内・制約強化の順序をAPI実装時に確定する。既存のInvitation URLを無断で失効させない。
