@@ -151,3 +151,28 @@ Initial Releaseでは有効なMembershipを持つ参加者はCommunityあたり�
 ## 参加者テーブルの表示領域（2026-10合意）
 
 参加者Tableの外枠には角丸を適用する。検索結果件数にかかわらずTableの表示領域の高さを一定に保ち、Headerと最大4行分の表示領域を確保する。5件以上はTable内部の縦ScrollAreaでスクロールし、Headerは固定する。検索結果が0〜3件でもTable表示領域を縮めない。表示件数が4件未満の場合は残りを行要素ではなく非インタラクティブな空白領域として維持する。最終データ行の下端には区切り線を表示するが、空白領域にはhover・striped背景・行アクションを適用しない。縦スクロールバーはTable Body領域だけに配置し、Header領域へ重ねない。参加者Tableの縦スクロールバーはMantine ScrollAreaのoverlay表示（hover）を採用し、Body上に重ねる。HeaderとBodyにスクロールバー用の専用gutterを設けず、背景色・行区切り線を右端まで描画する。操作メニューがスクロールバーと干渉しないこと、検索結果0〜4件・5件以上・狭幅で列位置や表示が崩れないことを検証する。検索・ソートは引き続きフロントエンドのみで処理する。
+
+## Members Behavior Contract（2026-10合意）
+
+### 自分自身のAdministrator降格
+
+別Administratorが残り、自分自身のAdministratorからMemberへの変更が成立した場合、有効なMembershipは維持されるためMembers画面に留まる。最新roleを反映し、Administrator専用のrole変更・除外Actionは利用不可にする。自分の退会Actionと参加者閲覧はMemberとして引き続き利用できる。Membership自体を失った場合のみ、Application IAに従って安全なdestinationへ移動する。
+
+### Confirmation中の競合と実行時再検証
+
+降格・除外・退会のConfirmationは操作結果や実行権限を予約しない。確認表示中にMembership、role、Administrator数等が変更され得るため、確定操作時にServerが最新状態を再検証する。最後のAdministrator条件やAdministrator上限等により拒否された場合は、成立していない操作を成功として表示せず、拒否理由と必要な次の行動をConfirmationの文脈で提示し、参加者一覧・操作可否を最新状態に同期する。実行中は同じ意図の重複送信を防ぐ。既存のTransaction / authorizationを正本とし、Clientの事前判定だけで操作を成立させない。
+
+### 検索・sort中の更新
+
+role変更・除外等が成立した後も現在の検索語と単一columnのsort keyを保持し、更新された参加者集合に対して再適用する。role変更に伴う並び替えや検索結果からの対象行消失は許容するが、対象行が画面から見えなくなった場合も操作結果のFeedbackを失わせない。検索・sortは引き続き取得済み集合へのClient-side処理とし、追加の検索・sort APIを要求しない。
+
+### 失敗時のFeedbackと復帰
+
+- 最後のAdministrator制約、Administrator最大3人、Membership不存在等のDomain制約違反は、通信障害と混同せず理由を示す。解消可能な場合は次の行動を案内する。
+- 操作者のAdministrator権限だけが失われ、Membershipが有効な場合は、Members画面の閲覧を維持し、管理Actionを現在roleに合わせて更新する。Membershipを失った場合は非公開情報を表示し続けずApplication IAに従う。
+- Network / Serverの一時的な失敗は操作の成立を推測せず、現在状態を確認可能にし、安全な再試行導線を提供する。結果が不明な操作を無条件に成功扱いしたり自動再送したりしない。
+- Confirmationを伴う操作が失敗した場合は、対象と操作意図を理解できる文脈を維持しつつ、現在状態と再試行可否を更新する。すでに成立した操作を二重実行しない。
+
+### 後続Visual Reviewで検証する事項
+
+固定高さのTableとBody ScrollArea、row Action Menu、Confirmation Dialogの組み合わせについて、Keyboard / Touch / Pointer操作、focus移動とDialog終了後のfocus復帰、scroll位置、Compact / Medium / Wideでの操作可能性を検証する。具体的な配置・寸法・focus fallbackはVisual Prototype / Reviewで決定し、既存のTable表示領域・Responsive contractを変更しない。
