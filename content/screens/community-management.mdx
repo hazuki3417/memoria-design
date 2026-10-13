@@ -114,7 +114,7 @@ Invitation等の再試行可能な操作失敗は[Feedback](/design-system/patte
 
 ### 権限失効
 
-role変更等により現在UserがAdministratorではなくなった場合、本画面を継続利用させません。現在のCommunity Membershipが有効なら利用可能なCommunity destinationへ移動し、Membership自体を失った場合はApplication IAに従って安全なdestinationへ移動します。
+role変更等により現在UserがAdministratorではなくなっても、有効なCommunity Membershipが残る場合は本画面の閲覧を継続し、Member向けの表示へ更新します。Invitation URL・token等のsecret情報とAdministrator専用の変更・削除Actionを表示せず、Community名の閲覧と管理者限定の案内を維持します。Membership自体を失った場合は非公開情報を継続表示せず、Application IAに従って安全なdestinationへ移動します。
 
 ## Navigation
 
@@ -144,3 +144,24 @@ Context全体のNavigation責務は[Application Information Architecture](/syste
 Compact / Medium / WideのすべてでGeneral / Invitation / Danger Zoneの意味的な順序とCapabilityを維持します。Wideで横方向の余白が増えても、3 sectionを別々の意味を持つcolumnへ機械的に分散させることは要求しません。Compactではfield、状態情報、Actionを必要に応じて縦方向へ積み、URLや日時の可読性と操作可能性を優先します。
 
 具体的なwidth、spacing、Action配置はUI具体化とVisual Reviewで決定します。重要なActionをhoverだけに依存させません。
+
+## Settings / Invitation Behavior Contract（2026-10合意）
+
+### Invitation操作中の競合と確認
+
+Invitation無効化・再発行のConfirmationは現在のInvitation状態やAdministrator権限を予約しない。確認表示中に別AdministratorがInvitationを変更する可能性があるため、確定操作時にはServer側で最新の権限、Community状態、対象Invitationの状態を再確認する。旧URLに対する意図を、別のAdministratorが新しく発行したURLへの無効化・再発行として暗黙に読み替えない。競合等で意図した操作が成立しない場合は成功を通知せず、現在のInvitation状態を再取得し、理由と次に可能なActionを示す。既存のDomain / Transaction / API契約を正本とする。
+
+### Invitation操作の結果不明と再試行
+
+無効化・再発行の応答が途絶えた場合、操作が失敗したと推測せず、最新のInvitation状態を確認してから次のActionを案内する。特に再発行を無条件に自動再送してURLを連続更新しない。最新状態を取得できない間は旧URLが引き続き有効と断言せず、成功Feedbackも表示しない。同じ意図の重複実行を防ぎ、結果の確定後に現在利用可能なURLと有効期限を表示する。
+
+### Invitation URLの取得とsecret保護
+
+Invitation tokenはDBにhashのみを保存する既存Domain契約を維持する。発行直後のURL提示と、その後の画面再訪・再取得時にURLをどのように提供するかはAPI / Security Contractとの整合確認が必要であり、本Screen Specificationだけで復元方法や永続的な平文token保存を決定しない。URLを取得できない場合に存在しないURLを生成・表示しない。
+
+### 後続UX / Visual Reviewで確認する事項
+
+- Clipboardへのコピー失敗時は成功Feedbackを出さず、失敗を伝え、可能な環境ではURLを手動で選択・コピーできる復帰手段を検討する。URLのsecret保護を維持する。
+- 画面表示中にInvitationの有効期限が到来した場合、期限切れURLを利用可能と断言しない。現在状態の更新タイミング、再取得、Action切替を検証する。
+- Community名変更の保存失敗時には編集入力を不必要に失わせず、Field Errorと再試行可能な失敗を区別する。同時変更が起きた場合の現在値との整合とFeedbackを検証する。
+- Compact / Medium / WideでURL・期限・Confirmationの可読性、Keyboard / Touch操作、focus復帰を検証し、既存のGeneral / Invitation / Danger Zone構成を維持する。
