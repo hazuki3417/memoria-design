@@ -43,7 +43,7 @@ User、Community、Mediaに共通する認証、操作主体、認可の再評�
 - password、credential、認証token、招待token、署名付きURL、不要な個人情報をlogへ出力しない。
 - Login・登録後のreturn URLは許可された内部URLだけを受け付ける。
 - 招待URLと署名付き配信URLには、用途に応じた失効条件と有効期限を設定する。
-- 招待tokenは推測困難な乱数とし、平文ではなくhashだけを保存する。
+- 招待tokenは推測困難な乱数とし、検証用hashと再表示用の認証付き暗号文のみ永続保存する。平文保存は禁止し、復号鍵はDBと分離して管理する。復号・URL再表示は現在のAdministrator権限を確認した操作に限定し、秘密情報をlog・外部解析へ送信しない。鍵rotation・監査・APIの具体設計は別途確定する。
 - Cookieは認証方式に応じてHttpOnly、Secure、適切なSameSiteを設定し、必要なCSRF対策を行う。
 - 入力検証は[入力検証](/system/api/validation)、logの保持と保護は[ログ・可観測性](./observability)を正本とする。
 
