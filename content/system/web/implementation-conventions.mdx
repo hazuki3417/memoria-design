@@ -6,6 +6,16 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 既存の `memoria-web` 実装は再利用候補・参考情報であり、それ自体を要求やArchitectureの正本とはみなしません。新しい設計に適合する実装は再利用し、適合しない実装は変更または廃止できます。既存実装を一括移行するための大規模Refactorは前提にせず、変更対象ごとに判断します。
 
+## Coding Conventionの判断原則
+
+React / TypeScriptのCoding Conventionは、AIと人間の双方が一貫して実装・レビューできることを目的とします。実装の安全性、Component contract、責務、変更時の予測可能性を優先し、実質的な品質差が小さい記述スタイルを過剰に強制しません。手入力の短縮だけを目的に暗黙的な依存やProps転送を増やしません。
+
+- **必須**: 安全性、Component contract、Architecture境界など、違反すると振る舞いや変更の影響範囲を損ない得る制約。
+- **推奨**: Componentの宣言形式など、実装の一貫性と読み取りやすさを高める標準的な書き方。合理的な理由がある場合は別の表現を許容します。
+- **例外許可**: Framework要件、明確なWrapper contract等に基づく例外。例外によって既存の表示・操作・状態・Responsive Behaviorを暗黙に変更しません。
+
+規約の具体化ではRule、Rationale、Examples、Exceptions、Verificationを明示し、自動判定可能な事項と設計・Contractレビューが必要な事項を区別します。検証の自動化は規約の採用と別に判断します。現在一時停止中のQuality Gate / CIは本規約の検討を理由に変更せず、再導入時に必要な検証を評価します。
+
 ## Architecture Principles
 
 Memoria WebはPure Clean ArchitectureやPure Vertical Slice Architectureをそのまま適用しません。Product Featureを変更と凝集の主要単位としつつ、Feature内部と外部Integrationの責務・依存境界を明示します。
