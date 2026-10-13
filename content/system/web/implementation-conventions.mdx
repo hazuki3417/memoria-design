@@ -16,6 +16,30 @@ React / TypeScriptのCoding Conventionは、AIと人間の双方が一貫して�
 
 規約の具体化ではRule、Rationale、Examples、Exceptions、Verificationを明示し、自動判定可能な事項と設計・Contractレビューが必要な事項を区別します。検証の自動化は規約の採用と別に判断します。現在一時停止中のQuality Gate / CIは本規約の検討を理由に変更せず、再導入時に必要な検証を評価します。
 
+## TypeScriptの型安全性
+
+型チェックを通すことだけを目的に、実際の契約不整合を型アサーション等で隠しません。型の保証がどの境界で成立するかを明確にし、必要な検証・変換をその境界で行います。
+
+- **必須**: 新規Codeでの `any` は原則避けます。外部Library等で避けられない場合は、利用範囲を最小化し理由を説明します。
+- **必須**: 信頼性が未確認の入力は `unknown` 等として扱い、利用前に適切な検証・型の絞り込みを行います。型安全な生成Codeや保証済みの境界に対して、根拠なく重複Validationを追加しません。
+- **必須**: `as` を型エラーや契約不整合の隠蔽に使いません。TypeScriptでは表現できないが別の根拠で保証される場合は、その根拠と影響範囲を確認します。`as const` 等の型推論を補助する表現まで一律禁止しません。
+- **推奨**: Non-null assertion（`!`）より、存在確認や明示的な分岐を優先します。外部Contract等による存在保証がある例外では、保証の根拠を確認します。
+- **必須**: `null`、`undefined`、省略可能な値の意味をAPI / Component contractに従って扱い、便宜的に混同しません。
+- **推奨**: Genericsは入力・出力等の型の関係を表す必要がある場合に使用し、抽象化そのものを目的に導入しません。
+- **必須**: 型は意味を所有するFeature / Component / Integrationの近くへ配置し、型だけを理由としたTop-levelの共有置き場を作りません。
+
+## Custom Hooksの設計
+
+既存のLogic Isolation原則に従い、Custom HookはReact State、Lifecycle、Context、外部Systemとの同期など、Reactへの接続自体が独立した責務である場合に抽出します。
+
+- **必須**: Reactを必要としない判断・変換・Validation・Derived Stateを、便宜的にCustom Hookへ移しません。Pure TypeScriptを優先します。
+- **必須**: `useEffect` を導出可能な表示Stateの再生成や、render中に計算できる値の同期に使いません。外部Systemとの同期を中心に使用し、cleanupと依存関係を確認します。
+- **推奨**: `useMemo` / `useCallback` を習慣的に追加せず、必要性がある場合に利用します。最適化によって意味上の責務境界を置き換えません。
+- **推奨**: Hookの抽出は行数や再利用の可能性だけでは判断せず、独立したState / Lifecycle / Interaction contractを基準とします。
+- **必須**: Hooksの呼び出し規則を守り、条件分岐や反復処理の内部で呼び出しません。
+
+これらの規約の自動検証可否は個別に評価します。規約追加に伴うQuality Gate / CIの変更は行いません。
+
 ## Architecture Principles
 
 Memoria WebはPure Clean ArchitectureやPure Vertical Slice Architectureをそのまま適用しません。Product Featureを変更と凝集の主要単位としつつ、Feature内部と外部Integrationの責務・依存境界を明示します。
