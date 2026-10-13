@@ -73,11 +73,14 @@ AccentはApplicationで `#RRGGBB` へ正規化し、DBでも `^#[0-9A-F]{6Accent
 | --- | --- | --- | --- |
 | id | varchar(26) | PK | 招待ID |
 | community_id | varchar(26) | FK communities ON DELETE CASCADE | 招待対象Community |
-| token_hash | varchar(128) | NOT NULL、UNIQUE | 推測困難なtokenのhash |
+| token_hash | varchar(128) | NOT NULL、UNIQUE | 推測困難なtokenの検証用hash |
+| token_ciphertext | text | NOT NULL | Administrator向けURL再表示用に認証付き暗号化したtoken。平文保存は禁止 |
 | created_by_user_id | varchar(26) | FK users ON DELETE SET NULL | 発行Administrator |
 | created_at | timestamptz | NOT NULL | 発行時刻 |
 | expires_at | timestamptz | NOT NULL | 発行から7日後 |
 | revoked_at | timestamptz | NULL可 | 無効化時刻 |
+
+tokenの暗号文はApplication側で暗号化・復号し、復号可能な秘密鍵をDBに保存しません。暗号鍵識別子・暗号方式・rotation時の既存token復号と再暗号化・アクセス監査の詳細はSecurity / API設計で確定します。token hashによるInvitation accept検証は維持し、URL再表示のための復号は現在のAdministrator権限を検証した場合に限定します。
 
 `revoked_at IS NULL`を条件とするCommunity単位のpartial unique indexで、失効処理されていない招待URLを1件に制限します。期限切れURLは再発行Transaction内で`revoked_at`を設定してから新規行を作成します。期限判定に現在時刻を使うpartial indexは作成しません。
 

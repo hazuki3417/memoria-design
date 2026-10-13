@@ -27,7 +27,7 @@ User、Administrator、Memberの操作、前提条件、結果、対象外を定
 
 ## 招待URLを発行・共有する
 
-AdministratorがCommunityごとに1件の有効な招待URLを発行します。tokenは推測困難な乱数とし、DBにはtokenのhashだけを保存します。
+AdministratorがCommunityごとに1件の有効な招待URLを発行します。tokenは推測困難な乱数とし、DBには検証用のtoken hashと、Administratorへの既存URL再表示に必要なtokenの暗号文を保存します。平文tokenは永続保存しません。
 
 - 発行時刻から7日間有効。
 - 有効期間内は複数Userが同じURLから参加できる。
