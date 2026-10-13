@@ -6,6 +6,122 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 既存の `memoria-web` 実装は再利用候補・参考情報であり、それ自体を要求やArchitectureの正本とはみなしません。新しい設計に適合する実装は再利用し、適合しない実装は変更または廃止できます。既存実装を一括移行するための大規模Refactorは前提にせず、変更対象ごとに判断します。
 
+## React / TypeScript Coding Convention
+
+この節はCodeの**記述方法**を定義します。Architecture、Component API、State Ownership、Test、Security、Responsive Behaviorの意味的なcontractは後続の各節を正本とし、ここで重複定義しません。新規Codeと変更対象Codeに適用し、既存Codeの形式だけを揃える一括変更は行いません。Refactorでは変更前のvisual / behavioral / responsive contractを維持します。
+
+### 判断原則と規約の強さ
+
+実装の安全性、責務、変更時の予測可能性を優先し、品質差の小さい記述スタイルを過剰に強制しません。手入力の短縮だけを目的に暗黙の依存やProps転送を増やしません。
+
+- **必須**: 安全性、Component contract、Architecture境界に関わる制約。例外は保証根拠と影響範囲を確認します。
+- **推奨**: 読みやすさと一貫性のための標準形。合理的な代替表現は許容します。
+- **例外許可**: Framework要件、Library API、明確なWrapper contractなど、標準形より適切な事情がある場合。
+
+各規約はRule、Rationale、Examples、Exceptions、Verificationを意識して運用します。Formatter / Lint / TypeScriptで検出できるものと、意味的なレビューやTestが必要なものを混同しません。自動化可能であることだけを理由に新しいLint Ruleを追加しません。**一時停止中のQuality Gate / CIは今回変更しません**。再導入時に必要な自動検証を別途判断します。
+
+### Component宣言・Props・Export
+
+| 項目 | 標準形と理由 | 強さ・例外 |
+| --- | --- | --- |
+| Component宣言 | 名前付き `function ComponentName(...)` を基本とし、stack traceと識別性を高める | 推奨。 `memo` / `forwardRef`、Generic Component、Library API等は合理的な別形式を許可 |
+| Props型 | `ComponentNameProps` をComponentの近くに定義し、必要なcontractだけを公開する | 推奨。Genericや既存Library型を直接利用する場合は例外 |
+| Props受け取り | 通常は引数で分割代入し、利用する値を明示する | 推奨。Wrapper等でProps集合を保持すること自体が責務の場合は例外 |
+| デフォルト値 | 省略可能なPropsの既定値は原則として分割代入で表現する | 推奨。正規化処理に独立した意味がある場合は例外 |
+| Export | named exportを基本とし、Public APIは既存Module境界のexplicit exportに従う | 推奨。Next.jsの`page.tsx`等のdefault export要件は例外 |
+| `React.FC` | 通常はPropsを関数引数へ明示し、`React.FC`に依存しない | 推奨。Library契約が要求する場合は例外 |
+| Props spread | 無関係な値や外部Data shapeを暗黙に転送しない | 必須。転送先と許可Propsのcontractが明確なWrapperでは許可 |
+| Handler | Componentから見たeventの意味で`onSelect`等と命名し、非自明な処理は名前付きHandlerへ分離する | 推奨。単純な直接転送はinlineでもよい |
+
+```tsx
+type MediaCardProps = {
+  title: string
+  selected?: boolean
+  onSelect: () => void
+}
+
+export function MediaCard({
+  title,
+  selected = false,
+  onSelect,
+}: MediaCardProps) {
+  return (
+    <button type="button" aria-pressed={selected} onClick={onSelect}>
+      {title}
+    </button>
+  )
+}
+```
+
+Component自身のPropsと転送先のPropsを区別します。Wrapperは転送先のProps contractを意図的に公開し、Wrapper固有のPropsを除外してからrest Propsを転送できます。転送先の型が広すぎる、意味的制約がある、外部Data objectをそのまま展開する場合はspreadの安全性を再評価します。
+
+```tsx
+type ActionButtonProps = React.ComponentProps<typeof Button> & {
+  label: string
+}
+
+export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
+  return <Button {...buttonProps}>{label}</Button>
+}
+```
+
+この例は**転送方法**の説明であり、単にMantineを隠すWrapperを新設することを推奨しません。Component APIの意味、controlled / uncontrolled、children / slotの判断は後続の「Component API」に従います。
+
+### TypeScriptの型安全性
+
+| 項目 | Rule / Rationale | 強さ・例外 |
+| --- | --- | --- |
+| `any` | 新規Codeでは原則使用せず、型安全性を失う範囲を増やさない | 必須。避けられないLibrary境界では範囲と理由を限定 |
+| `unknown` | 信頼性未確認の外部入力は検証・narrowing後に利用する | 必須。保証済みの生成型を理由なく再検証しない |
+| `as` | 型Errorやcontract不整合を隠すために使用しない | 必須。保証根拠がある最小範囲では許可。`as const`等の推論補助は一律禁止しない |
+| `!` | 明示的な存在確認・分岐を優先する | 推奨。存在保証が確認できる例外を許容 |
+| `null` / `undefined` | absenceの意味を境界ごとのcontractに従って扱う | 必須。GraphQL由来のnullableを無条件にUIへ伝播させない |
+| Generics | 入出力等の型の関係を表現する必要がある場合に使う | 推奨。抽象化自体を目的にしない |
+| `satisfies` | 推論を保持したままcontractを検証できる場合に利用する | 推奨 |
+| Error抑制 | `@ts-ignore`で通常の型Errorを隠さない | 必須。不可避なら理由付き`@ts-expect-error`を最小範囲に限定 |
+| 型の配置 | 型のsemantic ownerに近接させる | 必須。Code種別だけの共有`types`置き場を新設しない |
+
+有限なProduct Stateには必要に応じてunion / discriminated unionを使い、不正な組み合わせを表現しにくくします。一方、独立したStateを無理に単一unionへ統合しません。詳細は「UI State Modeling」と「TypeScript Value / Escape Hatch」を参照します。
+
+### Hooks・Pure Logic・Effect
+
+- **必須**: Reactを必要としない判断・変換・Validation・Derived StateはPure TypeScriptを優先します。Hookへ移すだけの抽象化を行いません。
+- **必須**: Custom HookはReact State、Lifecycle、Context、外部Systemとの同期など、Reactへの接続自体が独立した責務である場合に抽出します。
+- **必須**: Hooksの呼び出し規則を守り、条件分岐・反復処理の内部で呼び出しません。
+- **必須**: `useEffect`を導出可能な表示Stateの再生成に使わず、外部Systemとの同期を中心に使用します。依存関係とcleanupを確認します。
+- **推奨**: `useMemo` / `useCallback`は必要性がある場合に使用し、習慣的に追加しません。最適化を責務分離の代替にしません。
+- **推奨**: Hookの抽出は行数ではなく独立したState / Lifecycle / Interaction contractで判断します。
+- **推奨**: Custom Hookは`useXxx`、ComponentはPascalCaseで命名し、既存の「命名と品質」に従います。
+
+### Async・Error・Stateとイベント処理
+
+- **必須**: Event Handler内のAsync処理はpending、二重実行、失敗、復帰等のProduct contractを維持し、未処理のPromise rejectionを放置しません。
+- **必須**: Server / GraphQL / LibraryのErrorを、そのままUser向け文言やComponent contractに流しません。
+- **必須**: 既存のState authorityを尊重し、Props・Apollo・Form・local state間で同じ意味のStateを無用に二重所有しません。
+- **推奨**: 複雑なinline callbackは、意図が読み取れるHandlerへ分離します。ただし単純なforwardingのためだけに関数を増やしません。
+- **必須**: StateやComponentの整理を理由に、既存のloading / empty / error / disabled / readOnly等の意味やinteractionを削りません。
+
+### Import・命名・Codeの整理
+
+- **必須**: Module間はPublic APIを経由し、Feature間直接依存や禁止されたdeep importを導入しません。`import type`も依存関係に含めます。
+- **推奨**: Module内部はrelative import、外部は`@/` importを使用します。
+- **必須**: 意味のない共通化、先回りしたGeneric Component / Hook / Layerを導入しません。既存consumerのCapabilityを共通化の都合で削りません。
+- **推奨**: 名前は実際の責務やeventの意味を表し、型やCommentで不明瞭な名前を補うより命名を改善します。
+- **必須**: Formatと一般的な静的解析は既存のBiome / TypeScriptの責務とし、競合するFormatterやLint基盤を追加しません。
+
+### 検証と適用範囲
+
+| 規約群 | 確認方法 | 今回の扱い |
+| --- | --- | --- |
+| Format・一般的なLint・型整合性 | Biome / TypeScript | 既存設定を維持 |
+| 宣言形式・Props型命名・named export | Review。将来AST-based Lintの適否を評価 | 新規Ruleは追加しない |
+| Props spread・Component API・Hook抽出 | Contract Reviewと必要なTest | 意味的な例外を許容 |
+| Import / Architecture境界 | Dependency Review。将来静的解析を検討 | CI変更なし |
+| Visual / Behavior / Responsive | Screen Specification、Prototype、Storybook、Interaction / VRT | 既存contractを維持 |
+| Async / Error / State | Unit / Interaction TestとReview | 変更影響に応じて確認 |
+
+規約違反の形式的な一括修正は目的としません。変更対象では既存contractを把握し、必要な範囲だけ規約へ寄せます。規約自体と自動検証の導入は別の判断です。
+
 ## Architecture Principles
 
 Memoria WebはPure Clean ArchitectureやPure Vertical Slice Architectureをそのまま適用しません。Product Featureを変更と凝集の主要単位としつつ、Feature内部と外部Integrationの責務・依存境界を明示します。
