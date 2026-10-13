@@ -94,3 +94,34 @@ Community domainはMembership、role、Invitation、User起点Join RequestとCom
 | Membershipを失ったUploaderの操作 | 拒否 |
 | 同時Invitation accept | lock・一意制約・idempotencyによりMembershipを重複作成しない |
 | User削除とInvitation acceptの競合 | 削除済みUserの参加を禁止 |
+
+## Invitation管理API・競合・障害Contract（Issue #238）
+
+### 公開操作の意味論（GraphQL schema namingはAPI設計時に整合）
+
+| 操作 | 入力 | 成功時の結果 | 必須の制約 |
+| --- | --- | --- | --- |
+| Invitation状態取得 | communityId | status、expiresAt、Invitation ID、Administratorには有効なURL | MemberにはURL・token・暗号文を返さない。閲覧不可Communityは404相当 |
+| Invitation発行 | communityId、idempotencyKey | 新規Invitation ID、URL、expiresAt | 現在有効なInvitationがないことを再検証。再送時は同じ結果を返すか状態確認へ誘導 |
+| Invitation無効化 | communityId、expectedInvitationId、idempotencyKey | 無効化後の状態 | 対象が変わっていれば競合。別Invitationを無効化しない |
+| Invitation再発行 | communityId、expectedInvitationId、idempotencyKey | 新規Invitation ID、URL、expiresAt | 旧Invitation失効と新規作成を単一Transactionで確定 |
+| Invitation accept | token | Membership参加済み結果 | hash照合、期限・失効・Community状態・MembershipをTransaction内で再検証 |
+
+- 取得・発行・無効化・再発行は操作時点のACTIVE User、ACTIVE Community、現在のadmin MembershipをServerで検証する。Memberの状態取得ではInvitationの存在・期限を示す範囲もCommunity Settings仕様に従い、secretを含めない。操作権限がない既存Memberには403相当、Communityの存在を公開できないUserには404相当を返す。
+- 発行・無効化・再発行は対象Community / Invitationを適切にlockして状態を再確認する。Confirmation画面の状態は排他lockとみなさない。expectedInvitationIdが現行対象と一致しない場合は競合結果を返し、別URLへの暗黙の読み替えを禁止する。
+- idempotencyKeyは操作主体・Community・operation・request payloadにscopeを限定し、同じkeyで異なるpayloadを受け付けない。重複送信は新しいInvitationを増やさない。保持期間・応答再生時のsecret取り扱いは[冪等性と再試行](/system/api/idempotency)と整合させる。secretを平文でidempotency recordへ保存しない。
+- 暗号化は新規InvitationをDBへcommitする前に完了させ、token_hash・暗号文・key ID・nonce・期限を同一Transactionで永続化する。暗号化失敗時はInvitationを発行しない。外部KMS I/OをDB lock中に行わないよう準備し、commit直前の状態再検証を維持する。
+- URL再表示は現在のInvitationの有効性とadmin権限を確認した上で復号する。失効・期限切れ・権限変更との競合時は再検証してsecretを返さない。KMS失敗時はURLを返さず、現在のInvitationを勝手に再発行・失効させない。
+- 結果不明のmutationではClientはまず状態を再取得する。再発行の無条件再送は禁止する。通信切断・commit済み応答消失・同時Administrator操作を区別できるよう、現在のInvitation IDと有効期限を取得可能にする。
+- API responseのURLには`Cache-Control: no-store`相当を適用し、CDN・shared cache・SSR state・analytics・error reporting・traceへtokenを含めない。URL表示はAdministratorの明示的な管理画面に限定し、role喪失時はClient stateからsecretを破棄する。
+
+### 検証シナリオ
+
+1. 発行直後と再訪時に同じ有効URLを表示でき、token_hashによるacceptが成立する。
+2. Member・退会者・削除中Community・非所属Userにsecretが返らない。
+3. 同時発行・同時再発行・Confirmation中の別操作で有効Invitationが複数成立せず、誤ったURLを失効させない。
+4. mutationの応答消失・重複idempotencyKey・異なるpayloadでのkey再利用が安全に扱われる。
+5. 期限到来・失効・role喪失とURL再表示の競合で利用可能と誤表示しない。
+6. nonce再利用がなく、AAD改ざん・ciphertext改ざん・key不一致・鍵喪失時に秘密情報を返さない。
+7. rotation中の再表示・accept・並行更新が安全で、旧鍵廃止前に残存暗号文を検査する。
+8. log、audit、trace、analytics、browser cache、GraphQL errorにtoken・暗号文・復号鍵が漏れない。
