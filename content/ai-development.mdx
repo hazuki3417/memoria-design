@@ -271,7 +271,7 @@ AIが作成した成果物の品質だけでなく、**実際に参照したSour
 - **作業中（判断）**: UIの主要Task、重要なAction・状態・Feedback・Responsiveの判断、既存contractとの相違、意図的なPattern例外を、参照した正本と対応付ける。自明な細部の判断まで網羅的に列挙しない。
 - **作業後（PR・レビュー報告）**: 実際に確認した正本（repository / path、必要ならbranch・commit SHA等のversion）、主要な判断と根拠、Screen Specification・関連Pattern・Content Designとの整合性、Visual / Interaction / Responsive / Accessibilityの検証結果、未実施・未確認事項を簡潔に記録する。PRがない設計・調査タスクはIssueコメントまたは作業報告に残す。
 - **Evidenceの扱い**: 参照した正本・判断・検証結果を後から確認できる形で記録する。取得時のtool記録やcommit等は利用可能な場合に補助Evidenceとして示すが、過去のAIの参照行動や内部推論の証明・復元は目的とせず、必須にしない。過去の記録がないことを「参照していない」証拠とは扱わない。
-- **記録の可読性**: 「対象・参照Evidence」等で複数のファイル・正本・リンクを示す場合は、読点で一文に羅列せず、repositoryや区分の下に項目ごとの箇条書きで記載する。
+- **記録の可読性・version情報**: 「対象・参照Evidence」等で複数のファイル・正本・リンクを示す場合は、読点で一文に羅列せず、repositoryや区分の下に項目ごとの箇条書きで記載する。ファイルパスを主情報とし、取得できる場合のblob SHAはその直下に一段インデントした箇条書きで記載する。ファイルパスは必須、SHAは任意とする。同一commitで参照した複数ファイルは共通のcommit SHAを一度だけ示してもよい。blob SHAはファイル内容、commit SHAはrepositoryのsnapshotを識別するため、混同しない。
 - **検証状態の区別**: 文書とコードの静的照合、Storybook storyの存在、実際の画面表示確認、Interaction Test、Visual Regression Testを区別する。未実施を成功扱いせず、判断できない項目は未確認とする。
 - **記録の所有**: 長期的な設計判断は所有する設計書、Taskの要求・合意・進捗はIssue、変更・実際の参照・検証はPRへ記録する。同じ規範本文をAGENTS.mdやContext mapへ複製しない。
 
