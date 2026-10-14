@@ -129,28 +129,28 @@ Mantineのfilled / default / light / subtle / outline等をProduct上のAction R
 
 標準HTMLとMantineのaccessible primitiveを優先します。
 
-### ButtonへのIcon併用判断（Issue #166）
+### ButtonのLabel・Icon選択判断（Issue #166の再設計）
 
-**Buttonはテキストlabelのみを標準**とします。Icon + labelは例外的な装飾ではなく、Iconによって操作の種類・対象・方向を素早く識別できる等、label単独に対する具体的な理解上の利点がある場合に選択します。Iconを付けないことで意味が欠落しない場合はlabelのみを選びます。
+**明確なテキストlabelを操作の意味伝達の基本**とします。ただし、**label-onlyをすべてのContextでの標準Presentationとはしません**。label-onlyとIcon + labelは、Action Context、Interaction Pattern、操作の理解・識別・発見性を踏まえて選択します。既存Screenの採用例を判断根拠にはしません。
 
-- **併用を検討するContext**: 複数の異なるActionが近接するToolbarやSelection Action、Upload / Groupへの追加など対象・操作種別の識別を補助する場合。Iconだけに頼らずlabelを維持します。
-- **labelのみを基本とするContext**: 保存、キャンセル、検索、確認Dialogの確定・取消など、labelで意味が十分明確な場合。Actionの強調や見た目の統一だけを目的にIconを追加しません。
-- **Roleと独立**: Primary / Secondary / Quiet / Dangerの区別はIconの必須・禁止を決めません。削除がDangerであることだけを理由にゴミ箱Iconを付けず、必要なら結果を区別できるlabelを優先します。
-- **Icon-onlyとの境界**: Viewerの閉じる、前後移動、Zoom、回転など、周辺Contextと慣習によってIconだけで意味が十分明確な補助Actionに限定します。accessible name、Keyboard操作、十分なTouch Targetを確保し、Tooltipだけに依存しません。
-- **Compact対応**: 横幅を節約する目的だけでlabel付きButtonをIcon-onlyへ置き換えません。Stack、配置変更、Grouping、適切なMenuへの移動を先に検討し、主要Actionの発見性を維持します。
-- **一貫性の単位**: 同じActionを同じContextで反復する場合はIcon有無を揃えます。異なるContext間でIconを機械的に統一する必要はありません。Iconの種類・位置・spacingはMantine Foundationおよび既存Component contractに従います。
+- **Label-only**: テキストだけで操作が明確に理解でき、Iconによる実質的な理解・識別・発見性の改善が見込めない場合に選択します。Iconを一律に付与して装飾やVisual Hierarchyの代用にしません。
+- **Icon + label**: 複数Actionの素早い識別、操作対象・方向・種類の理解、Toolbar等での発見性に具体的な利点がある場合に選択します。Iconの意味がlabelと矛盾せず、視覚的なノイズや認知負荷を増やさないことを確認します。Iconがlabelの代わりに操作結果を説明する前提にはしません。
+- **Icon-only**: Iconと周辺Contextによって意味が十分理解できる、慣習的で高頻度な補助操作等に限定して検討します。低頻度、結果が曖昧、破壊的、重要な確定操作では特に慎重に判断します。accessible name、Keyboard操作、Focus表示、十分なTouch Targetを必須とし、Tooltipだけに意味の理解を依存させません。
+- **Roleとは独立**: Primary / Secondary / Quiet / DangerだけでIcon有無を決めません。Dangerには明確なlabelと結果・対象の説明を優先し、Iconの有無を危険性の唯一の手掛かりにしません。
+- **Responsive**: 幅不足のみを理由にlabelを取り除きません。Stack、Grouping、配置変更、適切なMenu等を先に検討し、主要Actionの発見性を維持します。
+- **Pattern内の一貫性**: 同じInteraction Pattern・同じ種類のActionには、利用者の期待が揃うPresentationを適用します。異なるContextでの機械的な統一は要求しません。
 
-#### 既存画面からの判断例
+#### 仮想Contextでの判断例
 
-| Context | 現行例 | 判断 |
-| --- | --- | --- |
-| Group Browser | Groupを作成（Icon + label）、検索（labelのみ） | 作成の対象識別にIconが役立つかをContextで評価。検索には必須でない |
-| Media Browser | 選択Toolbarの編集・Group追加・共有・削除（Icon + label） | 近接Actionの識別補助として併用可能。Dangerのみを理由にIconを必須化しない |
-| Media Upload | ファイルを選択・アップロード（labelのみ） | labelで意味が明確なら併用不要 |
-| Media Viewer | 閉じる・前後移動・Zoom等（Icon-only） | Contextと慣習が明確な補助Actionとして許容し、Accessibility条件を満たす |
-| 確認Dialog | キャンセル・確定（labelのみ） | 結果が明確なlabelを優先 |
+| Context | 評価の方向性 |
+| --- | --- |
+| 保存・キャンセルのForm | 明確なlabel-onlyで十分かを評価。Iconの一律付与は不要 |
+| 複数操作が並ぶToolbar | Icon + labelによる識別速度・発見性の改善を評価。Toolbarという理由だけで必須化しない |
+| Viewerの閉じる・Zoom | 慣習とContextが明確ならIcon-onlyを検討。Accessible Name等は必須 |
+| 削除確認Dialog | 対象と結果を説明するlabelを優先。DangerであることのみでIconを追加しない |
+| 同格Choice | 操作の識別を補助するIcon + label等を検討し、Iconの有無で恣意的な優先順位を作らない |
 
-この判断基準は**今後の設計・Reviewのための規範**です。既存Screen / Visual PrototypeのIcon、label、layout、behaviorをこの文書更新だけで変更しません。既存画面への適用・差分修正は別途検討し、各ScreenのVisual / Behavior contractを確認してから進めます。
+この判断基準は一般的なUI/UX原則から設計した規範です。既存Screen / Visual Prototypeのlabel、Icon、layout、behaviorは本変更で修正しません。既存実装との差分監査・修正は別途判断します。
 
 ## Constraints
 
