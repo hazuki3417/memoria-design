@@ -30,9 +30,19 @@ Selection中に条件変更が対象集合の意味を変える場合はSelectio
 
 ## Pagination / Infinite Loading
 
-Pagination、Load More、Infinite LoadingはCollection size、順序、Task、API contractから選択します。UIの好みだけで統一しません。
+Memoria Webでは追加読み込みが必要なCollection全般に**Infinite Loadingを標準**として採用します。Media一覧に限らず適用しますが、すべてのCollectionへ機械的に強制するものではありません。Task、Collectionの規模・順序、Accessibility、API contract等に明確な理由がある場合は、Load Moreやページ番号Paginationを例外として個別に検討し、Screen Specificationへ理由とBehaviorを記録します。ページ番号方式を標準として提供しません。単にUIの好みだけで方式を変えません。
 
-追加取得中・追加取得失敗でも既に表示済みContentと成立済みSelection / Filterを不必要に破棄しません。取得済み件数を総件数として誤表示しません。
+取得が正常に完了し、現在条件に一致するItemが0件の場合は、空白のままにせずデータがないことを明示します。初期Empty、検索・Filter結果0件、Relation等の部分Collectionが0件である正常結果を、Loadingや取得失敗と区別します。具体的な文言やEmpty State ComponentはScreen / Patternに従います。
+
+追加取得中、終端、追加取得失敗を区別します。失敗時は表示済みItem、成立済みSelection、検索・Filter条件、スクロール位置を可能な限り維持してRetryを提供します。検索・Filter・Sort変更時は新しい条件のCollectionを取得し直しますが、明示選択済みItemを意図せず解除せず、未取得Itemを暗黙に選択しません。条件そのものが変化した場合は新しいCollectionの先頭から探索を開始でき、旧Collectionのスクロール位置維持を必須としません。一時的な追加取得失敗や条件不変のRefreshで既存Collectionを不必要に初期化しません。
+
+Viewport到達だけに依存せず、Keyboardや支援技術からも追加取得と状態を利用できるようにします。Responsive環境でも主要なCollection閲覧・追加取得Capabilityを維持します。
+
+Collection件数を提示する場合は、現在のscope・検索・Filter等の条件に一致する**Collection全体の総件数**を示し、Clientが取得済みの件数を総件数として誤表示しません。件数表示は利用者価値がある場合に採用し、全Collectionへ必須とはしません。`取得済み件数 / 総件数` 等のLoad進捗はProduct上必要な場合に限って個別に検討します。
+
+Collectionに基づくDetailの前後Navigationでは、取得済みItem集合をCollection全体の境界として扱いません。現在のCollection条件と順序で移動先が存在する場合は必要に応じて追加取得して継続し、失敗しても成立済みのDetailや一覧状態・現在位置を破棄せずRetryできるようにします。
+
+Relay Connection、cursor、fetch size、cache policy、virtualization等の実装方式は[Web実装規約](/system/web/implementation-conventions)および対象Screen / GraphQL契約で扱います。
 
 ## No Results
 
@@ -48,4 +58,4 @@ Compactでも現在条件と解除方法を理解できる必要があります�
 - Search algorithmをUI Patternから推測しない。
 - 固定Product orderへ不要なsort UIを追加しない。
 - Filter結果0件をEmpty collectionと同一視しない。
-- Infinite Loadingを全CollectionのDefaultにしない。
+- Infinite Loadingを追加読み込みが必要なCollectionの標準とし、例外はTask・Accessibility・API等の理由とともにScreenで明示する。

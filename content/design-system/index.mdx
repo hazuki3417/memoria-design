@@ -150,14 +150,11 @@ Light / Dark Themeでは同じ保存済みContext AccentをSourceとして扱い
 
 ## 表示テーマとContext Accent
 
-- 表示モードは「システム」「ライト」「ダーク」の3種類とし、システム選択時はOSの表示設定に追従する。ユーザーの選択として扱い、Contextを切り替えても表示モードを維持する。
-- Context Accentは[Color System](#color-system)で定義するAccentのContext-specificなSourceとする。Context Accentが存在する場合はMemoria Emeraldに代わってEffective Accentとして解決し、存在しない場合はMemoria Emeraldへfallbackする。
-- 色だけをContext識別手段にせず、Context名や選択状態等の非色情報を併用する。
-- Community AccentはCommunityのbranding / domain identityではなく、UserごとのContext presentation設定とする。同じCommunityでもUserごとに異なる色を使用できる。
-- Community参加時にUser向けの初期Accentをランダム生成する。同一Userが現在所属する他CommunityのAccentと完全一致する値は避けるが、類似色まで自動的に排除することは要求しない。
-- 初期Accent生成では極端な明度を避ける。具体的な生成範囲・乱数方式等はDomain / APIの実装契約を正本とする。
-- Community AccentはUserが後からColor Pickerで任意の `#RRGGBB` 値へ変更できる。保存値を直接Component colorとして利用せず、Color SystemのColor resolutionを通してEffective Accentへ解決する。
-- Community Accentの変更は[Community Settings](/screens/community-settings)から行い、選択時に即時保存・即時反映する。保存失敗時は保存済みの色へ戻し、再試行可能なFeedbackを提示する。
-- Context Switcherでは各ContextのAccent indicatorを表示し、切替前にもContext名と色を併用して識別できるようにする。
-- Community Accentの永続化model / API contractはDomain / API設計を正本とする。Presentation設定であることを理由にCommunity entityのbranding fieldとして扱わない。
-- Personal AccentはUserごとのpresentation preferenceとし、[User Settings](/screens/user-settings)から任意の `#RRGGBB` へ変更できる。初期値はMemoria EmeraldをSourceとするdefault Accentとし、Communityのようなランダム生成・重複回避は行わない。変更は即時保存・即時反映し、失敗時は保存済み値へ戻す。
+表示テーマとContext Accentに共通する表示上の規則は次のとおりです。
+
+- 表示モードは「システム」「ライト」「ダーク」の3種類とし、システム選択時はOSの表示設定に追従します。ユーザーの選択として扱い、Contextを切り替えても表示モードを維持します。初期値、永続化scope、設定時の状態と操作は[User Settings](/screens/user-settings)を正本とします。
+- Context Accentは[Color System](#color-system)で定義するContext-specificなAccentのSourceです。存在する場合はMemoria Emeraldに代わるEffective Accentとして解決し、存在しない場合はMemoria Emeraldへfallbackします。
+- 色だけをContext識別手段にせず、Context名や選択状態等の非色情報を併用します。Context Switcherでは各ContextのAccent indicatorを表示し、切替前にもContext名と色を併用して識別できるようにします。
+- Community AccentはCommunityのbranding / domain identityではなくUserごとのContext presentation設定であり、同じCommunityでもUserごとに異なる色を利用できます。Community参加時の初期Accent生成、他Communityとの完全一致回避（類似色までの自動排除は不要）、極端な明度の回避、Membership離脱・再参加時の扱い、Color Pickerによる変更、即時保存・反映、失敗時のrollbackと再試行は[Community Preferences](/screens/community-settings)を正本とします。具体的な生成範囲・乱数方式・永続化model・APIはDomain / APIの実装契約を正本とし、Presentation設定をCommunity entityのbranding fieldとして扱いません。
+- Personal Accentの初期値、任意の `#RRGGBB` への変更、Communityとは異なる初期生成・重複回避の扱い、即時保存・反映、失敗時のrollbackは[User Settings](/screens/user-settings)を正本とします。
+- Userが保存するraw Accent値を直接Component colorへ適用せず、[Color System](#context-accentとcolor-resolution)に従ってEffective Accentへ解決します。Light / Darkで保存済み値は共通でも、Resolved Colorのshadeやforegroundまで同一にする必要はありません。

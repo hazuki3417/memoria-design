@@ -272,14 +272,6 @@ support対象であることと、CIで常に全Browser・全viewportの組み�
 
 製品上または利用者環境上の要件が生じた場合は、このsupport policyを見直します。
 
-## 文字数上限のあるInput
-
-- 仕様として明示的な文字数上限を持つText Input / Textarea等では、利用者が入力前および入力中にConstraintを予測できるよう、現在の入力文字数と上限を視覚的に提示します。
-- 文字数表示は入力状況に応じて出現・消失させず、通常状態から常時確認できるようにし、周辺レイアウトを不必要に変動させません。
-- 文字数上限を持たないInputには、文字数表示を機械的に追加しません。実装都合だけの十分大きな内部上限も、Product上のConstraintとして利用者が意識する必要がない限り表示対象としません。
-- 文字数表示はConstraintの事前把握を支援する情報として扱い、Validation Errorの代替にはしません。上限超過等で入力が成立しない場合のFeedbackは、通常のField Error方針に従います。
-- 具体的な配置はComponentと画面の文脈に適応させますが、Label、help text、Field Error等との情報階層を損なわず、入力中に安定して確認できることを優先します。
-
 ## Accessibility
 
 Memoria Webは認証後に利用するApplication UIです。Accessibilityは後付け対応ではなく通常のUI品質として扱い、認証後の主要な操作を利用者が支障なく実行できることを重視します。
@@ -343,15 +335,5 @@ Storybookは本体と共通のUI部品を使い、画面の表示状態を再現
 
 ## Collectionの読み込みとNavigation
 
-Memoria Webでは、一覧にページ番号を表示して移動するページ送り型Paginationを提供せず、**Relay Connectionを利用した無限ローディング**を標準とします。適用対象はMedia一覧に限らず、追加読み込みが必要なCollection全般です。各画面の具体的な取得条件・順序・空状態は対象ScreenとGraphQL契約で定義します。
-
-Collectionの取得が正常に完了し、現在の条件に一致するItemが0件である場合は、空白の表示領域だけを残さず、該当するdataがないことを明示します。初期Empty、検索・Filter結果0件、relation等の部分Collectionが0件である状態を正常な結果として扱い、読み込み中・取得失敗と区別します。具体的な文言やEmpty State Componentは各Screen / Patternで定義できます。
-
-追加読み込み中・終端・追加取得失敗を識別し、失敗時には表示済みItem・選択・検索・絞り込み・スクロール位置を可能な限り維持して再試行できるようにします。検索・絞り込み・並び順の変更時は該当条件のConnectionを取得し直しますが、明示選択済みItemを意図せず解除しません。未取得Itemを暗黙に選択する操作は提供しません。Viewportへの到達だけに依存せず、keyboard・支援技術でも追加取得と状態を利用できるようにします。具体的なcursor、fetch size、cache policy、virtualizationは実装詳細設計で決定します。
-
-Collectionの件数をUserへ提示する場合は、現在Clientが取得済みのItem数ではなく、現在のscope・検索・絞り込み等の条件に一致するCollection全体の総件数を表示します。無限ローディングの取得進捗を標準の件数表示へ混在させず、`取得済み件数 / 総件数` のような表示はProduct上ロード進捗を明示する必要がある場合に限って個別に検討します。件数表示自体をすべてのCollectionへ必須とはせず、そのCollectionの規模を伝えることに利用者価値がある場合に提示します。
-
-Collectionを基準とするDetailの前後Navigation等では、現在Clientが取得済みのItem集合をCollection全体の境界として扱いません。現在のCollection条件と順序上で移動先が存在する場合は、必要に応じてConnectionを追加取得してInteractionを継続します。追加取得失敗によって現在成立しているDetailや一覧状態を破棄せず、現在位置を維持したまま再試行可能にします。
-
-検索・Filter・分類構造等、Collectionを規定する条件そのものがUser操作によって変更された場合は、旧Collectionとの差分をClient側で無理に再構築せず、変更後の条件に対応する新しいCollectionとして取得・表示できます。この場合は旧Collectionのスクロール位置維持を必須とせず、新しいCollectionの先頭から探索を開始するBehaviorを採用できます。単なる追加取得や一時的な再取得失敗とは区別し、成立済み条件が変わっていないCollectionを不必要に初期化しません。
+Collectionの表示・追加読み込み・空状態・Navigationに関する利用者向けContractは[Collection Discovery](/design-system/patterns/collection-discovery)を正本とします。Memoria Webの追加取得を伴うCollectionはInfinite Loadingを標準とし、Task、Accessibility、API契約等から必要な例外を個別に判断します。Relay Connectionによる取得とcursor等の実装方式は[Web実装規約](/system/web/implementation-conventions)に従います。各Screenの取得条件、順序、Selection、Detail Navigationの固有要件は対応するScreen / GraphQL契約に従います。
 
