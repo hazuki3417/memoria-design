@@ -15,6 +15,10 @@
 - 共通の色とアイコンを使用し、閉じるボタンを表示します。
 - 成功・失敗などの一時的な結果を通知します。操作を妨げるエラーをNotificationだけで伝えません。
 
-## Visual Prototype
+## 実装とVisual Reviewの責務
 
-`memoria-web`の登録・プロフィール・アカウント削除のStorybook試作では、共通のFeedback appearanceに`form`と`notification`の2つの表示バリエーションを設けます。実アプリケーションのFeedbackProvider等への統合は、プロトタイプ承認後に別途判断します。
+上記のForm AlertとFloating Notificationの共通表示Contractは、Design Systemの確定済み方針です。
+
+`memoria-web` では共通の `FeedbackAlert` と `showNotification` を提供し、Application Rootに `Notifications` を配置しています。Storybookの表示例と、実際の画面Flowにおける利用・API連携・Human Visual Reviewの完了状況は区別して確認します。共通Componentの存在だけを理由に、個別Flowの統合やVisual Reviewがすべて完了したとは扱いません。
+
+未確定のFeedback Visual Designは[Issue #250](https://github.com/hazuki3417/memoria-design/issues/250)で管理し、合意後にDesign Systemへ反映します。
