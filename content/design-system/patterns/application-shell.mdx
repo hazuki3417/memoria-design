@@ -10,7 +10,7 @@ Screen固有のlayoutやlocal navigationを共通化することではなく、[
 
 認証後の通常Application Screenで使用します。
 
-User Registration等、通常Applicationへ入る前のFlowや、認証前Screenには適用しません。Settings等が独自のlocal navigationを持つ場合も、そのlocal navigationはScreen側の責務としてApplication Shellの内側へ配置します。
+User Registration等、通常Applicationへ入る前のFlowや、認証前Screenには通常Application Shell全体の機能セットを適用しません。ただし、共通Application Headerの表示Componentを再利用することは、Application Shell全体を適用することとは区別します。登録前Flowや制限Flowでは、Navigation、Context Switcher、Account Menu等の利用可否を各Flowの仕様に従って制限し、Headerの再利用を理由にそれらの操作を復活させません。具体的な表示区分と制限は[Application Shell機能仕様](/system/application-shell)に従います。Settings等が独自のlocal navigationを持つ場合も、そのlocal navigationはScreen側の責務として通常Application Shellの内側へ配置します。
 
 ## Responsibilities
 
