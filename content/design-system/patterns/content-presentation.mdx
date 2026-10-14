@@ -26,6 +26,12 @@ AvatarはPerson / Community等のidentity理解を実際に助ける場合に利
 
 Date / TimeはUserが判断する意味に合わせ、相対時刻、絶対日時、日付のみ等を機械的に統一しません。Timezoneや省略で意味が変わる場合は必要な具体性を保ちます。
 
+## 複数Tagの表示順
+
+複数Tagを並べて表示する場合、DomainまたはScreen Specificationに意味のある順序が別途定義されていない限り、Tagとして表示する文字列そのものの昇順を既定とします。同じTag集合を表示・編集する複数箇所で順序を一貫させます。
+
+この既定順では言語ごとの読み、自然順、読み仮名等を別途解釈せず、表示文字列を比較します。Domain上の優先度、User指定順、時系列等の意味のある順序が定義されている場合は個別Contractを優先します。
+
 ## Responsive / Accessibility
 
 Presentationは変えてよい一方、対象識別、重要な属性関係、主要Actionへの到達性を維持します。Tableを狭いViewportだから自動的にCardへ変換する規則は設けません。
