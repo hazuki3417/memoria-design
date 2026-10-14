@@ -20,6 +20,16 @@ Content / Dataを、UserのTaskに必要な情報階層を保って提示しま�
 
 Compact / Comfortable等のdensity modeを先にDesign System化しません。情報量、入力方式、可読性、誤操作riskからScreenごとに決定し、単なる表示件数最大化をGoalにしません。
 
+## Disclosure Controls
+
+折りたたみ・追加表示・選択Controlの開閉Iconは、すべてを同じ位置に固定せず、操作の意味と対象領域に応じて一貫して配置します。幅が変わるPaneでも、LabelとIconの対応関係を維持します。
+
+- **折りたたみSection**: ChevronをLabelの左側に隣接配置し、閉じた状態は右向き、開いた状態は下向きとします。ChevronとContentの開閉Animationは200msを基準とします。
+- **もっと見る・追加表示**: ChevronをLabelの右側に配置し、閉じた状態は下向き、開いた状態は上向きとします。既存の合意済みAnimationを維持します。
+- **Select / Dropdown**: Controlの右端に下向きChevronを配置し、各Control固有の状態表現と操作を維持します。
+
+開閉TriggerはKeyboardで操作でき、`aria-expanded` 等で状態を伝えます。既存画面へ適用する際は表示内容、操作、Responsive Behaviorを暗黙に変更しません。このPatternは画面横断の共通Component化を要求しません。
+
 ## Identity / Date & Time
 
 AvatarはPerson / Community等のidentity理解を実際に助ける場合に利用し、Entityが存在するだけで必須にしません。画像がなくても名前等の非画像情報で識別可能にします。
