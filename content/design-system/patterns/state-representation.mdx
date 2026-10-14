@@ -26,6 +26,14 @@ Capabilityがないことと、一時的に実行不能であることを区別�
 
 Loading / Processing / Progressの具体的な共通presentationはAPI / async lifecycle設計まで保留します。内部Job statusをそのままUser-facing statusへしません。
 
+## 非同期状態の意味
+
+非同期状態は通信や内部Jobの状態名ではなく、UserのTaskにとって何が成立し、何が未完了で、どのActionが可能かを基準に表現します。必要に応じて、操作受付前、実行中、成立済みだが後続処理中、完了、失敗、結果不明等を区別します。すべてのTaskに同じ状態集合や表示UIを要求しません。
+
+特に**結果不明**は確定した失敗とは異なります。Server側の変更が成立した可能性がある場合、失敗状態へ機械的にmappingせず、Userが確認・復旧できる情報とAction availabilityをScreen Contractに従って提示します。複数対象の処理では、全体の要約と対象単位の結果を必要に応じて区別し、部分成功を全面的な成功・失敗へ単純化しません。
+
+進捗率、完了予定、成功可否等を取得できない場合は推測値を表示しません。Spinner、Progress、Skeleton、表示位置や遷移等の具体的なPresentationは、対象Taskの非同期ContractとMantine Foundationに従って決定します。
+
 ## Accessibility
 
 状態をColorだけで伝えず、必要なtext / semantic state / accessible nameを提供します。

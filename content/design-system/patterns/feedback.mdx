@@ -45,6 +45,16 @@ Action成功後にNavigationする場合は、遷移先でも成功Notification�
 
 短時間で消えるNotificationだけには依存しません。必要な場合は安全なNavigationや利用可能なActionを提示します。
 
+## 非同期操作の結果と確実性
+
+非同期操作のFeedbackでは、通信の完了とUserの目的が成立したことを区別します。成功は、対象となる操作の成立を確認できた範囲でのみ伝えます。Upload登録と後続Processingのように成立段階が分かれる場合、確認できた段階を正確に表現し、未完了の処理まで成功したと示唆しません。
+
+Timeout、接続断、応答喪失等でServer側の結果を確認できない場合は、失敗と断定せず**結果不明**として扱います。成功Notificationを推測で出さず、確認可能な現在状態、再確認手段、Userが次に取れる行動を伝えます。結果不明の情報が判断や復旧まで必要な場合は、一時的なNotificationだけに依存しません。
+
+再試行を案内する前に、操作の重複による副作用と結果確認の手段をScreen / API Contractで確認します。安全性が確定していないMutationを無条件に自動再送しません。再試行可能な失敗では、入力・選択・確認済みの成立結果を不必要に失わせないことを基本とします。
+
+具体的な結果照会、idempotency、競合解決、再試行可否、復旧手順はDomain / API / Screen Specificationを正本とし、本Patternでは一律の実装方式を規定しません。
+
 ## Feedback Content
 
 Feedbackで何を伝え、どのような言葉を使用するかは[Content Design](/design-system/content-design)を正本とします。
