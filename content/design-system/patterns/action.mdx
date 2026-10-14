@@ -140,6 +140,24 @@ Mantineのfilled / default / light / subtle / outline等をProduct上のAction R
 - **Responsive**: 幅不足のみを理由にlabelを取り除きません。Stack、Grouping、配置変更、適切なMenu等を先に検討し、主要Actionの発見性を維持します。
 - **Pattern内の一貫性**: 同じInteraction Pattern・同じ種類のActionには、利用者の期待が揃うPresentationを適用します。異なるContextでの機械的な統一は要求しません。
 
+#### ToolbarでのLabel・Icon判断（Issue #245）
+
+Toolbarでは**Hybrid（Label-only / Icon + label / Icon-onlyの混在）を許容**します。ただし、Toolbarであることや省スペースだけを理由にIcon-onlyを標準化しません。操作の意味の明確さ、発見性・識別性、空間効率の順に評価し、同じInteraction Pattern内で合理的な一貫性を保ちます。
+
+1. **Icon-onlyで結果を予測できるか**: Iconと対象・周辺Contextだけで操作結果が十分に明確な場合に限り検討する。複数の意味に解釈できる場合はlabelを維持する。
+2. **Icon併用の価値があるか**: labelが必要な操作では、Iconが識別速度、操作対象・方向の理解、発見性を実質的に改善するならIcon + label、改善しないならlabel-onlyを選ぶ。
+3. **重要性とリスクを評価する**: 破壊的・不可逆・低頻度・重要な確定操作はIcon-onlyの許容基準を厳しくし、結果・対象が伝わるlabelを優先する。
+4. **Toolbar全体で検証する**: Grouping、順序、Visual Hierarchy、Presentation混在の理由を確認する。同種のActionは合理的な理由なく異なる表現にしない。
+
+| 仮想Action | 判断の方向性 |
+| --- | --- |
+| Viewerの閉じる・Zoom | 慣習とContextで結果が明確ならIcon-onlyを許容 |
+| 編集 | Iconだけで編集対象が不明確ならlabelを維持 |
+| 共有・Groupへ追加 | 操作の対象・結果を明示するlabelを維持し、Iconの識別上の価値を評価 |
+| 削除 | 破壊的な結果を説明するlabelを優先し、Icon-onlyは慎重に判断 |
+
+Hybridは無秩序な混在を意味しません。Accessible Name、Keyboard、Focus、Touch Targetの要件はPresentationによらず満たし、Icon-onlyのTooltipだけに意味の理解を依存させません。幅不足時はlabelの削除よりもStack、Grouping、適切なMenu等を先に検討します。既存画面の採用例は本判断の根拠とせず、実装変更は別途扱います。
+
 #### 仮想Contextでの判断例
 
 | Context | 評価の方向性 |
