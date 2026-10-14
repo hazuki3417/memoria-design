@@ -4,6 +4,27 @@ Memoria Design Systemは、実際のScreen設計から確認された再利用�
 
 実装Foundation、Design Systemの成長方針、UX Principles等の全体方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)を正本とします。
 
+## Design ContractとVisual Reviewの扱い
+
+Design Systemの文書には、合意済みのProduct / Interaction Contractと、Visual Reviewで検証するPresentation方針が共存します。見出しに「Visual Review中」等が付いていても、節全体を未決定と解釈せず、**各記述が何を決めているか**で区別します。
+
+- **確定済みContract**: Userに提供する意味、Capability、Action、状態、保存・復旧Behavior、Accessibility等。既存のDesign System / Screen Specificationで合意済みの事項は、Visual Review対象の節に含まれていても維持します。
+- **Visual Review対象**: Typographyの強弱、Spacing、Colorの具体表現、Surfaceの見た目、配置、Responsive presentation等、Storybook / 実画面で検証して確定する事項。レビュー前の試作案を、全Screenに適用する確定Visual Contractとして扱いません。
+- **実装契約**: Mantine Theme / Component props、Color resolution API、Notification library、具体的なpixel値等。Product上の判断を実装へ委譲するのではなく、確定したContractを満たす実現方法をWeb実装で決めます。
+- **未解決の設計判断**: Product上の意味やBehaviorが未確定の場合、Visual Reviewという表記で曖昧にせず、関連するScreen / Design System文書で未決定と明示し、継続検討が必要ならIssueで追跡します。
+
+Visual Reviewで合意したPresentationは、該当する共有Component / Prototypeへ反映します。再利用可能なProduct Contractとして確定した場合はDesign Systemへ、Screen固有の意味や振る舞いが変わる場合はScreen Specificationへ反映します。既存のVisual / Behavior contractを暗黙に置き換えません。詳細な成果物の責務とReview手順は[Frontend UI設計・開発方針](/system/frontend-ui-development)に従います。
+
+### 現在の主なVisual Review対象
+
+| 領域 | 既存文書で定義済みのContract | Review / 実装で具体化する事項 |
+| --- | --- | --- |
+| 共通Dropdown Menu | MenuのAction / Navigation semantics、Keyboard / Touch / Focusの維持 | 境界線、影、密度、hover / focusの具体表現 |
+| Theme / Context Accent | 表示モード、ContextごとのAccentの意味、保存・失敗時のBehavior | Emerald palette、shade、contrast補償、Mantineへのmapping |
+| Feedback Visual Design | Field / Form / Operation / Blockingの分類、持続性、結果の確実性 | Alertを用いた共通外観の検証、severityごとのvisual、補助Actionの配置 |
+
+この表は既存仕様の成熟度を読み分けるための案内であり、新しい色、寸法、Component API、Screen behaviorを決定するものではありません。
+
 ## Design Direction
 
 MemoriaのVisual DesignとInteraction Designは、Product Visionで定義する「現実のCommunityで生まれたMediaを一緒に見て、整理し、残していく場所」と、Content First / Media Firstを基礎に、次の方向性を共通の判断軸とします。
