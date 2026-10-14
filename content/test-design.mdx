@@ -21,6 +21,20 @@ RepositoryのInsert・Update・Deleteでは、操作対象に加えて対象外d
 
 Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整合性を重点確認します。PRには検証対象、GitHub Actionsの結果、必要な手動確認、riskを記録します。ChatGPT上でbuild・testを実行していないことは未実施理由や失敗として記載しません。
 
+## 全Repository共通：Quality Gateの一時停止・再開
+
+この運用方針は `memoria-design`、`memoria-web`、`memoria-api`、`memoria-IaC` と今後追加するRepositoryに適用します。個別RepositoryのWorkflow設定はこの方針に従い、Repository固有の検査内容・トリガー・手動実行方法は各Repositoryで定義します。
+
+- **一時停止はWorkflowファイルを削除せず、PR・Push・schedule等の自動実行トリガーを無効化する**方法を原則とします。停止のために検査Jobを削除したり、常時成功するダミーCheckへ置き換えたりしません。
+- 原則として`workflow_dispatch`による手動検証を維持します。手動実行まで停止する必要がある場合は、理由、対象範囲、再開条件を明記した例外として扱います。
+- 停止理由、開始時点、対象Repository・Workflow、再開条件、停止中のPR確認方法をIssue等に記録します。未実行の検査を成功扱いせず、未検証範囲を明示して人間が統合可否を判断します。
+- 再開時は自動トリガーを復元し、現行実装・依存関係に対する実際の検査成功を確認します。手動Selective実行の部分成功を標準Quality Gate全体の成功と混同しません。
+- Branch ProtectionやRequired Checksの利用可否に依存しない運用とします。利用できる場合も、停止中のWorkflowを必須Checkとして要求しないよう整合を確認します。
+- トリガーの無効化・復元はGitHub Actionsで有効な構文を使用し、意図しないイベントでの実行がないことを確認します。
+- **変更ファイルに基づく検査選択は別の設計事項**です。Webの詳細なpath-to-group matrixを他Repositoryへ無条件に流用しません。Repositoryごとの依存関係と品質保証を踏まえて決定します。
+
+既にWorkflowファイルを削除して一時停止しているRepositoryについては、過去の措置を直ちに復元することは要求しません。次回のQuality Gate再設計・再導入時からこの原則を適用します。実装や再有効化は別途合意して進めます。
+
 ## Backend CI
 
 `memoria-api`のquality gateでは、変更内容と対象repositoryの実装状況に応じて、次の検証を実行します。
