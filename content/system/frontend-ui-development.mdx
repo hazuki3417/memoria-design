@@ -278,9 +278,7 @@ support対象であることと、CIで常に全Browser・全viewportの組み�
 
 ## Inputのフォーカス時の視覚的安定性
 
-- Memoria全体で、Input等の入力コンポーネントをクリック・タップ・キーボード操作でフォーカスした際に、コンポーネント自身や周辺レイアウトの位置・寸法が揺れたり、ずれたりしないことを原則とします。
-- フォーカス状態は視認できる必要があります。border色、outline、box-shadow等、レイアウトを変化させない方法を優先し、フォーカス表示自体は削除しません。
-- 既存の入力コンポーネントと新規画面の双方に適用します。具体的な原因の特定と修正は `memoria-web` の実装・検証で行います。
+InputのFocus時にLayoutが変動しないこととFocusの視認性に関する共通Contractは[Form Control / Focus時の視覚的安定性](/design-system/patterns/form-control#focus時の視覚的安定性)を正本とします。実装上の原因調査と修正は `memoria-web` で行います。
 
 ## Accessibility
 
