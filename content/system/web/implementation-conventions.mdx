@@ -450,6 +450,10 @@ Technical ErrorとUser-facing presentationを直接対応付けません。同�
 
 Backendの生Error messageをそのままUser向け標準表示には使用しません。Authorization、Validation、Conflict、Not Found、Partial Failure、Unexpected Failure等をFeature contextで解釈します。
 
+## Collectionの取得とNavigation実装
+
+追加取得を伴うCollectionは[Collection Discovery](/design-system/patterns/collection-discovery)のInfinite Loading標準・例外条件・状態保持・Accessibility Contractに従います。WebではRelay Connectionに基づくcursor paginationを標準的な取得方式とし、具体的なcursor、fetch size、cache policy、virtualization、GraphQL query、SelectionとDetail Navigationの接続は対象Feature / ScreenとAPI契約で決定します。利用者向けのPagination / Load More / Infinite Loading選択を、Relayの内部取得方式と混同しません。
+
 ## Interaction & Feedback
 
 InteractionはApolloやReact Hook Formのtechnical stateではなく、Userから見たlifecycleとして設計します。
@@ -476,7 +480,7 @@ Pendingは原則として操作対象に最も近い場所で表現します。�
 
 既に成立しているUI Stateを、後続通信のPending / Failureだけを理由に破棄しません。Initial Load failureでは画面のError Stateになり得ますが、RefreshやLoad Moreのfailureでは既存Contentを維持し、必要なFeedbackとRetryを提供します。
 
-UIの変化そのものがSuccessを十分に伝える場合、追加Notificationを機械的に重ねません。
+成功時のFeedbackは[Design SystemのFeedback Pattern](/design-system/patterns/feedback)を正本とします。明示的な作成・保存・更新・削除・退会等のAction成功時は原則として成功Notificationを提示し、UIの変化だけを理由に省略しません。明示的な保存・確定Actionを伴わない設定項目の即時反映や、単なる選択・表示切替・NavigationではNotificationを機械的に重ねません。成功成立の確認、Navigation後の通知維持、Failure / RecoveryはDesign Systemと各Screen / API契約に従います。
 
 Feedback presentationはError typeだけで決めず、Userがその情報をどこで、どの程度継続して必要とするかで判断します。
 
