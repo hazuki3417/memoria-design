@@ -30,6 +30,42 @@ Primaryを補助する、Taskを戻す、または現在のTaskを確定せず�
 
 削除、破棄等の損失または破壊的なConsequenceを持つActionです。DangerはPrimary / Secondaryとは独立したSemanticで、PrimaryかつDangerも成立します。Context Accentでは上書きせずDanger Semantic Colorを使用します。Confirmation / Undoの必要性は[Content Design](/design-system/content-design)に従います。
 
+## Visual Hierarchyの判断原則（Issue #244）
+
+Action RoleはUserに推奨する操作とその補助関係を表し、Visual Hierarchyはその関係を認識できる強度で表現します。**既存ScreenのButton variantを規範として逆算しません。** Role、Danger Semantic、Presentationを別々に判断し、具体的なMantine variantの標準対応はFrontend実装契約で定義します。
+
+### RoleからPresentationへの判断
+
+1. **Action ContextとTaskを特定する**: Page、Form、Dialog、Selection等、どのTaskに対する操作かを明確にする。
+2. **推奨Actionの有無を判断する**: 明確な推奨操作がある場合にPrimaryを割り当てる。推奨操作がない場合はPrimaryを作らず、同格Choiceに恣意的な優劣を付けない。
+3. **補助関係を整理する**: Primaryと対になる取消・戻る等はSecondary、通常時に目立たせる必要がない補助操作はQuietとする。Roleは色やButton variantから決めない。
+4. **Dangerを独立に判定する**: 削除・破棄等のConsequenceを確認し、必要なActionへDanger Semanticを組み合わせる。Dangerだけを理由にPrimaryへ昇格させない。
+5. **Contextに応じて視覚的強度を選ぶ**: Primaryは同じAction Context内で最も明確な視覚的強調を基本とし、通常はEffective Accentを用いる。SecondaryはPrimaryより控えめに、Quietは通常時の視覚的主張を抑える。各Roleを特定の塗り・輪郭・variant名へ固定しない。
+
+### DangerとVisual Hierarchy
+
+Primary + Dangerは、操作の結果を十分に認識できる**強い表現を基本**とし、Danger Semantic Colorと明確なlabelを利用します。ただし、不可逆性、誤操作の可能性、周囲の情報密度、確認段階、操作の頻度を踏まえ、強調の程度をContextごとに調整します。強い赤い塗りをあらゆるContextで必須とはしません。Secondary / Quiet + Dangerでは補助的なHierarchyを維持しつつ、破壊的な意味が伝わる表現を選びます。
+
+Dangerの強調だけで誤操作対策を完結させません。操作結果を明示するlabel、対象と影響の説明、必要に応じたConfirmation / Undo等は既存のContent DesignおよびScreen Contractに従います。Dangerを単なる赤色のvariantとして扱わず、色以外の情報も併用します。
+
+### 仮想ケースによる検証
+
+| 仮想Context | RoleとSemantic | Presentation判断 |
+| --- | --- | --- |
+| 新規作成・編集Form | 保存・作成 = Primary、キャンセル = Secondary | 確定操作を明確に強調し、キャンセルはそれより控えめにする |
+| 削除確認Dialog | 削除確定 = Primary + Danger、キャンセル = Secondary | Dangerと結果を明示する。強調度は不可逆性・誤操作リスク・確認段階に応じて調整する |
+| 同格の追加方法の選択 | 明確な推奨がなければPrimaryなし | 同格の選択肢を同等の強度で提示し、恣意的なPrimaryを作らない |
+| Collectionの補助Toolbar | 編集・整理等 = SecondaryまたはQuiet、削除 = 必要に応じてDangerを併用 | 主TaskがなければPrimaryを強制しない。操作の発見性とContent Firstを両立する |
+
+これらは原則の検証用ケースであり、既存画面の現状を承認・変更するものではありません。Roleが同じでもAction Contextが異なればpresentationは変わり得ます。同じContext内では優先度の違いが理解できる一貫したHierarchyを保ちます。
+
+### 実装との境界
+
+- Design SystemはRole、Semantic、視覚的な強弱、例外の判断基準を正本とします。
+- Mantineの `filled` / `default` / `light` / `subtle` / `outline` 等への具体的なmapping、Theme設定、Component propsはFrontend実装契約で決めます。
+- LabelとIconの選択は本Patternの「ButtonへのIcon併用判断」に従い、Icon有無をRoleの代用にしません。
+- 既存Screen / Visual Prototypeはこの文書更新で変更しません。確定した原則に対する既存実装の監査と修正は別途扱い、既存Visual / Behavior contractを確認してから変更します。
+
 ## Placement
 
 Actionは固定座標ではなく、Action対象との関係が理解できる場所へ配置します。
