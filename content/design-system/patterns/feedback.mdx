@@ -28,7 +28,7 @@ client側とserver側のどちらで検出されたかでは分類しません�
 
 明示的な作成・保存・更新・削除・退会などのActionが成功した場合は、原則として成功Notificationを提示する。失敗時も原則としてerror Notificationを用いるが、Field / Form ErrorやBlocking Errorなど、修正や判断のために継続参照が必要な情報は適切な場所に残し、Notificationだけに依存しない。同じ失敗について意味のない重複通知を避ける。
 
-設定項目の即時反映（明示的な保存・確定Actionを伴わず変更がその場で適用されるもの）は、変更のたびのNotificationを省略できる。明示的な保存Actionがある場合は通常のOperation Feedbackを適用する。単なる画面遷移・表示切替は通知対象としない。実行中はLoading / Disabled等で重複実行を防止する。
+設定項目の即時反映（明示的な保存・確定Actionを伴わず変更がその場で適用されるもの）は、変更のたびのNotificationを省略できる。明示的な保存・確定Actionがある場合は通常のOperation Feedbackを適用し、UIの変化だけを理由に成功Notificationを省略しない。単なる画面遷移・表示切替は通知対象としない。実行中はLoading / Disabled等で重複実行を防止する。
 
 Action成功後にNavigationする場合は、遷移先でも成功Notificationが確認できるようにする。遷移元だけに表示して失われる実装は避ける。操作の成立が確認できるまでは成功通知を出さない。
 
