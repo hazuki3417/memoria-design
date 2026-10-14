@@ -61,11 +61,7 @@ Community contextのSettingsはCommunityに関する管理・参照・個人向�
 
 ## スクロール領域とScrollbarの共通方針（2026-10合意）
 
-- スクロール責務は、実際にスクロールするcontent領域に持たせる。Application Headerは固定し、Main content、Drawer内navigation、Settings内navigation、Modalや一覧等は必要な場合にそれぞれ独立したscroll containerを持つ。
-- Scrollbarは該当scroll containerの内側の端に配置し、他の領域の外縁へ移動させない。
-- Mantine `ScrollArea` の標準スタイルを優先し、表示方式は `type="hover"` を基本とする。独自Scrollbar CSSは原則追加しない。
-- Keyboard、Touch、Pointerでのスクロールとfocus操作を維持する。高さ制約、flex childの`min-height: 0`、DrawerとModalの既存挙動を検証し、機械的な一括置換を避ける。
-- Prototypeと本体で同じ共通Componentを使用し、既存のvisual / behavior / responsive contractを保持する。
+共通のScroll / Viewport Interaction Contractは[Application Shell Pattern](/design-system/patterns/application-shell#scroll--viewport-contract)、Mantine `ScrollArea`・Scrollbar CSS・高さ制約等の実装方式は[Frontend実装規約](/system/web/implementation-conventions#scroll-containerの実装規則)を正本とします。本書ではApplicationのInformation ArchitectureとNavigationの意味的な構造を定義します。
 
 ## Application Context
 
