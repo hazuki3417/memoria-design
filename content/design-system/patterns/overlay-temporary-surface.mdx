@@ -50,6 +50,14 @@ CloseとCancelがUserにとって同じ結果を意味する場合、複数の�
 
 明示的Cancel Actionが必要なDialogでは、同じ意味のclose Actionを機械的に追加しません。Cancelが不要な軽量Dialogではclose Actionを利用できます。
 
+### Dialogのライフサイクルと状態保持
+
+Dialogの開閉では、Animation、Focus、Keyboard、Overlay、Responsive Behavior等の共通Interaction Contractを維持し、開閉方法の違いによる意図しない表示・操作の差異を生じさせません。Visual PrototypeとWeb本体にも同じContractを適用します。
+
+Dialogの開閉だけを理由に入力値や一時状態を暗黙に破棄せず、いつ初期化・保持するかは対象Screenの仕様に従います。Dialog内のContent描画・データ取得・初期化は、必要なタイミングに応じて制御できます。
+
+React / MantineにおけるComponentのマウント維持、開閉state、例外条件等の具体的な実装方式は[Frontend UI設計・開発方針](/system/frontend-ui-development)を参照します。
+
 ## Dismiss Behavior
 
 Escape、outside click、close Action等によるDismiss behaviorはOverlay typeだけで決定せず、Dismissによって失われるものとConsequenceから決定します。
