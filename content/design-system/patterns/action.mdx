@@ -93,6 +93,29 @@ Mantineのfilled / default / light / subtle / outline等をProduct上のAction R
 
 標準HTMLとMantineのaccessible primitiveを優先します。
 
+### ButtonへのIcon併用判断（Issue #166）
+
+**Buttonはテキストlabelのみを標準**とします。Icon + labelは例外的な装飾ではなく、Iconによって操作の種類・対象・方向を素早く識別できる等、label単独に対する具体的な理解上の利点がある場合に選択します。Iconを付けないことで意味が欠落しない場合はlabelのみを選びます。
+
+- **併用を検討するContext**: 複数の異なるActionが近接するToolbarやSelection Action、Upload / Groupへの追加など対象・操作種別の識別を補助する場合。Iconだけに頼らずlabelを維持します。
+- **labelのみを基本とするContext**: 保存、キャンセル、検索、確認Dialogの確定・取消など、labelで意味が十分明確な場合。Actionの強調や見た目の統一だけを目的にIconを追加しません。
+- **Roleと独立**: Primary / Secondary / Quiet / Dangerの区別はIconの必須・禁止を決めません。削除がDangerであることだけを理由にゴミ箱Iconを付けず、必要なら結果を区別できるlabelを優先します。
+- **Icon-onlyとの境界**: Viewerの閉じる、前後移動、Zoom、回転など、周辺Contextと慣習によってIconだけで意味が十分明確な補助Actionに限定します。accessible name、Keyboard操作、十分なTouch Targetを確保し、Tooltipだけに依存しません。
+- **Compact対応**: 横幅を節約する目的だけでlabel付きButtonをIcon-onlyへ置き換えません。Stack、配置変更、Grouping、適切なMenuへの移動を先に検討し、主要Actionの発見性を維持します。
+- **一貫性の単位**: 同じActionを同じContextで反復する場合はIcon有無を揃えます。異なるContext間でIconを機械的に統一する必要はありません。Iconの種類・位置・spacingはMantine Foundationおよび既存Component contractに従います。
+
+#### 既存画面からの判断例
+
+| Context | 現行例 | 判断 |
+| --- | --- | --- |
+| Group Browser | Groupを作成（Icon + label）、検索（labelのみ） | 作成の対象識別にIconが役立つかをContextで評価。検索には必須でない |
+| Media Browser | 選択Toolbarの編集・Group追加・共有・削除（Icon + label） | 近接Actionの識別補助として併用可能。Dangerのみを理由にIconを必須化しない |
+| Media Upload | ファイルを選択・アップロード（labelのみ） | labelで意味が明確なら併用不要 |
+| Media Viewer | 閉じる・前後移動・Zoom等（Icon-only） | Contextと慣習が明確な補助Actionとして許容し、Accessibility条件を満たす |
+| 確認Dialog | キャンセル・確定（labelのみ） | 結果が明確なlabelを優先 |
+
+この判断基準は**今後の設計・Reviewのための規範**です。既存Screen / Visual PrototypeのIcon、label、layout、behaviorをこの文書更新だけで変更しません。既存画面への適用・差分修正は別途検討し、各ScreenのVisual / Behavior contractを確認してから進めます。
+
 ## Constraints
 
 - 一画面にPrimary Actionを一つだけと解釈しない。
