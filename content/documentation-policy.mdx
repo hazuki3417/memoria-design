@@ -136,6 +136,31 @@ Screen Specificationは、実装者が画面の目的、必要な情報・操作
 
 将来User FlowやDesign System Patternを独立した設計ページとして管理する必要が生じた場合は、それぞれの責務とtemplateを合意してから追加します。空の設計書種別を先回りして作成しません。
 
+## Frontend UI文書の責務・記載粒度・再配置基準
+
+Frontend UIの規則は、登場する技術名や現在の記載場所ではなく、**何を保証し、誰がその判断を所有するか**で正本を決めます。同じDialog等を扱っていても、利用者へ保証する振る舞いとReactの実装方法は別の規則です。
+
+| 情報の性質 | 正本・記載粒度 |
+| --- | --- |
+| 複数画面に共通する見た目、操作、状態表現、Accessibility、Responsive時の共通保証 | [Design System](/design-system)。利用者に何を保証するか、適用条件、例外、禁止事項を具体化する。特定Libraryの実装手順は置かない |
+| UI設計・実装・レビューの進め方、成果物間の役割、共通の開発・品質方針 | [Frontend UI設計・開発方針](/system/frontend-ui-development)。工程、責任分界、適用範囲、確認・合意の条件を記す |
+| React / Mantine / TypeScript、状態管理、Component境界、データ取得等の実装方式 | [Web実装規約](/system/web/implementation-conventions)。実装時に守る制約、条件、例外、依存境界を記す |
+| Storybook固有のFixture、Adapter、Storyの実装・検証方式 | [Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)。本体UIと共有する部分を区別する |
+| 個別画面の目的、必要情報、操作、権限、状態、結果、Navigation、維持すべきCapability | Screen Specification。利用者に保証する画面固有の仕様を、実装者が推測しなくてよい粒度で記す |
+| 個別画面の具体的な視覚構成、配置、操作感、画面幅ごとのUI設計判断と検証観点 | Storybook MDX。Screen SpecificationとDesign Systemを上書きせず、採用したUI具体化と理由を記す |
+| Domain / APIの不変条件、権限判定、保存・生成・Transaction等 | 対応するDomain / API設計。Presentation上の共通規則だけをDesign Systemへ置き、業務規則を複製しない |
+
+正本の選択と情報の再配置には、以下を適用します。
+
+1. **意味ごとに正本を一つにする。** 複数の責務が混在する節は、規則の意味単位で分離します。既存の仕様を単に短く要約して置き換えません。
+2. **正本は実行・検証可能な粒度で記す。** 適用条件、維持すべき振る舞い、状態、例外、禁止事項、必要な復旧や検証条件を、該当する責務に応じて残します。すべてのページへ同じ見出しを機械的に追加する必要はありません。
+3. **参照は必要な文脈に置く。** 他の正本を利用する場合は、その文書自身の責務や判断に必要な箇所から参照します。参照先の案内しかない独立節や、別文書の規則の言い換えだけを維持しません。入口としての索引・関連文書一覧は、読者の導線として必要なら許容します。
+4. **移動前後の情報を照合する。** 元の記述の条件、例外、適用範囲、操作・状態、意図、非対応理由、既存UIの回帰防止要件を列挙し、移動先または別の既存正本に残ることを確認してから元の記述を削除します。表現の変更が意味を弱めないことも確認します。
+5. **競合を再配置の名目で解決しない。** 正本間に矛盾や判断が必要な境界がある場合は、Issue等に未決事項を記録し、合意まで既存の確定済み仕様を変更しません。
+6. **変更後の正本を確認する。** GitHub上の変更先と参照元を再取得し、情報の欠損、重複、リンク切れ、仕様・Visual / Behavior / Responsive Contractの意図しない変更がないことを確認します。確認できない点は未検証として報告します。
+
+この基準は文書の責務と記述粒度を定めるもので、個別のUI仕様や既存実装を変更する許可ではありません。
+
 ## 正本の所有とdomain横断参照
 
 各設計情報は、それを所有するdomainのページを正本とします。Community、Membership、Administrator、招待URL、参加申請のtable・状態遷移・Transactionは`content/community/`に置きます。Media、Custody、共有関係、Variant、Processing Job、Object Storageの設計は`content/media/`または対応するsystem設計に置きます。

@@ -244,6 +244,14 @@ ui/
 
 各integration rootは `index.ts` でexplicitなPublic APIを定義し、consumerはrootからimportします。Product GraphQL OperationやProduct RuleをInfrastructureへ移しません。Providerもtechnical formだけを理由にTop-levelへ集約せず、GraphQL ProviderはGraphQL integration、Auth ProviderはAuth integration等、実際のownerへ配置します。Application-level Provider Compositionは `app` が所有し、必要なら `app/_components/ApplicationProviders.tsx` 等へ分離します。
 
+## Dialog / Modalのマウントと開閉State
+
+Dialog / Modalは呼び出し元の画面がマウントされている間、原則としてComponentをマウントしたまま `opened` 等の開閉Stateで制御します。`{opened && <Dialog ... />}` のように開閉ごとにComponentを破棄・再生成する方式を通常の開閉手段にしません。閉じた状態でもDialog Componentをレンダリングし、開閉操作では開閉Stateを変更します。
+
+Dialog Componentのマウントと内部Contentの描画・データ取得・初期化は別責務とし、重いContentや対象未選択の詳細領域は条件付き描画できます。対象を切り替えるDialogでは、対象IDや選択stateをprops / stateで更新し、Componentの破棄による暗黙の初期化に依存しません。入力値等の初期化条件はScreen Specificationに従います。
+
+呼び出し元のアンマウントや明示的な例外要件がある場合は、理由と影響を設計書に記録します。Web本体とVisual Prototypeの双方に適用し、既存Dialogすべてが準拠済みとはみなしません。不一致はVisual / Behavioral Regressionを防ぎながら段階的に是正します。既存のAnimation、Focus、Keyboard、Overlay、Responsive Behaviorを維持し、Animationを揃える目的だけの独自Transitionは追加しません。利用者向けの開閉・状態保持Contractは[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)を正本とします。
+
 ## Component Architecture
 
 Componentは概念上、次の責務に分けます。これらを固定Directoryや固定Layerとして機械的に作成する必要はありません。

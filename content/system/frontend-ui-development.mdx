@@ -6,6 +6,10 @@ Memoria WebのUI設計・実装を、AIを中心に効率よく進めながら�
 
 この文書は画面ごとの詳細仕様を定義するものではありません。画面設計、Design System、実装、Visual Reviewの責務と開発方法を定義します。
 
+## 関連する正本
+
+画面横断のVisual / Interaction / Accessibility Contractは[Design System](/design-system)、React / Mantine / TypeScript等の実装方式は[Web実装規約](/system/web/implementation-conventions)を参照します。Storybook固有の実装方法は[Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)が所有します。本書では、それらの個別規則を繰り返さず、画面設計から実装・レビューまでの責務と開発プロセスを定義します。
+
 ## 基本方針
 
 - Figma等による静的モック作成を標準工程とはしません。
@@ -13,19 +17,6 @@ Memoria WebのUI設計・実装を、AIを中心に効率よく進めながら�
 - React/Mantineによる具体的な実装は `memoria-web` が所有します。
 - Storybookは設計のSource of Truthではなく、UI実装を独立して観察・検証・Visual Reviewするための実行可能なExampleとして扱います。
 - 既存の画面・Componentは仕様そのものとはみなしません。新しい設計に適合するものは再利用し、適合しないものは再設計できます。
-
-## Dialogのライフサイクルと開閉制御
-
-Dialog / Modalは、呼び出し元の画面がマウントされている間、原則としてDialog Component自体をマウントした状態に保ち、`opened` 等の開閉stateで開閉します。
-
-- `{opened && <Dialog ... />}` のように開くたびにComponentを新規マウントし、閉じるたびにアンマウントする方式を通常の開閉方法として採用しません。
-- 閉じた状態でもDialog Componentをレンダリングし、開閉操作で開閉stateを変更します。
-- Dialog Componentのマウント維持と、内部Contentの描画・データ取得・初期化は分けて設計します。重いContentや対象未選択時の詳細領域は条件付き描画できます。
-- 対象を切り替えるDialogでは、対象IDや選択stateをprops / stateで更新します。Componentの破棄による暗黙の初期化には依存せず、入力値・一時状態の初期化条件はScreen Specificationに従います。
-- Animation、Focus、Keyboard、Overlay、Responsive Behaviorの既存Contractを維持します。Animationを揃えるためだけに独自Transitionを追加しません。
-- 呼び出し元画面のアンマウントや明示的な例外要件がある場合は例外を認め、理由と影響を該当設計書に記録します。
-
-Web本体とVisual Prototypeには同じ方針を適用します。既存Dialogすべてが準拠済みであることは意味せず、不一致はVisual / Behavioral Regressionを防ぎながら段階的に是正します。利用者向けのInteraction Contractは[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)を正本とします。
 
 ## UI設計成果物の位置づけと実装の共有
 
@@ -289,10 +280,6 @@ support対象であることと、CIで常に全Browser・全viewportの組み�
 - 文字数表示はConstraintの事前把握を支援する情報として扱い、Validation Errorの代替にはしません。上限超過等で入力が成立しない場合のFeedbackは、通常のField Error方針に従います。
 - 具体的な配置はComponentと画面の文脈に適応させますが、Label、help text、Field Error等との情報階層を損なわず、入力中に安定して確認できることを優先します。
 
-## Inputのフォーカス時の視覚的安定性
-
-InputのFocus時にLayoutが変動しないこととFocusの視認性に関する共通Contractは[Form Control / Focus時の視覚的安定性](/design-system/patterns/form-control#focus時の視覚的安定性)を正本とします。実装上の原因調査と修正は `memoria-web` で行います。
-
 ## Accessibility
 
 Memoria Webは認証後に利用するApplication UIです。Accessibilityは後付け対応ではなく通常のUI品質として扱い、認証後の主要な操作を利用者が支障なく実行できることを重視します。
@@ -368,6 +355,3 @@ Collectionを基準とするDetailの前後Navigation等では、現在Clientが
 
 検索・Filter・分類構造等、Collectionを規定する条件そのものがUser操作によって変更された場合は、旧Collectionとの差分をClient側で無理に再構築せず、変更後の条件に対応する新しいCollectionとして取得・表示できます。この場合は旧Collectionのスクロール位置維持を必須とせず、新しいCollectionの先頭から探索を開始するBehaviorを採用できます。単なる追加取得や一時的な再取得失敗とは区別し、成立済み条件が変わっていないCollectionを不必要に初期化しません。
 
-## 複数Tagの既定表示順
-
-複数Tagの共通表示順とDomain / Screen固有順序の優先関係は[Content Presentation / 複数Tagの表示順](/design-system/patterns/content-presentation#複数tagの表示順)を正本とします。実装では表示対象のTag文字列と対象Screenの順序Contractを用いて一貫した順序を提供します。
