@@ -122,6 +122,15 @@ export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
 
 規約違反の形式的な一括修正は目的としません。変更対象では既存contractを把握し、必要な範囲だけ規約へ寄せます。規約自体と自動検証の導入は別の判断です。
 
+## Scroll Containerの実装規則
+
+Scrollの利用者向けContractは[Application Shell / Scroll / Viewport Contract](/design-system/patterns/application-shell#scroll--viewport-contract)を正本とします。
+
+- Mantine `ScrollArea` の標準Styleを優先し、表示方式は `type="hover"` を基本とします。独自Scrollbar CSSは原則追加しません。
+- Header下のMain content、Drawer / Modal等のScroll containerには、実際にScrollする領域が高さを所有する構成を採用します。Viewport高さ、Header offset、Flex childの `min-height: 0` を確認します。
+- Mantine `AppShell.Main` のHeader offsetと独自の高さ指定を重複適用しません。親要素や追加要素によってMainのScroll領域が意図せず短くならないことを確認します。
+- 既存のDrawer / Modal等を機械的に一括置換せず、既存のVisual / Behavioral / Responsive Contractを維持します。Web本体とVisual Prototypeでは共通Componentを利用します。
+
 ## Architecture Principles
 
 Memoria WebはPure Clean ArchitectureやPure Vertical Slice Architectureをそのまま適用しません。Product Featureを変更と凝集の主要単位としつつ、Feature内部と外部Integrationの責務・依存境界を明示します。
