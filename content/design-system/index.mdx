@@ -4,6 +4,12 @@ Memoria Design Systemは、実際のScreen設計から確認された再利用�
 
 実装Foundation、Design Systemの成長方針、UX Principles等の全体方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)を正本とします。
 
+## ガイドラインへの記載基準
+
+Design Systemには、合意済みの再利用可能なDesign Principle / Pattern / Product Contractを記載します。未決定の案、検証待ちのVisual Design、実装上の未解決事項はガイドライン本文で仕様のように記載せず、GitHub Issueで追跡します。
+
+Visual Reviewで合意した共通原則はDesign Systemへ、Screen固有の決定はScreen Specificationへ、実装上の決定は該当Repositoryの実装契約へ反映します。既存の確定済みVisual / Behavior Contractは、変更の合意なく置き換えません。詳細な運用は[Frontend UI設計・開発方針](/system/frontend-ui-development)に従います。
+
 ## Design Direction
 
 MemoriaのVisual DesignとInteraction Designは、Product Visionで定義する「現実のCommunityで生まれたMediaを一緒に見て、整理し、残していく場所」と、Content First / Media Firstを基礎に、次の方向性を共通の判断軸とします。
@@ -138,23 +144,20 @@ Light / Dark Themeでは同じ保存済みContext AccentをSourceとして扱い
 - [Creation Dialog](/design-system/patterns/creation-dialog): Application contextを維持したまま、限定的な新規作成Taskを完了するための共通Pattern。
 - [Feedback](/design-system/patterns/feedback): 操作結果や問題を、利用者が理解・解決できる場所に応じて提示するための共通Pattern。
 
-## 共通ドロップダウンメニューのデザイン方針（Visual Review中）
+## 共通ドロップダウンメニュー
 
-- アカウントメニューやContext Switcherなど、同種のリスト型ドロップダウンには一貫したデザインを適用する。
-- GitHubのサイト上のメニューを参考に、控えめな境界線と影、コンパクトな余白、hover・focus時の明瞭な背景表示、必要に応じた項目グループの区切りを用いる。GitHubの実装や寸法をそのまま仕様とはしない。
-- keyboard操作、focusの視認性、touch操作のしやすさを維持する。コンパクト化によって操作対象が小さくなりすぎないよう確認する。
-- 現段階ではStorybookでのVisual Review対象とし、細部の寸法・配色は承認後に共通実装へ反映する。
+アカウントメニューやContext Switcher等、同種のリスト型ドロップダウンでは、一貫した情報階層とInteractionを提供します。Keyboard操作、Focusの視認性、Touch操作のしやすさを維持し、コンパクトな表示でも操作対象を不必要に小さくしません。Menuの意味とSurface選択は[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)に従います。
 
-## 表示テーマとContext Accent（Visual Review中）
+## 表示テーマとContext Accent
 
 - 表示モードは「システム」「ライト」「ダーク」の3種類とし、システム選択時はOSの表示設定に追従する。ユーザーの選択として扱い、Contextを切り替えても表示モードを維持する。
 - Context Accentは[Color System](#color-system)で定義するAccentのContext-specificなSourceとする。Context Accentが存在する場合はMemoria Emeraldに代わってEffective Accentとして解決し、存在しない場合はMemoria Emeraldへfallbackする。
 - 色だけをContext識別手段にせず、Context名や選択状態等の非色情報を併用する。
 - Community AccentはCommunityのbranding / domain identityではなく、UserごとのContext presentation設定とする。同じCommunityでもUserごとに異なる色を使用できる。
 - Community参加時にUser向けの初期Accentをランダム生成する。同一Userが現在所属する他CommunityのAccentと完全一致する値は避けるが、類似色まで自動的に排除することは要求しない。
-- 初期Accent生成では極端な明度を避ける。具体的な生成範囲・乱数方式はFrontend / API / Data実装契約で決定する。
+- 初期Accent生成では極端な明度を避ける。具体的な生成範囲・乱数方式等はDomain / APIの実装契約を正本とする。
 - Community AccentはUserが後からColor Pickerで任意の `#RRGGBB` 値へ変更できる。保存値を直接Component colorとして利用せず、Color SystemのColor resolutionを通してEffective Accentへ解決する。
 - Community Accentの変更は[Community Settings](/screens/community-settings)から行い、選択時に即時保存・即時反映する。保存失敗時は保存済みの色へ戻し、再試行可能なFeedbackを提示する。
 - Context Switcherでは各ContextのAccent indicatorを表示し、切替前にもContext名と色を併用して識別できるようにする。
-- Community Accentの具体的な永続化model / API contractは後続のBackend設計で確定する。Presentation設定であることを理由にCommunity entityのbranding fieldとして扱わない。
+- Community Accentの永続化model / API contractはDomain / API設計を正本とする。Presentation設定であることを理由にCommunity entityのbranding fieldとして扱わない。
 - Personal AccentはUserごとのpresentation preferenceとし、[User Settings](/screens/user-settings)から任意の `#RRGGBB` へ変更できる。初期値はMemoria EmeraldをSourceとするdefault Accentとし、Communityのようなランダム生成・重複回避は行わない。変更は即時保存・即時反映し、失敗時は保存済み値へ戻す。
