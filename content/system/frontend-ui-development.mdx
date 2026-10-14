@@ -18,19 +18,6 @@ Memoria WebのUI設計・実装を、AIを中心に効率よく進めながら�
 - Storybookは設計のSource of Truthではなく、UI実装を独立して観察・検証・Visual Reviewするための実行可能なExampleとして扱います。
 - 既存の画面・Componentは仕様そのものとはみなしません。新しい設計に適合するものは再利用し、適合しないものは再設計できます。
 
-## Dialogのライフサイクルと開閉制御
-
-Dialog / Modalは、呼び出し元の画面がマウントされている間、原則としてDialog Component自体をマウントした状態に保ち、`opened` 等の開閉stateで開閉します。
-
-- `{opened && <Dialog ... />}` のように開くたびにComponentを新規マウントし、閉じるたびにアンマウントする方式を通常の開閉方法として採用しません。
-- 閉じた状態でもDialog Componentをレンダリングし、開閉操作で開閉stateを変更します。
-- Dialog Componentのマウント維持と、内部Contentの描画・データ取得・初期化は分けて設計します。重いContentや対象未選択時の詳細領域は条件付き描画できます。
-- 対象を切り替えるDialogでは、対象IDや選択stateをprops / stateで更新します。Componentの破棄による暗黙の初期化には依存せず、入力値・一時状態の初期化条件はScreen Specificationに従います。
-- Animation、Focus、Keyboard、Overlay、Responsive Behaviorの既存Contractを維持します。Animationを揃えるためだけに独自Transitionを追加しません。
-- 呼び出し元画面のアンマウントや明示的な例外要件がある場合は例外を認め、理由と影響を該当設計書に記録します。
-
-Web本体とVisual Prototypeには同じ方針を適用します。既存Dialogすべてが準拠済みであることは意味せず、不一致はVisual / Behavioral Regressionを防ぎながら段階的に是正します。利用者向けのInteraction Contractは[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)を正本とします。
-
 ## UI設計成果物の位置づけと実装の共有
 
 Memoriaの画面設計は、画面詳細仕様、Visual Prototype、Web本体の三つを区別して進めます。これらは別々の画面仕様を持つものではなく、同じ画面を異なる観点から具体化・検証するための成果物です。
