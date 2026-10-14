@@ -65,6 +65,14 @@ Compact / Medium / Wideで具体的なpresentationが変化しても、Applicati
 - Account Menuへ到達できる
 - Screen固有のlocal navigationとApplication Navigationを区別できる
 
+## Scroll / Viewport Contract
+
+Application Headerは固定し、画面内容が表示領域を超える場合はHeaderの下のMain content領域で縦スクロールできるようにします。HeaderをContentとともにスクロールさせず、Mainのスクロール領域はViewportの下端まで確保します。長いFormや複数StepのFlowでも主要Actionへの到達性を維持します。
+
+Main、Drawer内Navigation、Settings内Navigation、Modal、一覧等は、必要に応じてそれぞれのContent領域がスクロールを所有します。Scrollbarは該当するスクロール領域の内側端に配置し、無関係な領域の外縁へ移しません。Keyboard、Touch、PointerによるスクロールとFocus操作を維持します。
+
+Compact / Wideの両方でHeader位置、スクロール領域の上下端、ContentとActionへの到達性を確認します。具体的なMantine API、CSS、高さ制約は[Frontend実装規約](/system/web/implementation-conventions)に従います。
+
 ## Constraints
 
 - Application ShellはScreen種別を判定してScreen固有UIを生成しません。
