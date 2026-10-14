@@ -141,6 +141,12 @@ Keyboard behaviorは標準HTMLとMantineを優先します。独自Shortcutを�
 
 Focus appearanceの具体表現はMantine Foundationへ委譲しますが、Keyboard操作時に現在のFocus対象を識別できることをProduct Contractとします。
 
+## Focus時の視覚的安定性
+
+Input等の入力ControlをPointer、Touch、KeyboardでFocusした際、Control自身や周辺Layoutの位置・寸法が意図せず変化しないことを共通Contractとします。Focusは明確に視認できる必要があり、Focus indicator自体を削除しません。
+
+Border color、Outline、Box shadow等、Layoutを変化させない方法を優先します。既存のInputと新規画面の両方に適用し、具体的な原因の調査と修正は `memoria-web` の実装・検証で行います。既存のVisual / Behavior / Responsive Contractを維持します。
+
 ## Visual Foundation
 
 Control height、Border、Radius、Typography、Padding、Focus appearance、Hover、Disabled appearance、Checkbox / Radio / Switch geometry、Select presentation等の一般的なVisual FoundationはMantineへ委譲します。
