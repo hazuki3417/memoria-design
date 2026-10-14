@@ -123,7 +123,11 @@ Read-onlyは値を表示するが編集対象ではない状態です。Disabled
 
 ### Character Counter
 
-文字数上限が存在するだけでCounterを常時表示しません。制限へ近づきながら文章を調整することがTask上有用な場合等に利用します。
+文字数上限が存在するだけでCounterを常時表示しません。Product上の明示的な文字数上限がある場合も、制限へ近づきながら文章を調整することがTask上有用か、入力前・入力中に残り文字数を把握する必要があるか等をScreenのTaskに基づいて判断します。表示するかどうかと理由はScreenのUI設計で明確にします。
+
+Counterを採用する場合は、現在文字数と上限を入力前から確認できる安定した位置へ表示し、入力中に出現・消失して周辺Layoutを不必要に変動させません。Label、Help Text、Field Errorとの情報階層を維持し、具体的な配置はControlと画面の文脈に適応させます。CounterはConstraintの事前把握を助ける情報であり、上限超過等のValidation Errorの代替にはしません。Field Errorは通常のValidation / Feedback方針に従います。
+
+文字数上限がないInputへ機械的にCounterを追加しません。実装都合だけの十分大きな内部上限は、利用者が意識すべきProduct上のConstraintとして扱いません。Counterを表示しない場合も、必要な入力制約・Validationを利用者が理解できる状態を維持します。
 
 ## Async Validation / Processing
 
