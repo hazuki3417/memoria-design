@@ -138,9 +138,7 @@ Memoria WebはPure Clean ArchitectureやPure Vertical Slice Architectureをそ�
 - Product設計を実装より優先し、既存Codeから要求を逆算しません。
 - Feature / Capabilityを主要な変更・凝集単位とします。
 - Vertical Sliceとして配置しても、すべての責務をFeatureへ閉じ込めません。UI、Application Logic、GraphQL Integration、Pure Product Judgmentを区別します。
-- Componentの分割境界はDomain、役割、責務、変更理由を起点に決めます。表示や処理の形が現在似ていることだけを根拠に共通Componentを抽出しません。
-- 共通化は実際の横断責務と独立したContractが確認できる場合に行います。複数Domainの表示規則・件数・展開条件などをPropsや分岐で切り替えるだけの共通化は避けます。
-- 現時点で結果的に同じ挙動であっても、Domainごとに独立して変更され得る仕様は各DomainのComponentが所有します。重複削減よりも変更影響の局所化を優先し、将来利用を予測した抽象化を行いません。
+- 境界の判断は[プロダクトビジョン・設計原則](/product-vision#責務と変更理由を起点に境界を決める)を正本とします。Webでは、GroupsとTagsのように表示や展開が現時点で似ていても、異なる責務と変更理由を持つものを単にPropsで切り替えるために共通Component化しません。
 - Next.js、React、Mantine、Apollo Client等のFrameworkやLibraryは実装基盤であり、Product Architectureそのものにはしません。Framework非依存化だけを目的とした抽象化も行いません。
 - Stateにはauthoritative ownerを定め、同じ意味のStateを複数の仕組みで独立して所有しません。
 - Testabilityは責務分離の結果として得るものとし、Testだけを目的としたLayerを追加しません。
