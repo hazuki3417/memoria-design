@@ -203,6 +203,38 @@ features/
 
 Feature数の多さ自体をArchitecture問題とはみなしません。探索性、ownership、命名、dependencyに具体的な問題が発生してから境界を再評価し、将来の規模を予測してnamespace directoryを作りません。
 
+### Component単位の設計・Story・テストの配置
+
+独立したComponentファイルは、規模にかかわらず**Component名のDirectoryにまとめることを原則**とします。一貫した探索性と、設計・実装・検証の対応関係を優先するためです。これはFeature内部のflat defaultに対するComponent単位の明示的な例外であり、`components/` のような技術分類DirectoryをFeature全体に設けるものではありません。
+
+Componentごとに次の3ファイルを基本セットとして同じDirectoryに配置します。
+
+- `<ComponentName>.tsx`：実装
+- `<ComponentName>.design.mdx`：Component自身の設計意図、責務、契約、テスト設計（StorybookのDesign Guide）
+- `<ComponentName>.stories.tsx`：再現可能な表示・操作のStory
+
+必要に応じてテストファイル、Component固有のHook、Pure Function等も同じDirectoryに置きます。Feature全体が所有するLogicは無理にComponent Directoryへ移しません。Component Directoryの作成はModule Public APIとしてのexportを意味せず、既存の`index.ts`による公開境界を維持します。
+
+独立したComponentファイルとDesign MDXは原則1:1で対応させます。ファイル内で宣言されexportされないPrivate Componentは個別MDXを必要としません。ファイルからexportされるComponentは、Moduleの`index.ts`で公開されていなくても対象です。親MDXに別Componentの内部仕様を複製せず、関係性は参照で表します。
+
+Storybookでは同じComponentのDesign GuideとStoriesを同じComponent階層に配置します。画面Design MDXは別の設計対象として扱います。Storybookの分類は閲覧用であり、CodeのArchitecture Boundaryを変更する根拠にはしません。
+
+例：
+
+```text
+src/features/media-browser/
+├── index.ts
+├── MediaBrowser/
+│   ├── MediaBrowser.tsx
+│   ├── MediaBrowser.design.mdx
+│   ├── MediaBrowser.stories.tsx
+│   └── MediaBrowser.test.tsx
+└── MediaTile/
+    ├── MediaTile.tsx
+    ├── MediaTile.design.mdx
+    └── MediaTile.stories.tsx
+```
+
 Feature内部はflatをdefaultとします。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のtechnical-type directoryを標準化しません。独立した責務のまとまりが生じた場合だけ、`selection/` 等のresponsibility名でnestingします。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。
 
 Feature rootの `index.ts` はArchitecture BoundaryとしてPublic APIを定義します。外部consumerはFeature rootからimportし、内部Fileへdeep importしません。Public APIは実際に必要なsymbolだけをexplicit exportし、`export *` で内部実装を公開しません。Feature内部では `index.ts` を経由せずrelative importを使用します。
