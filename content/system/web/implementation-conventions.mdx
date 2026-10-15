@@ -215,6 +215,33 @@ Componentごとに次の3ファイルを基本セットとして同じDirectory�
 
 必要に応じてテストファイル、Component固有のHook、Pure Function等も同じDirectoryに置きます。Feature全体が所有するLogicは無理にComponent Directoryへ移しません。Component Directoryの作成はModule Public APIとしてのexportを意味せず、既存の`index.ts`による公開境界を維持します。
 
+### Component DirectoryのPublic APIと型の配置
+
+Component Directoryには原則として`index.ts`を配置し、外部に公開するComponent・Props・関連型だけを**explicit named export**します。`index.ts`はそのComponentの公開入口であり、Directory内のすべてのsymbolを公開するものではありません。Component間で利用する場合は所有Componentの`index.ts`からimportし、`ComponentName/ComponentName`のような実装ファイルへのdeep importを避けます。Feature外部からのimportは引き続きFeature rootの`index.ts`を経由し、Component Directoryの入口をFeatureのPublic API境界の代替としません。
+
+型は利用者数やファイル名ではなく**責務の所有者**に配置します。Propsと小規模なComponent固有型は通常`ComponentName.tsx`に定義し、実装と分離する実質的な必要がある場合のみ同Directoryの`types.ts`へ移します。`types.ts`は必須ファイルではありません。どちらに定義しても外部consumerは`index.ts`から公開型をimportします。Feature全体の契約はFeature owner、複数Featureにまたがる契約は適切な上位の所有境界で定義し、単に共有されるという理由でComponentの型を上位へ移動しません。
+
+```text
+ApplicationNavigationContent/
+├── index.ts
+├── ApplicationNavigationContent.tsx
+├── ApplicationNavigationContent.design.mdx
+├── ApplicationNavigationContent.stories.tsx
+└── types.ts  # 必要な場合のみ
+```
+
+```ts
+// ApplicationNavigationContent/index.ts
+export { ApplicationNavigationContent } from "./ApplicationNavigationContent"
+export type {
+  ApplicationNavigationContentProps,
+  ApplicationNavigationItem,
+} from "./ApplicationNavigationContent"
+
+// 同じFeature / owner内部の別Componentから
+import type { ApplicationNavigationItem } from "../ApplicationNavigationContent"
+```
+
 独立したComponentファイルとDesign MDXは原則1:1で対応させます。ファイル内で宣言されexportされないPrivate Componentは個別MDXを必要としません。ファイルからexportされるComponentは、Moduleの`index.ts`で公開されていなくても対象です。親MDXに別Componentの内部仕様を複製せず、関係性は参照で表します。
 
 Storybookでは同じComponentのDesign GuideとStoriesを同じComponent階層に配置します。画面Design MDXは別の設計対象として扱います。Storybookの分類は閲覧用であり、CodeのArchitecture Boundaryを変更する根拠にはしません。
