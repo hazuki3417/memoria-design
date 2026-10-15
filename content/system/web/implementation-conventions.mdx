@@ -317,6 +317,19 @@ ui/
 
 各integration rootは `index.ts` でexplicitなPublic APIを定義し、consumerはrootからimportします。Product GraphQL OperationやProduct RuleをInfrastructureへ移しません。Providerもtechnical formだけを理由にTop-levelへ集約せず、GraphQL ProviderはGraphQL integration、Auth ProviderはAuth integration等、実際のownerへ配置します。Application-level Provider Compositionは `app` が所有し、必要なら `app/_components/ApplicationProviders.tsx` 等へ分離します。
 
+### 利用環境をまたぐComponent Compositionと責務分離
+
+同じUIをVisual Prototype、Storybook、Web本体で利用する場合は、**共通のComponent実装と意味的なcontractを再利用**します。環境ごとの要求を満たすためだけに、Storybook専用・Prototype専用・本体専用の同等なUI Compositionを複製しません。複製による表示・操作・状態表現の乖離を防ぐことを目的とします。
+
+- **UI側の責務**: 画面構造、レイアウト、表示状態、共通のInteractionを所有します。必要に応じてProps、Callback、slot、children、compositionで差異を受け取ります。
+- **利用側の責務**: Router、認証、データ取得、永続化、Storybook fixture等の外部依存を接続します。これらを共通UIに直接埋め込みません。
+- **構造の判断**: Presentational / Containerは責務を考える際の参考概念であり、固定Layer、専用Directory、`Container`という名前のComponentを必須としません。既存のContainerやWrapperも、独立した責務がなければ再検討します。
+- **抽出の判断**: 複数consumerが同じUI contractを必要とするなら共有Compositionを検討します。一方、共通化のためだけに大きな結合Componentを作らず、個別の既存Componentを組み立てる方が適切な場合はそれを許容します。
+- **不変条件**: 既存consumerの情報、Capability、状態、操作、Visual / Behavioral / Responsive contractを維持します。単純なconsumerに合わせて複雑なconsumerの機能を削りません。
+- **検証**: 静的なStoryだけでなく、表示状態、Keyboard / Focus、Interaction、画面遷移へのCallback接続、Mobile / Desktopの振る舞いを必要な範囲で確認します。Storybookの網羅性を得るために別実装のUIを作りません。
+
+共通Componentが内部で所有するStateと、利用側から制御・注入するStateの境界は、各consumerの実際の要件に基づいて決めます。特定の実装（例: Application Shell）で得た判断を他Componentへ適用する際も、既存contractを確認してから変更します。
+
 ## Dialog / Modalのマウントと開閉State
 
 Dialog / Modalは呼び出し元の画面がマウントされている間、原則としてComponentをマウントしたまま `opened` 等の開閉Stateで制御します。`{opened && <Dialog ... />}` のように開閉ごとにComponentを破棄・再生成する方式を通常の開閉手段にしません。閉じた状態でもDialog Componentをレンダリングし、開閉操作では開閉Stateを変更します。
