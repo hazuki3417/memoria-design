@@ -352,6 +352,17 @@ Componentは再利用性とTestabilityのためGraphQL / Apolloを知りませ�
 
 Component分割は「将来再利用できるか」ではなく、独立した責務、State、Interaction、Visual Review、Testの境界があるかで判断します。意味のないJSX断片化と巨大Componentの双方を避けます。
 
+### 表示責務と接続責務の分離
+
+コンポーネント全般において、表示・操作を表す責務と、アプリケーションのデータ取得・状態管理・ルーティング等を接続する責務を分離します。これはApplication Shell専用の方針ではなく、Feature Componentや共通UIを含むフロントエンド全体の原則です。
+
+- **表示・操作の責務（Presentational）**: 受け取った状態に基づく表示、局所的なUI状態、操作イベントの通知を扱います。GraphQL、Next.js routing、アプリケーション固有の外部接続へ直接依存させません。
+- **接続・構成の責務（Container / Composition）**: API、URL、アプリケーション状態等と表示コンポーネントを結び付け、必要な表示状態とイベントハンドラーを渡します。実際のownershipに応じて配置し、固定の階層・名称は強制しません。
+- **利用環境に依存しない再利用**: StorybookとProductionで同じ表示・操作コンポーネントを使用します。Storybook専用・Production専用のコンポジションを設けて表示構造や振る舞いを重複実装しません。Storybookでは本番の接続を置き換え、props・イベント等を通じて同じコンポーネントの状態を再現します。
+- **固有のCapabilityの維持**: 共通化・責務抽出により、既存consumerの表示情報、操作、状態表現、Responsive Behaviorを失わせません。固有要件は適切なprops、slot、compositionまたは責務境界の再検討で保持します。維持できない場合は暗黙に簡略化せず設計変更として合意します。
+
+この区分は責務を説明するためのものであり、各コンポーネントにPresentational/Containerの二つのファイルや層を必ず作る規則ではありません。実際の責務と複雑さに応じて分割します。既存実装を抽出する際は変更前のvisual / behavior contractと比較し、Storybookを含む表示・操作・レスポンシブの回帰を確認します。
+
 ### Composition Root
 
 GraphQL、Mapper、React State、Pure Logic、Feature Component等を接続するComposition責務は必要ですが、`Composition Root`、`Container`、`Presenter` 等の固定Layer・命名・Directoryを標準化しません。接続Codeは実際のownershipに最も近い境界へ配置し、下位Componentへ外部Integrationの詳細を漏らしません。
