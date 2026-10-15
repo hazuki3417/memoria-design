@@ -221,6 +221,14 @@ Componentごとに次の3ファイルを基本セットとして同じDirectory�
 
 他Moduleのsymbolを公開するための再exportは`index.ts`へ集約し、Component名の`.tsx`ファイルを兼用barrelや移行用再export入口として使用しません。外部consumerのimport変更が必要な場合は参照先を更新してから旧entryを削除します。Feature rootの`index.ts`は引き続き公開境界として扱います。
 
+### Custom Hook・Reducerの公開インターフェースと状態表現
+
+Custom HookやReducerが公開する状態・操作は、`setState`・`dispatch`などの内部実装手段ではなく、**対象ドメインの状態・操作・意図が利用側から理解できる名前**を優先します。内部でReact StateやReducerを利用していても、利用側へ実装都合の操作をそのまま露出する必要はありません。たとえばNavigation Drawerの`opened`、`toggle`、`close`は利用側の目的を表す公開インターフェースです。
+
+状態表現は、状態数、遷移の複雑さ、意味の明確さに応じて選びます。意味が明確な二値状態にはBooleanを利用して構いません。複数の意味的状態、排他的な状態、遷移制約がある場合は、文字列Literal Unionや判別可能Unionなどの明示的な状態表現を検討します。Booleanを機械的にUnionへ置き換えることも、将来の拡張を理由に過剰な状態モデルを導入することも求めません。
+
+UI Libraryが要求する型との整合性は判断材料ですが、Libraryの実装都合をドメインの公開APIに無条件で反映しません。また`toggle`のような反転操作は単純な二値状態に適しますが、非同期処理や複雑な状態遷移を扱う場合は`open`・`close`など結果が明確な操作を検討します。
+
 ### Component DirectoryのPublic APIと型の配置
 
 Component Directoryには原則として`index.ts`を配置し、外部に公開するComponent・Props・関連型だけを**explicit named export**します。`index.ts`はそのComponentの公開入口であり、Directory内のすべてのsymbolを公開するものではありません。Component間で利用する場合は所有Componentの`index.ts`からimportし、`ComponentName/ComponentName`のような実装ファイルへのdeep importを避けます。Feature外部からのimportは引き続きFeature rootの`index.ts`を経由し、Component Directoryの入口をFeatureのPublic API境界の代替としません。
