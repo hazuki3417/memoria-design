@@ -359,6 +359,8 @@ Component分割は「将来再利用できるか」ではなく、独立した�
 - **表示・操作の責務（Presentational）**: 受け取った状態に基づく表示、局所的なUI状態、操作イベントの通知を扱います。GraphQL、Next.js routing、アプリケーション固有の外部接続へ直接依存させません。
 - **接続・構成の責務（Container / Composition）**: API、URL、アプリケーション状態等と表示コンポーネントを結び付け、必要な表示状態とイベントハンドラーを渡します。実際のownershipに応じて配置し、固定の階層・名称は強制しません。
 - **責務単位での再利用**: Storybook・Prototype・Productionでは、同一の表示・操作・状態遷移の責務を持つコンポーネントやモジュールを共有します。一方、利用側でのコンポーネントの組み合わせ（Composition）は個別に記述して構いません。JSXの組み立ての重複だけを理由に上位のPresentationコンポーネントを設けません。Storybookでは本番接続を検証用の状態・Callbackに置き換えます。
+- **Storybookでの共通構成**: 複数Storyで繰り返す環境・レイアウトの提供にはDecorator、検証対象の共通の組み立てにはMetaのrender関数、Storyごとの差分にはArgsを優先します。Storybook専用Composition Componentの新設を前提としません。これらで表現できない明確な責務がある場合に限って抽出を検討します。
+- **PrototypeとProductionの差異**: データ接続、Router、モック、Compositionの書き方、Prototype固有の検証機能の差異は許容します。実装構造の一致を目的化しません。ただし、合意済みのUI・主要操作・状態表現・Responsive Behaviorを意図せず変更することは許容せず、仕様差分と回帰を区別します。
 - **固有のCapabilityの維持**: 共通化・責務抽出により、既存consumerの表示情報、操作、状態表現、Responsive Behaviorを失わせません。固有要件は適切なprops、slot、compositionまたは責務境界の再検討で保持します。維持できない場合は暗黙に簡略化せず設計変更として合意します。
 
 この区分は責務を説明するためのものであり、各コンポーネントにPresentational/Containerの二つのファイルや層を必ず作る規則ではありません。Presentation全体を単一コンポーネントに集約することも必須としません。共通のUI責務が明確である場合に限って上位コンポーネントへの抽出を検討し、Propsの橋渡しや環境別の条件分岐だけを増やす抽象化は避けます。実際の責務と複雑さに応じて分割します。既存実装を抽出する際は変更前のvisual / behavior contractと比較し、Storybookを含む表示・操作・レスポンシブの回帰を確認します。
