@@ -35,11 +35,14 @@ Application Shellは次を所有しません。
 
 ## ContextとRoutingの境界
 
+表示・操作とアプリケーション接続の責務分離は、Application Shell固有の規則ではなく、[Frontend実装規約の「表示責務と接続責務の分離」](/system/web/implementation-conventions#表示責務と接続責務の分離)に定める共通原則に従います。以下はApplication Shellへの具体的な適用を記述します。
+
+
 現在contextのSource of TruthはURLとし、Application Shell独自の永続的なcontext stateを持ちません。
 
 Application側ではadapter層がURL、取得済みdata、authorization等をApplication Shellが表示できる状態へ変換します。Application Shellは具体的なURLを組み立てず、Context選択やNavigation選択等のUser actionを意味的なcallbackとしてadapterへ通知します。
 
-これにより、Application Shellのvisual / interaction ComponentはNext.js routingやGraphQLへ直接依存せず、Storybookでも表示状態とcallbackを与えて独立して検証できます。
+Application Shellの表示・操作ComponentはNext.jsのRoutingやGraphQLへ直接依存しません。Storybookでは本番と同じ表示Componentへ状態とCallbackを渡して検証し、Storybook専用の表示構造を別実装しません。
 
 ## Component Boundary
 
