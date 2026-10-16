@@ -137,3 +137,10 @@ PostgreSQLとRedisはDocker Composeで起動し、共通構成と開発・CI差�
 - 本番DBおよび他者の共有環境では開発データセットの初期化を実行できないように環境境界を設ける。
 - DBのFixtureと外部ID Provider（Auth0）の認証Identityは別管理である。認証を伴う操作確認で必要なIdentityとの対応付けは別途設計し、実際の認証をFixtureだけで代替できるとは扱わない。
 - Seederの具体的なOSS採用、Docker Composeとの接続方法、起動時の初期化入口、Auth0 Identityへの紐付けは実装設計で決定する。MigrationはSchemaの履歴管理に限定し、開発用データ投入と混在させない。
+
+## Docker操作とOne-shotタスクの入口
+
+- PostgreSQL・Redisなど常駐コンテナの起動、停止、状態確認は `docker compose` を直接使用する。常駐サービスのLifecycleを隠蔽する `make dev-up` 等のラッパーを標準入口として設けない。
+- Migration、DB初期化、Fixture投入、検証など、処理完了後に終了するOne-shotタスクにはMakefileのコマンドを設けてもよい。
+- SeederをComposeの一時的なサービスにする場合も、永続サービスのLifecycleはDocker CLI側に残す。
+- 共通Fixtureへの初期化は開発開始時の標準手順としつつ、部分的なコンテナ再起動に連動した意図しないデータ消去を避ける。具体的な起動連携は実装時に確定する。
