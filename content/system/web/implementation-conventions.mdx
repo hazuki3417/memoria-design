@@ -260,6 +260,8 @@ import type { ApplicationNavigationItem } from "../ApplicationNavigationContent"
 
 Storybookでは同じComponentのDesign GuideとStoriesを同じComponent階層に配置します。画面Design MDXは別の設計対象として扱います。Storybookの分類は閲覧用であり、CodeのArchitecture Boundaryを変更する根拠にはしません。
 
+Storybookの分類名（`title`）はComponent名や責務が分かる識別子を基本とし、利用者向けの日本語の操作文言（例：「Communityへ共有」「Groups編集」）をComponentの代替名にしません。Story名は実際に表示される意味のあるパターンを表し、Dialog / Modalでは単に`Opened`と`Closed`を列挙せず、表示されたDialogの内容・Context・状態の差異をStoryにします。閉じた状態は、閉じる動作そのものが検証対象である場合にInteraction Test等で確認します。
+
 例：
 
 ```text
