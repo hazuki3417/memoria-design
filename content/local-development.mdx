@@ -125,3 +125,15 @@ PostgreSQLとRedisはDocker Composeで起動し、共通構成と開発・CI差�
 公開可能な設定例は.env.exampleで管理し、実際の.envやsecretはGitへ含めません。migration、GraphQL・SQL生成、test、DB reset、seedは所有Repositoryで一貫した入口を用意します。makeなど具体的なcommand名は現行実装とREADMEを正本とし、未導入のcommandを確定済み手順として記載しません。
 
 開発環境の完成条件は、runtimeの再現、PostgreSQL・Redisの起動、API・Web・Worker・Publisherの起動、migration、生成、test、必要なreset・seedをREADMEから追跡できることです。ChatGPT上ではこれらを実行せず、GitHub Actionsへ検証を委譲します。
+
+
+## 開発データセットの再現性
+
+ローカル開発用DBのデータは永続的な成果物とは扱わず、Repositoryで共有されたFixtureをSource of Truthとして、各開発者が同じ初期データセットを再現できるようにする。
+
+- 開発開始時にはSchema migration後、共通データセットへ初期化してからAPI・Webの動作確認を始める。コンテナの初回作成時にしか走らないPostgreSQL entrypointのみに依存しない。
+- Fixture適用による既存の開発データの破棄を許容する。初期化後の個人によるデータ変更・増減は開発者自身の責任とし、再現性が必要なシナリオは共通Fixtureへ取り込む。
+- Fixture定義・ツールのバージョン・投入順・初期化コマンドはRepositoryで管理し、開発者ごとの手動SQLや未追跡の手順に依存しない。
+- 本番DBおよび他者の共有環境では開発データセットの初期化を実行できないように環境境界を設ける。
+- DBのFixtureと外部ID Provider（Auth0）の認証Identityは別管理である。認証を伴う操作確認で必要なIdentityとの対応付けは別途設計し、実際の認証をFixtureだけで代替できるとは扱わない。
+- Seederの具体的なOSS採用、Docker Composeとの接続方法、起動時の初期化入口、Auth0 Identityへの紐付けは実装設計で決定する。MigrationはSchemaの履歴管理に限定し、開発用データ投入と混在させない。
