@@ -13,6 +13,14 @@
 - Storybook上の表現方法が本体と異なっても、Screen Specificationが定める利用者向けの意味や本体の実際の振る舞いを変更する理由にはしません。
 - Storybookを利用するための配置やModule境界は、memoria-webの最新の[Frontend実装規約](/system/web/implementation-conventions)とrepository内の規則に従います。過去のPrototype用Directory構成を新規実装へそのまま適用しません。
 
+## Storybook共通実行環境
+
+- StorybookのGlobal Decoratorは、ApplicationShellを使用しないStoryにもModalのPortal先 `#application-modal-root` を提供します。ApplicationShellを表示するStoryではShell自身がPortal先を所有し、同一IDを重複配置しません。
+- ApplicationShellを必要とするStoryはStorybookの`parameters.applicationShell: true`で明示的に選択します。すべてのStoryへ無条件にShellを適用しません。
+- Storybook共通のApplicationShell fixtureはDecorator側で一元管理し、StoryごとにContext一覧、Header、Navigation、Account MenuなどのShell構成を複製しません。
+- 画面固有の状態・表示・操作はStoryや対象Componentが所有します。ShellのContext切替と画面内容の連動が必要な場合は、単にShellを外すのではなく、そのContractを保つ接続方法を確認してから移行します。
+- 既存Prototypeが内部でShellを所有している間は、Portal先の二重生成を防止します。移行は既存の表示・操作・Responsive Behaviorを維持して行います。
+
 ## Storybookでの画面遷移
 
 Screen Specificationが定める遷移先、操作の意味、遷移後に利用者が得る画面は本体で実装します。Storybookでは、その操作によってStoryの外や無関係なApplication routeへ移動してしまう場合、Story内に留まる表現を選びます。
