@@ -343,3 +343,9 @@ Collectionの表示・追加読み込み・空状態・Navigationに関する利
 操作結果のNotificationは、**Titleに操作・対象の名称**を簡潔に示し、**Descriptionにその操作の結果・状態を文章で示す**。成功・失敗・警告・情報の種別を問わず、両方を必須とする。例：Title「Communityを退会」、Description「Communityから退会しました。」。失敗時も同じ操作名をTitleに維持し、Descriptionで失敗理由や次に必要な行動を説明する。
 
 TitleとDescriptionに同じ完了文を重複して置かない。既存の通知の色・アイコン・位置・見た目は維持し、画面ごとに別の通知コンポーネントや文面構造を作らない。Prototypeでは未実行の操作を実処理成功として誤認させない。
+
+## Community Context共有状態の初期化
+
+Community IDをスコープとする共有情報（Community基本情報・Membership・現在UserのRole等）は、設定画面など個別Featureのマウントを取得開始の条件としない。Context SwitcherによるCommunityへの遷移時、またはCommunity URLへの直接アクセス・再読み込みでCommunity Contextへ入場した時点で、Community Provider自身が取得を開始する。取得済みの情報は同じCommunity内のURL遷移で維持し、Community切り替え時は対象IDの独立した状態を使う。Settings等のConsumerは共有状態を参照し、初期取得を指示しない。
+
+初回の非同期取得中や取得失敗時の表示はContextの状態として扱い、短時間のローディング文言のちらつきを避ける。認可判断の正本は引き続きServer側とする。
