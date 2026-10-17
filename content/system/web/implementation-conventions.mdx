@@ -6,6 +6,16 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 既存の `memoria-web` 実装は再利用候補・参考情報であり、それ自体を要求やArchitectureの正本とはみなしません。新しい設計に適合する実装は再利用し、適合しない実装は変更または廃止できます。既存実装を一括移行するための大規模Refactorは前提にせず、変更対象ごとに判断します。
 
+## GraphQL / Apollo ClientとState Ownership（2026-10-17合意）
+
+- Backendへの業務Query / Mutationは原則Apollo Clientへ統一する。業務GraphQL通信のためのNext.js Server ActionおよびブラウザCustomEventによる機能間同期を廃止する。認証情報の秘匿に必要なHTTP Route Handlerは許可するが、業務ロジックを重複実装しない。
+- GraphQL Operationを定義し、Code Generatorが生成するApollo React Hooksを基本のQuery / Mutation Interfaceとする。単に名前や返り値を転送する独自Hookは作らない。
+- 複数のOperation、共通の業務ルール、Error Mapping、Cache整合性などを一つの業務責務として組み立てる必要がある場合に限り独自Hookを設ける。単一Mutationでも有意味な業務境界なら許容する。React非依存の処理は純粋関数として分離し、モックと単体Testを容易にする。
+- Server State（Community一覧、Membership等）はApollo Cacheを唯一のフロントエンド側の共有Sourceとし、同一情報をContextやuseStateへ複製しない。UI Stateは各Component、Navigation StateはURL/Routerが所有する。Contextは画面スコープの識別子など、本当に必要な情報に限る。
+- Mutation後の整合性は関連Queryのrefetchを基本とし、正当性とTestを確認してからcache.modify等を採用する。通信結果不明時は無条件にMutationを再送しない。
+- ApolloProviderと認証境界は一箇所で構成し、Client Componentが機密Access Tokenを受け取らない通信経路を用意する。全Consumerが生成Hookを通じて共有Cacheを参照する。
+- 移行は段階的に行い、既存の表示・動作・Interaction・Responsive Behaviorを維持する。新旧通信方式の混在中は更新漏れを確認し、最終的にCustomEventと業務Server Actionの利用箇所を全て撤去する。移行途中を完了扱いにしない。
+
 ## React / TypeScript Coding Convention
 
 この節はCodeの**記述方法**を定義します。Architecture、Component API、State Ownership、Test、Security、Responsive Behaviorの意味的なcontractは後続の各節を正本とし、ここで重複定義しません。新規Codeと変更対象Codeに適用し、既存Codeの形式だけを揃える一括変更は行いません。Refactorでは変更前のvisual / behavioral / responsive contractを維持します。
