@@ -176,3 +176,9 @@ role変更・除外等が成立した後も現在の検索語と単一columnのs
 ### 後続Visual Reviewで検証する事項
 
 固定高さのTableとBody ScrollArea、row Action Menu、Confirmation Dialogの組み合わせについて、Keyboard / Touch / Pointer操作、focus移動とDialog終了後のfocus復帰、scroll位置、Compact / Medium / Wideでの操作可能性を検証する。具体的な配置・寸法・focus fallbackはVisual Prototype / Reviewで決定し、既存のTable表示領域・Responsive contractを変更しない。
+
+## Community設定内のNavigationとデータ保持（2026-10合意）
+
+Community設定の「一般」「メンバー」「環境設定」「利用状況」はそれぞれ固有のURLを持ち、サイドメニューの操作では通常のURL遷移を行う。初回表示に必要なCommunity情報とMembership情報は利用開始時に取得し、同じCommunityの設定ページ間を移動しても取得済み状態を維持・再利用する。セクション変更のたびに共通データを再取得しない。
+
+Community名変更・Role変更・Member除外等の成功結果は保持した状態へ反映する。Communityが切り替わった場合は別Communityの情報を混在させず、そのCommunityの情報を取得する。初回取得失敗は既存のエラーとして通知し、短いURL遷移のたびに「読み込み中」の文字列へ画面全体を置き換えない。認可はServer側で毎回検証し、共有状態だけを根拠に権限を確定しない。
