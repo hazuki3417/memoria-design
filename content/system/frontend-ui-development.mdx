@@ -337,3 +337,9 @@ Storybookは本体と共通のUI部品を使い、画面の表示状態を再現
 
 Collectionの表示・追加読み込み・空状態・Navigationに関する利用者向けContractは[Collection Discovery](/design-system/patterns/collection-discovery)を正本とします。Memoria Webの追加取得を伴うCollectionはInfinite Loadingを標準とし、Task、Accessibility、API契約等から必要な例外を個別に判断します。Relay Connectionによる取得とcursor等の実装方式は[Web実装規約](/system/web/implementation-conventions)に従います。各Screenの取得条件、順序、Selection、Detail Navigationの固有要件は対応するScreen / GraphQL契約に従います。
 
+
+## Notificationの文章構造（2026-10合意）
+
+操作結果のNotificationは、**Titleに操作・対象の名称**を簡潔に示し、**Descriptionにその操作の結果・状態を文章で示す**。成功・失敗・警告・情報の種別を問わず、両方を必須とする。例：Title「Communityを退会」、Description「Communityから退会しました。」。失敗時も同じ操作名をTitleに維持し、Descriptionで失敗理由や次に必要な行動を説明する。
+
+TitleとDescriptionに同じ完了文を重複して置かない。既存の通知の色・アイコン・位置・見た目は維持し、画面ごとに別の通知コンポーネントや文面構造を作らない。Prototypeでは未実行の操作を実処理成功として誤認させない。
