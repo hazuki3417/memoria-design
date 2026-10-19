@@ -51,7 +51,7 @@ Stateは成熟度の点数や一方向の進捗ではありません。具体化
 
 `Ready` は設計の完成を意味しません。「現在想定する次工程へ進むために十分である」ことを意味します。将来の最適化や現在の次工程に影響しない判断が残っていても、それだけでReadyを妨げません。
 
-`Validated` は実装やVisual Prototypeが存在するだけでは成立しません。具体化から得たFeedbackを確認し、[開発プロセス](/development-process#consistency-review)のConsistency Review等でUse Case・設計・Prototype・実装との整合性を照合し、必要な設計修正を正本へ反映した状態とします。
+`Validated` は実装やVisual Prototypeが存在するだけでは成立しません。具体化から得たFeedbackを確認し、[開発プロセス](/development-process#整合性確認の二層構造)のConsistency Review等でUse Case・設計・Prototype・実装との整合性を照合し、必要な設計修正を正本へ反映した状態とします。
 
 ## Stateの根拠
 
@@ -150,7 +150,7 @@ Coverageは文書の一行変更ごとに更新せず、設計状態に意味の
 - 設計作業の開始・再開
 - 重要な設計判断の合意
 - 設計PRの作成前
-- Use Case、設計、Visual Prototype、実装等の主要要素が概ね揃い、[Consistency Review](/development-process#consistency-review)を実施したとき
+- Use Case、設計、Visual Prototype、実装等の主要要素が概ね揃い、[Consistency Review](/development-process#整合性確認の二層構造)を実施したとき
 - Prototype・実装・test等による検証後
 - Issueまたはイテレーションの完了時
 - Capability、Domain、主要Use Caseの変更時
