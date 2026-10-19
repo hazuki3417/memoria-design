@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: User管理Mediaの非同期cleanup、削除済みUploaderの匿名化、account削除Jobは未実装です。
+> 実装状況: `identity.user_deletion_jobs`はAPIの実行可能なPostgreSQL schemaに定義されています。一方、このrelationの存在だけではUser管理Mediaの非同期cleanupやUploader匿名化を含む削除フロー全体の実装完了は確認できません。
 
 account削除時にMedia domainが受け持つ削除、共有解除、Uploader匿名化、Communityとの境界を定義します。account削除全体の正本は[Userユースケース](/user/use-cases)です。
 
