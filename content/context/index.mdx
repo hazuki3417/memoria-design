@@ -43,6 +43,8 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 複数分野にまたがる場合は該当するタスク別順序を組み合わせ、同じ文書を重複して読まない。読み取り範囲は影響とriskに応じて絞る一方、関連する制約を省略しない。作業再開時は最新のGitHub状態を確認し、結果不明の変更操作を確認なしに再実行しない。
 
+**大量調査とツール制限への対応**: 広範な文書・コードの照合では、対象を検証単位に分割し、一覧から必要な本文へ進む。連携ツールの制限、中断・再開、結果が確認できない書き込みの扱いは[AI支援開発の「外部連携ツールの制限と作業再開」](/ai-development#外部連携ツールの制限と作業再開)を参照する。
+
 ### Repositoryをまたぐ参照経路の維持
 
 情報を一つの文書へ集約することは目的としません。各Repositoryの`AGENTS.md`を作業開始の入口、Context mapをタスクに応じた参照先の案内、各規約・設計書をその内容の正本として扱います。共通規約の本文を複数の入口へ複製せず、必要な制約を確認できる参照先を明示します。Repository固有の規則はそれぞれの所有元に残します。
@@ -68,6 +70,7 @@ Context mapは、開発者とChatGPTがタスクに必要な正本へ到達す�
 
 - 実行時の共通規則：[作業プロセスの共通実行ルール](/context/workflow-execution-rules)
 - Issueの棚卸し：[Issue棚卸しプロセス](/context/issue-inventory-review-process)
+- 画面仕様・Prototype・本体Webの整合性確認：[画面整合性確認プロセス](/context/screen-prototype-implementation-review-process)
 - 新しいプロセスの設計：[作業プロセス定義テンプレート](/context/workflow-process-template)
 
 作業の途中報告と回答終了時の状態報告を区別し、実際の作業状態に一致させます。依頼テンプレートは既存の承認条件を変更しません。
@@ -107,6 +110,7 @@ AI Agentの実行環境、検証、commit、対話、安全境界などの行動
 | 目的 | 参照先 |
 | --- | --- |
 | プロダクトの思想・設計判断 | [プロダクトビジョン・設計原則](/product-vision) |
+| 現行設計の入口・設計判断の経緯 | [Current design baseline](/context/current-design-baseline)・[Design Decision / Implementation Traceability](/system/design-decision-traceability) |
 | 初回Releaseの範囲・成功条件 | [初回Releaseの範囲と成功条件](/first-release) |
 | プロダクト構成 | [リポジトリ構成](/system) |
 | 用語 | [ユビキタス言語](/ubiquitous) |
@@ -292,61 +296,37 @@ AIは提案に対して利点・懸念・代替案と推奨理由を述べ、合
 
 ### イテレーションまたは大規模機能を計画する
 
-1. [アジャイル開発とイテレーション運用](/development-process)を確認する
-2. 固定期間を設けず、Goal、対象Issue、対象外、開始時の前提をイテレーションIssueへ記載する
-3. Issueの目的、受け入れ条件、依存関係、検証方法が着手可能な状態か確認する
-4. 一つのGoalとして完了・検証できない機能は、利用者価値または検証可能な境界でPhaseへ分割する
-5. 各Phaseの開始条件、完了条件、契約、互換性、migration、無効化方法を定義する
-6. Layer別・工程別のPhase、長期branch、巨大PRだけで進めない
-7. 中断時は完了・未完了、branch、検証、risk、次の一手をCheckpointとして記録する
-8. 再開時は最新の`develop`、Issue・PR、設計、依存関係を再確認する
-9. 未完了項目は完了扱いにせず、影響を再評価してBacklogへ戻す
-10. Reviewと振り返りをイテレーションIssueへ記録し、3イテレーション完了後に運用を見直す
+1. [アジャイル開発とイテレーション運用](/development-process)からGoal、対象Issue、対象外、Acceptance Criteria、Checkpoint、Reviewの規則を確認する
+2. 同文書の[大規模機能のPhase分割](/development-process#大規模機能のphase分割)を参照し、利用者価値または独立して検証可能な境界で計画する
+3. [Definition of Ready](/development-process#definition-of-ready)と[Definition of Done](/development-process#definition-of-done)から着手・終了時の条件を確認する
+4. 作業の開始・再開時は、このContext mapの共通参照手順に従って最新のIssue・PR・正本・実装を確認する
 
 ### 対話によって要求・設計を決定する
 
-1. [AI支援開発の対話と意思決定](/ai-development#対話と意思決定)を確認する
-2. 目的、背景、既存の合意、今回決める範囲を確認する
-3. 論点へ番号を付け、依存関係の強い順に一つずつ扱う
-4. 各論点で推奨案、理由、risk、trade-off、代替案を示す
-5. 回答後に合意、前提、影響範囲、制限、未決定事項を要約する
-6. 新しい回答が既存設計と矛盾する場合は、自動で上書きせず人間へ確認する
-7. 合意した最新状態を設計書、Taskの進捗をIssueへ反映する
+1. [AI支援開発の「対話と意思決定」](/ai-development#対話と意思決定)で、目的・背景の確認、論点ごとの合意、矛盾時の再確認を行う
+2. 合意した設計判断は対象Owner Documentへ、Task固有の進捗・未決定事項はIssueへ反映する。記録先と承認範囲は[AI支援開発の「合意後の実行と正本への反映」](/ai-development#合意後の実行と正本への反映)に従う
 
 ### 要求・設計方針を検討する
 
-1. 人間が達成したい結果と、その背景を確認する
-2. [AI支援開発の専門的なFeedback](/ai-development#専門的なfeedback)に従う
-3. 提案の妥当性、成立条件、risk、既存方針との矛盾を評価する
-4. 過剰設計、不可逆な判断、security・data・運用上の問題を先に指摘する
-5. 代替案とtrade-offを示し、推奨案を明確にする
-6. 事実、推測、未確認事項を区別し、人間の判断が必要な点を質問する
-7. 合意した判断、意図、制限事項、非対応理由を正本へ反映する
+1. [AI支援開発の「専門的なFeedback」](/ai-development#専門的なfeedback)で、妥当性、成立条件、risk、代替案とtrade-offを確認する
+2. [同文書の「指示の意図と解釈」](/ai-development#指示の意図と解釈)で、既存の要求・設計・実装との矛盾や、人間の合意が必要な判断を確認する
+3. 合意した内容の正本・Issueへの反映は、[「合意後の実行と正本への反映」](/ai-development#合意後の実行と正本への反映)に従う
 
 ### GitHubでタスクと進捗を管理する
 
-Issueを使う開発作業の開始・進捗・検証・完了・中断時のAIによる同期手順は、[日常Issue管理プロセス（草案）](/context/daily-issue-management-process)を参照する。正式採用までは既存のIssue管理規約を優先する。
+- **Issueの作成・更新・進捗・完了**：[アジャイル開発とイテレーション運用](/development-process)のIssue管理モデル、Issue本文・コメントの規則、完了判定を参照する。
+- **AIが使用するGitHub機能と操作範囲**：[AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準)、[権限と安全境界](/ai-development#権限と安全境界)を参照する。
+- **作業の節目でのIssue同期**：[日常Issue管理プロセス（草案）](/context/daily-issue-management-process)を参照する。正式採用までは既存のIssue管理規約を優先する。
+- **全体的なIssueの整合性確認**：[Issue棚卸しプロセス](/context/issue-inventory-review-process)を参照する。
 
-
-1. [AI支援開発のGitHub機能の採用基準](/ai-development#github機能の採用基準)を確認する
-2. GitHub Pluginで作成から完了まで扱える機能だけを選ぶ
-3. 全体目標を親Issue、独立した作業単位を子Issueとして作成する
-4. 各Issueへ目的、対象、成果物、受け入れ条件、関連資料を記載する
-5. 親Issueのチェックリストと各IssueのOpen／Closedで進捗を管理する
-6. PRのマージ前に受け入れ条件とチェック項目を実績に基づいて更新し、完了した項目だけをチェック済みにする
-7. 未完了項目は理由と後続Issueを記載し、マージ後にIssueのOpen／Closedが実態と一致することを確認する
-8. GitHub ProjectsとMilestonesは使用せず、日程が必要な場合はIssue本文へ記載する
-9. PRは通常の状態で作成し、人間が明示した場合だけDraftとする
-10. Pluginで扱えない操作を`gh`やWeb UIで補完する前提の運用を作らない
+Context mapでは運用手順を再定義せず、タスクに必要な正本への経路を示す。
 
 ### 成果物間の整合性を確認する
 
-1. 通常の作業では[アジャイル開発とイテレーション運用の「整合性確認の二層構造」](/development-process#整合性確認の二層構造)に従い、変更の影響範囲を特定し、変更時の整合性を確認する
-2. 設計、ガイドライン、schema、実装、test、Visual Prototype等のどこから変更が始まったかにかかわらず、具体化や検証で得た知見が上位の設計へ影響する場合も、同じ作業の中で関連する成果物を照合する
-3. 変更のたびにすべての成果物を機械的に読むのではなく、変更内容を管理する設計文書、維持すべき仕様、その仕様を利用する箇所、依存関係をたどって必要な確認範囲を決める
-4. 大きな設計更新の完了、複数成果物の統合、Design Coverageの重要な状態変更、Release前等の節目では全体整合性監査を行い、個別の作業を積み重ねる中で生じた設計や実装の意味上のずれを確認する
-5. 監査結果は一致、不一致、未定義、意図的な差異、保留を区別し、不一致を見つけても一方を機械的に正しいものとして他方を合わせない
-6. 重要な判断は人間との合意後に、その情報を管理する正本へ反映する。現在解消しない差異はIssueで追跡する
+1. [開発プロセスの「整合性確認の二層構造」](/development-process#整合性確認の二層構造)で、Taskごとの変更時確認と節目の全体監査を区別する
+2. 変更元・Owner・利用元・依存成果物は、このContext mapの共通参照手順とタスク別の読み取り順序から特定する
+3. 影響範囲、判定区分、未解消事項の扱い、設計判断の承認条件は[「変更時の整合性確認」](/development-process#変更時の整合性確認)と[「全体整合性監査」](/development-process#全体整合性監査)を参照する
+4. 画面仕様・Visual Prototype・本体Webの静的な三者比較を正式な個別プロセスとして依頼する場合は、[画面整合性確認プロセス](/context/screen-prototype-implementation-review-process)を参照する
 
 ### Issueを定期的に棚卸しする
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: Auth0認証とUser関連実装は存在しますが、本domainで定義する登録・削除・整合性は未実装です。
+> 実装状況: Auth0認証に加え、User登録・Profile更新・Preferences取得／更新のBackend実装とGraphQL契約が存在します。一方、Account削除などを含む本Domain全体の仕様準拠は未確認であり、実装済みと未対応・未検証の範囲を区別する必要があります。
 
 User domainは、Auth0で認証された主体とMemoria内部Userの対応、nickname、account同期Preference、利用状態、登録・再認証・account削除を管理します。認証情報の正本はAuth0、Product内のUser・権限・Media・Community関係の正本はMemoriaです。
 
