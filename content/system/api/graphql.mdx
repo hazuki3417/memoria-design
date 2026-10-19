@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: 実行可能な契約は `memoria-api/schemas/graphql/*.graphql` です。現在はUserとRelay基盤が中心で、本ページのCommunity、Media、Group、Tag、account削除契約は未実装です。
+> 実装状況: 実行可能なGraphQL契約は `memoria-api/schemas/graphql/*.graphql` です。現在のSchemaにはUser、Community、Media、Groupおよび関連するTag等の型・操作が存在します。ただし本ページに記載されたすべての操作が実装済みとは限りません。実装済みの操作と設計上の操作を混同せず、個別のSchemaとResolverを照合してください。
 
 本ページはInitial ReleaseでWeb Clientから利用するGraphQLの型、Query、Mutation、認可、error、pagination、非同期状態の契約を定義します。APIはschema、Webはoperation・fragment・生成型を所有します。resolver、DataLoader、schema進化、Access Token、GraphQL Errorの実装規約は[GraphQL・gqlgen実装規約](./graphql-implementation)を参照します。
 
