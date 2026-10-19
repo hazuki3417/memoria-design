@@ -157,7 +157,7 @@ coverage percentageだけをrelease gateにせず、Domain/Application unit、re
 
 ### Scope外 / 保留
 
-- PostgreSQL / RedisのProduction topology、HA配置、automatic failover、backup / restore方式。
+- 初回Productionの単一EC2・単一PostgreSQL / Redis方針はInfrastructure正本で確定しています。複数HostのHA配置、automatic failover、backup / restoreの実装詳細は本書の対象外です。
 - EC2 / Dockerの物理配置、monitoring / alert delivery等のInfrastructure詳細。
 - Web implementation / Apollo cache / component / routing等のFrontend詳細。
 
