@@ -2,21 +2,21 @@
 
 ## 目的
 
-Memoriaは、AWS上でContainer化したApplicationとself-hosted PostgreSQL / Redisを運用します。Production相当構成では単一Host同居を可用性Baselineとせず、Application、PostgreSQL HA、Redis Sentinel HAのfailure domainを分離します。
+Memoriaの初回Releaseは、単一EC2上のDocker containerでApplicationとself-hosted PostgreSQL / Redisを実行します。Dockerを利用する目的は実行環境とprocess責務の分離・再現性であり、同一Host内にreplicaやSentinelを増やしてもEC2障害への可用性は向上しないため、初回Releaseでそのような見かけ上の冗長化は採用しません。
 
 設計優先順位はCorrectness、Simplicity、Explicitness、Observability、必要性が観測された後のOptimizationの順です。
 
-## Production baseline
+## 初回ReleaseのProduction baseline
 
-- Application / API / Worker / Outbox PublisherはDocker container / processとして分離可能な構成にします。
-- PostgreSQLはPrimary 1 + Standby 1以上を基本とし、Streaming Replicationを利用します。初期候補はasync replicationです。
-- Primary / Standbyは別Host / 別failure domainへ配置し、Productionでは可能なら別AZとします。
-- Applicationは個別DB Hostへ固定依存せず、DB endpoint / routingを介してcurrent Primaryへ接続できる構成にします。
-- Redisは1 Primary + 2 Replicas、Sentinel x3、quorum 2をBaselineとし、ApplicationはSentinel-aware clientを使用します。
-- Redis Clusterは初期リリースでは採用しません。Sharding requirementが具体化した場合に再検討します。
-- RDS / ElastiCacheを現時点のBaselineとはせず、EC2 / EBS / S3 / IAM / Security Group / SSM等を中心としたself-host方針を維持します。
+- 単一EC2でWeb、API、Media Worker、Outbox Publisher、PostgreSQL、Redisを独立したDocker container / processとして運用します。
+- PostgreSQLとRedisはそれぞれ単一instanceとし、Primary / Standby replicationやRedis Sentinelによる同一Host内の擬似HAは導入しません。
+- DB等の永続dataはcontainer filesystemと分離し、EBSとbackup・restore手順で保護します。
+- EC2 Host障害ではサービス停止を許容し、検知・復旧・データ復元を重視します。
+- RDS / ElastiCache / ECS / Fargateは初回Releaseの必須構成としません。
 
-具体的なEC2台数、Application node配置、PostgreSQL HA manager / proxy、automatic failover方式はImplementation Detailed Designで確定します。
+## 将来の可用性拡張
+
+可用性要求・運用実績・予算から冗長化が必要になった場合のみ、複数Host / Failure Domainへの分散、PostgreSQL Primary / Standby、Redis Replica / Sentinel、DB接続先の切替、fencingとfailover手順を改めて設計します。同一EC2内のcontainer増設だけではHost障害を防げません。将来のHAを初回Releaseの未完了要件として扱いません。
 
 ## Availability / Recovery
 
@@ -31,24 +31,24 @@ PostgreSQLはperiodic/base backup + WAL archive + Object Storage + restore test�
 
 ## Development / Production parity
 
-DevelopmentでもProductionと同じsoftware topology、version、image、health check、基本configuration templateを利用します。ただしDevelopment用ComposeをそのままProductionへ配備することはしません。
+Developmentでは初回Releaseと同じ単一PostgreSQL / 単一Redisを基本とし、container image・version・health check・基本configuration templateを可能な範囲で揃えます。ただしDevelopment用ComposeをそのままProductionへ配備することはしません。
 
 ```text
-Normal Development
-→ Docker Compose: Single PostgreSQL / Single Redisを許容
+Development
+→ Docker Compose: Single PostgreSQL / Single Redis
 
-HA Validation
-→ Docker Compose HA profile: PostgreSQL HA + Redis Data x3 + Sentinel x3
+Initial Production
+→ Single EC2 + Docker + EBS + production secrets / monitoring / backup
 
-Production
-→ EC2 + Docker + EBS + multi-host / multi-AZ + production secrets / monitoring / backup
+Future HA evaluation (when separately approved)
+→ Multiple Host / Failure Domain + PostgreSQL replication + Redis Sentinel
 ```
 
-Local Docker HAはsoftware-level failover / reconnect / electionの検証用であり、Host / AZ failureを再現するInfrastructure-level HAとは区別します。
+将来HA検証を行う場合でも、同一Docker Host内のreplicaはsoftware-levelの動作確認に限り、Host / AZ failureを防ぐ可用性構成とは区別します。
 
 ## Observability
 
-PostgreSQLではPrimary/Standby availability、replication lag、WAL、disk、connection、CPU/memory、checkpoint、backup、restore test、failover stateを監視対象とします。RedisではPrimary/Replica/Sentinel availability、replication/failover、Streams、AOF/disk等を観測可能にします。具体的thresholdは運用要件と実測に基づいて決めます。
+初回ReleaseではEC2 / containerの稼働、PostgreSQLの接続・WAL・disk・connection・backup / restore、Redisの接続・Streams・AOF / disk等を監視対象とします。replication lag、Sentinel、failover stateは将来HAを導入する場合の監視対象です。具体的thresholdは運用要件と実測に基づいて決めます。
 
 ## 関連設計
 
