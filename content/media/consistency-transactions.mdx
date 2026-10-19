@@ -4,7 +4,7 @@
 
 ## 概要
 
-> 実装状況: ImageのDB・Object Storage操作は存在しますが、Custody・Access・Eventとstorage operationを含むtransaction設計は未実装です。
+> 実装状況: APIのPostgreSQL schemaにはCustody、Community Access、Media Event、Storage Operationのrelationが存在しますが、各操作のtransaction境界や失敗時の補償が本仕様どおりかは、Service・Repository実装と統合テストによる確認が必要です。
 
 Transaction境界、lock順序、認可の再評価、外部I/Oの扱いは[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)に従います。本ページではMedia固有の更新対象と競合条件を定義します。
 
