@@ -8,13 +8,13 @@
 
 ## Source of Truthの読み方
 
-以下は現行設計を調べる際の参照先の目安です。Task要求・設計・実装・Issue等の情報の優先順位は[Context mapの「情報の優先順位」](/context#情報の優先順位)を正本とし、この一覧で置き換えません。
+以下は現行設計を調べる際の情報源の種類です。列挙順は優先順位を意味しません。Task要求・設計・実装・Issue等の情報の優先順位は[Context mapの「情報の優先順位」](/context#情報の優先順位)を正本とし、この一覧で置き換えません。
 
-1. 対象Domain / System領域の詳細設計（use case、authorization、data model、physical model、consistency、API contract等）
-2. 横断的なApplication / Implementation contract
-3. Initial Release scope、NFR、Security等の横断Requirement
-4. 各Owner Documentの設計判断（判断理由と再検討条件）
-5. [設計判断のTraceability](/system/design-decision-traceability)および関連Issue・PRの履歴（設計判断・旧仕様の解消経緯を確認する記録）
+- **Domain / Systemの詳細設計**：use case、authorization、data model、physical model、consistency、API contract等
+- **横断的なContract**：Application / Implementationの共通規定
+- **横断Requirement**：Initial Release scope、NFR、Security等
+- **設計判断の理由**：各Owner Documentの判断理由と再検討条件
+- **判断の履歴**：[設計判断のTraceability](/system/design-decision-traceability)および関連Issue・PRの履歴
 
 実行可能Schema、migration、generated code、runtime configuration等について設計文書が実装Repositoryを正本として明示している場合は、そのRepositoryの最新状態を併せて確認します。
 
