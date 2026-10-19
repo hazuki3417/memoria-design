@@ -4,7 +4,7 @@
 
 このページはMemoriaの**現行設計を読むための入口**です。詳細仕様を複製せず、現在有効なSource of Truthとその優先関係を示します。
 
-過去の作業記録、PR、設計統合作業の状態は現行仕様そのものではありません。設計判断の経緯は、各Owner Documentの設計判断・理由、および関連するIssue・PRの履歴から確認します。
+過去の作業記録、PR、設計統合作業の状態は現行仕様そのものではありません。設計判断の経緯は、各Owner Documentの設計判断・理由、[Design Decision / Implementation Traceability](/system/design-decision-traceability)、および関連するIssue・PRの履歴から確認します。
 
 ## Source of Truthの読み方
 
@@ -14,7 +14,7 @@
 2. 横断的なApplication / Implementation contract
 3. Initial Release scope、NFR、Security等の横断Requirement
 4. 各Owner Documentの設計判断（判断理由と再検討条件）
-5. 関連Issue・PRの履歴（設計判断・旧仕様の解消経緯を確認する記録）
+5. [設計判断のTraceability](/system/design-decision-traceability)および関連Issue・PRの履歴（設計判断・旧仕様の解消経緯を確認する記録）
 
 実行可能Schema、migration、generated code、runtime configuration等について設計文書が実装Repositoryを正本として明示している場合は、そのRepositoryの最新状態を併せて確認します。
 
@@ -52,7 +52,7 @@ Screen Specificationは、利用者が確認するInformation、実行するActi
 
 設計変更時は、現行contractだけでなく「なぜその判断をしたか」「何を採用しなかったか」「どの条件で再検討するか」を失わないよう、対象Owner Documentの設計判断・理由へ残します。
 
-過去の設計判断や旧仕様の解消経緯は、関連するIssue・PRの履歴で追跡します。これらの履歴は現行仕様の正本ではなく、現行仕様は上記の各Owner Documentから読み取ります。
+過去の設計判断や旧仕様の解消経緯は、[Design Decision / Implementation Traceability](/system/design-decision-traceability)および関連するIssue・PRの履歴で追跡します。これらの履歴は現行仕様の正本ではなく、現行仕様は上記の各Owner Documentから読み取ります。
 
 ## 実装時の原則
 
