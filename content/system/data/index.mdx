@@ -24,7 +24,7 @@
 
 ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)、自己運用と復旧は[PostgreSQL・Redis運用](./postgresql-redis-operations)、schema変更は[DB schema migration](./schema-migration)を参照してください。
 
-v5 checkpoint全体の統合対象と合意済みoverrideは、[v5設計カバレッジ](/system/v5-design-coverage)と[v5設計統合方針](/system/v5-design-integration-policy)を参照します。
+過去の設計統合で確定した判断と旧仕様の解消経緯は、[Design Decision / Implementation Traceability](/system/design-decision-traceability)を参照します。現在有効な仕様は、各Domain物理データモデルと本章で参照する横断設計を正本とします。
 
 ## MongoDBを現行構成に採用しない
 
