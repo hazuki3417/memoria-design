@@ -2,8 +2,6 @@
 
 ## 概要
 
-> 実装状況: Community関連のDB定義は一部存在しますが、本ページで定義するCommunity機能と整合性制約は未実装です。
-
 Community作成、招待、参加、Membership role、退会・除外、削除に関するdomain固有のTransaction境界と競合制御を定義します。共通のlock順序、状態再確認、外部I/Oの扱いは[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)を参照します。
 
 ## Transaction境界

@@ -74,7 +74,7 @@ Dependencyは安定版を使用し、同一責務のlibraryを重複導入しま
 
 ## Development Environment
 
-DevelopmentはDockerを利用し、実装検証に必要なdependencyを再現可能にします。Productionとのparity、HA検証profile、物理topologyの具体形はInfrastructure / Local Development正本に従います。Development ComposeをそのままProduction topologyの正本とは扱いません。
+DevelopmentはDockerを利用し、実装検証に必要なdependencyを再現可能にします。初回Productionとのparityは単一PostgreSQL・単一Redisを基準とし、物理topologyはInfrastructure / Local Development正本に従います。将来のHA検証profileを初回Releaseの前提にしません。Development ComposeをそのままProduction topologyの正本とは扱いません。
 
 ## Backend Clean Architecture
 

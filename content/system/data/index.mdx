@@ -4,7 +4,7 @@
 
 > 実装状況: `memoria-api/develop`の実行可能なPostgreSQL schemaにはMedia、Image、Video、Custody、Media Event、Group、Tag、User、Community等のrelationが定義されています。設計書にある全ユースケースの動作・実装完了を意味するものではありません。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
 
-データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。ProductionではPostgreSQLをPersistent Application TruthとしてHA構成で運用し、Redisは再構築可能な配送・一時状態として扱います。DevelopmentではProductionと同じRedis Sentinel software topologyをDocker Composeで再現します。
+データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。初回ReleaseのProductionでは単一EC2上のDocker containerでPostgreSQLとRedisをそれぞれ単一instanceとして運用します。PostgreSQLはPersistent Application Truthとしてbackup / restoreの対象とし、Redisは再構築可能な配送・一時状態として扱います。Developmentでも単一PostgreSQL / 単一Redisを基本とします。HA構成は将来の可用性要件に応じて再検討します。
 
 ## PostgreSQL
 

@@ -4,7 +4,7 @@
 
 > 実装状況: Web、API、PostgreSQL、Object Storage、基本的なGitHub Actionsは存在します。Media Worker、Outbox Publisher、Redis Streams、運用監視、定期backup、復旧手順、性能測定は段階的に実装します。
 
-非機能要件は、Memoriaを安全かつ継続的に運用するための性能、容量、信頼性、security、運用上の基準です。初期構成は個人開発による小規模運用とEC2上のDockerを前提とし、高可用性構成や常時監視体制を先に要求しません。
+非機能要件は、Memoriaを安全かつ継続的に運用するための性能、容量、信頼性、security、運用上の基準です。初回Releaseは個人開発による小規模運用を前提に、単一EC2上でDocker containerを使って実行環境とprocess責務を分離します。同一Host内でPostgreSQLやRedisのreplica / Sentinelを増やしてもHost障害を防げないため、初回Releaseには導入しません。複数Hostによる高可用性構成や常時監視体制を先に要求しません。
 
 この文書の数値は初期の設計目標です。実測結果、利用人数、扱うMediaの形式、予算に応じて見直します。初回Releaseの対象機能は[Issue #26](https://github.com/hazuki3417/memoria-design/issues/26)、Security・Privacyの詳細は[Security・Privacy要求](./security-privacy-requirements)、動画固有の処理条件は[Issue #20](https://github.com/hazuki3417/memoria-design/issues/20)で確定します。
 

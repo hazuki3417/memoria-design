@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: PostgreSQLは`images`、`image_groups`などImage中心です。このページのMedia table、Custody、Media Event、動画属性、storage operationは未実装です。
+> 実装状況: `memoria-api`の実行可能なPostgreSQL schemaには`media.media`、`media.images`、`media.videos`、`media.media_custodies`、`media.media_events`、`media.media_storage_operations`が定義されています。これらのrelationの存在は、対応する処理や運用フローが本仕様に準拠していることを意味しません。
 
 PostgreSQLへ実装するMedia関連table、column、constraint、index、削除規則を定義します。
 
