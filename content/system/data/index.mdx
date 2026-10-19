@@ -18,9 +18,7 @@
 
 ## Persistence Model詳細化
 
-個別Domainを先にDDLまで深掘りせず、全Table / Relation / Responsibilityを先にレビューします。その後、共通Data Type、Nullability、FK、UNIQUE/CHECK、Deletion、Index、Transaction/Lock、Concurrency、Outbox/Idempotency、Migration、Final DDLの順に横断詳細化します。
-
-既存GitHubで既に確定しているULID `varchar(26)`、`timestamptz`、snake_case等の共通規約は未決定へ戻しません。
+Persistenceの横断レビュー結果と確定済み範囲は[PostgreSQL実装詳細レビュー](/system/data/postgresql-implementation-review)および[Persistence設計状態](/system/data/persistence-design-status)を参照します。現在有効な具体的な制約とDDLの契約は、各Domainの物理データモデル、物理データモデル共通規約、`memoria-api`の実行可能Schemaで確認します。過去のレビュー工程の順序を、新しい実装時の未決定事項として扱いません。
 
 ID、日時、命名、制約、index、削除の共通方針は[物理データモデル共通規約](./physical-model-conventions)を正本とします。domain固有のtable定義は[Media物理データモデル](/media/physical-data-model)、[Community物理データモデル](/community/physical-data-model)、[User物理データモデル](/user/physical-data-model)を参照します。file配置は[Mediaストレージ](./storage)、自己運用と復旧は[PostgreSQL・Redis運用](./postgresql-redis-operations)、schema変更は[DB schema migration](./schema-migration)を参照してください。
 
