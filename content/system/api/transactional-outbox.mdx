@@ -4,7 +4,7 @@
 
 ## 概要
 
-> 実装状況: Outbox table、Outbox Publisher、Redis Streamsへの配送、再試行は未実装です。
+> 実装状況: `memoria-api`のPostgreSQL schemaには`media.outbox_events`が定義されています。一方、Outbox PublisherやRedis Streamsへの配送・再試行を実行する処理は現行のAPIソースで確認できていません。table定義と配送機能の実装状況は区別してください。
 
 PostgreSQLへの業務data更新とRedis Streamsへの配送は、異なるsystemのため同じtransactionで確定できません。Transactional Outboxにより、業務変更と「後でeventを配送する」という約束を同じPostgreSQL transactionで永続化します。
 
