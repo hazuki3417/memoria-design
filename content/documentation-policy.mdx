@@ -182,6 +182,14 @@ Nextra 4とNext.js App Routerを使用し、責務を次のように分けます
 
 本文とサイドメニューは`content/`を正本とし、Pages Router用の`pages/`、`theme.config.jsx`、JSON形式の`_meta.json`は使用しません。
 
+### ナビゲーションへの掲載基準
+
+Nextraの`_meta.js`は、人間がドキュメントサイトを閲覧するときのナビゲーションを定義します。人間がサイト上で直接探して読む必要のある文書を掲載し、すべてのMDXファイルを網羅する一覧としては扱いません。したがって、`_meta.js`に掲載されていない文書があること自体は欠落や不備ではありません。
+
+AI Agentが作業に必要な正本へ到達する経路は[Context map](/context)と各Repositoryの`AGENTS.md`が案内します。AI向けの参照の必要性だけを理由に、人間向けNextraナビゲーションへ文書を追加しません。一方、ナビゲーションに掲載しない文書も、正本として必要な場合はContext mapや関連文書から参照できる状態を維持します。
+
+文書の追加・移動・削除時は、人間の閲覧に必要な導線とAIの参照経路を別々に確認します。`_meta.js`を変更するのは人間向けナビゲーションに影響がある場合に限ります。
+
 ## 正本の境界
 
 設計、用語、横断判断は`memoria-design`を正本とします。GraphQL・SQL schema、生成設定、package設定、command、repository固有の実装規則は所有する実装repositoryを正本とします。
