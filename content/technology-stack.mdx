@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: APIにはMongoDB clientとローカル用MongoDB設定が残っていますが、設計上のデータ責務は割り当てていません。Redis Streams、Outbox Publisher、Media Worker、CloudFront配信は未実装です。
+> 実装状況: APIには過去のMongoDB Schema資料が残っていますが、現行Go moduleとソースのファイル構成にはMongoDB clientの依存関係・実装を確認できません。MongoDBは採用技術に含めません。Redis Streams配送、Outbox Publisher、Media Worker、CloudFront配信は現時点で実装済みとは確認できません。
 
 Memoriaで採用する主要技術と責務を示します。versionと具体的な依存関係は各repositoryのmodule・package・lock fileを正本とします。
 
