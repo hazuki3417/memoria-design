@@ -2,8 +2,6 @@
 
 ## 概要
 
-> 実装状況: Auth0認証とUser関連実装は存在しますが、本ページで定義する登録・削除・整合性は未実装です。
-
 User登録、状態遷移、削除対象固定、外部serviceとのcleanupにおけるdomain固有のTransaction境界を定義します。共通のlock順序と外部I/O処理は[Transaction・競合制御の共通方針](/system/cross-cutting/transactions-consistency)、削除中状態とretryは[削除・Lifecycle共通方針](/system/cross-cutting/deletion-lifecycle)を参照します。
 
 ## Transaction境界
