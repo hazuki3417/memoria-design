@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: PostgreSQLはImage、Image Group、Tag、Userが中心です。Media、Custodian、Media Event、動画属性には差分があります。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
+> 実装状況: `memoria-api/develop`の実行可能なPostgreSQL schemaにはMedia、Image、Video、Custody、Media Event、Group、Tag、User、Community等のrelationが定義されています。設計書にある全ユースケースの動作・実装完了を意味するものではありません。実行可能なschemaは`memoria-api/schemas/postgres/`を正本とします。
 
 データは、ドメインの整合性を保持するPostgreSQLと、原本・派生fileを保持するObject Storageへ分離します。ProductionではPostgreSQLをPersistent Application TruthとしてHA構成で運用し、Redisは再構築可能な配送・一時状態として扱います。DevelopmentではProductionと同じRedis Sentinel software topologyをDocker Composeで再現します。
 
@@ -14,7 +14,7 @@
 - Groupの多段循環などDB constraintだけで表現しにくい規則はServiceで保証します。
 - transactionはユースケース単位で、DB更新と外部I/Oの失敗を考慮して設計します。
 - ProcessingJob、Transactional Outbox、Idempotency persistenceをPostgreSQL上のApplication Truthとして扱います。
-- Upload中のQuota reservationはUpload Intentで表現し、Storage Usageは確定Mediaと有効reservationから算出します。初期段階では専用Usage Counter Tableを設けません。
+- Upload / Quota reservationの永続化relationはInitial Releaseの確定済みinventoryには含めません。現在のProduct / Domain正本にはその永続化要件とtable定義がなく、必要性が具体化した場合にMedia domainで別途設計します。詳細は[PostgreSQL実装詳細レビュー](/system/data/postgresql-implementation-review)を参照します。
 
 ## Persistence Model詳細化
 
