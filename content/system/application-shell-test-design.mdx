@@ -1,0 +1,42 @@
+# Application Shell：Frontendテスト設計
+
+## 目的と前提
+
+[Application Shell機能仕様](/system/application-shell)と[採用UI設計](/system/application-shell-ui-design)から検証すべき条件を抽出します。旧Storybook設計MDXに散在していた検証観点を、Componentの分割に拘束されない画面・機能単位で管理します。[Frontendテスト戦略](/system/web/frontend-testing)に従い、Story名や既存実装を仕様の正解とはみなしません。
+
+以下はシナリオの設計であり、テストが実装・実行済みであることを意味しません。個別のFixture実装とStory / Mock / Adapterの配置は `memoria-web` が所有します。
+
+## UI・Interaction・Visual Regression
+
+| 検証対象 | 条件・操作・期待結果 | 主な階層・観点 | Fixture・外部境界 |
+| --- | --- | --- | --- |
+| 共通Header | Brandのみ／Navigation・Context・Accountの構成で40px Header、Brand、Accent上端ラインと各領域が想定どおり表示される | Component / VRT | BrandOnly、Composed、Personal / Community |
+| Headerの操作抑制 | Navigationを利用しない画面では余白を維持しながらTriggerが見えず、Tabと支援技術から利用できない | Component Interaction / Accessibility | restricted-flow、pre-registration |
+| Navigation Drawer | 開閉、Headerを覆わない位置、Backdrop、248px幅、Footer、Escape／外側クリックの終了と呼び出し元への通知を確認 | Component Interaction / VRT | Closed、Opened、CommunityAccent |
+| Navigation Item | 項目を選ぶと対象IDの通知が成立し、その後Drawerを閉じる。項目順・Active / Disabled・Accentとラベルを確認する | Component Interaction | 通常項目、Disabled、Active |
+| Navigationの長い内容 | 項目が多くてもMenu内をスクロールでき、Footerが下部に残る。長いラベル、Compact、区切り線とARIAを確認する | Component / VRT / Accessibility | ManyItems、LongLabel、Compact |
+| Burger Trigger | Closed / Openedで視覚状態と `aria-expanded` が一致し、`aria-controls` がNavigationの対象を指す。Hidden時は操作できない | Component Interaction / Accessibility | Closed、Opened、Hidden |
+| Context Switcher | Personal / Communityの選択状態とチェック表示、名称の切り詰め・Responsive、選択操作とCommunity作成操作の通知を確認 | Component Interaction / VRT | Personal、Community、WithoutCreateCommunity、LongLabel |
+| Account Menu | Avatar・名前・Contextの表示、Menu開閉、設定・ログアウトの順序と通知を確認 | Component Interaction / VRT | Default、WithAvatarLabel |
+| Content Scroll | 長い内容を表示した場合にscrollと上部余白が成立し、外側の予期しないoverscrollが生じない | Component / VRT | LongContent、NarrowViewport |
+| Shell全体 | Header・Main・Navigation・Modal rootとLocal Navigationを含む表示を、Personal / Community / Compactで比較する | Integration / VRT | Personal、Community、Compact、WithLocalNavigation |
+| StorybookのPortal | ApplicationShell内外でDialogのPortalが重複せず、必要な重なり順を維持する | Component / Integration | WithModal、WithoutShell |
+| KeyboardとFocus | Menu・Trigger・Context切替をKeyboardで操作でき、閉じたSurfaceから適切にFocusが戻る | Component Interaction / Accessibility | Personal / Community / Compact |
+
+## 遷移・接続の検証
+
+| 検証対象 | 条件・操作・期待結果 | 主な階層 |
+| --- | --- | --- |
+| 利用範囲変更 | 選択先にも現在Destinationがある場合は選択先の同じ種類の画面へ移動する（Dashboard / Media / Group） | Application E2E |
+| 遷移先なし | 選択先に対応する画面がなければ選択先Dashboardへ遷移する | Application E2E |
+| 識別子の分離 | 旧Contextに属するMedia / GroupのIDや検索・選択状態を新Contextへ暗黙に持ち込まない | Integration / E2E |
+| NavigationとHistory | 切替後はDrawerを閉じ、実際のURL、遷移先データ、Browser historyと一致する | Application E2E |
+| 認証・非表示条件 | restricted-flowなどで表示すべきでないNavigationやAccount操作が復活しない | Integration / E2E |
+| Destination判断 | 実際の画面遷移とは別に、抽出された遷移先判定を入力と出力の関数として確認する | Unit（独立ロジックがある場合） |
+
+## 検証対象の限定と保留
+
+- Component Interactionでは呼び出し元との通知やユーザーから見える結果を保証し、Mantine自身の内部実装は重複検証しません。Storybookは実URLを変更せず、VRTはCanvasを撮影します。
+- React Component API、exportの入口、Hookの内部状態名はテストケースの正本とはしません。実装を分割してもユーザー向けの保証を維持します。
+- 通信、認可喪失、Context切替時の未保存Draftの処理は[機能仕様](/system/application-shell#確認が必要な事項)で未確定のため、期待結果を推測してテストを確定しません。
+- このページの検証観点を固定数のStoryとして要求しません。具体的な実行環境・CI・Fixture実装は `memoria-web` で確認します。
