@@ -40,7 +40,7 @@ MediaがRelay Connectionによる無限ローディングであるため、metad
 
 **G-05〜G-07の表示・Responsive Contract**: aggregate Mediaが正常に0件であることが確定した場合、Wide / Compactの双方に同等の「Mediaがありません」という見出しと、「このGroupまたはその下位Groupに分類されたMediaはありません。」という補足説明を示します。幅に合わせた折り返し・余白の差は許容しますが、Compactだからといって説明内容やMedia Emptyの意味を省きません。Parents / Childrenのdirect relationはWide / Compactの双方で確認でき、方向別に0件の場合は「なし」等の正常なEmpty表示を示します。Compactでもrelation領域そのものを削除しません。Media・Parents・Childrenがすべて0件でもGroupのidentity、選択状態、権限に応じた管理Action、選択解除の機能を維持し、Group本体の不存在や異常状態とは扱いません。
 
-Empty／検索結果なしのどちらも、見出し、補足説明、必要に応じたIconとActionを組み合わせた案内を一覧内容領域に配置し、件数表示を除く検索・作成操作パネルやCompact / WideにおけるGroup選択・復帰の機能を失わせません。具体的な余白、Icon、色、Responsiveの配置はMedia Browserとの視覚的一貫性を確認するVisual ReviewとStorybook MDXで確定します。
+Empty／検索結果なしのどちらも、見出し、補足説明、必要に応じたIconとActionを組み合わせた案内を一覧内容領域に配置し、件数表示を除く検索・作成操作パネルやCompact / WideにおけるGroup選択・復帰の機能を失わせません。具体的な余白、Icon、色、Responsiveの配置はMedia Browserとの視覚的一貫性を確認するVisual Reviewで決定し、採用後は本UI Designへ反映します。Storybookは採用した表示状態の確認・検証に使用し、設計MDXは作成しません。
 
 ## Interaction・Feedback
 
@@ -90,5 +90,6 @@ MediaとGroupの一覧は、操作パネルをコンテンツの上に配置し�
 - [Overlay Pattern](/design-system/patterns/overlay-temporary-surface) — 共通Dialog操作。
 - [Disclosure Controls](/guidelines/disclosure-controls) — 関係Section開閉の共通表示規則。
 - [Frontendテスト戦略](/system/web/frontend-testing) — UI表示・操作の検証階層。
+- [Group Browserテストマトリクス](/system/web/group-browser-test-design) — 本UI設計から導いた検証条件。
 
 未決定の図像・BreakpointはPrototypeの表現だけで採用済みと扱いません。画面横断の操作パネル配置を共通Patternへ移す場合は適用範囲を確認してから正本を変更します。
