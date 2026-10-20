@@ -317,13 +317,11 @@ AIまたは開発者がsourceを直接更新した場合も同じGateを適用�
 
 ### Design DocumentとStorybookの責務
 
-Design Documentは、UI/UX上の判断、利用条件、意味、制約、Patternの選択基準を正本として保持します。Componentの具体的な見た目、visual state、variation、responsive behavior、interaction state等、実装と同期して確認すべきvisual contractはStorybookへ寄せ、Storyを **executable visual specification** として扱います。
+Design Documentは製品として採用したUI/UXの正本です。画面の意味・操作・状態・採用した具体的な見た目、Visual / Responsive / Interaction上の設計判断とその理由を、画面固有の設計またはDesign Systemへ記述します。UI設計の正本をStorybookへ委譲せず、Storybookの設計MDXは作成しません。
 
-Design DocumentへComponent API、pixel値、実装上のlayout detail、Storybookで直接確認できるvariationを重複して記録しません。これらを文書化する必要がある場合も、Design上の判断理由や守るべき制約を記述し、具体的な現行表現はStorybookを参照します。
+Storyは共有React Componentの現行表示・操作を実行可能な状態で再現し、Visual ReviewとVRT・Interaction Testで設計との差分を発見する検証資産です。DesignにReact Component API、CSS selector、内部の実装方法を複製せず、Storyに仕様の判断理由や採用条件を重複記述しません。StoryとDesignが食い違う場合は、採用済み設計と未反映の実装差分を区別します。
 
-一方、Storybookだけでは表現しにくい「なぜそのPatternを使うか」「どのsurfaceを選択するか」「どの状態を継続して提示する必要があるか」等のUX判断はDesign Documentに残します。Screen Specificationは、そのScreenがどのPattern / ComponentをどのProduct contextで組み合わせるかを所有します。
-
-この分担により、Design Documentを実装Component Catalogとして肥大化させず、visual contractの二重管理を避けます。共通UI Componentを変更する場合は、実装だけでなく対応するStoryも同じ変更単位で更新し、Design上の判断自体が変わる場合にDesign Documentも更新します。
+Prototypeで新しい構成やUI表現を試した時点では、実装されているという理由だけで採用仕様としません。Visual Reviewで採用した判断をDesignへ反映してから、必要なテスト設計を具体化します。共通UI Componentを変更する場合は実装とStoryを同期し、採用したUI設計判断自体が変わる場合はDesignも更新します。
 
 各検査を必須化する範囲は、test asset、実行時間、安定性を確認しながら段階的に拡大します。Visual Regression Testの基準画像は、意図した変更であることを人間が確認してから更新します。
 
