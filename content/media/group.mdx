@@ -103,7 +103,9 @@ Groupが複数の所属先を持てるため、Groupには一意なrootやbreadc
 
 Groupは名称だけで成立できます。作成時点で所属先Groupを持つことを必須にしません。
 
-Group作成時は名称だけを入力して成立させます。所属先Groupの追加は作成後のGroup relation管理として別操作で行い、Group作成とrelation追加を一つの必須操作へ結合しません。
+Group作成時は必須のGroup名に加え、任意でParents / Childrenのrelationを指定できます。両方とも未指定で作成でき、Mediaや所属先Groupの存在を作成の前提としません。
+
+作成Dialogで指定したrelationはGroup本体の作成後に設定します。Group本体の作成が成立した後にrelationの一部または全部が設定できなかった場合、作成済みのGroupを未作成として扱ったり再作成したりせず、成立した状態と設定できなかった関係を区別して利用者に伝えます。relationの制約は通常のGroup relation管理と同様に適用します。
 
 ### rename
 
