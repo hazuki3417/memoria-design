@@ -37,6 +37,8 @@ Mediaの委譲、公開解除、User削除、物理削除は複数resourceの整
 
 ## Frontend Component・Visual Regression・E2Eのテスト設計
 
+Frontendのテスト階層、Interaction Test、Storybook、Integrationの責務・選択基準は[Frontendテスト戦略](/system/web/frontend-testing)を正本とする。以下は横断的な検証環境・VRT・E2E・Quality Gateの原則を扱う。
+
 ### 責務と検証境界
 
 - Component化は再利用性のみを目的とせず、表示とUI操作をアプリケーション固有の処理から分離し、テスト容易性を高めるためにも行います。利用箇所が1つでも独立して検証する価値があればComponent化できます。
