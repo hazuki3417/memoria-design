@@ -207,6 +207,35 @@ column表は「列 / 型 / 制約 / 意味」の4列に統一します。共通�
 
 Prototypeで採用した表示・操作・Responsiveの設計判断は、その都度Designの適切な正本へ反映します。Storybookの設計MDXを新設して記録を分散させず、画面とComponentの初期実装境界を文書の分割単位として固定しません。テスト条件は画面設計と区別してテスト設計書へ整理します。
 
+## UI Design（画面固有の採用UI/UX設計）
+
+UI Designは、Screen SpecificationやApplication Shell等の機能仕様で決定した利用者への保証を、**具体的にどう表示・操作できるUIとして成立させるか**を定義します。独立文書を設けるときの推奨ファイルは `content/screens/<screen-name>-ui-design.mdx` です。Application Shellのような画面横断のUIには適切な `content/system/<subject>-ui-design.mdx` 等を使えます。**独立文書の新設は必須ではありません。** 画面仕様内のUI具体化で十分管理できる場合は分割せず、同じ記載基準を適用します。
+
+### 必須情報と標準章立て
+
+1. **概要・適用範囲**: 対象画面または画面横断領域、UI Designが具体化する目的、参照する機能仕様・共通Pattern、所有しない仕様の境界。H1直後に概要を配置します。
+2. **UI構成・情報の優先順位**: 主領域と補助領域、利用者が最初に認識する情報、要素の配置・順序・視覚的階層、選択した構成の理由。単なる画面部品一覧ではなく、どの条件でどう見えるかを書きます。
+3. **表示状態と表現**: そのUIで意味の異なるDefault / Selected / Empty / Loading / Error / Disabled / Processing等について、成立条件に対応する表示形式、文言、視覚的区別、Actionの提示。状態の意味や保存結果は参照元Screen Specificationに従います。
+4. **Interaction・Feedback**: 操作の入口、選択・展開・閉じる等の具体的な操作方法、通知や理由説明の表示、Animation・Overlay等の採用されたUI上の表現。業務処理・Mutation・認可の結果を独自に再定義しません。
+5. **Responsive・入力方式**: Compact / Medium / Wide等で採用した構成差と切り替え条件、Touch・Keyboard・Focus・支援技術への到達方法。画面幅にかかわらず維持するCapabilityは機能仕様を参照します。
+6. **設計判断・制約**: 採用理由、非採用の重要な代替表現、許容Variation、変更してはいけないvisual / interaction contract、他画面との共通Patternの適用境界。未確認の理由は作りません。
+7. **関連仕様・未決事項**: 参照する機能仕様、Design System、必要なテスト設計書へのリンク。未決定のUI判断は確定事項と区別し、継続調査が必要なものはIssueを参照します。
+
+この順序を標準としますが、**存在しない状態の空見出しは作らず**、小規模な画面では関連項目を統合して構いません。複雑なUIでは「Viewer」「Navigation」「Info Panel」等の独立した責務を小節にできます。見出し名より、必要情報が同じ観点から発見でき、相互参照により追跡できることを優先します。
+
+### 記載粒度と形式
+
+- **観測可能なUI表現を記載する**: 「見やすく」「適切に配置」だけではなく、対象、前提状態、表示位置・順序、操作手段、見える結果を確認できるようにします。必要に応じて状態／条件／UI表現の表、操作のシーケンス、画面構成図、画像を使用できます。
+- **採用した数値は扱える**: Panel幅、表示件数、Animation時間、Breakpoint等は、その値自体がVisual Review等で採用されたUI Contractなら記録します。偶然のCSS値、Story Fixtureのサンプル値、未検証のBreakpointを仕様として推測・固定しません。
+- **製品仕様を重複させない**: 業務操作の成立条件、権限、整合性、データ取得、成功・失敗・結果不明の意味はScreen / Domain / API契約が所有します。UI Designには、その条件を表示・操作にどう反映するかを記載して正本へリンクします。
+- **実装構造を固定しない**: React Component、Props、Hook、Mantine API、CSS Selector、Portal内部の設置方式、Story一覧・名前やFixtureの識別子を製品仕様として複製しません。現行実装を回帰比較基準にする場合も、採用済みの仕様と現在の実装上の事実を混同せず、未確認の差異を明示します。
+- **テスト手順を置かない**: Given / When / Then、Fixture、Mock、検証レベル、VRT対象はテスト設計書が所有します。UI Designは期待する表示・操作の契約を定義し、必要なときにテスト設計書へリンクします。
+- **Prototypeと設計の成熟段階を区別する**: Prototype前は基本設計から開始し、Visual Reviewで採用した判断だけをDesignへ反映します。試しただけの案は正式仕様としません。変更履歴やMDX移行経緯は設計本文でなくGit / Issue / PRで追跡します。
+
+### 分割判断
+
+UI Designを別文書へ分けるのは、画面固有の視覚構成・Interactionの判断が独立した責務・変更理由を持ち、Screen Specificationから分けた方が情報を発見・更新しやすい場合です。文書の長さだけ、初期PrototypeのComponent数、Story数、テストケースIDを根拠に分割しません。分割した場合も、Screen Specificationを画面の入口として参照関係を保ち、重要な内容を重複・欠落させないよう照合します。
+
 ## Application Shellの機能仕様
 
 推奨ファイルは `content/system/application-shell.mdx` です。Application Shellは個別画面の業務操作ではなく、画面を横断するナビゲーションと利用範囲の識別を支えるため、画面詳細仕様とは別の設計書で管理します。
