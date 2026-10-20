@@ -1,0 +1,47 @@
+# Media Detail：Frontendテスト設計
+
+## 目的・対象
+
+[Media Browser / Detail](/screens/media-browser-detail)と[Media Detailの採用UI設計](/screens/media-detail-ui-design)の振る舞い・既存UI比較条件を検証するためのシナリオです。旧Storybook設計MDXに分散していたテスト観点を整理しました。単一のReact Component構造にテスト設計を固定しません。実テストコード、Story・Fixture・Mockの配置は `memoria-web` に属します。
+
+## Viewer・Navigation
+
+| 条件・操作・期待結果 | 階層・観点 | Fixture・Mock |
+| --- | --- | --- |
+| Detailを開き、選択したMediaが表示され、閉じると起点のGroup / Browserの選択・スクロール・Pane幅を維持する | Integration / Interaction | Media起点、Group起点 |
+| 前後移動は利用元Collection順、先頭／末尾で存在しない方向のActionを提示しない | Component / Integration | 先頭・中間・末尾 |
+| 列が追加取得可能な場合、未取得Mediaの順序・選択同期を正しく処理する | Integration | 分割ページ、遅延応答、追加取得失敗 |
+| 画像表示失敗でも代替表示と操作導線が残り、縦長／横長を含めViewerの表示を維持する | Component / VRT | Portrait、Landscape、ImageError |
+| Viewer内でZoom／Rotateし、隣接Media移動時のViewportリセット、方向アニメーション、回転Resetを検証する | Component Interaction | Zoomed、Rotated、Navigated |
+| Zoomが50〜300%の範囲で、候補選択、数値入力、空欄、範囲外、Enter・Blur、親からの値変更に適切に反応する | Component / Unit（入力判定が独立する場合） | 50%、100%、200%、300%、範囲外、空 |
+| Dialog Portal、編集・削除確認との重なり順、閉じるtransition中に古いタイトル・Draftが変わらないことを検証する | Integration / VRT | Open、Closing、NestedDialog |
+
+## 情報Panelと分類Section
+
+| 条件・操作・期待結果 | 階層・観点 | Fixture・Mock |
+| --- | --- | --- |
+| Panelの開閉、Wideでの横方向・Compactでの縦方向展開、情報のscroll、主Actionの位置とDividerを維持する | Component Interaction / VRT | Desktop、Compact、LongContent |
+| ファイルサイズ・画像サイズ・アップロード日時・Uploaderの順序を確認し、固定Mockを実データと混同しない | Component / Integration | FileMetadata、MissingMetadata |
+| Original Downloadの利用可／禁止／処理中の3状態で、Actionの有効・無効・理由・aria-describedby等を確認する | Component Interaction / Accessibility | Available、Forbidden、Processing |
+| Groups / Tagsが0、6、7件以上のとき「未設定」、Badge種別、展開／折りたたみ、aria-expanded、200msアニメーションを維持する | Component Interaction / VRT | Zero、Six、Seven、LongName |
+| Communityが0、3、4件以上のとき「未共有」、共有解除対象との関連、折り返し、展開中のActionを維持する | Component Interaction / VRT | Zero、Three、Four、LongCommunity |
+| Personal / Communityで情報Panelの内容と操作が切り替わり、不要な共有操作を表示しない | Component / VRT | Personal、Community |
+| Tags・Groups・CommunityとDownload／Deleteの視覚階層、配置順、Section境界を維持する | VRT / Accessibility | Standard、Expanded、Compact |
+
+## 編集・共有・削除の操作
+
+| 条件・操作・期待結果 | 階層・観点 | Fixture・Mock |
+| --- | --- | --- |
+| Groups / Tagsの追加・解除、Cancel、Save、再Open時の値が保存済みデータと一致する | Component / Integration | Empty、Selected、Canceled、Saved |
+| Community共有は未共有から1件のみ選択可能で、候補なし・未選択では確定せず、成功時は該当対象のみ反映する | Component / Integration | NoCandidates、Unselected、Selected |
+| 個別Communityの共有解除Dialogで対象名を提示し、Cancelで維持、確定でその共有だけ解除する | Component / Integration | SingleShare、MultipleShares |
+| Media削除の確認文と復元不可の案内、Cancelで無変更、確定で対象Mediaの削除を要求する | Component / Integration | DeleteCancel、DeleteConfirm |
+| 保存・共有・削除の通知は実API成功と失敗・結果不明を区別し、Mockの確定を実永続化成功と扱わない | Integration | MutationSuccess、MutationError、UnknownOutcome |
+| 各Dialogの操作はKeyboard・Focusで可能で、Viewerを閉じずにCancelで戻れる | Component Interaction / Accessibility | Desktop、Compact、Keyboard |
+
+## 回帰・依存境界
+
+- **変更前のMedia Browser**をVisual / Behavioral / Responsive回帰の比較基準とし、Group起点で共有Componentを使うために既存Media Browserの情報・Action・状態を削減しません。
+- VRTは表示差分、Interaction Testは操作、IntegrationはGraphQLを含む実際の接続責務、E2Eは実Backend・認証・永続化を必要な主要Flowで確認します。
+- Mantine自身の内部実装、React HookやProp名、旧Component分割をテスト期待結果の代用にしません。非同期テストでは外部境界を制御し、固定Sleepに頼りません。
+- 現行UIの比較基準として記した細かな数値は設計上の未承認変更を正当化するものではありません。画面仕様との不一致を見つけた場合はUIとDesignのどちらかを無断で正しいものとして扱わず、判断を確定してからテスト期待値を更新します。
