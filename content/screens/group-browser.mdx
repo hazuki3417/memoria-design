@@ -276,5 +276,3 @@ MediaとGroupの検索Inputのplaceholderはそれぞれ「Tagを検索」「Gro
 ### Group作成導線のモック実装
 
 Group一覧の「Groupを作成」Actionは作成Dialogを開く。Dialogでは必須のGroup名（最大100文字）と任意のParents / Childrenを設定できる。キャンセルは変更を破棄し、作成Actionで登録を確定したときのみDialogを閉じ、一覧へ新規Groupを追加し成功Notificationを表示する。新規GroupのMedia件数は0件とする。現時点のWeb実装とVisual Prototypeでは画面内stateによるモック登録であり、Backend永続化やGraphQL mutationの成功を意味しない。
-
-### Group Detailの関係セクション開閉
