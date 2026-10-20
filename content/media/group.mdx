@@ -105,7 +105,7 @@ Groupは名称だけで成立できます。作成時点で所属先Groupを持�
 
 Group作成時は必須のGroup名に加え、任意でParents / Childrenのrelationを指定できます。両方とも未指定で作成でき、Mediaや所属先Groupの存在を作成の前提としません。
 
-作成Dialogで指定したrelationはGroup本体の作成後に設定します。Group本体の作成が成立した後にrelationの一部または全部が設定できなかった場合、作成済みのGroupを未作成として扱ったり再作成したりせず、成立した状態と設定できなかった関係を区別して利用者に伝えます。relationの制約は通常のGroup relation管理と同様に適用します。
+**Group作成はAtomic Create**とします。Frontendは作成するGroupの必須名称と、任意のdirect Parent Group ID集合・direct Child Group ID集合を希望する最終状態として1つの作成要求へ含めます。Backendは作成権限、Group名、同一scope、候補存在、直接relation件数、循環・深度等のDAG制約を検証し、Group本体および指定したすべてのrelationを**同一Transaction**で作成します。希望状態のどれか1つでも成立しない場合は作成処理全体をRollbackし、Group本体もrelationも残しません。Parent / Child未指定での作成は引き続き可能です。作成処理が確定して失敗した場合は利用者へ理由を伝えて入力Draftを保持し、通信障害などで結果が不明な場合は重複作成を避けるため確定状態を確認してから再実行を判断します。冪等性・結果照会等の具体的API方式はBackend実装設計で定めます。
 
 ### rename
 
@@ -142,7 +142,7 @@ Initial Releaseでは、選択中Groupを基準として所属先Group（parents
 
 **既存Group編集の保存はAtomic Update**とします。Group名、direct Parent / Child集合の希望状態が全て成立する場合のみ同一Transactionで確定し、1件でも成立しない場合は今回の保存単位全体をRollbackして、保存前の状態を維持します。部分成功は許容しません。例として既存Parentが{1}で希望が{1,2,3}の場合、2を追加できても3が制約に違反するなら保存は失敗し、Parentは{1}のままです。成立しない理由は利用者が修正できる形で返し、画面ではDraftを維持します。通信失敗で保存の成否が不明な場合は確定状態を再照会してから復旧を判断します。競合検知の具体的なAPI方式はBackendのAPI契約・実装設計で決定します。
 
-このAtomic Updateは**既存Group編集**の契約です。新規Group作成はGroup本体の作成後にrelationを設定する別フローであり、作成済みGroupとrelationの部分失敗を区別する既存仕様を、この判断だけで変更しません。
+既存Group編集は**Atomic Update**、新規Group作成は**Atomic Create**とし、いずれもGroup名とdirect Parent / Childの希望状態を1つの業務操作として扱います。ただし、更新における既存Groupとの競合判定と、新規作成の冪等性・結果照会は異なる課題としてAPI実装設計で扱います。
 
 relation先の検索対象は同一scopeのGroupに限定します。検索結果からGroup自体を除外することで制約を表現せず、対象Groupとの各方向について現在のrelation状態と追加可否を識別できるようにします。自己参照、既存relation、循環、深度、直接relation数上限等により追加できない方向はActionを無効化し、Userが理由を確認できるようにします。UIで事前に選択を防いでも、APIは保存時の現在状態を再検証して制約違反を拒否します。
 
