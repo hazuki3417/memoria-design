@@ -1,0 +1,32 @@
+# 単一行テキスト入力のUnicode Validation
+
+## 対象と目的
+
+本ガイドラインは、MemoriaがUserに編集・入力させる**単一行の短いテキスト値**（Group名などの名称、Tag名、Community名、単一行検索条件等）について、制御文字に関する共通の入力規則を定めます。具体的な文字数上限、重複制約、trim・検索の意味は各Domain / Screen Specificationを正本とします。
+
+複数行の本文、外部サービスから受領する原文、ファイルのオリジナル名、Secret / Password等の入力は、単一行名称と同じ規則を無条件で適用せず、該当Domainの必要性と既存契約を確認して個別に判断します。個別Fieldの棚卸しと適用状況はIssue #296で追跡します。
+
+## 合意済み共通規則
+
+- Unicode General Category **`Cc`（Control）** は単一行入力の元の入力文字列に1文字でも含まれれば拒否します。LF（`U+000A`）、CR（`U+000D`）、TAB（`U+0009`）、NUL（`U+0000`）、ESC（`U+001B`）等を含みます。
+- Unicode General Category **`Zl`（Line Separator）** と **`Zp`（Paragraph Separator）** も拒否します。これらは`Cc`に含まれないため別途検証します。
+- **入力値の扱いと検証順序（Group名だけでなく単一行テキストに共通）**：**①加工前の原文に対して禁止文字等の原文Validation → ②そのFieldで合意されたtrim等の加工 → ③加工後の保存・照合値に対して必須・文字数・重複などの意味的Validation** の順とします。原文Validationが成立するまではtrimしません。先頭・末尾のTABや改行がtrimで消えて受理されることを防ぎます。③は②の後に必要であり、「あらゆるValidationをtrim前に終える」という意味ではありません。そもそもtrimを行わないFieldでは②を省略し、検索条件等のField固有の意味づけは各Domain / Screen Specificationに従います。
+- 禁止文字をサイレントに削除・別文字へ置換して保存しません。利用者が問題を修正できる理由を表示し、保存失敗時に入力Draftを可能な限り保持します。
+- Frontendの早期検証だけでは不十分であり、**Backendは保存／検索等のAPI境界で用途に応じた最終検証**を行います。Frontend / BackendでUnicode判定が一致するようにテストします。
+- Unicode General Category **`Cf`（Format）** は**一律禁止しません**。双方向制御文字・zero-width文字など要注意のものがある一方、ZWJやZWNJは絵文字や言語表現に必要になる場合があります。どの`Cf`を許容・制限するかは用途別に評価し、現段階では全面禁止・全面安全のいずれも仮定しません。
+- 通常の内部空白、結合文字、適法な絵文字を`Cc` / `Zl` / `Zp`と混同して禁止しません。書記素数による文字数上限を持つFieldは、そのDomainで書記素境界を定義します。
+
+## 実装・テスト観点
+
+- paste、IME・composition、keyboard入力、支援技術、GraphQL/APIの直接呼出しなど入力経路が異なっても同じ入力規則になること。
+- 禁止文字が先頭・末尾・内部にある場合を検証すること。特にtrimで消えるTAB、LF、CRを明示的にテストすること。
+- `Cc`、`Zl`、`Zp`の拒否に加え、内部の通常空白や絵文字ZWJ列を不当に拒否しないこと。
+- 現行画面の入力Field・保存済み値・外部取得文字列との互換性を確認し、既存のVisual / Behavioral Contractを維持すること。
+- 識別文字列のなりすまし、双方向制御、不可視文字等の`Cf` / その他のUnicodeカテゴリに関する追加の制約は別途検討すること。
+
+## 関連仕様・課題
+
+- [Media Group Domain](/media/group)：Group名のtrim、1〜100書記素、重複禁止など
+- [Group Browser](/screens/group-browser)：作成・編集のFeedback
+- [Issue #295](https://github.com/hazuki3417/memoria-design/issues/295)：Group名のFrontend / Backend Validation
+- [Issue #296](https://github.com/hazuki3417/memoria-design/issues/296)：各入力Fieldの棚卸し、例外の検証、`Cf`等の追加方針

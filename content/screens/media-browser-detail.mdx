@@ -163,6 +163,8 @@ Personalでは共有・共有解除、Original download、削除等、Community�
 
 現在contextで閲覧可能なMediaをvisual content中心に発見できます。Mediaを選択するとDetailへ進めます。
 
+Media Browserの通常一覧とTag filter・検索結果の操作パネルでは、Media総件数・取得済み件数・読み込み進捗件数を表示しません。Relay Connectionによる追加取得の状態はLoading / ErrorとRetry / Empty / 終端で区別します。Selection中に表示する明示選択件数、bulk操作の対象・結果件数は判断に必要な別用途なので維持します。件数表示の横断契約は[Collection Discovery](/design-system/patterns/collection-discovery)に従います。
+
 ### Browser: Empty
 
 現在contextにMediaが存在しないことを明示します。Mediaを追加するActionはPersonal / Community Mediaそれぞれの仕様に従います。

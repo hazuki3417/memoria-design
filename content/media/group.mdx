@@ -43,9 +43,11 @@ Group名はscope内でGroupを識別する名称です。
 - 別scopeでは同じGroup名を許可する
 - 大文字・小文字、全角・半角、内部の連続空白等をSystemが自動統合しない
 - renameにも同じ名称規則と重複判定を適用する
-- Group名はtrim後100文字以内とする
+- Group名はtrim後100文字以内とする。**文字数はUnicode拡張書記素クラスター（grapheme cluster）単位で数え、UTF-8 byte数・Unicode code point数では数えない**
+- **元の入力文字列をtrimする前に**、Unicode `Cc`（改行、タブ、NUL等）、`Zl`（行区切り）、`Zp`（段落区切り）のいずれかが含まれれば拒否する。先頭・末尾にある禁止文字もtrimで消して受理せず、理由を示す。禁止文字がなければ前後のUnicode whitespaceをtrimし、残った文字列の名前制約を検証する。入力文字列を黙って改変して保存しない
+- 作成とrenameの双方で同じ検証をFrontendとBackendが適用し、Backendを最終的な検証主体とする。Frontendの入力制限はBackendの検証を代替しない
 
-100文字はGroupを一覧・検索・relation選択で人が識別する名称として十分な表現幅を確保しつつ、極端に長い名称をProductとして受け付けないための上限です。DB column幅やUI layoutから逆算した値ではなく、Product上の入力制約として扱います。作成とrenameの双方へ同じ上限を適用します。
+100文字はGroupを一覧・検索・relation選択で人が識別する名称として十分な表現幅を確保しつつ、極端に長い名称をProductとして受け付けないための上限です。DB column幅やUI layoutから逆算した値ではなく、Product上の入力制約として扱います。作成とrenameの双方へ同じ上限を適用します。絵文字の結合列や結合文字を含む名前でも同じ書記素境界で数える必要があります。Unicode version差による分節結果の互換性は実装・テストの検討対象とします。`Cf`（ZWJ、ZWNJ、双方向制御など）は一律禁止せず、文字種・用途別の追加検討をIssue #296で進めます。単一行入力に共通する禁止文字と検証順序は[Unicode単一行入力ガイドライン](/guidelines/unicode-single-line-input)を正本とします。
 
 ## Mediaとの関係
 
@@ -103,7 +105,9 @@ Groupが複数の所属先を持てるため、Groupには一意なrootやbreadc
 
 Groupは名称だけで成立できます。作成時点で所属先Groupを持つことを必須にしません。
 
-Group作成時は名称だけを入力して成立させます。所属先Groupの追加は作成後のGroup relation管理として別操作で行い、Group作成とrelation追加を一つの必須操作へ結合しません。
+Group作成時は必須のGroup名に加え、任意でParents / Childrenのrelationを指定できます。両方とも未指定で作成でき、Mediaや所属先Groupの存在を作成の前提としません。
+
+**Group作成はAtomic Create**とします。Frontendは作成するGroupの必須名称と、任意のdirect Parent Group ID集合・direct Child Group ID集合を希望する最終状態として1つの作成要求へ含めます。Backendは作成権限、Group名、同一scope、候補存在、直接relation件数、循環・深度等のDAG制約を検証し、Group本体および指定したすべてのrelationを**同一Transaction**で作成します。希望状態のどれか1つでも成立しない場合は作成処理全体をRollbackし、Group本体もrelationも残しません。Parent / Child未指定での作成は引き続き可能です。作成処理が確定して失敗した場合は利用者へ理由を伝えて入力Draftを保持し、通信障害などで結果が不明な場合は重複作成を避けるため確定状態を確認してから再実行を判断します。冪等性・結果照会等の具体的API方式はBackend実装設計で定めます。
 
 ### rename
 
@@ -136,7 +140,11 @@ Group詳細では少なくとも次の関係を確認できるようにします
 - このGroupが所属するGroup
 - このGroupに所属するGroup
 
-Initial Releaseでは、選択中Groupを基準として所属先Group（parents）と所属Group（children）の双方を同じrelation編集Interactionから追加・解除できます。Userは個別の追加・解除Commandを順番に実行するのではなく、編集後のrelation状態をDraftとして構成し、保存時に追加・解除の差分をまとめて反映します。
+Initial Releaseでは、選択中Groupを基準として所属先Group（parents）と所属Group（children）の双方を同じrelation編集Interactionから追加・解除できます。Userは個別の追加・解除Commandを順番に実行せず、Group名、direct Parent Group ID集合、direct Child Group ID集合という希望する最終状態をDraftとして構成します。選択・解除ではFrontend内のDraftのみが更新され、Backendへの保存Mutationは発生しません。保存時には希望する最終状態をBackendへ送信し、Backendが最新の保存済み状態との追加・解除差分を判定します。Backendは認可、Group存在、同一scope、DAG制約および同時更新の競合を再検証し、他Userの変更を無条件に黙って上書きしません。
+
+**既存Group編集の保存はAtomic Update**とします。Group名、direct Parent / Child集合の希望状態が全て成立する場合のみ同一Transactionで確定し、1件でも成立しない場合は今回の保存単位全体をRollbackして、保存前の状態を維持します。部分成功は許容しません。例として既存Parentが{1}で希望が{1,2,3}の場合、2を追加できても3が制約に違反するなら保存は失敗し、Parentは{1}のままです。成立しない理由は利用者が修正できる形で返し、画面ではDraftを維持します。通信失敗で保存の成否が不明な場合は確定状態を再照会してから復旧を判断します。競合検知の具体的なAPI方式はBackendのAPI契約・実装設計で決定します。
+
+既存Group編集は**Atomic Update**、新規Group作成は**Atomic Create**とし、いずれもGroup名とdirect Parent / Childの希望状態を1つの業務操作として扱います。ただし、更新における既存Groupとの競合判定と、新規作成の冪等性・結果照会は異なる課題としてAPI実装設計で扱います。
 
 relation先の検索対象は同一scopeのGroupに限定します。検索結果からGroup自体を除外することで制約を表現せず、対象Groupとの各方向について現在のrelation状態と追加可否を識別できるようにします。自己参照、既存relation、循環、深度、直接relation数上限等により追加できない方向はActionを無効化し、Userが理由を確認できるようにします。UIで事前に選択を防いでも、APIは保存時の現在状態を再検証して制約違反を拒否します。
 
