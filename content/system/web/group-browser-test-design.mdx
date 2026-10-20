@@ -2,11 +2,11 @@
 
 ## 目的・適用範囲
 
-Group Browserの確定済み仕様を実行可能な検証条件へ分解し、後続の実装・責務分離・テスト実装の目標を定義します。**現行Web実装に合わせて期待結果を弱めず、実装済み・テスト可能・テスト成功を意味しません。** Groupでは先にScreen SpecificationとUI Designを整理したため、今回は設計を先行してマトリクスを作り、以後のテスト実装と必要なリファクタリングに接続します。この工程順は全機能へ一律適用しません。他の機能では設計・実装・マトリクスが同時進行して構いません。
+[テストマトリクステンプレート](/design-document-templates#テストマトリクス仕様から導く検証条件)に沿って、Group Browserの確定済み仕様を実行可能な検証条件へ分解し、後続の実装・責務分離・テスト実装の目標を定義します。**現行Web実装に合わせて期待結果を弱めず、実装済み・テスト可能・テスト成功を意味しません。** Groupでは先にScreen SpecificationとUI Designを整理したため、今回は設計を先行してマトリクスを作り、以後のテスト実装と必要なリファクタリングに接続します。この工程順は全機能へ一律適用しません。他の機能では設計・実装・マトリクスが同時進行して構いません。
 
 対象はGroup discovery、選択中Group、CRUD・relation操作、権限・失効、取得状態、表示・Responsive・Focusおよびこれらを成立させるGroupドメイン制約です。Media Detail自体の全Capability、Media Browserのbulk操作、API性能・DB運用の網羅は各所有先の検証へ委ね、Groupからの接続を本書で確認します。
 
-### 参照する正本
+## 関連仕様
 
 - [Group画面詳細仕様](/screens/group-browser)（以下 **S**）：対象・条件・結果・失敗と復旧。
 - [Group UI Design](/screens/group-browser-ui-design)（以下 **U**）：表示構成、UI状態、Interaction、Focus。
@@ -15,7 +15,7 @@ Group Browserの確定済み仕様を実行可能な検証条件へ分解し、�
 - [全体テスト設計](/test-design)：E2E・VRT・Quality Gateの共通原則。
 - [Media Browser / Detail](/screens/media-browser-detail)：Group起点で開く共通Detailの責務境界。
 
-## マトリクスの読み方
+## マトリクスの記述規則
 
 | 項目 | 運用上の意味 |
 | --- | --- |
@@ -30,7 +30,7 @@ Group Browserの確定済み仕様を実行可能な検証条件へ分解し、�
 
 **検証単位と実装ファイルは1対1にしません。** 複数条件を一つのIntegration Testで確認することも、視覚状態をStoryとVRTで観測することもできます。純粋な計算・変換のみにReactを持ち込まず、GraphQL接続や処理結果とUI状態の連動には接続を通すテストを用います。
 
-## Fixtureの共通前提
+## Fixture・依存境界
 
 - 各テストのUser / Community / Group / Media IDは決定的で独立させます。Personal、Community Administrator、Community Member、権限未取得・失効を区別します。
 - GroupのDAGではdirect parent / child、複数parents、diamond型に同一descendantへ複数経路で到達する例、深度・上限境界を準備します。direct Mediaとdescendant由来のaggregate Mediaを別の集合として用意します。
@@ -186,7 +186,7 @@ Group Browserの確定済み仕様を実行可能な検証条件へ分解し、�
 | GB-104 | D:Mediaとの関係：Groupと権限は独立 | Group relationを編集する | MediaのCustody・Community共有・権限を確認する | 分類変更だけでMediaの所有権・共有範囲・閲覧権限を変えない | BE/E2E | Contract | 複数scope・共有Media |
 | GB-105 | S:G-15・D:relation：作成前候補の事前可否 | 作成するGroupにまだIDがない | Create Dialogでrelation候補を選ぶ | 確定済みの入力・候補表示条件だけを検証し、未決定の事前可否API方式を固定しない | C/I | Interaction | 仕様未決定を分離 |
 
-## 未決定事項とテスト設計の境界
+## 未決定事項と検証範囲
 
 | 項目 | 現在確定している検証 | 未決定のため固定しない内容 | 対応 |
 | --- | --- | --- | --- |
@@ -200,7 +200,7 @@ Group Browserの確定済み仕様を実行可能な検証条件へ分解し、�
 
 未決定事項の存在を、確定済みの検証を後回しにする理由としません。また実装に合わせて新しい仕様を暗黙に確定させません。
 
-## 後続の実装差分・リファクタリング調査
+## 実装との対応・課題
 
 このマトリクスはテストを先に定義する成果物です。**現行実装への適合判定とテスト実装・実行は別工程**として、各IDに対して次を後続調査で記録します。
 
@@ -212,6 +212,6 @@ Group Browserの確定済み仕様を実行可能な検証条件へ分解し、�
 
 既存の `memoria-web` のGroup Browser実装、Group名・Relation変更のUnit Test、Wide / CompactのStoryは照合対象ですが、その存在だけでマトリクス各行を「検証済み」とはしません。必要な改修と追加テストは後続のIssue / PRで追跡します。
 
-## 完了判断
+## 完了基準
 
 この設計マトリクスの作成完了とは、確定した対象仕様が追跡可能な検証条件へ落とし込まれ、各条件のGiven / When / Then、候補テスト階層、外部境界、未決事項が記述されていることです。**全テストが実装済み、実行済み、CI成功という意味ではありません。** テスト実装が進んだ段階でこの表を仕様正本に照合し、必要なIDや期待結果の変更は理由とともに管理します。
