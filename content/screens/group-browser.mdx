@@ -169,17 +169,21 @@ Media Detail内の前後移動は、Detailを開いた時点の選択中Groupの
 
 ### Empty
 
-現在scopeにGroupが存在しないことを明示します。
+現在scopeにGroupが1件も存在しないことが確定した場合、Group discoveryの一覧領域に、Media BrowserのEmpty状態と同様に**空状態を説明する表示**を設けます。単に一覧Itemや枠を表示しない状態で終わらせず、「まだGroupがありません」等の状態見出しと、Groupを作成・利用し始めるための説明を提示します。読み込み中、取得失敗、検索結果0件とは区別します。
 
-Group作成権限がある場合は分類体系を作り始められるActionへ到達できるようにします。Community Memberには作成権限がないため、Groupがないことを伝えつつ管理Actionを提示しません。
+Group作成権限があるPersonal User / Community Administratorには、Empty表示から「Groupを作成」Actionへ到達できるようにします。このActionは通常のGroup作成Dialogを開き、別の作成方式を導入しません。Community Memberには作成Actionや管理権限があると誤認させる操作を表示せず、Groupがまだ存在しないことだけを適切に案内します。通常の操作パネルにある作成ActionとEmpty内の作成導線は同じ目的・処理へ接続します。
 
-Mediaが0件のGroupも正常なGroupとして一覧・検索対象に含めます。
+Mediaが0件のGroupも正常なGroupとして一覧・検索対象に含めます。Groupが存在する場合に、Mediaがないことだけを理由に一覧全体のEmptyへ切り替えません。一覧Item内のpreviewが空である場合の扱いは「Group discovery」の専用表現に従います。
 
 選択中Groupのaggregate Mediaが0件の場合はMedia表示領域を空白のままにせず、現在のGroupに表示対象Mediaがないことを明示します。同様にdirect parentまたはdirect childが0件の場合も、relation情報の領域で該当relationがないことを明示します。これらは正常に取得できた0件状態として、読み込み中・取得失敗と区別します。
 
 ### 検索結果なし
 
-Group自体が存在しないEmpty状態と区別し、現在の検索条件に一致するGroupがないことを示します。検索条件を変更または解除してGroup一覧へ戻れるようにします。
+現在scopeにGroupは存在するが、確定したGroup名検索条件に一致するGroupが0件の場合は、Media BrowserのFilter結果0件と同様に、Group自体が存在しないEmpty状態とは異なる案内を一覧領域に表示します。「一致するGroupがありません」等の見出し、現在の検索条件を変更できる説明、および「検索を解除」Actionを提供します。作成を検索結果0件からの主要な解消Actionとはせず、検索条件の見直し・解除を優先します。
+
+検索解除は入力中の検索文字列と確定済みの検索条件を解除し、現在scopeの通常のGroup一覧へ戻します。検索結果0件でも既存の選択中GroupとそのMedia Collectionを解除・破棄しません。検索解除後に選択中Groupが一覧へ再び現れた場合は、その選択状態を通常どおり表示します。
+
+Empty／検索結果なしのどちらも、見出し、補足説明、必要に応じたIconとActionを組み合わせた案内を一覧内容領域に配置し、既存の検索・件数・作成操作パネルやCompact / WideにおけるGroup選択・復帰の機能を失わせません。具体的な余白、Icon、色、Responsiveの配置はMedia Browserとの視覚的一貫性を確認するVisual ReviewとStorybook MDXで確定します。
 
 ### 読み込み失敗
 
