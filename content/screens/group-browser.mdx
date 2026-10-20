@@ -99,7 +99,9 @@ Personal contextではUser本人がGroupを作成できます。
 
 Community contextではAdministratorだけがGroupを作成できます。Memberには分類体系を変更する作成Actionを提供しません。
 
-Groupは名称だけで成立でき、Mediaや所属先Groupがない状態でも作成できます。
+Group作成Dialogでは必須の名称に加え、任意でParents / Childrenのrelationを指定できます。MediaやParent / ChildがないGroupも正常に作成できます。作成をキャンセルした場合は入力内容を破棄し、作成処理を実行しません。
+
+作成時にrelationを指定した場合、Group本体の作成後にrelationを設定します。Groupの作成は成功していてもrelation設定に失敗する場合があり、その場合は作成済みGroupを維持し、設定できなかったrelationを通知します。Groupを再作成するよう誘導せず、最新状態を確認できるようにします。
 
 ### Groupを編集する
 
