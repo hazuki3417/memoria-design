@@ -1,0 +1,76 @@
+# Frontendテスト戦略
+
+## 目的と適用範囲
+
+本書はMemoria Webのテスト対象・階層・責務の選択基準を定める。テストコードの既存配置や既存の書き方を規範の根拠とはしない。既存テストを削除・移行する際は、従来検証していた有効な振る舞いを失わないようにする。
+
+テストは実装詳細や単なるCoverage数値でなく、ユーザーから観測可能な振る舞い、外部との契約、不変条件、状態遷移、失敗時の回復を保証する。仕様が未定義のとき、テスト実装から推測して製品仕様を確定しない。画面の仕様はScreen Specificationと関連する製品設計を正本とする。
+
+本書はFrontendのテスト戦略を所有する。全Repository共通のQuality GateとE2E環境原則は[テスト設計](/test-design)、Reactの責務分離は[Frontend実装規約](/system/web/implementation-conventions)、実装コマンドと設定は`memoria-web`を参照する。
+
+## テストの分類
+
+Unit / Component / Integration / E2Eは検証範囲の分類であり、Interaction / Accessibility / Visual Regressionは検証観点である。Storybook、Vitest、Playwrightはツールであって、階層と1対1には対応しない。
+
+| 分類 | 主な保証対象 | 主な範囲・依存境界 | 保証しないもの |
+| --- | --- | --- | --- |
+| Unit | 判定、変換、Validation、純粋な状態遷移 | ReactやDOMを必要としない関数・モジュール中心 | 画面に正しく接続されること |
+| Component | 単独のUI責務の表示、操作、イベント通知、局所的状態遷移、Focus | 対象Componentと必要最低限のProvider / 外部Callback | Backendや画面全体との接続 |
+| Integration | 複数のUI・状態管理・Adapter・API Client等の責務間の接続、非同期結果のUIへの反映 | 実際のアプリケーション内部経路を可能な範囲で通し、外部境界を制御する | 実Backend・DBの整合性そのもの |
+| Application E2E | 認証・画面遷移・API・永続化をまたぐ主要ユーザーフロー | 隔離された実Frontend・API・テスト用DBを使用 | すべての境界値や異常系の網羅 |
+| Visual Regression | 意図しない表示・レイアウト・Responsive差分 | 安定したStoryとViewportの画像比較 | 操作の意味的な正しさ |
+
+ComponentとIntegrationの境界はComponent数で決めない。単独Componentの責務を示す振る舞いを検証するならComponent、複数の独立責務が正しく接続されることを検証するならIntegrationとする。複雑なFeature Componentも、検証内容に応じてどちらにもなり得る。
+
+## テスト階層の選択
+
+1. 最初に検証したい仕様をGiven（条件）/ When（操作・イベント）/ Then（観測可能な結果）で表現する。内部State名や関数呼び出しに合わせて仕様を作らない。
+2. その仕様を保証できる最小の適切な範囲を選ぶ。ただし実接続そのものがリスクなら上位階層でも検証する。
+3. 正常系だけでなく、境界値、禁止操作、Loading、Error、Cancel、Retry、重複送信、権限、Keyboard / Focus等から、機能リスクに応じて選ぶ。全組み合わせを機械的には要求しない。
+4. 重要度は不具合時の影響、発生可能性、状態・分岐の複雑さ、既存の保証で判断する。固定テスト数・固定ピラミッド比率・Coverage閾値を目的としない。
+5. 同じユーザー向け結果を複数階層で確認する場合は、どの接続境界・欠陥を追加で検出するのか説明できるようにする。合理的な重複は許すが重複自体を目的としない。
+
+例（実際のGroup画面の仕様ではない）：
+
+| 保証したいこと | 基本的な検証階層 |
+| --- | --- |
+| 名前の空白判定が正しい | Unit |
+| 入力すると送信ボタンが有効になる | Component Interaction |
+| 送信結果のエラーがUIに表示され再試行できる | Integration（通信境界はMock） |
+| 作成されたGroupがページ再読み込み後も存在する | Application E2E |
+| DialogのDesktop / Mobile表示が変わらない | Visual Regression |
+
+## Interaction Testの設計
+
+- クリックの成立だけでなく、操作前後の状態とユーザーが観測できる結果を検証する。
+- 代表的な状態と有効な遷移、禁止すべき遷移、失敗からの回復を優先する。静的な状態一覧と操作の自動検証を混同しない。
+- 要素の特定はRoleとAccessible Name等の利用者に意味がある識別を優先する。DOM階層、CSS Class、内部State等を過度に固定しない。
+- 非同期テストは結果条件を待機し、固定Sleepに依存しない。Loading検証では遅延を偶然に任せず、応答を制御する。
+- 二重送信や「キャンセルでは削除しない」等の禁止事項では、外部境界の呼び出し有無・回数の確認も適切とする。無意味な内部関数Mockの呼び出し検証とは区別する。
+- テストの独立性を保ち、順序依存・時刻・乱数・ネットワークの不安定要素を制御する。
+
+## Storybookの位置づけ
+
+Storyは独立して再現可能なComponent状態と振る舞いの実行可能な例であり、製品仕様そのものの正本ではない。Storyの種類や個数を一律に義務化しない。単独Componentの操作はStoryのplay等を用いたInteraction Testを基本候補とする。複数責務の結合をStorybook上で実行する場合も検証対象によってIntegrationに分類する。
+
+ProductionとStorybookで同じUI実装と意味的な振る舞いを共有する。Storybookのために同等の別UIを作らない。表示状態のFixture、外部Callback、Providerは適切に差し替え、テスト専用PropsをProduction APIへ無理に導入しない。
+
+VRTは視覚的回帰、Interaction Testは振る舞い、Accessibility検査は自動で検出できるアクセシビリティ問題をそれぞれ担当する。いずれか一つで他の保証を代替しない。Visual Prototypeを使う場合も、既存のVisual / Behavioral / Responsive仕様を守る。
+
+## Mock・Fixture・実接続
+
+- Mockは検証対象の外側の制御可能な境界へ置く。内部モジュールを過剰にMockして実際の接続欠陥を隠さない。
+- Component TestではProps / Callback等から入力・イベントを制御する。IntegrationではHTTP / GraphQL境界等を制御し、対象に含めるClient・状態管理・表示の接続を通す。
+- APIレスポンスの成功・失敗をMockしても、実Backendとの契約は保証されない。schema / operation整合性検証やApplication E2E等と役割を分ける。
+- Application E2Eのデータ準備・外部サービス差し替え・実DBの利用は[テスト設計](/test-design)の共通原則に従う。
+- Fixtureはテスト間で独立・決定的とし、エラー、空状態、遅延などを再現可能にする。
+
+## 既存テストの移行と方針改善
+
+既存テストコードは新規方針を正当化する根拠にせず、現行の保証対象を把握するために棚卸しする。適合するテストは維持し、階層の誤りや実装詳細への過度な依存は修正する。重複を整理する場合も有効な保証の消失がないことを確認する。欠けている重要なテストは追加する。変更前後の表示・動作・Keyboard・Responsiveへの意図しない回帰を許容しない。
+
+個別テストの不備と横断方針の問題を区別する。複数事例で境界の曖昧さ、過剰な重複、実行の不安定さ、保守コスト、検出漏れ等が確認されたら、実例と代替案・Trade-offを示して方針を見直す。重要な方針変更は人間との合意後に本書へ反映し、未解決事項と移行作業はIssueで追跡する。
+
+## 実装規約と導入範囲
+
+本書はテスト階層と選択判断を定める。具体的なVitest / Storybook / Playwrightの構成、Mock実装、配置規則、コマンド、CIトリガーは既存環境を調査し、実装を通じて段階的に決定する。未検証の構成を導入済みとみなさない。CIの自動再開や既存テストの一括置換は本書の承認だけでは実施しない。
