@@ -38,7 +38,9 @@ Memoria Webでは追加読み込みが必要なCollection全般に**Infinite Loa
 
 Viewport到達だけに依存せず、Keyboardや支援技術からも追加取得と状態を利用できるようにします。Responsive環境でも主要なCollection閲覧・追加取得Capabilityを維持します。
 
-Collection件数を提示する場合は、現在のscope・検索・Filter等の条件に一致する**Collection全体の総件数**を示し、Clientが取得済みの件数を総件数として誤表示しません。件数表示は利用者価値がある場合に採用し、全Collectionへ必須とはしません。`取得済み件数 / 総件数` 等のLoad進捗はProduct上必要な場合に限って個別に検討します。
+**Collection発見・閲覧のための通常一覧、検索結果、Filter結果では件数を表示しません。** この規則はMedia Browser・Group Browser・Group選択後のaggregate Media Collectionに適用し、取得済み件数、全件数、`取得済み件数 / 総件数` の進捗数値を通常の一覧操作パネルやHeaderに配置しません。無限ローディングでは、先頭取得中・追加取得中・追加取得失敗とRetry・正常0件・終端を適切に表現します。終端に必ず文言を表示することは要求しません。
+
+**件数が利用者の判断に必要な独立した用途は引き続き表示します。** 具体的には明示選択数、Actionの対象件数・成功/失敗件数、relation等の選択上限と現在の選択数、容量・登録件数等の利用統計、個別Sectionの展開対象数などです。用途ごとに何の集合を数えるかをDomain / Screen Specificationに明記し、総件数と取得済み件数を取り違えません。通常一覧での数字表示を復活させる場合は、当該画面の利用者価値と件数の意味について別途設計合意を必要とします。Infinite LoadingやRelay Connection採用を件数表示の根拠にしません。
 
 Collectionに基づくDetailの前後Navigationでは、取得済みItem集合をCollection全体の境界として扱いません。現在のCollection条件と順序で移動先が存在する場合は必要に応じて追加取得して継続し、失敗しても成立済みのDetailや一覧状態・現在位置を破棄せずRetryできるようにします。
 
