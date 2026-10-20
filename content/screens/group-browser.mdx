@@ -254,6 +254,7 @@ Group一覧と選択中GroupのMediaは同じGroups画面・同じ基本URLで�
 - Group discoveryはflatな一覧を基本とし、DAG全体のgraph visualizationを主要Interactionにしません。
 - Groupに一意なrootやbreadcrumb pathを仮定しません。
 - Group名は1〜100文字とします。文字数はUTF-8 byte数ではなく、Userが1文字として認識するUnicode grapheme cluster単位で数えます。
+- Group名は前後のUnicode whitespaceをtrimしたうえで、Unicode制御文字（`Cc`。改行・タブ・NUL等）を含む場合は無効とし、作成・編集とも入力理由を明確に示します。制御文字を黙って除去して保存しません。Backendでも同じ検証を実施します。不可視Format文字（`Cf`）等の横断判断は未確定であり、別Issueで管理します。
 - Group名は同一scope内で重複できません。
 - Personal Groupと各Community Groupは独立したscopeです。
 - CommunityではAdministratorだけがGroup構造を管理し、Memberは既存Groupを利用したMedia分類だけを行えます。
