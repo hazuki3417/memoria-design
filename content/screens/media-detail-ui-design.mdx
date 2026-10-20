@@ -1,12 +1,14 @@
-# Media Detail：UI設計と既存表示の維持条件
+# Media Detail：UI Design
 
-## 目的と正本の境界
+## 概要・適用範囲
 
-[Media Browser / Detail画面仕様](/screens/media-browser-detail)で定める情報・操作・状態・権限・結果に対して、Media Detailの既存UIおよびVisual Prototypeから得られた具体的な表示・操作条件を整理します。Media Detail関連の旧Storybook設計MDX（2026-10-20時点の `memoria-web/develop`）にあった情報を移したものです。
+[Media Browser / Detail画面仕様](/screens/media-browser-detail)で定める情報・操作・状態・権限・結果に対して、Media Detailの既存UIおよびVisual Prototypeから得られた具体的な表示・操作条件を整理します。採用したMedia DetailのUI構成と、リファクタリングで維持する表示・操作を扱います。
 
-画面の業務上の意味は[Media Browser / Detail](/screens/media-browser-detail)、Domain・共有権限は対応するDomain設計、共通ModalのFocusや閉じ方は[Overlay Pattern](/design-system/patterns/overlay-temporary-surface)が所有します。**本書は古いComponent分割やProp構造を規範化しません。** 実装内だけで確認されていた数値・見た目は、合意済みの画面仕様と衝突しない限り、リファクタリング前後で維持する現行UIの比較基準として記録します。未接続のMockを製品仕様へ昇格させません。
+画面の業務上の意味は[Media Browser / Detail](/screens/media-browser-detail)、Domain・共有権限は対応するDomain設計、共通ModalのFocusや閉じ方は[Overlay Pattern](/design-system/patterns/overlay-temporary-surface)が所有します。**本書はComponent分割やProp構造を規範化しません。** 実装内だけで確認されていた数値・見た目は、合意済みの画面仕様と衝突しない限り、リファクタリング前後で維持する現行UIの比較基準として記録します。未接続のMockを製品仕様へ昇格させません。
 
-## ViewerとDialogの構成
+## UI構成・情報の優先順位
+
+### ViewerとDialogの構成
 
 - Media DetailはMedia BrowserとGroup Browserの双方から開く共通のフルスクリーンDialogを基本とし、選択中Media、順序付きMedia Collection、Context（Personal / Community）を利用します。呼び出し元の選択中Group、検索条件、スクロール、Pane幅等はDetailの開閉によって初期化しません。
 - 画像を主領域に配置し、Mediaのアスペクト比を保ちながら利用可能な領域へ表示します。ViewerのHeader / Footer、Info Panel、各種編集DialogおよびModalの上下関係は既存Media Browserを回帰比較基準とします。ModalはApplication Shellの `application-modal-root` を使用します。
@@ -14,13 +16,13 @@
 - Mediaの画像が表示できない場合もViewer全体が消えず、プレビュー失敗の代替表示と操作への到達性を維持します。縦長／横長、画像番号、Compactの配置差分は検証対象です。
 - Media Detailが閉じても呼び出し元に戻れます。削除確認など別のDialogはViewerの上に重ねて扱い、確認をキャンセルした場合はDetailを維持します。Dialogのタイトル、入力内容、Actionが閉じる途中で別の操作へ入れ替わる表示は許容しません。
 
-## 画像操作とZoom
+### 画像操作とZoom
 
 - Wide / Mediumでは前後移動、Zoom In / Out、100% Reset、回転、情報Panelの開閉を提供します。ViewerのIcon-only操作には識別できるAccessible Nameを付与します。Compactは主要な閲覧・前後移動・終了・情報確認とProduct Actionを優先し、精密なZoom／回転UIは必須としません。
 - Zoomの範囲は**50〜300%**です。割合（%）を表示し、候補選択・数値入力・段階操作で設定可能とします。入力途中の空文字、範囲外入力、確定操作、外側へのFocus移動と表示の同期は挙動を区別して検証します。入力を受け取るUIと実際の画像変形の責務は混同しません。
 - 回転・Zoom変更と選択Mediaの変更を区別し、Mediaの前後移動で適切にViewportをリセットします。回転リセット時の不要な逆方向アニメーションは発生させません。既存のslide / fade、余白と操作位置を、表示領域別に比較します。
 
-## Info Panelの視覚構成
+### Info Panelの視覚構成
 
 - Wide等ではViewer側面に情報Panelを配置し、Compactでは画像の下側へ展開する構成です。既存UIの横幅**340px**、Compactの縦方向展開、**0.3秒**のtransition、スクロール、Panel境界と余白はリファクタリング時の比較対象です。ユーザー設定に基づく初期開閉、画面幅変更後の維持条件は[画面仕様](/screens/media-browser-detail#ui具体化)に従います。
 - 表示順序は **基本情報とOriginal Download → Groups → Tags → 共有先Community（Personalの場合）／管理情報（Communityの場合）→ 独立したMedia削除Action** とします。情報が増えてもPanel本文がスクロール可能で、Media削除Actionは下部の独立したDanger Actionとして維持します。
@@ -29,14 +31,20 @@
 - Groups / Tags / Communityは視覚的に同じSection階層を持ち、必要な区切り線、Section内のPadding、見出しと件数、操作入口と値の一覧を表示します。Section間のDividerと、同一Section内の区切り線を区別します。ライト／ダークテーマに適応し、固定色に依存しません。
 - Groups / Tagsの値は長い名称でも折り返し、Badgeの表現は既存Groupが `outline`、Tagが `light` の比較基準です。分類Sectionの下にある区切り線は親のInfo Panelが表示します。
 
-## Groups / Tags / Communityの展開
+## 表示状態と表現
+
+利用可能なDownload、権限不足、Original処理中や画像表示失敗は「UI構成・情報の優先順位」のViewerとInfo Panelで定める表示に従います。Groups / Tags / Communityの正常な0件・初期件数・超過件数や展開状態は以下の節で具体化します。Loading・Error・保存結果不明等の成立条件は[画面仕様](/screens/media-browser-detail)を正本とし、表示条件を推測して追加しません。
+
+### Groups / Tags / Communityの展開
 
 - GroupsとTagsは**6件まで**、Personalの共有先Communityは**3件まで**を初期表示とします。0件ではGroup / Tagを「未設定」、共有先を「未共有」と表示し、利用可能な編集・共有操作は維持します。
 - 超過分だけをCollapseで開閉し、閉じた状態では「ほかN件を表示」、展開時には「折りたたむ」を中央付近の操作として表示します。Chevron方向と `aria-expanded` を状態に一致させ、既存の**200ms** transitionを維持します。通常件数では展開Actionを表示しません。
 - 長いCommunity名がある場合も、対象Communityの「共有解除」Actionが狭められず、両方を識別・操作できます。Communityの行高は既存の**32px以上**を比較基準とし、必要な余白を設けます。Communityごとの共有解除は展開中も維持します。
 - Personalでは共有先の各Community行に個別の「共有解除」を提供します。共有ActionはSection見出し側、共有解除Actionは各行に置き、隣接による誤操作を避けるDividerと余白を設けます。Community contextではPersonal向け共有Actionではなく「管理」「Community管理」を表示します。
 
-## 編集・共有・削除Dialog
+## Interaction・Feedback
+
+### 編集・共有・削除Dialog
 
 - Groups / Tags編集は、それぞれ選択中の集合をDraftとして表示し、追加／除外を行い、保存確定またはキャンセルします。呼び出し元で保持したDraftと保存済み値を混同せず、キャンセルで保存しません。再度開く場合の選択値は現在の保存済み状態に一致させます。
 - 共有先Communityの追加は未共有候補から**1 Community**を選択します。候補なし、未選択、選択済みの各状態を区別し、未選択では確定できません。複数Communityを1操作で編集するGroupsと同種のMultiSelectへ置換しません。
@@ -44,8 +52,20 @@
 - 単一Media削除は「Mediaを削除」とし、ファイル名・ラベル等の入力を要求せず、復元できないことを伝えて明示的に確認します。キャンセルではMediaを変更せず、確定時には呼び出し元の削除処理へ委譲します。
 - これらのDialogは既存のタイトル、説明、入力候補、操作順序、Keyboard / Focus、Responsive、Viewerとの重なり順を維持します。実際の保存完了通知や結果不明時の復旧は、Mock上の操作結果ではなく[画面仕様](/screens/media-browser-detail)とBackend契約に従います。
 
-## 表示・操作の依存境界
+## Responsive・入力方式
 
-UIのDraft、Viewerの選択、画像操作、情報Sectionの展開、共有・分類の実Mutationは独立した責務として整理できます。ただし、旧MDXに記載された `detailValues`、`setDetail`、`onClose` 等の実装API名やHook所有関係をDesignの永続的なインターフェース仕様にはしません。React内部責務を分離する際も、上記の見た目、Action、状態、Responsiveを失わせないことが前提です。
+ViewerのWide / Medium / Compactでの操作Capabilityと表示領域の使い分け、Info Panelの横方向／縦方向の展開、各DialogのKeyboard / Focus・Modal重なり順は、上記「UI構成・情報の優先順位」「Interaction・Feedback」の各節を適用します。幅の区分による維持対象のUser Goalと操作条件は[画面仕様](/screens/media-browser-detail#responsive対応)を正本とします。
 
-本書から抽出する検証条件は[Media Detailテスト設計](/system/web/media-detail-test-design)に整理します。
+## 設計判断・制約
+
+### 表示・操作の依存境界
+
+UIのDraft、Viewerの選択、画像操作、情報Sectionの展開、共有・分類の実Mutationは独立した責務として整理できます。ただし、`detailValues`、`setDetail`、`onClose` 等の実装API名やHook所有関係をDesignの永続的なインターフェース仕様にはしません。React内部責務を分離する際も、上記の見た目、Action、状態、Responsiveを失わせないことが前提です。
+
+## 関連仕様・未決事項
+
+- [Media Browser / Detail画面仕様](/screens/media-browser-detail) — 表示対象、操作結果・状態、権限、Responsiveの保証と未決事項。
+- [Overlay Pattern](/design-system/patterns/overlay-temporary-surface) — 共通ModalのInteractionとFocus。
+- [Media Detailテスト設計](/system/web/media-detail-test-design) — 表示・操作の検証条件。
+
+未決事項は画面仕様や関連Issueで管理します。Story / Fixtureの個別識別子、旧実装のComponent境界をUI設計として固定しません。

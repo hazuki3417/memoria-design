@@ -1,0 +1,94 @@
+# Group Browser：UI Design
+
+## 概要・適用範囲
+
+[Group一覧・詳細の画面仕様](/screens/group-browser)で保証するDiscovery、Media閲覧、Group管理、状態と復旧を、具体的な画面構成・表示・操作・Responsiveとして成立させる設計です。UIの具体的な表現は本書、業務操作の成立条件・結果と状態の意味は画面仕様、DAGの制約は[Media Group](/media/group)を正本とします。初期ComponentやStoryの分割を固定しません。
+
+## UI構成・情報の優先順位
+
+### Group discoveryの操作領域とPreview
+
+Group BrowserはApplication Navigationによって現在のページがGroupsであることを識別できるため、Group discovery領域の先頭でページタイトルとして「Groups」や「グループ」を反復表示しません。
+
+検索Inputと作成Actionのように同じ行で一つの操作領域を構成するinput / interaction controlは、control heightを揃えて視覚的な一体感を保ちます。同一対象への関連する編集Actionは、Userが別々の概念として選択する必要がない限り入口を不必要に分割せず、まとまりのある編集導線として提示します。ページタイトルはcontent領域へ原則として重複表示せず、設定画面のように多数の項目を構造化する場合や、情報を独立したblockとして区切るため見出し自体が情報構造を担う場合には必要に応じて表示します。
+
+previewは2 x 2の4つのPreview Cellを基本単位とします。各Cellはdirect Mediaのthumbnailを表示するMedia Cell、またはMediaではなくGroupそのものを表すGroup Cellとして扱います。direct Mediaが4件未満の場合は不足分をGroup Cellとし、Mediaが存在しないことを示すplaceholderとしては扱いません。これによりdirect Mediaが0件でもGroup item自体のvisual identityを成立させ、descendant Group由来のMediaだけがaggregate Media Collectionに存在する場合にも、Group discoveryのpreviewと選択後Collectionを同一のMedia集合であるかのように表現しません。
+
+direct Mediaが4件までは作成日時の新しい順にMedia Cellとして表示し、5件以上存在する場合も具体的な残件数は表示せず、4番目のMedia Cellへ非数値のcontinuation cueを重ねてpreviewがさらに存在することだけを示します。このcueはaggregate Media総件数を表しません。 Group CellはGroupが存在することを示す装飾表現とし、内部ではaggregate Mediaのthumbnailをvisual素材として最大3件重ねて表示できます。Group Cell内部のthumbnail自体には、そのCellへMediaが分類されていることを示すデータ上の意味を持たせません。複数のGroup Cellが存在する場合はGroup Cellの出現順にaggregate Media previewを3件ずつ順番に消費し、1つ目は1〜3件目、2つ目は4〜6件目、以降も同様に割り当てます。Media Cellですでに使用したdirect Mediaとの重複を除外するための特別な処理は行いません。thumbnail画像だけを取得・表示できなかった場合も、その補助情報の失敗によってGroup item全体を取得失敗として扱わず、該当CellをGroup Cell相当の表示へfallbackしてGroup discoveryを継続します。Media Cell、Group CellのどちらもMediaへのclick targetやMedia Detailを開く操作対象にはせず、Group discovery item全体としてGroupを選択するための補助的なvisual informationとします。
+
+Group itemにはMedia件数、relation情報、Group管理Actionを標準表示しません。現在選択中のGroupが検索結果内に存在する場合はselected stateを視覚的に表現しますが、Group item自体を選択状態のSource of Truthにはしません。Group discoveryの通常一覧および検索結果に件数は表示しません。取得済みGroup数・検索条件に一致するGroup総数・読み込み進捗数値のいずれも一覧操作パネルには設けません。
+
+### 選択中GroupのHeaderとRelation表示
+
+Groupを選択した状態では、Mediaを主要contentとして扱います。HeaderではGroup identityと操作領域を分け、Group名、および現在利用可能なGroup管理Actionと選択を閉じるActionへ到達できるようにします。Personal / Communityで同じ基本layoutを使用し、contextごとに別のHeader構造を作りません。権限がないGroup管理Actionは非表示とし、非表示Actionのための透明なplaceholderや空き領域を予約しません。表示対象Actionが0件から複数件まで変化しても成立するlayoutとします。
+
+Visual presentationでは、この補助情報の見出しを「このGroupとの関係」とし、選択中Groupを基準とする情報であることを明示します。relation方向のラベルは、直訳した日本語がかえって意味を曖昧にすることを避けるため `Parents` / `Children` を使用します。UI copyは日本語への機械的な統一を目的とせず、日本語話者にとって一般的で理解しやすい英単語・カタカナ語の方が概念を簡潔かつ正確に伝えられる場合は、それらを使用できます。
+
+MediaがRelay Connectionによる無限ローディングであるため、metadataをMedia Collectionの物理的な末尾へ配置することは要求しません。Mediaより低い情報優先度を維持したうえで、固定領域、折りたたみ等の具体的presentationはUI具体化・Visual Reviewで決定します。
+
+## 表示状態と表現
+
+### Previewの空状態・取得失敗時の表現
+
+**Mediaが関連付いていないGroupの表示**: Group自身のdirect Mediaが0件で、descendant Groupを含むaggregate Mediaも0件であることが確定している場合、Group discovery itemのpreviewは、背景色だけの空Cellや輪郭だけの枠を並べるのではなく、Mediaを持たないGroupだと利用者が認識できる専用の視覚表現とします。Group名・Group item全体の選択操作・2 x 2のpreview領域という基本構成は維持します。具体的な図像、配置、色、文字の有無はVisual Reviewで確定し、採用したGroup BrowserのUI設計として `memoria-design` の画面仕様または責務別の関連Design文書へ反映します。未決定の表現はPrototypeの表示だけを根拠に確定した仕様とは扱いません。
+
+**direct Mediaが0件でもaggregate Mediaがある場合**: このGroup自身にはdirect Mediaがないことと、子孫Group経由のMediaがあることを混同しません。従来のGroup Cellにaggregate Media画像を装飾素材として用いることは可能ですが、direct Mediaのthumbnailであるかのように表現しません。上記の「Mediaが関連付いていないGroup」の専用表現は、aggregate Mediaも0件と確定した場合に適用します。
+
+**未取得・画像取得失敗との区別**: Groupのdirect / aggregate Mediaが未取得の状態、読み込み中、取得失敗、Mediaは存在するがthumbnailのみ取得できない状態を、正常な0件と推定しません。件数や関連有無を判定するデータが不足する場合は、一時表示・fallbackでGroup item自体を維持しますが、「Mediaがない」と断定する専用表現には切り替えません。いずれの状態でも補助的previewの欠落だけでGroup名やGroup選択の機能を失わせません。
+
+### Empty・検索結果なし・Mediaなし
+
+**G-05〜G-07の表示・Responsive Contract**: aggregate Mediaが正常に0件であることが確定した場合、Wide / Compactの双方に同等の「Mediaがありません」という見出しと、「このGroupまたはその下位Groupに分類されたMediaはありません。」という補足説明を示します。幅に合わせた折り返し・余白の差は許容しますが、Compactだからといって説明内容やMedia Emptyの意味を省きません。Parents / Childrenのdirect relationはWide / Compactの双方で確認でき、方向別に0件の場合は「なし」等の正常なEmpty表示を示します。Compactでもrelation領域そのものを削除しません。Media・Parents・Childrenがすべて0件でもGroupのidentity、選択状態、権限に応じた管理Action、選択解除の機能を維持し、Group本体の不存在や異常状態とは扱いません。
+
+Empty／検索結果なしのどちらも、見出し、補足説明、必要に応じたIconとActionを組み合わせた案内を一覧内容領域に配置し、件数表示を除く検索・作成操作パネルやCompact / WideにおけるGroup選択・復帰の機能を失わせません。具体的な余白、Icon、色、Responsiveの配置はMedia Browserとの視覚的一貫性を確認するVisual ReviewとStorybook MDXで確定します。
+
+## Interaction・Feedback
+
+### Group編集・Relation SelectorのUI
+
+編集DialogではGroup名と、選択中Groupを基準とするParents / Childrenの双方を扱います。Group名はDialog上部で編集し、relationは方向の異なる情報としてParents / Childrenを区別して表示します。WideではParents / Childrenを左右に配置でき、Compact / Mediumでは同じ配置を強制しません。
+
+Parents / Childrenはそれぞれ直接10件までとし、relation表示領域では全件を確認できるようにします。選択済みGroupの表示順は追加した順や検索による一時的な候補順ではなく、共通UIルールに従ってTagとして表示するGroup名文字列の昇順に正規化します。DetailのParents / Childrenを複数Tagで表示する場合も同じ順序を適用します。 relation selectorは未選択時から、Pillをおおむね4行見渡せる固定表示領域を確保し、選択数の増減によって周辺レイアウトを変動させません。4行は表示領域の高さを定めるための目安であり、Group件数やGroup名の長さから高さを算出しません。選択済みGroupが表示領域に収まらない場合も、selector内部のスクロール等により全件を確認・解除できるようにします。relation候補は編集Dialogを開く前に全ページの取得を完了するため、Dialog内ではFrontendに取得済みの候補を名前で絞り込み、選択・解除できます。Dialog内の検索・選択でBackendへの取得やMutationを実行せず、候補の追加読み込み状態も設けません。候補の事前取得に失敗した場合は編集開始前の画面で理由と再試行を示し、Groupの閲覧状態を維持します。
+
+編集Dialogの責務はGroupの変更Draftを編集し、保存または破棄することです。通常の確定Actionは保存とキャンセルに限定します。Group削除は編集内容の保存Actionとして扱わず、編集Dialogには別の削除Taskへ進む入口だけを提示します。編集Dialogでは明示的なキャンセルActionへ終了操作を集約し、同じ意味の右上close Actionを重複して提示しません。削除へ進む場合は現在の編集Draftを保持したまま削除Confirmation Dialogを上位に提示し、削除をキャンセルした場合は保持した編集Dialogへ戻ります。
+
+選択中GroupのHeaderから、現在利用可能なGroup管理Actionとして編集と削除へ到達できるようにします。renameとGroup間relation管理は同じGroup自身に対する編集であるため入口を不必要に分割せず、Headerの三点メニューでは「編集」へ集約します。編集DialogではGroup名とParents / Childrenのrelationを扱います。削除はGroup管理の一部として編集Dialogから到達できるようにし、Headerに独立した削除Actionを重複して設けません。通常の編集操作とは区別して提示し、実行時はConfirmation Dialogで確認します。選択を閉じるActionはGroup管理権限とは独立した画面操作として常に利用でき、実行するとGroup選択を解除して未選択状態へ戻ります。Group選択はURLやbrowser historyの正本ではないため、選択を閉じてもNavigation historyを変更しません。
+
+## Responsive・入力方式
+
+### Wide / Compactの配置とFocus
+
+WideではGroup discoveryと選択中Groupを同時に確認できる構成を基本とし、選択中GroupではMediaを主領域、関連Groupを補助情報として扱います。Mediaの閲覧を優先し、関連Groupには「このGroupの所属先」と「このGroupに所属するGroup」を区別して表示します。relation編集DialogではWide時に選択中Groupを中心としてparents / childrenを左右に配置する構成を基本とします。
+
+Compact等、Group discoveryと選択中Groupを同時表示するとMedia閲覧を阻害する表示領域では、両者を無理に並べずGroups画面内で表示面を切り替えます。Group選択後は選択中GroupのMediaを優先し、Group discoveryへ戻れる明確な操作を提供します。この切り替えはGroups領域内のInteraction stateであり、Groupごとの専用URLや別のGroup Detail destinationへのNavigationとは扱いません。
+
+Mediumを含む具体的なlayout、2-pane表示から切り替え表示へ移行するbreakpoint、カラム幅等は、実装時の利用可能領域とVisual Reviewで確認して決定します。Compact / Medium / Wideという区分だけを理由に固定layoutを割り当てず、表示領域が変わってもGroup discoveryからMediaへ速やかに到達できるCapabilityを維持します。
+
+Group Browserの一覧・Detailは同じ画面内のInteraction Stateです。CompactでGroupをKeyboardまたはTouch等から選択し、Group一覧の表示面が非表示・Unmountされるときは、選択GroupのDetail側へFocusを移し、見出しまたはDetail内でTaskを開始できる最初の適切な操作をFocus先にします。単に古いGroup ItemへFocusを残したり、Document Bodyへ意図せず戻したりしません。Focus移動は切り替え後に目的Elementが利用可能になった時点で行い、Keyboard / 支援技術でも遷移先を認識できるようにします。Touch利用者へ不必要なKeyboard操作を強制しません。
+
+Compactの「一覧に戻る」または同等のActionでは、戻り先のGroup discoveryを表示し、元のGroup Itemが引き続き存在し利用可能ならそこへFocusを戻します。Groupが削除済み、検索結果から消失、現在のCollectionで未取得などにより起点が利用できなければ、検索Inputなど現在のGroup discoveryで安定して操作を再開できるFocus先を選びます。**Focus復帰のためだけに検索条件を解除したり、別Groupを暗黙に選択したり、無条件の全件取得を行いません。**
+
+Wide / Compactの切替境界を跨ぐViewport変更時も、現在選択中のGroup、取得済みMedia・relation、成立している編集Draft、Dialogの開閉と操作可能なCapabilityを不必要に失わせません。非表示・UnmountされたElementにFocusが取り残される場合は、現在表示されている相当するActionまたは適切な安定したFocus先へ移動します。特定のBreakpointを本ルールで新たに固定せず、Mediumを含むLayoutとVisual Contractは実装・Visual Reviewで確認します。Focus遷移による画面内Stateの変更をURL / browser historyの変更として扱いません。
+
+Group Item・Media Item・検索Form・関係Disclosure・管理ActionはKeyboardでも利用でき、Tab順、Enter / Spaceによる起動、Escapeによる一時Surfaceの終了をそれぞれ標準のComponent semanticsおよび[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)に従って提供します。Modal内のFocus containmentと終了後のFocus復帰、Destructive Confirmationで削除Actionへ勝手に初期Focusしない原則を維持します。削除成功などで起点GroupやTriggerが消滅した場合は、閉じた後にGroup一覧の検索欄等の利用可能な安定した位置を選びます。処理中の終了可否はG-17の操作結果確定Contractに従います。
+
+## 設計判断・制約
+
+### Media / Group一覧に共通する操作パネル
+
+MediaとGroupの一覧は、操作パネルをコンテンツの上に配置し、開始位置と余白を揃えます。検索・フィルターは左、追加Actionおよび画面固有Actionは右に配置し、コンテンツとの境界にDividerを設けます。通常のMedia / Group一覧では件数を表示せず、件数表示用の予約領域や独立した行も設けません。Compactでは既存Actionの利用可能性を維持して必要に応じたResponsive配置を許容します。
+
+共通化するのは視覚的な配置ルールであり、操作パネルの実装Componentは共通化しません。MediaのTag検索・選択モード、Groupの入力時検索など既存の画面固有Capabilityと操作タイミングは維持します。
+
+「このGroupとの関係」は可変幅Paneでも文言とChevronが離れないよう、左側に隣接配置する。閉時は右向き、開時は下向きとし、アイコンの回転と内容の開閉はそれぞれ200msでアニメーションする。配置の横断ルールは `content/guidelines/disclosure-controls.mdx` を正本とする。
+
+
+## 関連仕様・未決事項
+
+- [Group画面仕様](/screens/group-browser) — 利用者に保証する対象、操作、状態と結果。
+- [Media Group](/media/group) — DAGと不変条件。
+- [Overlay Pattern](/design-system/patterns/overlay-temporary-surface) — 共通Dialog操作。
+- [Disclosure Controls](/guidelines/disclosure-controls) — 関係Section開閉の共通表示規則。
+- [Frontendテスト戦略](/system/web/frontend-testing) — UI表示・操作の検証階層。
+
+未決定の図像・BreakpointはPrototypeの表現だけで採用済みと扱いません。画面横断の操作パネル配置を共通Patternへ移す場合は適用範囲を確認してから正本を変更します。
