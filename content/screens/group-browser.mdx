@@ -279,6 +279,22 @@ Mediumを含む具体的なlayout、2-pane表示から切り替え表示へ移�
 
 Group名検索、Group選択、管理Action、relation情報の確認をhoverだけに依存させず、touchとkeyboardでも主要Capabilityへ到達できるようにします。
 
+### G-20：表示面の切り替え・Keyboard・Focus Contract
+
+Group Browserの一覧・Detailは同じ画面内のInteraction Stateです。CompactでGroupをKeyboardまたはTouch等から選択し、Group一覧の表示面が非表示・Unmountされるときは、選択GroupのDetail側へFocusを移し、見出しまたはDetail内でTaskを開始できる最初の適切な操作をFocus先にします。単に古いGroup ItemへFocusを残したり、Document Bodyへ意図せず戻したりしません。Focus移動は切り替え後に目的Elementが利用可能になった時点で行い、Keyboard / 支援技術でも遷移先を認識できるようにします。Touch利用者へ不必要なKeyboard操作を強制しません。
+
+Compactの「一覧に戻る」または同等のActionでは、戻り先のGroup discoveryを表示し、元のGroup Itemが引き続き存在し利用可能ならそこへFocusを戻します。Groupが削除済み、検索結果から消失、現在のCollectionで未取得などにより起点が利用できなければ、検索Inputなど現在のGroup discoveryで安定して操作を再開できるFocus先を選びます。**Focus復帰のためだけに検索条件を解除したり、別Groupを暗黙に選択したり、無条件の全件取得を行いません。**
+
+Wide / Compactの切替境界を跨ぐViewport変更時も、現在選択中のGroup、取得済みMedia・relation、成立している編集Draft、Dialogの開閉と操作可能なCapabilityを不必要に失わせません。非表示・UnmountされたElementにFocusが取り残される場合は、現在表示されている相当するActionまたは適切な安定したFocus先へ移動します。特定のBreakpointを本ルールで新たに固定せず、Mediumを含むLayoutとVisual Contractは実装・Visual Reviewで確認します。Focus遷移による画面内Stateの変更をURL / browser historyの変更として扱いません。
+
+Group Item・Media Item・検索Form・関係Disclosure・管理ActionはKeyboardでも利用でき、Tab順、Enter / Spaceによる起動、Escapeによる一時Surfaceの終了をそれぞれ標準のComponent semanticsおよび[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)に従って提供します。Modal内のFocus containmentと終了後のFocus復帰、Destructive Confirmationで削除Actionへ勝手に初期Focusしない原則を維持します。削除成功などで起点GroupやTriggerが消滅した場合は、閉じた後にGroup一覧の検索欄等の利用可能な安定した位置を選びます。処理中の終了可否はG-17の操作結果確定Contractに従います。
+
+### G-20：テストと視覚的回帰の保証
+
+StorybookのWide / Compactだけで完了と扱わず、Mediumを含むResponsive、Group選択・一覧復帰・Viewport変更のFocusと状態維持、Keyboardの検索・選択・Detail/Relation操作、DialogのCancel・Confirm・Focus復帰、権限差、正常Empty・Loading・Error・Retryをリスクに応じて再現します。G-05〜G-07で合意したCompactでのParents / ChildrenおよびMedia Emptyの同等情報も検証対象です。
+
+単独Componentの表示・操作とFocusはStorybook Interaction Test、画面とAPI接続・非同期Mutation / Queryの状態連携は必要なIntegration Test、表示とBreakpointの回帰はVRT、検出可能なアクセシビリティ違反はAccessibility検査で責務を分けます。テストの階層は[Frontend Testing](/system/web/frontend-testing)に従い、Story / VRT / Interaction / Accessibilityのいずれか1種類で別の保証を代替しません。既存のVisual PrototypeとWeb本体のVisual / Behavior / Responsive Contractを維持し、変更の前後比較を実施します。
+
 ## Media / Group一覧の操作パネル配置規則
 
 MediaとGroupの一覧は、操作パネルをコンテンツの上に配置し、開始位置と余白を揃えます。検索・フィルターは左、追加Actionおよび画面固有Actionは右に配置し、コンテンツとの境界にDividerを設けます。通常のMedia / Group一覧では件数を表示せず、件数表示用の予約領域や独立した行も設けません。Compactでは既存Actionの利用可能性を維持して必要に応じたResponsive配置を許容します。
