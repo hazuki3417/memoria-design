@@ -126,13 +126,13 @@ draw.io、SVG、旧MDXなどから正本を移行するときは、概要だけ�
 
 ## Frontend UI設計書の構成
 
-Frontend UIの意味・振る舞い・画面間の関係は `memoria-design` を正本とし、具体的なReact / Mantine実装、Story、test codeは `memoria-web` を正本とします。共通のUI設計・開発方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)に集約します。
+Frontend UIの意味・振る舞い・画面間の関係に加え、PrototypeとVisual Reviewを経て採用した個別画面の見た目・配置・操作感・Responsiveの設計判断も `memoria-design` を正本とします。具体的なReact / Mantine実装、Story、test codeは `memoria-web` を正本とします。共通のUI設計・開発方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)に集約します。
 
 画面単位の仕様は `content/screens/` にScreen Specificationとして配置します。特定のProduct domainやWeb実装の配下には置かず、関連するUse Caseを明示的に参照します。Nextra上ではProduct domainや利用者のFlowが追いやすい単位でseparatorと表示順を定義します。URL変更を必要としない分類ではflatなfile配置を維持し、分類ごとの案内や独立階層が必要になった場合にsubdirectoryを導入します。
 
 `content/screens/index.mdx` はScreen Specification群への入口と読み取り案内を担当し、templateそのものは[設計書テンプレート](/design-document-templates)を正本とします。画面固有の仕様と共通Patternを混在させず、複数画面で再利用するUI/UX規則はDesign System側へ集約します。
 
-Screen Specificationは、実装者が画面の目的、必要な情報・操作、重要な状態、遷移、制約、Responsive時に維持するCapabilityを推測しなくてよい粒度まで具体化します。一方で、特定のlayout、pixel値、React / Mantine Component、Story一覧等、実装側で選択・管理すべき情報は固定しません。
+Screen Specificationは、実装者が画面の目的、必要な情報・操作、重要な状態、遷移、制約、Responsive時に維持するCapabilityを推測しなくてよい粒度まで具体化します。Prototype前は操作と条件から着手し、Visual Reviewで採用されたlayout、見た目、操作感、具体的なResponsive構成を段階的に同じDesign体系へ反映します。React / Mantine Componentの内部構造、Story一覧等の実装情報は固定しません。
 
 将来User FlowやDesign System Patternを独立した設計ページとして管理する必要が生じた場合は、それぞれの責務とtemplateを合意してから追加します。空の設計書種別を先回りして作成しません。
 
@@ -146,9 +146,14 @@ Frontend UIの規則は、登場する技術名や現在の記載場所ではな
 | UI設計・実装・レビューの進め方、成果物間の役割、共通の開発・品質方針 | [Frontend UI設計・開発方針](/system/frontend-ui-development)。工程、責任分界、適用範囲、確認・合意の条件を記す |
 | React / Mantine / TypeScript、状態管理、Component境界、データ取得等の実装方式 | [Web実装規約](/system/web/implementation-conventions)。実装時に守る制約、条件、例外、依存境界を記す |
 | Storybook固有のFixture、Adapter、Storyの実装・検証方式 | [Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)。本体UIと共有する部分を区別する |
-| 個別画面の目的、必要情報、操作、権限、状態、結果、Navigation、維持すべきCapability | Screen Specification。利用者に保証する画面固有の仕様を、実装者が推測しなくてよい粒度で記す |
-| 個別画面の具体的な視覚構成、配置、操作感、画面幅ごとのUI設計判断と検証観点 | Storybook MDX。Screen SpecificationとDesign Systemを上書きせず、採用したUI具体化と理由を記す |
+| 個別画面の目的、必要情報、操作、権限、状態、結果、Navigation、維持すべきCapability | Screen Specificationと必要な関連Design文書。利用者に保証する画面固有の仕様を、実装者が推測しなくてよい粒度で記す |
+| 個別画面の具体的な視覚構成、配置、操作感、画面幅ごとのUI設計判断とその理由 | `memoria-design` の画面設計を正本とする。Prototype・Visual Reviewで採用したものを段階的に追記し、適切な責務境界でページを分割可能とする |
+| テスト観点・テストケース、テスト階層、Fixture、Mockする境界、実装依存 | テスト設計書。画面・Domain・UI設計の正本を参照し、製品仕様を重複して決定しない。実行コードとStoryは実装Repositoryで管理する |
 | Domain / APIの不変条件、権限判定、保存・生成・Transaction等 | 対応するDomain / API設計。Presentation上の共通規則だけをDesign Systemへ置き、業務規則を複製しない |
+
+画面設計の正本をStorybook MDXへ分散させません。**Storybookの設計MDXは新規作成しません（例外を設けません）。** 既存MDXは情報を棚卸しし、採用したUI設計をDesignへ、テスト設計をテスト設計書へ、Story固有のFixture・説明をStory/Adapterへ移し、内容・リンク・回帰防止条件を照合できたものから廃止します。Storybook、Story、共有React Component、Interaction Test、VRT自体は引き続き使用します。
+
+Screen Specificationの分割は画面の目的、UI構成と操作、複雑な状態・権限、共通Patternなどの独立した責務や変更理由を基準にします。初期PrototypeのComponent境界、単なる文書の行数、テストケースIDを分割の基準とはしません。既存の画面仕様を一律に分割せず、必要性が認められる画面から情報を欠落させずに移行します。
 
 正本の選択と情報の再配置には、以下を適用します。
 
