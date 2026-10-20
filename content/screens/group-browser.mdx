@@ -187,6 +187,10 @@ Mediaが0件のGroupも正常なGroupとして一覧・検索対象に含めま�
 
 選択中Groupのaggregate Mediaが0件の場合はMedia表示領域を空白のままにせず、現在のGroupに表示対象Mediaがないことを明示します。同様にdirect parentまたはdirect childが0件の場合も、relation情報の領域で該当relationがないことを明示します。これらは正常に取得できた0件状態として、読み込み中・取得失敗と区別します。
 
+**G-05〜G-07の表示・Responsive Contract**: aggregate Mediaが正常に0件であることが確定した場合、Wide / Compactの双方に同等の「Mediaがありません」という見出しと、「このGroupまたはその下位Groupに分類されたMediaはありません。」という補足説明を示します。幅に合わせた折り返し・余白の差は許容しますが、Compactだからといって説明内容やMedia Emptyの意味を省きません。Parents / Childrenのdirect relationはWide / Compactの双方で確認でき、方向別に0件の場合は「なし」等の正常なEmpty表示を示します。Compactでもrelation領域そのものを削除しません。Media・Parents・Childrenがすべて0件でもGroupのidentity、選択状態、権限に応じた管理Action、選択解除の機能を維持し、Group本体の不存在や異常状態とは扱いません。
+
+**取得状態との区別**: selected Group詳細またはaggregate MediaがLoading・取得失敗・未取得である場合、取得済み件数が0、またはデータが未定義であるという理由だけで「Mediaがありません」と断定しません。確定したaggregate Media総件数と現在取得済みMedia数を区別し、Mediaが存在するが先頭ページ未取得の状態も正常0件として扱いません。Parents / Childrenについても未取得・取得失敗を確定0件と混同しません。G-05〜G-07のInteraction TestではMedia0／Parents0／Children0の各組合せ、片方向だけ0、Compact / Wide、Loading / Errorから正常データへの回復を検証します。
+
 ### 検索結果なし
 
 現在scopeにGroupは存在するが、確定したGroup名検索条件に一致するGroupが0件の場合は、Media BrowserのFilter結果0件と同様に、Group自体が存在しないEmpty状態とは異なる案内を一覧領域に表示します。「一致するGroupがありません」等の見出し、現在の検索条件を変更できる説明、および「検索を解除」Actionを提供します。作成を検索結果0件からの主要な解消Actionとはせず、検索条件の見直し・解除を優先します。
