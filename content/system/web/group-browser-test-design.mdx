@@ -1,0 +1,217 @@
+# Group Browser：Frontendテストマトリクス
+
+## 目的・適用範囲
+
+Group Browserの確定済み仕様を実行可能な検証条件へ分解し、後続の実装・責務分離・テスト実装の目標を定義します。**現行Web実装に合わせて期待結果を弱めず、実装済み・テスト可能・テスト成功を意味しません。** Groupでは先にScreen SpecificationとUI Designを整理したため、今回は設計を先行してマトリクスを作り、以後のテスト実装と必要なリファクタリングに接続します。この工程順は全機能へ一律適用しません。他の機能では設計・実装・マトリクスが同時進行して構いません。
+
+対象はGroup discovery、選択中Group、CRUD・relation操作、権限・失効、取得状態、表示・Responsive・Focusおよびこれらを成立させるGroupドメイン制約です。Media Detail自体の全Capability、Media Browserのbulk操作、API性能・DB運用の網羅は各所有先の検証へ委ね、Groupからの接続を本書で確認します。
+
+### 参照する正本
+
+- [Group画面詳細仕様](/screens/group-browser)（以下 **S**）：対象・条件・結果・失敗と復旧。
+- [Group UI Design](/screens/group-browser-ui-design)（以下 **U**）：表示構成、UI状態、Interaction、Focus。
+- [Media Group](/media/group)（以下 **D**）：名前制約、DAG、scope、Atomic処理とMedia relation。
+- [Frontendテスト戦略](/system/web/frontend-testing)：テスト階層、MockとFixture。
+- [全体テスト設計](/test-design)：E2E・VRT・Quality Gateの共通原則。
+- [Media Browser / Detail](/screens/media-browser-detail)：Group起点で開く共通Detailの責務境界。
+
+## マトリクスの読み方
+
+| 項目 | 運用上の意味 |
+| --- | --- |
+| ID | Group Browserのテスト条件を追跡する安定ID。Component・Story名から生成しない |
+| 仕様参照 | `S` / `U` / `D` と該当する節・G番号。正確な期待結果の正本はリンク先 |
+| Given / When / Then | 前提／操作・イベント／利用者または外部境界から観測できる結果。内部関数名に依存しない |
+| 推奨階層 | `Unit`=Pure Function、`C`=Component、`I`=Frontend Integration（必要なGraphQL境界をMock）、`E2E`=実際の利用者フロー、`BE`=Backend/DB Integration。候補であり同一条件を全階層で重複実装する指示ではない |
+| 観点 | Interaction、VRT、Accessibility、Validation、Contract、Concurrency等。ツール名と検証階層を混同しない |
+| Fixture・外部境界 | 独立して再現するデータ・状態と差し替え対象の例。具体的なStory名・実装ファイル名は後続で決定 |
+| 設計状態 | 原則「定義済み」。外部API方式や図像など未決部分を含む場合は注記し、未決の詳細を仮定しない |
+| 実装・実行状態 | **全件未照合**。既存テストの有無・実行可否・成功を意味しない。後続のGitHub最新実装調査・CI結果で更新する |
+
+**検証単位と実装ファイルは1対1にしません。** 複数条件を一つのIntegration Testで確認することも、視覚状態をStoryとVRTで観測することもできます。純粋な計算・変換のみにReactを持ち込まず、GraphQL接続や処理結果とUI状態の連動には接続を通すテストを用います。
+
+## Fixtureの共通前提
+
+- 各テストのUser / Community / Group / Media IDは決定的で独立させます。Personal、Community Administrator、Community Member、権限未取得・失効を区別します。
+- GroupのDAGではdirect parent / child、複数parents、diamond型に同一descendantへ複数経路で到達する例、深度・上限境界を準備します。direct Mediaとdescendant由来のaggregate Mediaを別の集合として用意します。
+- 一覧・候補・MediaのConnectionは初回／続き／終端・Loading／失敗／再試行をそれぞれ制御します。失敗した領域以外の取得済み情報とUI状態は残します。
+- Operationの確定成功・確定失敗・結果不明を区別します。GraphQL Responseの具体的Error型・結果照会方式は未決定ならFixtureの概念条件として留め、実装詳細を発明しません。
+- 画面幅はWide / Medium / Compactを対象とし、合意前の具体Breakpointを固定しません。VRTでは同じFont、時間、画像、Animationなどを安定化させます。
+- Serverを保証すべきDAG制約・Atomic性・認可は、Frontend Mockだけで検証完了としません。Backendの実契約・DBを通る適切なレベルを確保します。
+
+## テストマトリクス
+
+### Scope・検索・Discovery
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-001 | S:概要・Navigation：Personal scope | PersonalでGroupsを開く | 一覧を取得する | 本人scopeのGroupのみ発見でき、他scopeへ切り替わらない | I/E2E | Interaction | Personalと別scopeに同名Group |
+| GB-002 | S:概要・Navigation：Community scope | Community CでGroupsを開く | 一覧を取得する | CのGroupのみ表示しPersonal・他CommunityのGroupは混在しない | I/E2E | Interaction | Cと別CommunityのGroup |
+| GB-003 | S:表示情報：Flat discovery | root / child / multi-parent Groupが同一scopeにある | 通常一覧を表示する | root以外も含む全Groupをflatに発見でき、DAG treeを要求しない | C/I | Interaction | root・child・multi-parent |
+| GB-004 | S:表示情報：標準の並び順 | 同一scopeに複数Groupがある | 未検索一覧を表示する | Group名順で表示される | C/I | Interaction | 順序を判断できる名称 |
+| GB-005 | S:操作・検索：入力と確定条件の分離 | 確定済み検索Aがある | 入力をBへ変更し確定前に止める | 確定済み検索条件はAのままで、入力途中のBを検索済みと扱わない | C/I | Interaction | A/Bの別結果 |
+| GB-006 | S:検索確定とRelay：検索確定 | 検索Inputに条件を入力済み | 検索ButtonまたはEnterで確定する | 現在scope内の検索を確定し、該当Connectionを先頭ページから取得する | I | Interaction | 検索条件・GraphQL Mock |
+| GB-007 | S:検索確定とRelay：条件変更とCursor | 確定条件Aの後続ページを取得済み | 条件Bで再検索する | Aのcursorを流用せず、Bの先頭ページから検索する | I | Interaction | 条件別ConnectionとCursor |
+| GB-008 | S:操作・検索：検索と選択の独立 | Group Aを選択中 | Aが結果から外れる検索に変更する | Group Aの選択とaggregate Mediaを維持する | I | Interaction | Group Aと検索B |
+| GB-009 | S:操作・検索：選択切替 | A選択中でBが結果にある | Bを選択する | 選択対象がBへ切り替わり、BのMediaを表示する | C/I | Interaction | A・B |
+| GB-010 | S:操作・検索：検索取得失敗時の選択保持 | A選択中で検索を実行する | 検索結果の取得が失敗する | 検索領域だけに失敗と再試行を表示し、AのMedia表示を維持する | I | Interaction | Group取得Error、選択済みA |
+| GB-011 | S:状態・Empty：scope全体が空 | Group 0件が確定している | 通常一覧を表示する | Groupがない説明と権限に応じた作成入口を示し、Loading・Errorと区別する | C/I | VRT/Interaction | 確定0件とrole |
+| GB-012 | S:状態・検索結果なし：検索結果だけが0件 | scopeにGroupがあり一致件数が確定0 | 検索を確定する | 一致Groupなしを表示して検索解除を優先し、全体Emptyと混同しない | C/I | VRT/Interaction | 検索結果0、scope非空 |
+| GB-013 | S:状態・検索結果なし：検索解除と選択保持 | A選択中で検索結果が0件 | 検索を解除する | 入力中と確定済み条件を解除し、通常一覧へ戻り、A選択は維持する | I | Interaction | Aと非一致条件 |
+| GB-014 | S:検索確定とRelay：一覧追加取得 | 確定検索のConnectionに次pageがある | 一覧領域の続きを取得する | 同じ条件で次pageを追加し、既存結果と選択を保持する | I | Interaction | 複数pageのConnection |
+
+### 選択・Aggregate Media・Media Detail
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-015 | S:Groupを選択する：Group選択の状態遷移 | Group一覧が表示される | Group Aを選択する | 同じGroups画面でAのMediaと直接relationを確認でき、Group専用URLへ遷移しない | C/I | Interaction | AとMedia |
+| GB-016 | S:Groupを選択する・Media Group：Aggregate Media集合 | Aのdirect Mediaと複数descendantのMediaが存在する | Aを選択する | A自身と全descendantのMediaを再帰的に含み、同一Mediaを重複表示しない | I/BE | Interaction | diamond DAG、重複Media |
+| GB-017 | S:Groupを選択する：Aggregate Mediaの順序 | 複数Groupに跨るMediaの作成日時が異なる | Aを選択する | Mediaを作成日時降順で表示する | I | Interaction | 時刻の異なるMedia |
+| GB-018 | S:Groupを選択する：Group Mediaに追加Filterなし | AのMediaが表示される | 画面内の操作を確認する | 選択GroupのCollectionには追加検索・Filterやbulk Actionを設けない | C/VRT | VRT | Group選択あり |
+| GB-019 | S:Groupを選択する：Mediaの無限読み込み | Mediaの追加pageがある | Media表示領域をスクロールする | 同じAggregate対象の次pageが追加され、Loading・終端・Errorを区別し件数は表示しない | I | Interaction | 複数Media pageと失敗 |
+| GB-020 | S:Media分類：Media Detailを開く入口 | Group選択中でMedia thumbnailがある | aggregate Collectionのthumbnailを選ぶ | 共通Media Detailを開き、現在Contextで許可されるCapabilityを保持する | I/E2E | Interaction | Group起点のMedia |
+| GB-021 | S:Media分類・U:Discovery：PreviewはMedia Detail入口ではない | Group一覧のpreviewにthumbnailがある | previewの各Cellを操作する | Group item選択として扱い、preview Cellから直接Media Detailを開かない | C | Interaction | Media CellとGroup Cell |
+| GB-022 | S:Media分類：Media Detailの順送り | Group由来CollectionからDetailを開いた | 次／前Mediaへ移動する | 開いた時点の作成日時降順Collectionを使い、未取得範囲は必要に応じ追加取得する | I | Interaction | Group由来の複数page |
+| GB-023 | S:Media分類：Detail終了時の復帰 | GroupからMedia Detailを開いている | Detailを閉じる | 選択Group・取得済みMedia・可能なスクロールと起点Focusを維持する | I/E2E | Interaction/Accessibility | 起点thumbnailとscroll |
+| GB-024 | S:Media分類：Detail中のCollection更新 | Detail表示中にGroup relation変更が成立 | Detailを閉じる | 古いCollectionを復帰の正本にせず、Group Browserの最新Collectionを用いる | I | Interaction | 更新前後のAggregate |
+| GB-025 | S:Navigation：URL・履歴の非連動 | Groups画面で未選択 | Aを選択し、解除する | Groupsの基本URLとbrowser historyをGroup選択ごとに変更しない | I/E2E | Interaction | Personal/Community route |
+| GB-026 | S:Navigation：Reload後の初期状態 | Group Aを選択している | ReloadまたはGroupsへの再入場 | Group未選択から始まり、query parameterを選択Source of Truthとしない | E2E | Interaction | Browser route |
+| GB-027 | S:Group metadata：直接relationだけを表示 | Aのdirect parent/childとさらに祖先子孫が存在 | Group Aを選ぶ | direct Parents/Childrenのみを補助情報として示し、graphや再帰的metadataを表示しない | C/I | VRT/Interaction | 深さ3以上のDAG |
+| GB-028 | S:Group metadata：relationはNavigation入口でない | Aのrelation metadataに別Groupが表示される | metadataの各名称を確認する | metadataからGroupの選択先を切替えるNavigationを提供しない | C | Interaction | direct parent・child |
+| GB-029 | S:Group metadata：relationの0件 | Aにdirect parent/childがないことが確定 | Aのrelationを開く | 方向別に正常な0件を表示し、LoadingやError扱いしない | C/I | VRT | Parents0/Children0 |
+
+### 作成・名称・Atomic Create
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-030 | S:Groupを作成する：名称のみの作成 | 管理権限があり適切な名前を入力 | Parents/Children未指定で確定する | Groupが作成され、relationなしでも成功する | I/BE | Interaction | 名前のみ、DB初期空 |
+| GB-031 | S:G-12・D:作成：Atomic Create成功 | 名前と有効なParent/Child希望集合を指定 | 作成を確定する | Group本体と全relationを単一操作として確定し成功Feedbackを1回示す | I/BE | Interaction | Parents/Children付き要求 |
+| GB-032 | S:G-12・D:作成：Atomic CreateのRollback | 指定relationの1件がDAG等の制約に違反 | 作成を確定する | Group本体も他relationも部分作成されず、確定失敗としてDraftを維持する | I/BE | Interaction | 1件だけ不正relation |
+| GB-033 | S:Groupを作成する：作成Cancel | 作成Dialogに入力中 | Cancelで閉じる | Draftを破棄し、作成Mutationを送信しない | C/I | Interaction | 入力済みの作成Draft |
+| GB-034 | S:G-12：作成確定失敗 | 有効DraftでBackendが拒否する | 保存する | DialogとDraftを保持し、理由と再実行方法を示す | I | Interaction | GraphQL確定失敗 |
+| GB-035 | S:G-12：作成結果不明 | 作成要求が通信断／Timeoutで不確定 | 結果不明となる | 成功・失敗を断定せず重複作成を防ぎ、Server確定状態の照会を待つ | I/BE | Interaction | Timeout、照会方式未決定 |
+| GB-036 | D:Group名・S:制約：名前空・Whitespace | 空欄またはtrim後に空の名前 | 作成／rename確定する | 無効と判断しGroupを保存しない | Unit/I | Validation | 空白・Unicode空白 |
+| GB-037 | D:Group名・S:制約：1〜100書記素境界 | 1、100、101書記素と結合文字/絵文字を入力 | 作成／renameを試す | 100書記素まで許可し101以上を拒否、UTF-8 byte数では数えない | Unit/BE | Validation | grapheme境界ケース |
+| GB-038 | D:Group名・S:制約：禁止Unicode文字をtrim前検査 | 先頭・末尾を含むCc・Zl・Zp入り入力 | 作成／renameを試す | 禁止文字を黙って除去せず理由付きで拒否する | Unit/BE | Validation | 改行/Tab/NUL/Zl/Zp |
+| GB-039 | D:Group名：名前同一scope重複 | scope内に同じ保存名が存在 | その名前で作成／rename | 重複を拒否する一方、別scopeの同名は許容する | I/BE | Validation | 2 scopes・重複名 |
+| GB-040 | D:Group名：内部表記を自動統合しない | 大文字小文字、全角半角、内部空白の違う名前 | 作成／renameする | 仕様にない自動正規化・統合をしない | Unit/BE | Validation | 表記違いの名前 |
+
+### 編集・Relation選択・Atomic Update
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-041 | S:Groupを編集する：一体の編集Dialog | Group管理権限あり・A選択中 | 編集を開始する | Group名とParents/Childrenを同じDialogで扱い、別々の保存入口へ分離しない | C | VRT/Interaction | Aと直接relation |
+| GB-042 | S:G-15：候補全ページ事前取得 | 候補APIが複数pageを返す | 編集を開始する | 関連候補・可否の全page取得成功後だけDialogを開始する | I | Interaction | 複数page、GraphQL Mock |
+| GB-043 | S:G-15：候補取得失敗で編集不可 | 候補の初回／途中pageが失敗 | 編集を開始する | Dialogを開始せず閲覧状態を維持し、失敗理由・再試行を提示する | I | Interaction | 候補初回/後続page Error |
+| GB-044 | S:G-15：編集開始後の候補検索はLocal | 候補全件を取得して編集開始済み | 候補検索・選択・解除する | 追加候補QueryやMutationを送らず、Draftだけを更新する | I | Interaction | 候補全件とAPI spy |
+| GB-045 | S:Groupを編集する：Draftの独立維持 | 編集Dialogで未保存の変更がある | 一覧検索変更またはGroup一覧追加取得 | DialogのDraftを失わず保存済みrelationを変更しない | I | Interaction | Draftと一覧更新 |
+| GB-046 | S:Groupを編集する：終了時のDraft破棄 | 未保存の変更がある | Cancelまたは許可されたOverlay終了を実行する | 破棄確認を追加せずDraftを捨て、Mutationを送らない | C/I | Interaction | 編集Draft、Esc等はOverlay規則 |
+| GB-047 | S:G-15・D:relation：候補発見と状態表示 | scope内の候補、既存relation、制約不適合がある | 候補一覧／検索を表示する | scope内を名前順で探せ、既存relationと方向別追加可否・理由を識別できる | C/I | Interaction/Accessibility | 既存/不可/選択可候補 |
+| GB-048 | S:G-15：Parent・Child排他 | 同一DraftでGをParentに選択済み | 同じGをChild候補として確認する | 反対方向へ同時選択できず理由を識別できる | Unit/C | Interaction | G両方向候補 |
+| GB-049 | S:G-15：個別解除・一括Clearなし | 複数のrelationが選択済み | 選択済みを解除する | 個別解除できるが全件一括Clearはない | C | Interaction | 複数選択済み |
+| GB-050 | S:G-15・U:relation：選択済みの順序 | Parents/Childrenを任意順に選択 | 選択済みTagを表示する | Group名文字列昇順で表示され、選択した順に依存しない | Unit/C | VRT | 同一名前集合の異なる選択順 |
+| GB-051 | S:G-16：最終状態による保存 | 名前とParents/ChildrenをDraft変更済み | 保存を確定する | ADD/REMOVE列ではなく希望する最終状態を1要求として送り、編集前に個別Mutationしない | I/BE | Interaction | Mutation入力Spy |
+| GB-052 | S:G-16：Atomic Update成功 | Group名とrelationの希望状態がすべて妥当 | 保存する | 両方が同一操作で確定し、新しい状態を反映する | I/BE | Interaction | 複合編集 |
+| GB-053 | S:G-16：Atomic Update失敗・Draft維持 | 希望relationの一部だけが不適合 | 保存する | 保存済みGroup名・relationは全件元のまま、DialogとDraftを保持し理由を示す | I/BE | Interaction | Parent {1}→{1,2,3}、3だけ不可 |
+| GB-054 | S:G-16：同時編集競合 | 他Userによりrelationが変更された | 古いDraftを保存する | 競合を無条件上書きせず、Server再検証の結果に従って理由を示す | I/BE | Interaction | 同時更新、競合 |
+| GB-055 | S:G-16：編集結果不明 | 更新要求がTimeoutで不確定 | 結果不明となる | 失敗・未保存と断定せずServer確定状態を確認後に判断する | I/BE | Interaction | Timeout、照会方式未決定 |
+| GB-056 | S:操作処理中・競合：保存二重送信禁止 | 編集保存が進行中 | 再保存やDraft変更を試みる | 意図しない再送・Draftの追加変更を受け付けない | C/I | Interaction | 遅延Mutation |
+| GB-057 | S:G-16：renameで関係維持 | Group AにMediaとrelationsがある | 名前だけ更新する | Group ID・Media・relationが保持される | I/BE | Interaction | rename前後のID/relation |
+| GB-058 | S:G-16：relation成功後のMedia再取得 | descendantが変わるrelation変更が確定成功 | Media Collectionを更新する | Serverを基準にAggregateを再取得し、スクロール位置を先頭へ戻す | I | Interaction | 更新前後のAggregateとScroll |
+
+### 削除・Mutation結果の分離
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-059 | S:Groupを削除する：削除Confirm内容 | Aを選択し削除Dialogを開く | Dialogを確認する | 対象Group、relationと分類が解除される点、Media/他Groupは残る点を示し名前再入力は要求しない | C | VRT/Accessibility | Aと関係Media |
+| GB-060 | S:Groupを削除する：削除Cancel | Confirmation Dialogが開いている | Cancelする | Groupを削除せず選択中の表示を維持する | C/I | Interaction | Aを選択 |
+| GB-061 | S:Groupを削除する：削除成功 | Aが選択中で削除成功 | 確定結果を受け取る | A選択とAggregateを解除し成功Feedbackを表示する | I/BE | Interaction | 削除Mutation成功 |
+| GB-062 | D:削除・S:削除：削除の非影響範囲 | AにMediaと隣接Groupがある | Aを削除する | Media本体・他Group本体・他Group間relationは残り、DAGを自動接続しない | BE/I | Contract | Aを中継するDAG |
+| GB-063 | S:G-17：削除成功と一覧失敗を独立 | 削除成功後に一覧更新が失敗 | 取得失敗を通知する | 削除成功を維持し、一覧Error / Retryだけを別に表示、組合せ専用通知を出さない | I | Interaction | Mutation成功→Query失敗 |
+| GB-064 | S:G-17：削除確定失敗 | 削除Mutationが確定失敗 | 結果を受け取る | 失敗理由を示し、既存の選択Group・Mediaを不必要に失わない | I | Interaction | 削除拒否 |
+| GB-065 | S:G-17：削除結果不明 | 削除要求が通信断で確定不可 | 結果不明となる | 確定成功/失敗を断定せず、Server確認まで復旧判断と重複実行を保留する | I/BE | Interaction | Timeout、結果照会未決定 |
+| GB-066 | S:G-17：削除処理中の再操作 | 削除が処理中 | 確認の連打・Dialog終了を試す | 二重削除や結果とUIの対応を曖昧にする終了を防ぐ | C/I | Interaction | 遅延削除 |
+| GB-067 | S:G-17：表示同期手段に非依存 | 削除Mutationの成功が確定 | 一覧をCache更新またはrefetchで同期 | 採用した同期方式にかかわらず成功結果を正しく扱う | I | Interaction | Cache更新／refetchの実装境界 |
+
+### 取得状態・権限・失効
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-068 | S:データ取得中・読み込み失敗：一覧初回Loading | Group一覧の取得が未完了 | 画面を表示する | 一覧Loadingを示し0件と断定せず、既存詳細があれば維持する | I | VRT/Interaction | 遅延一覧Query |
+| GB-069 | S:データ取得中・読み込み失敗：一覧追加取得失敗 | 一覧に既取得Groupがある | 次page取得が失敗する | 既存一覧と選択を保持し、失敗したpageへ再試行できる | I | Interaction | fetchMore Error |
+| GB-070 | S:データ取得中・読み込み失敗：詳細取得失敗 | A選択中 | Detail Queryが失敗する | 一覧等の無関係な取得済み情報を維持し、詳細の失敗と再試行を示す | I | Interaction | Detail Error |
+| GB-071 | S:データ取得中・読み込み失敗：再試行の成否 | Group取得が失敗済み | 再試行→成功または再失敗 | 成功なら当該Errorを解除し、再失敗でも既存保持データと再試行可能性を維持する | I | Interaction | Error→Success/Error |
+| GB-072 | S:状態・選択中Groupが利用不能：選択Group消失を確認 | A選択中で削除済みと確定 | refetch結果を反映する | A選択とAggregateを解除し理由を通知、他scope喪失とは区別する | I | Interaction | Group deleted/error明確化 |
+| GB-073 | S:状態・選択中Groupが利用不能：一時通信失敗は削除と扱わない | A選択中で通信Errorのみ | 詳細再取得が失敗する | A削除と断定して選択を解除しない | I | Interaction | Network Error |
+| GB-074 | S:G-18：権限別Group管理 | Personal本人・Community Administrator・Member | Group管理操作の表示を確認する | 本人/Administratorは管理可能、Memberは管理Actionが非表示で透明な空席も作らない | C/I | VRT/Interaction | 3 roles |
+| GB-075 | S:G-18：権限の確定前・取得失敗 | role未取得またはrole Queryが失敗 | Group画面を操作する | 管理Mutationを許さず、Memberと断定しない。閲覧・再試行可能性を維持する | I | Interaction | role Loading/Error |
+| GB-076 | S:状態・権限変更：Administrator→Member | 管理操作可能な状態でroleが変更 | 変更を認識する | 管理操作を停止してActionを隠し、進行中操作を成功と誤報しない | I/E2E | Interaction | role transition |
+| GB-077 | S:状態・権限変更：Membership喪失 | Community Groups表示中 | Membership喪失を確定する | Community Groupを継続表示せず、利用可能な安全な遷移先へ移る | I/E2E | Interaction | Membership revoked |
+| GB-078 | S:G-18：一時的な操作不可 | 管理Capabilityはあるが保存処理中 | 管理Actionを見る | Capability欠如として隠すのではなく、当該ActionのDisabled / Loading等で示す | C/I | VRT | Administrator/保存中 |
+| GB-079 | S:操作処理中・競合：更新前提の競合 | role / Group名 / relationが操作直前に変わる | 保存する | Serverの確定結果と再評価に従って不成立理由を示し成功扱いしない | I/BE | Interaction | 競合・権限変化 |
+
+### UI・Responsive・Accessibility
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-080 | U:Discovery：Previewの2×2区分 | direct Mediaが0〜4件 | Group discovery itemを描画する | 4つのCellをMedia/Groupとして適切に構成し、Group CellをMedia所有と誤認させない | C/VRT | VRT | direct 0/1/3/4 |
+| GB-081 | U:Discovery：direct Media 5件以上のCue | direct Mediaが5件以上 | Previewを表示する | 4番目に非数値continuation cueを表示しAggregate総件数を示さない | C/VRT | VRT | direct 5件以上 |
+| GB-082 | U:Discovery：Group Cellの装飾Media | directが少なくaggregateが複数存在 | Group Cellを表示する | Aggregateを装飾素材として使ってもdirect Mediaを示す意味にしない | C/VRT | VRT | direct少・aggregate多数 |
+| GB-083 | U:Preview状態：確定Mediaなしの専用表現 | directとaggregateが確定0 | Group itemを表示する | 2×2領域とGroup選択を保持し、単なる空Cell列ではないMediaなしの表現を使用する | C/VRT | VRT | zero confirmed／図像は未決定 |
+| GB-084 | U:Preview状態：未取得・画像失敗を空と誤判定しない | 一覧Groupはあるがthumbnail失敗または件数未取得 | Previewを表示する | Group名と選択を維持し、確定0件専用の表現を使わない | C/I | VRT/Interaction | unknown/loading/thumb Error |
+| GB-085 | U:Discovery・操作パネル：Group一覧の視覚構成 | 検索・作成・一覧が表示可能 | 通常表示する | Title重複や件数欄を設けず、検索左／作成右、Divider、揃ったcontrol高を示す | C/VRT | VRT | Wide/Compact |
+| GB-086 | U:選択Header：Header・Actionの情報階層 | Group A選択中 | Detail Headerを見る | Group名と操作領域が分かれ、権限差で透明Placeholderを追加しない | C/VRT | VRT | Member/Admin |
+| GB-087 | U:Relation：Relation表示の情報階層 | AにParents/Childrenあり | Relation表示を展開する | 「このGroupとの関係」とParents/Childrenを区別し、Mediaより低い優先度に配置する | C/VRT | VRT | parents/children |
+| GB-088 | U:Relation：Relation Disclosureの操作 | Relationが閉じている | 開閉する | Chevron右→下、展開に伴う表示とARIAが対応する。採用した200ms表現を維持する | C/VRT | Interaction/VRT | Disclosure closed/open |
+| GB-089 | U:Relation：Relation Selectorの表示 | Relation編集に多数候補と選択済みがある | Wide/Compactで表示する | 名前・選択状況・方向別可否を確認でき、幅に応じて利用可能性を失わない | C/VRT | VRT/Accessibility | 長名・上限10・狭幅 |
+| GB-090 | U:Empty・S:状態：Media Emptyの同等表現 | Aggregate Media 0件が確定 | Wide/CompactでGroup Detailを見る | 「Mediaがありません」と説明を両方で示し、Parents/Children情報も失わない | C/VRT | VRT | Wide/Compact・Media0 |
+| GB-091 | U:Responsive：Wide二領域・Compact切替 | 同一Group・Mediaデータ | 画面幅を変更する | WideはDiscoveryとDetailを併置し、狭い幅では画面内で切替えて主要操作を維持する | C/VRT | VRT/Interaction | Wide/Medium/Compact |
+| GB-092 | U:Focus・S:G-20：Compact選択後Focus | KeyboardでGroup ItemにFocus | CompactでGroupを選択する | Detailが使用可能になってから見出しまたは最初の適切な操作へFocus移動する | C/I | Interaction/Accessibility | Compact・Keyboard |
+| GB-093 | U:Focus・S:G-20：一覧へ戻るFocus | CompactでA選択中 | 一覧に戻る | 起点Itemがある場合そこへ、なければ検索Input等へ戻し検索条件を勝手に変えない | C/I | Interaction/Accessibility | 起点存在/消失 |
+| GB-094 | U:Focus・S:G-20：Viewport変更中の状態とFocus | Group・Media・Draft・Dialogが存在 | Wide↔Compactを切替える | 選択やDraftを不必要に失わず、非表示ElementにFocusを残さない | I | Interaction/Accessibility | Viewport変化・Dialog |
+| GB-095 | U:Focus・S:G-20：Keyboard / Overlay操作 | Group Item、検索、Disclosure、Dialogを利用 | Tab、Enter/Space、Escape等を操作する | 意味に応じて起動・終了・Focus復帰し、破壊的Confirmへ勝手に初期Focusしない | C/I | Accessibility/Interaction | Keyboard・Dialog |
+| GB-096 | U:Responsive・S:状態：長名・多数Item・テーマ | 長い名称、多数Group、light/dark | Wide/Compactで表示する | 必要なラベル・操作・状態の識別性と到達性が維持される | C/VRT | VRT/Accessibility | 長名、多数、テーマ |
+
+### Domain制約・API境界
+
+| ID | 仕様参照・検証対象 | Given | When | Then | 推奨階層 | 観点 | Fixture・境界 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GB-097 | D:Group同士の関係：DAG自己参照・循環拒否 | Group A↔Bの構造がある | 自己参照または複数段Cycleを保存する | Backendが拒否し既存DAGを変えない | BE | Contract | self/2+ hop cycle |
+| GB-098 | D:Group同士の関係：直接relation数の境界 | ParentsまたはChildrenが10件 | 11件目を追加して保存する | 上限違反で拒否し、既存10件を維持する | BE/I | Contract | 10/11、両方向 |
+| GB-099 | D:Group同士の関係：DAG深度境界 | DAGが深度20段 | 21段となるrelationを保存する | 拒否して既存DAGを維持する | BE | Contract | 20/21 depths |
+| GB-100 | D:Group同士の関係：Scope跨ぎRelationの拒否 | Personal・CommunityにGroupがある | 異scope間のrelationを保存する | Backendで拒否し他scopeの関係を作成しない | BE | Contract | cross-scope |
+| GB-101 | D:Group同士の関係：Group上限 | scopeに1,000件存在 | さらにGroupを作成する | 上限違反として拒否する。別scopeの件数と混同しない | BE | Contract | 999/1000/1001 |
+| GB-102 | D:Group同士の関係：同時更新下の不変条件 | 複数UserがDAGを同時編集 | 競合する関係更新を同時実行する | 循環・深度・直接上限・重複禁止を破らず、失敗側は部分更新されない | BE | Contract/Concurrency | 並列Transaction |
+| GB-103 | D:Mediaとの関係：Media分類の独立 | Media Mが複数Groupに所属する | 1 GroupからMを除外する | 他Groupとの関係とM本体を維持する | BE/I | Contract | M所属2+ Group |
+| GB-104 | D:Mediaとの関係：Groupと権限は独立 | Group relationを編集する | MediaのCustody・Community共有・権限を確認する | 分類変更だけでMediaの所有権・共有範囲・閲覧権限を変えない | BE/E2E | Contract | 複数scope・共有Media |
+| GB-105 | S:G-15・D:relation：作成前候補の事前可否 | 作成するGroupにまだIDがない | Create Dialogでrelation候補を選ぶ | 確定済みの入力・候補表示条件だけを検証し、未決定の事前可否API方式を固定しない | C/I | Interaction | 仕様未決定を分離 |
+
+## 未決定事項とテスト設計の境界
+
+| 項目 | 現在確定している検証 | 未決定のため固定しない内容 | 対応 |
+| --- | --- | --- | --- |
+| GroupのMedia 0件Preview（GB-083） | 正常0件と未取得・画像失敗の区別、2×2領域とGroup選択の維持、空枠だけの表現にはしない | 図像・色・文字有無・細部レイアウト | UI DesignのVisual Reviewで採用後、VRT期待画像を確定 |
+| Responsive（GB-091〜096） | Wideの併置、狭幅切替、操作・Focus・状態維持 | 具体的Breakpoint、Mediumの最終的な画面構成 | Visual Reviewで採用後にVRT条件へ追加 |
+| 検索・Pagination（GB-005〜014、019） | 入力Draftと確定条件、先頭page、追加取得、選択保持 | Group名検索matchingの具体的API契約、Cursor paginationの細部 | API設計と接続時の契約テストを追加 |
+| Mutation結果不明（GB-035、055、065） | 成否を断定せず重複操作を防ぐ、Server確定状態に従う | Idempotency key、結果照会Operation、GraphQLのError詳細 | Backend契約を合意後にIntegration/E2Eへ具体化 |
+| 作成前Relation候補（GB-105） | GroupにIDがない状態の作成UIとAtomic Create結果 | 作成前の方向別追加可否を取得するAPI方式 | 既存仕様を推測で補わずIssue・API設計で確定 |
+| 暫定のGroup管理Actionと破棄確認（GB-046、074〜078） | 現行Group固有の非表示・disabled区分、終了時Draft破棄 | 横断的なAction availabilityルール、将来の破棄確認追加条件 | 合意済み暫定仕様を検証し、別途判断が変わればマトリクスを更新 |
+| 画面横断のMedia Detail（GB-020、022〜024） | GroupからDetailへ渡すCollection、復帰と状態保持 | Media Detail固有の全テスト条件 | Media Detailのテスト設計と重複させない |
+
+未決定事項の存在を、確定済みの検証を後回しにする理由としません。また実装に合わせて新しい仕様を暗黙に確定させません。
+
+## 後続の実装差分・リファクタリング調査
+
+このマトリクスはテストを先に定義する成果物です。**現行実装への適合判定とテスト実装・実行は別工程**として、各IDに対して次を後続調査で記録します。
+
+1. 設計との適合状態：適合／仕様不一致／未実装／調査未了。既存動作を仕様に読み替えない。
+2. テスト実装状態：既存テストで検証済み／一部のみ／未実装／実行不能／調査未了。テストコードの存在と成功実行を区別する。
+3. 必要な変更：責務・状態・外部境界・Fixtureの問題と、UI仕様への適合修正を分けて特定する。Component境界をStoryやTestのIDへ機械的に合わせない。
+4. 回帰防止：既存の画面・PrototypeのVisual / Behavioral / Responsive Contractと比較し、仕様変更が合意されていない既存Capabilityを失わせない。
+5. 実行結果：Unit / Component / Integration / E2E / VRT / Accessibilityの実際の結果と未実施を区別して記録する。CIで確認できていないものを成功とは扱わない。
+
+既存の `memoria-web` のGroup Browser実装、Group名・Relation変更のUnit Test、Wide / CompactのStoryは照合対象ですが、その存在だけでマトリクス各行を「検証済み」とはしません。必要な改修と追加テストは後続のIssue / PRで追跡します。
+
+## 完了判断
+
+この設計マトリクスの作成完了とは、確定した対象仕様が追跡可能な検証条件へ落とし込まれ、各条件のGiven / When / Then、候補テスト階層、外部境界、未決事項が記述されていることです。**全テストが実装済み、実行済み、CI成功という意味ではありません。** テスト実装が進んだ段階でこの表を仕様正本に照合し、必要なIDや期待結果の変更は理由とともに管理します。
