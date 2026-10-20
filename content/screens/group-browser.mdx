@@ -107,7 +107,7 @@ Community contextではAdministratorだけがGroupを作成できます。Member
 
 Group作成Dialogでは必須の名称に加え、任意でParents / Childrenのrelationを指定できます。MediaやParent / ChildがないGroupも正常に作成できます。作成をキャンセルした場合は入力内容を破棄し、作成処理を実行しません。
 
-作成時にrelationを指定した場合、Group本体の作成後にrelationを設定します。Groupの作成は成功していてもrelation設定に失敗する場合があり、その場合は作成済みGroupを維持し、設定できなかったrelationを通知します。Groupを再作成するよう誘導せず、最新状態を確認できるようにします。
+**G-12：Group作成のAtomic保存**: 作成ActionではGroup名および任意のdirect Parents / Childrenの希望状態をまとめてBackendへ送り、Group本体の作成と指定したrelationの登録を**1つの業務操作・同一Transaction**として扱います。Backendは作成権限、名前の制約・重複、同一scope、対象Group存在、DAG制約等を検証し、希望する状態すべてを登録できる場合のみCommitします。関係の1件でも登録できない場合はGroup本体の作成も含めてRollbackし、途中まで作成されたGroupやrelationを残しません。Parent / Child未指定の場合は名前だけでGroupを作成できます。作成・relation登録は操作ごとに段階的に成功通知せず、**作成結果が確定した時点で成功または失敗を一貫してFeedback**します。確定した失敗では作成Dialogと入力Draftを維持し、原因を理解して修正・再実行できるようにします。通信断・Timeout等で成否を確定できない場合は、単純な失敗と断定せず、重複作成を防ぐためServerの確定状態を確認してから復旧を判断します。Group作成の冪等性や不確定結果の照会方式はAPI実装設計で定めます。
 
 ### Groupを編集する
 
