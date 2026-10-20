@@ -205,7 +205,7 @@ column表は「列 / 型 / 制約 / 意味」の4列に統一します。共通�
 
 テストケース、テスト階層、FixtureやMock境界はテスト設計書が所有します。Storyは仕様に沿う状態の再現と操作・VRT等の実行用Exampleとして利用し、Designの正本の代わりにしません。画面設計にStory名・Story数や内部Component構造を複製しません。
 
-既存のStorybook設計MDXは、UI設計・検証観点・Story固有情報を各所有先へ移行し、情報の欠損がないことを照合してから削除します。移行完了前に一律削除しません。
+Prototypeで採用した表示・操作・Responsiveの設計判断は、その都度Designの適切な正本へ反映します。Storybookの設計MDXを新設して記録を分散させず、画面とComponentの初期実装境界を文書の分割単位として固定しません。テスト条件は画面設計と区別してテスト設計書へ整理します。
 
 ## Application Shellの機能仕様
 

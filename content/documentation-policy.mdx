@@ -151,7 +151,7 @@ Frontend UIの規則は、登場する技術名や現在の記載場所ではな
 | テスト観点・テストケース、テスト階層、Fixture、Mockする境界、実装依存 | テスト設計書。画面・Domain・UI設計の正本を参照し、製品仕様を重複して決定しない。実行コードとStoryは実装Repositoryで管理する |
 | Domain / APIの不変条件、権限判定、保存・生成・Transaction等 | 対応するDomain / API設計。Presentation上の共通規則だけをDesign Systemへ置き、業務規則を複製しない |
 
-画面設計の正本をStorybook MDXへ分散させません。**Storybookの設計MDXは新規作成しません（例外を設けません）。** 既存MDXは情報を棚卸しし、採用したUI設計をDesignへ、テスト設計をテスト設計書へ、Story固有のFixture・説明をStory/Adapterへ移し、内容・リンク・回帰防止条件を照合できたものから廃止します。Storybook、Story、共有React Component、Interaction Test、VRT自体は引き続き使用します。
+画面・Componentの設計情報は `memoria-design` に集約し、**Storybookの設計MDXは作成しません（例外なし）**。旧設計MDXの情報は既に移行しており、今後はStorybook MDXによる設計文書の生成、Componentとの1:1対応、実装・設計MDX・Storyのセット作成を要求しません。新たに採用したUI/UX設計はScreen Specification、必要な関連Design、Design Systemへ反映し、検証観点・期待結果・Fixture等はテスト設計と適切な実装資産へ分けます。Storybook、Story、共有React Component、Interaction Test、VRT自体は引き続き使用します。
 
 Screen Specificationの分割は画面の目的、UI構成と操作、複雑な状態・権限、共通Patternなどの独立した責務や変更理由を基準にします。初期PrototypeのComponent境界、単なる文書の行数、テストケースIDを分割の基準とはしません。既存の画面仕様を一律に分割せず、必要性が認められる画面から情報を欠落させずに移行します。
 
