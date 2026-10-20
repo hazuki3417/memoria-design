@@ -61,7 +61,7 @@ Storybookは、Screen SpecificationとDesign Systemに基づいて実装され�
 
 - **画面設計（`memoria-design`）**: 利用者向けの情報・操作・権限・状態・復旧・Navigationに加え、採用された画面固有の表示形式、視覚的優先順位、配置、操作感、ResponsiveとFocusの具体的な設計判断、その理由を記録します。必要な複数の設計ページへ責務別に分割して構いません。
 - **Design System（`memoria-design/content/design-system/`）**: 複数画面で共有するUI/UX Pattern、見た目、操作、状態表現、アクセシビリティの規則を所有します。画面固有の例外は適用条件と理由を明確にします。
-- **Storybook Story**: 同じReact Componentを使い、画面とComponentの代表的な状態・操作をFixtureとAdapterで再現する実行可能なExampleです。Storybookの画面設計MDXは**新規作成しません**。既存のMDXは、設計判断と必要な検証情報を所有先へ移行・照合してから廃止します。
+- **Storybook Story**: 同じReact Componentを使い、画面とComponentの代表的な状態・操作をFixtureとAdapterで再現する実行可能なExampleです。Storybookの画面／Component設計MDXは**作成しません（例外なし）**。採用UI/UX設計とテスト設計は、それぞれ `memoria-design` 内の適切な正本で管理します。
 - **テスト設計**: 対象仕様から検証観点、Given / When / Then、テスト階層、Fixture、外部境界と実装依存を定義します。製品仕様やReact Component分割方針の正本にはしません。テスト設計前の検証観点の棚卸しと、Prototypeで仕様を具体化した後の詳細テスト設計を区別します。
 - **共有React Componentとテストコード（`memoria-web`）**: UI実装と、その表示・操作・非同期連携を検証するコードを所有します。Storybook用の別画面を実装せず、Component境界は独立した責務・変更理由・検証価値をもとに決めます。
 
