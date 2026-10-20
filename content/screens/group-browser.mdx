@@ -119,13 +119,17 @@ Dialog内の名前変更、relationの追加・解除は同じDraftとして保�
 
 この破棄確認省略は、Frontendのテスト設計・実装を進めるために現時点の状態分岐を限定する**暫定判断**です。破棄確認を要する利用者負担の閾値、明示Cancelと偶発的Dismissの扱い、確認を追加する判断基準が十分に定義されたわけではありません。利用実態・誤操作・再入力負担等の根拠と横断Patternとの整合性を別Issueで検討し、必要に応じて本仕様を再評価します。
 
+**G-15の取得前提（現在のInitial Release方針）**: 編集開始前に、対象Groupの確定済みdirect Parents / Childrenと、scope内のrelation候補一覧および各方向の追加可否を取得します。候補APIのページが複数になる場合も編集開始前に必要なページをすべて取得し、取得成功を編集開始の条件とします。候補の初回・途中ページ取得が失敗した場合は編集Dialogを開始せず、選択中Groupの閲覧状態を維持したまま、編集を開始できない理由と再試行Actionを提示します。Loading / Errorは「候補0件」と区別します。編集開始後の候補検索、選択・解除は取得済み情報を用いてFrontend内で行い、検索・選択のたびにBackendへアクセスしません。保存するまでGroup relationは変更されません。候補情報の鮮度は保存時にBackendで再検証します。このInitial Release方針では編集開始後の候補追加取得は提供しません。作成前のGroupにはIDがないため、作成Dialogにおける候補可否の事前判定は別途API契約・設計上の検討対象とします。
+
 relation先は同一scopeのGroupから名前で検索できます。検索していない状態でもscope内Groupを通常の名前順で発見できるようにします。検索結果には既にrelationがあるGroupも表示し、現在のrelation状態を識別できるようにします。Group自体を候補から隠すことで制約を表現せず、parent / childそれぞれの追加Actionについて利用可否を示します。自己参照、既存relation、循環、深度、直接relation数上限等により追加できない方向はActionをdisabledにし、touch / keyboardを含めて理由を確認できるようにします。同じGroupを同一Draft内でParentとChildの両方には指定できず、反対方向ですでに指定されている候補はdisabledとして残し、その理由を候補内で示します。relation selectorでは選択済みGroupを個別に解除できる一方、誤操作による一括解除を避けるため全件を一度にクリアするActionは提供しません。
 
 Parents / Childrenはそれぞれ直接10件までとし、relation表示領域では全件を確認できるようにします。選択済みGroupの表示順は追加した順や検索による一時的な候補順ではなく、共通UIルールに従ってTagとして表示するGroup名文字列の昇順に正規化します。DetailのParents / Childrenを複数Tagで表示する場合も同じ順序を適用します。 relation selectorは未選択時から、Pillをおおむね4行見渡せる固定表示領域を確保し、選択数の増減によって周辺レイアウトを変動させません。4行は表示領域の高さを定めるための目安であり、Group件数やGroup名の長さから高さを算出しません。選択済みGroupが表示領域に収まらない場合も、selector内部のスクロール等により全件を確認・解除できるようにします。relation先の検索結果は独立したCollectionとして追加読み込みでき、検索・追加読み込み中や失敗時も現在のrelation、Draft、取得済み検索結果を不必要に破棄しません。
 
-保存時は名前変更とrelation追加・解除の差分をまとめて反映します。renameが成功した場合はGroup identity、Media relation、Group間relationを維持し、Group一覧、選択中Group Header等で同じGroupを表している名称へ反映します。relation更新は部分成功を許容し、成功した変更は維持し、失敗した変更は理由を提示したうえで最新のrelationとAction availabilityを再評価し、Dialogを閉じずに編集を継続できるようにします。
+**G-16の保存契約**: 保存Actionでは、Frontendは選択中Groupの希望するGroup名・direct Parent Group ID集合・direct Child Group ID集合という**最終状態**をBackendへ送ります。FrontendはrelationのADD / REMOVE Command列を構築してAPIへ渡さず、Backendが最新の保存済み状態との差分を算出します。関係の選択・解除中にMutationは送信しません。保存時はBackendでscope・存在・権限・DAG制約と同時編集による競合を再検証し、他Userの変更を無条件に黙って上書きしません。競合検知の具体的なAPI方式（version等）はBackend実装設計で定めます。
 
-保存結果が部分成功であっても、成功したrelation変更によって選択中Groupのdescendant集合が変化し得る場合は、保存結果が確定した時点でaggregate Media Collectionを最新relationに合わせます。失敗した変更を修正するため編集Dialogを開いたままにしていても、Group Browser側に変更前のaggregate Media Collectionを残し続けません。
+Group編集の保存は**Atomic Update（全件成功または全件失敗）**とし、Group名とdirect Parent / Childの希望状態を同一保存単位として扱います。希望状態全体が成立する場合だけ確定し、1件でも成立しない場合は今回の変更全体を確定しません。例として保存済みParentが{1}で希望が{1,2,3}の場合、2を追加できても3を追加できなければ保存失敗となり、Parentは{1}のままです。成立しなかった対象・理由を伝え、Dialogと入力Draftを維持して利用者が修正・再保存できるようにします。通信断などで成否を確認できない場合は失敗・未保存と断定せず、Serverの確定状態を確認してから再試行・表示を判断します。
+
+保存成功時、renameはGroup identity、Media relation、他Groupとの関係を維持したまま名称へ反映します。relation変更によってdescendant集合が変化し得る場合は、最新relationに基づくaggregate Media CollectionをBackendから再取得します。
 
 relation変更が成立して選択中Groupのdescendant集合が変化し得る場合、現在表示しているaggregate Media Collectionとの差分をClient側で再構築しません。成立した最新relationを基準とする新しいCollectionとしてServerから取得し直し、Media一覧のスクロール位置は先頭へリセットします。
 
@@ -193,7 +197,7 @@ Empty／検索結果なしのどちらも、見出し、補足説明、必要に
 
 ### データ取得中・読み込み失敗・再試行
 
-Group discoveryの一覧、選択中Groupの詳細・aggregate Media Collection、Group間relation候補は、それぞれ独立した取得対象として扱います。取得対象と失敗した操作を利用者へ区別して示し、無関係な領域に存在する取得済みデータや操作状態を失わせません。取得結果がまだ確定していない状態を、Group・Media・relationが正常に0件であるEmptyと表示しません。
+Group discoveryの一覧、選択中Groupの詳細・aggregate Media Collection、Group間relation候補は、それぞれ独立した取得対象として扱います。 Group間relation候補は編集開始前に全件取得するため、編集開始後の候補fetchMoreはInitial Releaseの画面状態として扱いません。取得対象と失敗した操作を利用者へ区別して示し、無関係な領域に存在する取得済みデータや操作状態を失わせません。取得結果がまだ確定していない状態を、Group・Media・relationが正常に0件であるEmptyと表示しません。
 
 | 取得状態・失敗箇所 | 表示・保持する状態 | 復旧Action |
 | --- | --- | --- |
@@ -204,7 +208,7 @@ Group discoveryの一覧、選択中Groupの詳細・aggregate Media Collection�
 | 選択中Groupの詳細を初回取得中 | Groupのidentityと選択状態を維持し、詳細・aggregate Media領域でLoadingを示す。未取得のMediaを0件として扱わない | 結果確定を待つ |
 | 選択中Groupの詳細取得・再取得失敗 | 選択Group自体を保持し、取得済みの詳細・Mediaがある場合は閲覧を続けられるようにする。詳細領域に失敗を示し、利用不能と断定しない | 当該Groupの詳細を再取得 |
 | aggregate Mediaの追加取得失敗 | 取得済みMediaと選択中Groupを維持し、続きの取得失敗をMedia領域に示す | 同じCollection条件で未取得の続きを再試行 |
-| relation候補の取得・追加取得失敗 | 確定済みrelationと、存在する場合は編集中Draft・取得済み候補を維持し、失敗をrelation操作領域へ示す | 同じGroup・候補検索条件で失敗した取得を再試行 |
+| relation候補の初回・事前全件取得失敗 | 編集開始を許可せず、選択中Groupの閲覧状態を維持し、正常0件と区別して失敗理由を示す | 編集開始に必要な候補情報の取得を再試行 |
 
 再試行は、失敗した取得対象と条件を利用者が認識できるActionとして提供し、再試行中は同じ要求の意図しない重複実行を防ぎます。再試行が成功したら当該エラー表示を解消し、最新の取得結果へ反映します。再試行も失敗した場合は、保持可能な既存データと再試行可能性を維持します。無期限の自動再試行や、別条件への黙示的な切り替えを復旧手段の前提にしません。取得済みデータがない場合は失敗した領域にErrorを示し、既存データがある場合はその閲覧を妨げない位置にErrorと再試行を提示します。
 
