@@ -53,6 +53,8 @@ ComponentとIntegrationの境界はComponent数で決めない。単独Component
 
 Storyは独立して再現可能なComponent状態と振る舞いの実行可能な例であり、製品仕様そのものの正本ではない。Storyの種類や個数を一律に義務化しない。単独Componentの操作はStoryのplay等を用いたInteraction Testを基本候補とする。複数責務の結合をStorybook上で実行する場合も検証対象によってIntegrationに分類する。
 
+採用済みの画面UI/UX仕様は `memoria-design` の画面設計を正本とし、Storybookの画面・Component設計MDXは作成しない。Prototype前には必要な検証観点を整理し、Prototype・Visual Reviewで具体化した仕様からGiven / When / Then、Fixture、Mock境界、適切なテスト階層を選ぶ。**React Componentを作成・分割したことだけを理由に、同名Story・Unit Test・Component Testを一式必須とはしない。** 保証したい振る舞いと独立した検証価値に応じて、Componentをまとめて検証してもよい。
+
 ProductionとStorybookで同じUI実装と意味的な振る舞いを共有する。Storybookのために同等の別UIを作らない。表示状態のFixture、外部Callback、Providerは適切に差し替え、テスト専用PropsをProduction APIへ無理に導入しない。
 
 VRTは視覚的回帰、Interaction Testは振る舞い、Accessibility検査は自動で検出できるアクセシビリティ問題をそれぞれ担当する。いずれか一つで他の保証を代替しない。Visual Prototypeを使う場合も、既存のVisual / Behavioral / Responsive仕様を守る。
