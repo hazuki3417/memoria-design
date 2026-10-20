@@ -43,9 +43,11 @@ Group名はscope内でGroupを識別する名称です。
 - 別scopeでは同じGroup名を許可する
 - 大文字・小文字、全角・半角、内部の連続空白等をSystemが自動統合しない
 - renameにも同じ名称規則と重複判定を適用する
-- Group名はtrim後100文字以内とする
+- Group名はtrim後100文字以内とする。**文字数はUnicode拡張書記素クラスター（grapheme cluster）単位で数え、UTF-8 byte数・Unicode code point数では数えない**
+- Group名には改行、タブ、NULなどのUnicode制御文字（General Category `Cc`）を含めない。前後のwhitespaceのtrim後に制御文字が残る場合は拒否する。入力文字列全体の無条件な除去・黙示的な改変は行わない
+- 作成とrenameの双方で同じ検証をFrontendとBackendが適用し、Backendを最終的な検証主体とする。Frontendの入力制限はBackendの検証を代替しない
 
-100文字はGroupを一覧・検索・relation選択で人が識別する名称として十分な表現幅を確保しつつ、極端に長い名称をProductとして受け付けないための上限です。DB column幅やUI layoutから逆算した値ではなく、Product上の入力制約として扱います。作成とrenameの双方へ同じ上限を適用します。
+100文字はGroupを一覧・検索・relation選択で人が識別する名称として十分な表現幅を確保しつつ、極端に長い名称をProductとして受け付けないための上限です。DB column幅やUI layoutから逆算した値ではなく、Product上の入力制約として扱います。作成とrenameの双方へ同じ上限を適用します。絵文字の結合列や結合文字を含む名前でも同じ書記素境界で数える必要があります。Unicode version差による分節結果の互換性は実装・テストの検討対象とします。制御文字以外のUnicode Format文字（`Cf`）、双方向制御、zero-width文字、不可視文字等の横断的な扱いは、他の入力用途との整合を確認して別Issueで検討し、Group名のルールを根拠に一律禁止へ拡張しません。
 
 ## Mediaとの関係
 
