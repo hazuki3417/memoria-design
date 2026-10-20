@@ -43,7 +43,7 @@ AI Agentは、まず依頼の種類を特定して[タスク別の読み取り�
 
 **Issue操作の必須参照**: Issueの作成・本文更新・コメント投稿・状態変更などを行う前に、[開発プロセスのIssue本文・コメント・正本の役割と更新承認](/development-process#issue本文コメント正本の役割と更新承認)、[Issueコメントの記録基準と記述品質](/development-process#issueコメントの記録基準と記述品質)、[AI作業の判断根拠と検証状態の追跡](/ai-development#ai作業の判断根拠と検証状態の追跡)を確認する。日常管理・棚卸し等の定義済みプロセスを実行する場合は、該当プロセスも確認する。記録先、承認要否、履歴保持、参照情報・判断根拠・Evidenceの記録方法は各正本に従う。
 
-**設計・ドキュメント変更時の必須参照**: 設計書、Component Design MDX、Storybook Design Guideなどを作成・更新する前に、対象成果物の役割と記載範囲を定義する最新の設計・開発規約を確認する。特にComponent Design MDXでは[Web実装規約のComponent単位の設計・Story・テストの配置](/system/web/implementation-conventions#component単位の設計storyテストの配置)を参照し、Component自身の設計意図・責務・契約・テスト設計を記載する。作業の進捗・検証実施状況・移行途中のメモは[AI支援開発](/ai-development)および[開発プロセス](/development-process)に従いIssue・PR等の適切な記録先へ分離する。設計文書に作業記録を混在させない。
+**設計・ドキュメント変更時の必須参照**: 画面の基本設計、採用したUI/UXの詳細設計、テスト設計書などを作成・更新する前に、対象成果物の役割と記載範囲を定義する最新の[ドキュメント管理方針](/documentation-policy)、[設計書テンプレート](/design-document-templates)、[Frontend UI設計・開発方針](/system/frontend-ui-development)を確認する。画面・Componentの設計情報をStorybook MDXへ置かず、`memoria-design` 内で責務に応じて管理する。Component、Story、Testの境界・配置は[Web実装規約のComponentの責務境界と実装・Story・Testの配置](/system/web/implementation-conventions#componentの責務境界と実装storytestの配置)と[Frontendテスト戦略](/system/web/frontend-testing)に従い、ファイルの3点セットを前提にしない。作業の進捗・検証実施状況・移行途中のメモは[AI支援開発](/ai-development)および[開発プロセス](/development-process)に従いIssue・PR等の適切な記録先へ分離する。設計文書に作業記録を混在させない。
 
 **実装作業の必須参照**: 新規実装・既存実装の修正・リファクタリングを行う場合は、それ以前の作業内容や開始経緯にかかわらず、実装着手前に対象Repositoryの最新の実装規約を必ず取得・確認する。タスク別の読み取り順序はこの必須参照を省略する理由にならない。具体的な適用・不適合の是正・完了確認は[AI支援開発](/ai-development#実装規約の必須確認と適用)に従い、各規約の内容は所有する実装規約を正本とする。
 
