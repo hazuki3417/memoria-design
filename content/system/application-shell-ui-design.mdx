@@ -1,0 +1,49 @@
+# Application Shell：採用UI設計
+
+## 目的・正本の境界
+
+[Application Shellの機能仕様](/system/application-shell)が所有する、利用範囲、Destination、権限、遷移結果を実際の画面に表すための採用済みのUI設計です。既存のApplication Shell Prototypeとコンポーネント設計MDX（2026-10-20時点の `memoria-web/develop`）の画面固有の表示・操作上の判断を集約します。共通のScroll / Viewport規則は[Application Shell Pattern](/design-system/patterns/application-shell)を参照します。具体的なReact Component API、export経路、callback名やCSS実装方式は `memoria-web` が所有し、これらをProduct仕様とは扱いません。
+
+本ページは移行時点の既存UIについて維持すべき表示・操作を記録します。Prototypeの動作例はBackend連携や画面遷移を実行した証拠ではありません。未決事項は[機能仕様](/system/application-shell)を優先します。
+
+## 画面構成とHeader
+
+- Application Shellは共通の**高さ40pxのHeader**と、その下のMain領域を備えます。HeaderはBrandの「Memoria」、Navigation Trigger、現在の利用範囲、Account Menuを組み合わせる構成です。左側のleading、中央付近のcontext、accountの配置と既存の文字表示を保ちます。
+- 現在の利用範囲に対応する `accentColor` をHeaderの**上端のライン**に適用し、Navigation側でも現在Contextを識別できる色として利用します。
+- Navigation Triggerを提供しない画面でも、必要な場合はTrigger相当の占有領域を不可視で確保してBrand位置の意図しない移動を防ぎます。Triggerを見せないときはキーボード操作とFocus移動の対象にも含めません。
+- MainはHeaderと独立した表示領域とし、Application Shell自体がすべての画面のスクロールを強制しません。明示的にスクロール領域を採用する画面では、上部余白を設けたContent Scrollを利用できます。長い内容ではその領域内をスクロールし、外側の不要なoverscrollを抑えます。
+- MainのModal Portal先は `application-modal-root` を利用します。StorybookでのPortal先提供方法は[Visual Prototype実装ガイド](/system/web/visual-prototype-guidelines)によります。
+
+## Navigationの構成・開閉
+
+- Navigationは**左側Drawer**として表示し、既存の40px Headerを覆わずHeaderの下から展開します。Drawer幅は**248px**、Backdrop opacityは**0.35**の現行視覚基準を保持します。Shadow、閉じる操作、開閉アニメーションは変更前の実装との比較対象です。
+- EscapeまたはDrawerの外側の選択で閉じられます。Menu項目の選択は該当操作を通知すると同時にDrawerを閉じます。実際の遷移先は[機能仕様](/system/application-shell)と[Information Architecture](/system/application-information-architecture)に従います。
+- Navigation本文はDrawerの開閉から独立した構成とし、現在のContextに応じた項目、選択状態、無効状態、ラベルとIcon、Footerを表示します。項目が多い場合は**Menu部分だけを縦スクロール**させ、Footerを下部に配置します。スクロール領域の高さは表示可能領域に応じ、画面幅・高さが変化してもFooterを失いません。
+- Navigation内の既存の区切り線、余白、`© 2026 Memoria` のFooter表記、Navigationを識別するARIAラベルは表示・操作の比較基準として維持します。長い項目名がある場合にも、項目選択と選択状態の視認性を維持します。
+- 各Navigation項目のAccentラインは現在のContext色を利用し、Active / Disabledの意味と表示を保ちます。具体的なItem構成や入力データの生成は画面・利用範囲側の責務です。
+
+## Navigation Trigger
+
+- Burger型のTriggerはNavigationの開閉状態を視覚表示と `aria-expanded` に反映し、Navigation本文を `aria-controls` で識別できるようにします。
+- 不可視状態では単に透明にするのではなく、配置領域を維持したまま、操作・Tab移動・支援技術上の対象から外します。HeaderのBrand位置を変えないことと、隠れた操作へFocusしないことを両立します。
+- TriggerはNavigationの開閉操作の入口であり、Context選択や実際のNavigation状態更新の意味を独自には変更しません。
+
+## 利用範囲切替とAccount Menu
+
+- Context Switcherは現在のPersonal / Community名を表示し、選択中の利用範囲にはチェックを示します。幅が狭い場合は既存の省略表示・最大幅・折り返し方針を維持し、切替操作に到達できるようにします。
+- 利用範囲の選択肢と「Communityを作成」の入口は、現在の利用者条件によって提示範囲が変わります。実際のContext一覧取得、選択後NavigationとCommunity作成処理は呼び出し元が所有します。
+- Account MenuはAvatarと表示名、現在Contextの情報を利用してユーザーを識別し、「設定」「ログアウト」の順序・表示文言と操作導線を維持します。CompactでのTrigger形状、Avatar size、Menuの位置関係は変更前のPrototypeと比較します。実際の設定画面遷移とログアウトはこのUI構成の責務ではありません。
+
+## 表示領域と代表的な状態
+
+- **Personal**: Personalが選択され、Header / Navigation / Account / Context Switcherから現在の利用範囲を識別できること。
+- **Community**: 選択Contextの名称・AccentとNavigation項目が連動すること。
+- **Compact**: Header、利用範囲切替、Navigation開閉、Mainへの到達性が維持されること。実際の幅や入力方式の違いはVisual ReviewとKeyboard確認で検証します。
+- **Navigation開閉、項目多数、長い名称**: Menuのスクロール、Footer、Action、Active / Disabled表示が破綻しないこと。
+- **制限された画面**: Shell全体を廃止するのではなく、[機能仕様](/system/application-shell#共通操作を提供しない画面)に従いNavigationとContext切替等を非表示にしつつHeader内の安定した配置を保つこと。
+
+## 維持すべき境界・未決事項
+
+これらは初期に分割されたComponentとStorybookの設計MDXにあったUI・操作上の事実を移したものであり、**そのComponent分割そのものを固定する意図はありません**。Dialog / Drawerやscrollの一般的なInteractionとFocusは[Overlay Pattern](/design-system/patterns/overlay-temporary-surface)等に従います。API未接続、Navigationの実URL遷移、権限喪失・切替失敗、未保存入力の扱いは画面の[機能仕様](/system/application-shell)にある未決事項を勝手に確定しません。
+
+この採用UI設計の検証シナリオは[Application Shellテスト設計](/system/application-shell-test-design)を参照してください。

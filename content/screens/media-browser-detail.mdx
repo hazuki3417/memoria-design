@@ -247,6 +247,8 @@ Media選択、Detailの終了、前後移動、詳細情報、主要Actionをhov
 
 ## UI具体化
 
+Media Detailの既存Prototypeから集約した画面固有の表示・操作・Responsive条件は[Media Detail UI設計](/screens/media-detail-ui-design)へ整理し、その検証条件は[Media Detailテスト設計](/system/web/media-detail-test-design)を参照します。既存の画面仕様の判断を優先し、これらの関連文書で独自の業務仕様を追加しません。
+
 Media Browserは正方形thumbnailによるgridを基本とし、実際にBrowserへ割り当てられたcontainer幅へ追従して列数を自動調整します。Compact / Medium / Wideごとの固定列数はProduct仕様にせず、Detail Pane等で同じviewport内の利用可能幅が変化した場合もgridを再構成できるようにします。Browserでは正方形thumbnail Variantを使用し、Media Detailでは元画像のaspect ratioを維持します。
 
 Browser toolbarでは「閲覧」と「選択」を明示的に切り替えます。閲覧を通常状態とし、thumbnail操作でDetailを開きます。閲覧状態では現在scopeのTag filter、現在Application contextで利用可能なMedia追加Action、選択状態への入口へ到達できるようにします。Initial ReleaseではMedia検索とsort ActionをBrowser toolbarへ提供しません。
