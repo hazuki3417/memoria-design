@@ -50,6 +50,17 @@ ComponentとIntegrationの境界はComponent数で決めない。単独Component
 - テストの独立性を保ち、順序依存・時刻・乱数・ネットワークの不安定要素を制御する。
 
 ## Storybookの位置づけ
+### Interaction Testでの要素特定とAssertion（2026-10-21合意）
+
+テストのLocatorは、Component内部のDOM実装ではなく、利用者に提供される意味・操作を基準とする。実装側のSemantic HTMLとAccessible Nameの原則は[Frontend実装規約](/system/web/implementation-conventions)を正本とする。
+
+- 原則として `getByRole` とAccessible Nameで操作対象を識別する。Formは関連付けられたLabelからの検索も適切とする。可視TextやPlaceholderは対象に応じて使用するが、Placeholderを恒久的なLabelの代替にはしない。
+- Portal等で描画場所が異なる場合は、実際のUI Libraryの契約に沿った適切な検索Scopeを選ぶ。実装内部のDOM階層・CSS Class・`nth-child`に依存したSelectorは原則避ける。
+- Role・Name・Labelによる特定が曖昧な場合に限り、`data-testid`を補助的な安定識別子として採用できる。全要素への機械的付与や、本来必要なAccessible Nameの欠落をテストIDで覆うことはしない。
+- Assertionでは、実際の選択・非選択、Controlの利用可否、通知、Focus、操作結果などの観測可能な振る舞いを主対象とする。ARIA属性の確認はAccessibility上その属性自体が契約となる場合に用い、特定属性だけで操作結果の保証を代替しない。
+- 非同期UIでは意味的な結果の出現を待ち、固定時間Sleep・任意の内部State参照を避ける。失敗時には保証すべき利用者の結果と実装詳細による偶発的な差を切り分ける。
+- Component抽出後も既存の有効なCapability・Interaction・Responsive・Focusを維持する。抽出による機械的なStory / Testの1対1追加は要求せず、テストで保証する外部契約に合わせて選ぶ。
+
 
 Storyは独立して再現可能なComponent状態と振る舞いの実行可能な例であり、製品仕様そのものの正本ではない。Storyの種類や個数を一律に義務化しない。単独Componentの操作はStoryのplay等を用いたInteraction Testを基本候補とする。複数責務の結合をStorybook上で実行する場合も検証対象によってIntegrationに分類する。
 

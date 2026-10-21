@@ -711,6 +711,19 @@ Token、Cookie、Session、CSRF等の認証技術詳細をFeatureへ漏らさず
 Raw HTML、redirect、external URL、file upload等のsecurity-sensitive処理はad-hoc implementationを避けます。Frontend validationをsecurity guaranteeとみなさず、Secretや不要なsensitive dataをClient / Logへ露出させません。Auth、Cookie、CSRF、Environment exposure等のsecurity contract変更は通常のRefactorとして扱わず、明示的なsecurity reviewを必要とします。
 
 ### Accessibility
+### Semantic HTML・Accessible Name・Label（2026-10-21合意）
+
+Componentの操作要素は、テスト用Selectorより先に、利用者と支援技術へ伝わる意味を基準に設計する。既存のUI Library（Mantine等）が提供する適切なNative Element・Role・Keyboard behaviorを優先し、不要なARIA Roleや独自Interactionを追加しない。
+
+- Button、Input、Dialogなどは適切なSemantic HTMLとRoleを使用する。Roleはテスト都合で付け替えない。
+- 操作可能なControlは役割を識別できるAccessible Nameを持つ。IconのみのButtonや同名の複数操作は、Contextと対象を識別できる名前を検討する。可視Labelがある場合は意味的な整合性を保つ。
+- Form Inputには目的を示す可視Labelを関連付けることを基本とする。Placeholderは入力例・補助情報であり、Labelの代わりにしない。画面の表示仕様上可視Labelがない場合は、既存契約とAccessibilityを照合して適切な代替名付けを判断する。
+- `aria-label` や `aria-labelledby` は必要な場合に使用する。Labelが既に適切に提供されている場合、競合する名前を重複指定しない。
+- 選択状態・無効状態・Errorとその理由は、UI Libraryの契約に沿って支援技術とKeyboard操作へ伝える。特定のARIA属性だけを実装の正しさの代用にしない。
+- `data-testid` は意味的な識別が不十分で、安定した検証点が必要な場合の補助手段。DOM/CSS構造への依存を避けるために利用できるが、利用者向けのRole・Name・Labelの欠落を隠す目的では追加しない。
+
+既存Componentの抽出・共通化では、Visual / Behavioral / Responsive / Focus contractを不変条件とする。Accessibility上の改善が必要な場合は影響する名前・Keyboard・操作・状態表現を確認し、仕様変更となる内容を暗黙に混在させない。既存の各Consumer固有のCapabilityを維持する。
+
 
 Native semantic HTMLと既存Componentのaccessible behaviorを優先し、ARIAによる独自再実装を避けます。重要な操作はMouse / Touchだけに依存せずKeyboardでも利用可能にします。Interactive controlには認識可能なaccessible nameを持たせ、Form ErrorやStateを色・視覚表現だけで伝えません。
 
