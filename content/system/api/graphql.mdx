@@ -805,6 +805,8 @@ extend type Query {
 input CreateMediaGroupInput {
   scope: ScopeInput!
   name: String!
+  parentGroupIds: [ID!]!
+  childGroupIds: [ID!]!
 }
 
 input DeleteMediaGroupInput {
@@ -876,6 +878,7 @@ type ChangeMediaGroupClassificationPayload {
   results: [MediaGroupClassificationItemResult!]!
 }
 
+# Atomic Create: Group and all requested direct relations commit together.
 extend type Mutation {
   createMediaGroup(input: CreateMediaGroupInput!): MediaGroupPayload!
   updateMediaGroup(input: UpdateMediaGroupInput!): UpdateMediaGroupPayload!
