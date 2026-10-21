@@ -150,6 +150,14 @@ relation先の検索対象は同一scopeのGroupに限定します。検索結�
 
 relation解除は指定したrelationだけを削除します。他のGroup relationやMedia relationには影響せず、解除後に所属先が0件になっても正常です。GroupやMedia本体を削除しないため、Group削除と同等の強い破壊的確認は要求しません。
 
+### Atomic UpdateのState Tokenによる競合制御
+
+Group編集の取得結果は、編集対象の完全な状態（Group ID、名称、direct Parent ID集合、direct Child ID集合）に対応する不透明な `stateToken` を含む。FrontendはTokenを生成・解析せず、編集開始時の値を `expectedStateToken` として希望する完全なname／direct Parent ID集合／direct Child ID集合とともに保存要求へ渡す。relation集合は順序に意味を持たず、Backendは両方向のID集合を重複排除・辞書順ソートしてから、型境界の明確なバージョン付きシリアライズ形式をSHA-256等でdigest化する。単に表示用のページ取得結果からTokenを構築してはならない。Tokenは認可手段ではなく、権限は保存時にも再検証する。
+
+保存はTransaction内で同一scopeのGroup構造を変更する全経路（create／update／delete／relation変更）と共通のロック規則に従い直列化する。ロック後にBackendが名称と完全なdirect relation集合を読み取ってTokenを再計算し、`expectedStateToken` と一致しなければ競合（`CONFLICT`）として全体Rollbackする。一致した場合にだけ、希望状態とDB最新状態の差分を計算して、認可・名称制約・scope・存在・DAG全体のcycle／depth／件数を最終状態に対して再検証する。すべて成立する場合のみ名称と必要なrelation変更を同じTransactionでCommitする。成功時のPostconditionは、**Commit時点の名称・direct Parent／Child集合が希望状態に完全一致すること**。無変更の保存も同じPreconditionを検証する。競合／制約違反等の確定失敗ではDraftを維持して理由を伝え、競合時は最新状態を再取得し利用者が確認してから保存する（自動マージ／自動上書きはしない）。通信断等による結果未確定では成功・失敗を断定せず確定状態を照会する。
+
+TokenはDBのversionカラムを必要としないState Snapshot方式であり、一度変更後に同じ状態に戻るABAは競合と判定しない。APIのToken生成アルゴリズムや表現はBackend所有とし、Frontendは不透明な文字列として扱う。Group作成の冪等性キーは別概念として扱う。
+
 ## Group UXの基本方針
 
 Groupはfolder treeやgraph editorとして表現しません。
