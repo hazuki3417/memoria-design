@@ -108,7 +108,7 @@ Dialog内の名前変更、relationの追加・解除は同じDraftとして保�
 
 relation先は同一scopeのGroupから名前で検索できます。検索していない状態でもscope内Groupを通常の名前順で発見できるようにします。検索結果には既にrelationがあるGroupも表示し、現在のrelation状態を識別できるようにします。Group自体を候補から隠すことで制約を表現せず、parent / childそれぞれの追加Actionについて利用可否を示します。自己参照、既存relation、循環、深度、直接relation数上限等により追加できない方向はActionをdisabledにし、touch / keyboardを含めて理由を確認できるようにします。同じGroupを同一Draft内でParentとChildの両方には指定できず、反対方向ですでに指定されている候補はdisabledとして残し、その理由を候補内で示します。relation selectorでは選択済みGroupを個別に解除できる一方、誤操作による一括解除を避けるため全件を一度にクリアするActionは提供しません。
 
-**G-16の保存契約**: 保存Actionでは、Frontendは選択中Groupの希望するGroup名・direct Parent Group ID集合・direct Child Group ID集合という**最終状態**をBackendへ送ります。FrontendはrelationのADD / REMOVE Command列を構築してAPIへ渡さず、Backendが最新の保存済み状態との差分を算出します。関係の選択・解除中にMutationは送信しません。保存時はBackendでscope・存在・権限・DAG制約と同時編集による競合を再検証し、他Userの変更を無条件に黙って上書きしません。競合検知の具体的なAPI方式（version等）はBackend実装設計で定めます。
+**G-16の保存契約**: 保存Actionでは、Frontendは選択中Groupの希望するGroup名・direct Parent Group ID集合・direct Child Group ID集合という**最終状態**をBackendへ送ります。FrontendはrelationのADD / REMOVE Command列を構築してAPIへ渡さず、Backendが最新の保存済み状態との差分を算出します。関係の選択・解除中にMutationは送信しません。保存時はBackendでscope・存在・権限・DAG制約と同時編集による競合を再検証し、他Userの変更を無条件に黙って上書きしません。競合検知は取得時の完全な編集対象状態に対応する不透明な `stateToken` を使います。保存要求には `expectedStateToken` と希望状態を含め、Backendは同一Transaction内のロック下で現在状態からTokenを再計算して一致を検証します。不一致なら全体Rollbackし、Draftを保持して最新状態を再取得・確認してから再保存します。成功時の名称・direct Parent / Child集合はCommit時点で希望状態と一致します。TokenはFrontendで生成せず、DBのversionカラムも不要です。
 
 Group編集の保存は**Atomic Update（全件成功または全件失敗）**とし、Group名とdirect Parent / Childの希望状態を同一保存単位として扱います。希望状態全体が成立する場合だけ確定し、1件でも成立しない場合は今回の変更全体を確定しません。例として保存済みParentが{1}で希望が{1,2,3}の場合、2を追加できても3を追加できなければ保存失敗となり、Parentは{1}のままです。成立しなかった対象・理由を伝え、Dialogと入力Draftを維持して利用者が修正・再保存できるようにします。通信断などで成否を確認できない場合は失敗・未保存と断定せず、Serverの確定状態を確認してから再試行・表示を判断します。
 
