@@ -107,7 +107,7 @@ Groupは名称だけで成立できます。作成時点で所属先Groupを持�
 
 Group作成時は必須のGroup名に加え、任意でParents / Childrenのrelationを指定できます。両方とも未指定で作成でき、Mediaや所属先Groupの存在を作成の前提としません。
 
-**Group作成はAtomic Create**とします。Frontendは作成するGroupの必須名称と、任意のdirect Parent Group ID集合・direct Child Group ID集合を希望する最終状態として1つの作成要求へ含めます。Backendは作成権限、Group名、同一scope、候補存在、直接relation件数、循環・深度等のDAG制約を検証し、Group本体および指定したすべてのrelationを**同一Transaction**で作成します。希望状態のどれか1つでも成立しない場合は作成処理全体をRollbackし、Group本体もrelationも残しません。Parent / Child未指定での作成は引き続き可能です。作成処理が確定して失敗した場合は利用者へ理由を伝えて入力Draftを保持し、通信障害などで結果が不明な場合は重複作成を避けるため確定状態を確認してから再実行を判断します。冪等性・結果照会等の具体的API方式はBackend実装設計で定めます。
+**Group作成はAtomic Create**とします。Frontendは作成するGroupの必須名称と、任意のdirect Parent Group ID集合・direct Child Group ID集合を希望する最終状態として1つの作成要求へ含めます。Backendは作成権限、Group名、同一scope、候補存在、直接relation件数、循環・深度等のDAG制約を検証し、Group本体および指定したすべてのrelationを**同一Transaction**で作成します。希望状態のどれか1つでも成立しない場合は作成処理全体をRollbackし、Group本体もrelationも残しません。Parent / Child未指定での作成は引き続き可能です。作成処理が確定して失敗した場合は利用者へ理由を伝えて入力Draftを保持し、通信障害などで結果が不明な場合は成功とも失敗とも断定せず、作成DialogのDraftを保持して通知します。自動再送は行わず、ユーザーが明示的に再試行した場合は新規の作成要求として扱います。新規作成の冪等性・専用の結果照会保証は要求せず、同一scopeの名前重複制約は通常の制約として適用します。
 
 ### rename
 
