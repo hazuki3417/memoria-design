@@ -328,6 +328,12 @@ ui/
 
 ### 利用環境をまたぐComponent Compositionと責務分離
 
+### Media / Media Groupの共通表示境界（2026-10-22合意）
+
+Media 1件およびMedia Group 1件の視覚的な基本単位は、Group Browser専用ではなくアプリケーション共通UIとして所有する。初期段階ではThumbnail・補助Artwork等のシンプルな表示に限定する。Mediaの画像変換中・変換失敗等の状態表現は今後の拡張候補であり、現時点で未実装の状態を実装済みとは扱わない。
+
+各Feature（Media Browser、Group Browser、Dashboard、Media Upload / Update等）は、画面固有の選択・Navigation・Upload進捗・Retry・Grid配置といった操作・Compositionを所有する。共通Component化を理由に既存Featureの表示情報・Interaction・Responsive Contractを削らず、実装を移行する際はFeatureごとに差分を検証する。Media Groupのdirect Mediaとaggregate Mediaの区別、およびGroupにMediaがない場合の未確定表現はGroup Browser UI Designを正本とする。
+
 同じUIをVisual Prototype、Storybook、Web本体で利用する場合は、**共通のComponent実装と意味的なcontractを再利用**します。環境ごとの要求を満たすためだけに、Storybook専用・Prototype専用・本体専用の同等なUI Compositionを複製しません。複製による表示・操作・状態表現の乖離を防ぐことを目的とします。
 
 - **UI側の責務**: 画面構造、レイアウト、表示状態、共通のInteractionを所有します。必要に応じてProps、Callback、slot、children、compositionで差異を受け取ります。
