@@ -90,6 +90,10 @@ WebのPR検証は、TypeScript、Unit、Next.js Build、Storybook Interaction、
 
 PRイベントの`paths`監視範囲は`src/**`内の検証別対象パス、および`package.json`・`package-lock.json`のみに限定する。`.storybook/**`、CI設定、テスト設定、ドキュメントなど、これ以外のファイル変更単独では自動PR検証を起動しない（明示的な`workflow_dispatch`は維持する）。設定ファイルのみの変更で検証が走らないことは意図的な運用上のトレードオフとして許容する。
 
+### Web CIの依存パッケージキャッシュ
+
+分割したTypeScript・Unit・Build・Interactionの各Workflowでは、既存の`actions/setup-node`によるnpm取得キャッシュに加え、`actions/cache`で`node_modules`をNode.js 24・OS・`package-lock.json`の内容に紐付けて再利用する。キャッシュヒット時は`npm ci`を省略し、ミス時は従来どおり`npm ci`でクリーンインストールする。同一lockfileの並列初回実行では複数ジョブがインストールすることを許容する。依存関係の更新でキャッシュキーが変わる。VRTはPlaywright公式Dockerイメージの分離環境で実行し、通常Nodeジョブの`node_modules`キャッシュを共有しない。
+
 Branch Protection / Rulesetsで何を必須チェックにするかはWorkflowの実行条件とは別の責務とする。条件付きWorkflowを必須チェックに登録すると未起動時にPendingとなる場合があるので、運用時に設定を整合させる。開発者はPR上で条件付き検証の実行・結果を確認し、最終マージ判断を行う。
 
 ### Quality Gateとの関係
