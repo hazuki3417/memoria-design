@@ -67,7 +67,7 @@ Storybookは、Screen SpecificationとDesign Systemに基づいて実装され�
 
 例えばGroup削除では、削除の成立条件・結果・復旧だけでなく、採用した確認UIの情報構成・Action配置・Compactでの表現も、その意味を所有する画面設計に記録します。Storyはその状態を再現し、テスト設計は仕様をどの階層で検証するかを記します。
 
-Prototypeは仕様を発見・検証する手段であり、最初に作ったComponentやStory構成は確定済みの設計境界を意味しません。採用した判断はDesignへ戻し、未採用・未決定の案を確定仕様に混ぜません。
+Prototypeは仕様を発見・検証するための**開発過程の中間成果物**であり、最初に作ったComponentやStory構成は確定済みの設計境界を意味しません。採用した判断はDesignへ戻し、未採用・未決定の案を確定仕様に混ぜません。製品実装へ移行した後は、採用された画面の表示例と継続的な検証をFeatureまたはComponentのStoryへ引き継ぎ、不要となったPrototype固有のStory・adapter・独立UI実装を整理します。移行はVisual / Interaction / Responsive Contractを保持したうえで行い、未移行のCapabilityを黙って削除しません。
 
 ### 配置と標準構成
 
