@@ -330,7 +330,7 @@ ui/
 
 ### Media / Media Groupの共通表示境界（2026-10-22合意）
 
-Media 1件およびMedia Group 1件の視覚的な基本単位は、Group Browser専用ではなくアプリケーション共通UIとして所有する。初期段階ではThumbnail・補助Artwork等のシンプルな表示に限定する。MediaTileの表示状態は `ready` / `loading` / `processing` / `processing-error` / `source-unavailable` / `image-error` を区別する。Feature側がGraphQL・変換Job・画像URLの取得状況を意味的な表示状態へ変換し、MediaTileはその状態の描画とブラウザ画像読み込み失敗の検知のみを担当する。画像が未取得・読み込み中・変換失敗・URL取得失敗・画像読み込み失敗を `src` の有無のみから一律に推定しない。実際の変換JobやURL取得処理との接続はFeature単位で段階的に実施し、接続済みと誤認しない。
+Media 1件およびMedia Group 1件の視覚的な基本単位は、Group Browser専用ではなくアプリケーション共通UIとして所有する。初期段階ではThumbnail・補助Artwork等のシンプルな表示に限定する。MediaTileの表示状態は `ready` / `loading` / `processing` / `error` を区別する。Feature側がGraphQL・変換Job・画像URLの取得状況を意味的な表示状態へ変換し、MediaTileはその状態の描画とブラウザ画像読み込み失敗の検知のみを担当する。変換失敗・URL取得失敗・画像読み込み失敗は共通の `error` 表示に集約し、原因の判定・記録はFeature / Data層で維持する。取得中と処理中はErrorと区別し、`src` の有無だけで失敗原因を判定しない。実際の変換JobやURL取得処理との接続はFeature単位で段階的に実施し、接続済みと誤認しない。
 
 各Feature（Media Browser、Group Browser、Dashboard、Media Upload / Update等）は、画面固有の選択・Navigation・Upload進捗・Retry・Grid配置といった操作・Compositionを所有する。共通Component化を理由に既存Featureの表示情報・Interaction・Responsive Contractを削らず、実装を移行する際はFeatureごとに差分を検証する。Media Groupのdirect Mediaとaggregate Mediaの区別、およびGroupにMediaがない場合の未確定表現はGroup Browser UI Designを正本とする。
 
