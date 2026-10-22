@@ -82,6 +82,15 @@ VRTは**承認済みBaselineを比較の正本として扱う通常実行**と�
 - 認証済み状態の再利用を可能にし、認証自体のE2Eは別に設けます。
 - 通常PRでフルE2Eを一律には実行しません。主要機能・認証・権限変更時は影響するシナリオ、リリース前は主要フローのフルE2E、手動時は指定したシナリオ群を実行します。依存関係を考慮し、影響不明なら安全側で実行します。
 
+### GitHub Actions Workflowの表示名
+
+Workflowの表示名は用途に応じて次の接頭辞で統一する。
+
+- `CI / <検証名>`：PRで変更パスに応じて起動する品質検証（TypeScript Typecheck、Unit Tests、Next.js Build、Storybook Interaction、Visual Regression）
+- `Automation / <処理名>`：Issueコメントや手動起動による生成・更新処理（GraphQL Code Generation、VRT Baseline Candidates）
+
+命名変更は表示名（Workflowトップレベルの`name`）に限定し、ジョブID・Workflowファイル名・イベント発火条件・処理内容・Artifact名は変更しない。
+
 ### Web CIのパスベース検証選択（2026-10-22合意）
 
 WebのPR検証は、TypeScript、Unit、Next.js Build、Storybook Interaction、VRTを**別Workflow**に分け、GitHub Actions標準の`on.pull_request.paths`で自動起動を制御する。独自の差分解析スクリプトやジョブ間集約ゲートは作らない。条件指定は精密な依存関係分析を目指さず、必要な検証を取りこぼさない広いパスを基本とし、多少の不要な実行は許容する。
