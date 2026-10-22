@@ -6,6 +6,12 @@
 
 製品として利用者へ保証する情報、操作、状態、Navigationの意味は、対象Screen SpecificationとDesign Systemを正本とします。画面構成やVisual Reviewの判断は[Frontend UI設計・開発方針](/system/frontend-ui-development)に従います。本ガイドは、Prototypeと本体の実装を接続する方法およびStorybook固有の表現を所有します。
 
+## PrototypeのライフサイクルとStory命名
+
+Prototypeは画面の探索・構築・Visual Reviewに用いる一時的な中間成果物です。開発途中の操作確認や表示検証は可能ですが、確定仕様を継続的に保証するInteraction / Integration / VRT等のテスト資産はFeatureまたはComponentが所有します。PrototypeのStory名には `Visual` / `Interaction` のような継続テストの用途を示す接頭辞を付けません。画面状態や表示条件を示す `Wide`、`Compact` 等の名称を使用します。
+
+製品実装への移行時は、Prototypeで確認した状態・操作・Fixture・Responsive Behaviorを棚卸しし、必要なStoryとテストをFeature / Component側へ引き継ぎます。移行後は不要なPrototype Storyと専用実装を整理します。既存のUI・操作を変えず、移行前後のVisual / Behavioral Regressionを確認します。
+
 ## 共通原則
 
 - StorybookとWeb本体では、画面の表示・操作を担うUI Componentを可能な範囲で共有します。
