@@ -70,6 +70,20 @@ ProductionとStorybookで同じUI実装と意味的な振る舞いを共有す�
 
 VRTは視覚的回帰、Interaction Testは振る舞い、Accessibility検査は自動で検出できるアクセシビリティ問題をそれぞれ担当する。いずれか一つで他の保証を代替しない。Visual Prototypeを使う場合も、既存のVisual / Behavioral / Responsive仕様を守る。
 
+## Storybookカタログの分類・表示ルール（2026-10-22合意）
+
+Storybookはテスト実行環境であると同時に、人が画面・部品を探して目視確認するカタログとする。Storyの主目的をUIから識別できるようにしつつ、分類変更によって既存のUI・操作・Fixture・Responsive Behaviorを変更しない。
+
+- **既存Storyファイルを分類のために分割しない。** 1つのStoryファイルに目視確認向けと操作検証向けが同居してよい。
+- **対象の種類の分類**は既存のMeta `title`階層で行い、`Design Prototypes`（画面Prototype）、`Components`（共通UI部品）、`Features`（機能固有の部品）の区別を維持する。階層を増やすこと自体を目的にしない。
+- **Storyの主目的**は `visual`（人間が表示・状態を目視確認）または `interaction`（操作・振る舞いを検証）の用途タグで識別する。各Storyの主目的を判断し、原則いずれかを選ぶ。`play`の存在だけで機械的に `interaction` と判定しない。表示状態を再現するために `play` を利用するVisual Storyもあり得る。
+- **ブラウザ上の視認性**のため、Storyごとの `name` に `Visual · …` / `Interaction · …` の接頭辞を使用する。原則として既存の意味のあるStory名を残す。用途タグだけにサイドバー上の表示・グルーピング機能を期待しない。
+- **VRT撮影対象**は主目的と独立した `vrt` タグで選択する。Visual Storyのすべてを自動撮影しない。Interaction Storyでも撮影価値と安定化条件を満たせば対象にできる。
+- 同一ファイル内のStory間で用途が混在する場合、用途タグはStory単位で指定する。Meta共通タグは対象Storyが同じ用途であることを確認できるときだけ使用し、誤継承を避ける。
+- Story IDや従来のリンクを将来も必ず不変に保つことは今回の要件としない。ただし `name` の変更によりStory ID、テスト参照、VRT Baselineに影響し得るため、実装時に参照先の更新・テスト影響を確認する。
+
+この節は合意済みの**将来の実装方針**を定めるものであり、現行のStory一覧の分類更新が完了したことを意味しない。既存Storyを個別に棚卸ししてから、ファイル分割なしで表示名・用途タグを適用する。変更前後のStoryのrender・`play`・操作・Fixture・Viewportを比較し、回帰がないことを確認する。実装RepositoryのStory定義・設定・テストが実際の動作の正本となる。
+
 ## Mock・Fixture・実接続
 
 - Mockは検証対象の外側の制御可能な境界へ置く。内部モジュールを過剰にMockして実際の接続欠陥を隠さない。
