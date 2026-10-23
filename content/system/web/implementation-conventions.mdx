@@ -332,7 +332,9 @@ ui/
 
 Media 1件およびMedia Group 1件の視覚的な基本単位は、Group Browser専用ではなくアプリケーション共通UIとして所有する。初期段階ではThumbnail・補助Artwork等のシンプルな表示に限定する。MediaTileの表示状態は `ready` / `loading` / `processing` / `error` を区別する。Feature側がGraphQL・変換Job・画像URLの取得状況を意味的な表示状態へ変換し、MediaTileはその状態の描画とブラウザ画像読み込み失敗の検知のみを担当する。変換失敗・URL取得失敗・画像読み込み失敗は共通の `error` 表示に集約し、原因の判定・記録はFeature / Data層で維持する。取得中と処理中はErrorと区別し、`src` の有無だけで失敗原因を判定しない。実際の変換JobやURL取得処理との接続はFeature単位で段階的に実施し、接続済みと誤認しない。
 
-MediaGroupTileも `ready` / `loading` / `processing` / `error` の視覚状態を扱うが、MediaTileの画像エラー表示とは区別し、Group固有のアイコンと文言で表現する。`processing` は将来のGroup準備状態を表示するためのUI表現であり、Groupの処理Jobや実際の状態遷移が導入済みであることを意味しない。現行consumerの `sources` 指定による装飾Artworkと、その描画順序は維持する。 GroupのArtworkがない場合とLoading / Processing / Errorでは、単一Media画像ではなく複数セルを重ねたGroup identityを共通モチーフに使用する。MediaTileとの統一は正方形の領域、中央配置、余白、状態ラベルの文字サイズで確保し、Groupらしさは複数セル構成で区別する。\n\n各Feature（Media Browser、Group Browser、Dashboard、Media Upload / Update等）は、画面固有の選択・Navigation・Upload進捗・Retry・Grid配置といった操作・Compositionを所有する。共通Component化を理由に既存Featureの表示情報・Interaction・Responsive Contractを削らず、実装を移行する際はFeatureごとに差分を検証する。Media Groupのdirect Mediaとaggregate Mediaの区別、およびGroupにMediaがない場合の未確定表現はGroup Browser UI Designを正本とする。
+MediaGroupTileはMediaTileの読み込み・変換・エラー状態モデルを持たない。Group自体の取得状況やエラーはFeatureで扱う。MediaGroupTileは左の大セル1つ・右の小セル2つの固定3セルの装飾カバーとし、画像枚数に関係なくセルの配置、比率、Gap、外側のTileサイズを保つ。渡された `sources` の先頭3枚を順番に各セルへ `cover` でフィットし、不足セルにはMediaTileのErrorアイコン（`IconPhotoOff`）とは異なる画像モチーフ（`IconPhoto`）を控えめに表示する。0枚も背景のみの空白とせず、1枚でもMediaTileと区別でき、2枚から3枚へ変化しても配置が変わらない。`sources` の枚数は装飾画像数でありdirect / aggregate Mediaの総件数や正常な0件の確定を意味しない。Group BrowserのPreview Cell外形・選択操作と既存の画像順序を維持する。
+
+各Feature（Media Browser、Group Browser、Dashboard、Media Upload / Update等）は、画面固有の選択・Navigation・Upload進捗・Retry・Grid配置といった操作・Compositionを所有する。共通Component化を理由に既存Featureの表示情報・Interaction・Responsive Contractを削らず、実装を移行する際はFeatureごとに差分を検証する。Media Groupのdirect Mediaとaggregate Mediaの区別、およびGroupにMediaがない場合の未確定表現はGroup Browser UI Designを正本とする。
 
 同じUIをVisual Prototype、Storybook、Web本体で利用する場合は、**共通のComponent実装と意味的なcontractを再利用**します。環境ごとの要求を満たすためだけに、Storybook専用・Prototype専用・本体専用の同等なUI Compositionを複製しません。複製による表示・操作・状態表現の乖離を防ぐことを目的とします。
 
