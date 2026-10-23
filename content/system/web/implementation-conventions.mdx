@@ -78,6 +78,15 @@ export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
 
 この例は**転送方法**の説明であり、単にMantineを隠すWrapperを新設することを推奨しません。Component APIの意味、controlled / uncontrolled、children / slotの判断は後続の「Component API」に従います。
 
+### UIアイコンの表現
+
+- **必須**: UIの操作、状態、方向、並べ替え、展開・折りたたみ、Navigation、Feedback等を示す**アイコンを、テキスト文字・記号・絵文字で模倣して表示することを禁止**します。例: ソート方向を `▲` / `▼` / `↕`、矢印ボタンを `→`、Close Iconを `×`、状態Iconを絵文字で代用する実装。これらをIconとして使う場合は、Icon Componentを使用します。
+- **必須**: Iconが必要な場合は、導入済みのIcon Library（Webでは `@tabler/icons-react`）や適切な既存UI ComponentのIcon APIを優先します。React Componentとしてsize、color、stroke、accessibility属性を管理し、文字のfont・glyph差異に依存させません。Mantineの`ActionIcon`、`Button`、`Group`等との組み合わせは、その操作・配置の意味に応じて選択します。
+- **必須**: Iconへの置き換えで、既存のAction、状態、情報量、Focus、Keyboard操作、Responsive Behaviorを削除・変更しません。単にIconを追加するためだけのWrapperや汎用Componentは新設しません。
+- **必須**: 装飾Iconには`aria-hidden="true"`を付け、Icon-only Buttonには操作を説明するAccessible Nameを付けます。Iconの形や色だけを状態・操作の唯一の情報源にせず、必要なText、`aria-sort`、`aria-expanded`、`aria-pressed`など意味に対応した状態表現を維持します。
+- **適用対象の区別**: 本規約は禁止対象を「**Iconの代替として配置された文字**」に限定します。本文、User入力、数学・比較の記号、単位、句読点、内容そのものとして意味のあるUnicode文字（例: `%`、`+`、`×`、`→`を文章や式に使用する場合）まで一律に禁止しません。また、文字をIcon Componentで包むだけの見せかけの対応は許可しません。
+- **検証**: UIの新規作成・変更時は、Icon代用文字が残っていないかCode Reviewで確認します。状態を持つIconは必要に応じてStorybookで未選択・選択・Disabled等を確認し、Keyboard / Accessible Name / Responsiveを既存contractに照らして検証します。既存画面をこの規約に合わせる場合も、対象変更の範囲とVisual / Behavioral Regressionの確認を優先し、無関係な画面の一括置換は行いません。
+
 ### TypeScriptの型安全性
 
 | 項目 | Rule / Rationale | 強さ・例外 |
@@ -128,6 +137,7 @@ export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
 | 宣言形式・Props型命名・named export | Review。将来AST-based Lintの適否を評価 | 新規Ruleは追加しない |
 | Props spread・Component API・Hook抽出 | Contract Reviewと必要なTest | 意味的な例外を許容 |
 | Import / Architecture境界 | Dependency Review。将来静的解析を検討 | CI変更なし |
+| アイコン表現 | Code Review、必要に応じてStorybook / Accessibility / Interaction | 文字・絵文字でのIcon模倣を禁止し、Icon Componentの表示と意味を確認 |
 | Visual / Behavior / Responsive | Screen Specification、Prototype、Storybook、Interaction / VRT | 既存contractを維持 |
 | Async / Error / State | Unit / Interaction TestとReview | 変更影響に応じて確認 |
 
