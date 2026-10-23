@@ -24,7 +24,61 @@ Capabilityがないことと、一時的に実行不能であることを区別�
 
 ## Processing
 
-Loading / Processing / Progressの具体的な共通presentationはAPI / async lifecycle設計まで保留します。内部Job statusをそのままUser-facing statusへしません。
+非同期状態はUserのTaskと情報の取得範囲に応じて表現します。ページのデータ取得による表示は以下の「ページ単位の非同期状態」を共通原則とし、UploadやMutation、バックグラウンドJob等の進行・結果の表現はそれぞれの非同期契約に従います。内部Job statusをそのままUser-facing statusへしません。
+
+## ページ単位の非同期状態
+
+### 基本方針
+
+Memoriaのページ読み込みは、**Application Shellと判明しているページ構造を維持し、データに依存する領域から段階的に表示する**ことを基本とします。読み込み状態はページ全体を一律に遮るのではなく、取得対象のContent / Sectionに対応付けます。
+
+- Application Header、現在Contextの識別、Navigationは、通常のデータ取得だけを理由に隠したり全画面Overlayで覆ったりしません。Header上端のContext AccentラインはContext識別の役割を保ち、ページ読み込みのProgress Barへ転用しません。
+- 取得前から確定しているPage Title、説明、Section見出し、Layoutの骨格は可能な範囲で先に表示します。データ依存で未確定の値を仮の0件・0 byteなどの実値として表示しません。
+- データが独立して取得できるSectionは、完了した部分から表示します。あるSectionのLoading / Errorを、無関係なSectionの表示・操作不能へ広げません。
+- 有効な取得済みContentがある再取得・追加取得では、原則そのContentを維持します。ただしContext変更、権限喪失、対象の消失等で表示してはいけないデータは直ちに非表示とし、維持を優先しません。
+- Errorは影響範囲に対応する位置へ持続的に提示し、可能な場合はその領域の再試行を提供します。Errorと正常なEmptyを混同せず、Notificationだけで取得失敗を表現しません。
+
+これは全ページへの同一Component、固定Skeleton、統一Spinnerの強制ではありません。ページの主要Task、取得単位、既存Layoutに沿って表示領域を選びます。
+
+### 状態ごとの表示と振る舞い
+
+| 状態 | 表示と振る舞い |
+| --- | --- |
+| Initial Loading | Shellと既知のPage / Section構造を維持し、未取得Content領域にSkeletonまたは局所的なSpinner等を表示する。Loadingを0件として扱わない。 |
+| Initial Error | Page Identity等の判明している構造を残し、対象Content領域に取得失敗と可能な復旧Actionを表示する。 |
+| Empty / Zero | 正常な取得の結果として対象が存在しないことを表示する。Loading、Error、Permissionと区別し、詳細は[Empty / Zero State](/design-system/patterns/empty-zero-state)に従う。 |
+| Background Refresh | 有効な取得済みContentを表示したまま、必要に応じてその領域の小さな更新中表示を行う。 |
+| Refresh Error | 既存Contentが引き続き有効なら維持し、現在情報を更新できなかったことと再試行手段を対象領域へ示す。古いデータを最新と誤認させない。 |
+| Pagination / Infinite Loading | 読み込み済みのCollectionを維持し、追加取得中の状態を末尾など追加対象と関係する位置に表示する。 |
+| Pagination / Infinite Error | 取得済みのCollectionを保持し、追加取得失敗とRetryを追加対象の位置へ表示する。初回取得失敗や空一覧へ置き換えない。 |
+| Context / Permission失効 | 保護データの表示を継続せず、Screen / Application IAに従ってBlocking Errorまたは安全なNavigationへ移る。 |
+
+### Loading表現の選択
+
+- **Skeleton / Placeholder**: Media Grid、Group Tile、Tableの行等、表示予定領域の構造が予測でき、占有領域を安定させることが有用な場合に用います。実在しないMedia、名称、件数、使用量を推測して模倣しません。ページ全体の精密な複製は要求しません。
+- **Content-local Spinner**: 取得対象の構造が事前に分からない場合や、形状Placeholderが適さないContent領域で用います。通常のページ取得で全画面Overlay Spinnerを既定にはしません。
+- **Inline Loading**: 既存Contentを維持するRefreshやPagination等で、更新範囲に近い位置へ控えめに示します。
+- **Progress**: 実際の進捗量を取得できるTaskに限って値を提示します。進捗率や完了予定を推測しません。
+
+MotionはContent First / Calmを保ち、Animationの有無・Pulse / Shimmer等は対象画面でVisual Reviewを通して決定します。読み込みが短い場合の表示タイミングも固定の遅延値を横断仕様にせず、ちらつきと操作応答のバランスを検証します。Reduced Motionを尊重します。
+
+### Navigationと読み込みの境界
+
+ページNavigationはデータ取得の完了を必須条件としません。遷移先で既知のPage / Sectionを提示できる場合は先に提示し、データ到着後にContentを更新できます。遷移先がまだ表示できない場合でも、Navigation操作が受け付けられたことを分かるようにします。
+
+認証、Context、権限、主要Entityの確定を先に必要とする画面は、無条件にContentを先行表示しません。別ContextのContentや保護情報を仮表示しないことを優先します。URL、Browser History、Focus、Navigation状態の振る舞いは各ScreenおよびApplication Shellの仕様に従います。
+
+### 画面に応じた適用例と検証範囲
+
+- **Media / Group Browser**: 既存CollectionのTile形状に沿うPlaceholderをInitial Loadingの候補とし、追加取得時は読み込み済みTileを保持します。Tileの寸法・並び・Responsive仕様は各画面設計が優先します。
+- **Usage / Members / Settings**: 既知のPage TitleやSection / Table構造を保ち、値や行など取得対象を局所的にLoading / Error表現へ置き換えます。
+- **Dashboard**: 「最近のMedia」「最近のGroup」等の独立したSectionを個別に読み込み・失敗表示できる構成を基本にします。取得済みSectionは他Sectionの失敗で隠しません。
+
+Skeletonの具体形状・Animation、局所Spinnerの寸法と配置、切替タイミング、Focus移動、画面ごとの依存関係はPrototype / Visual ReviewとScreen Specificationで具体化します。既存画面のVisual / Behavior / Responsive仕様を、この共通原則のみを根拠に暗黙に変更しません。
+
+### Accessibility
+
+Loading / Error / RetryがColorやAnimationだけに依存しないようにし、読み込み状態と復旧Actionを支援技術から理解・操作可能にします。更新の通知は適切な粒度で行い、頻繁な再取得やPaginationで不要な読み上げを繰り返しません。Loading切替によりFocusやスクロール位置を不必要に失わせません。
 
 ## 非同期状態の意味
 
