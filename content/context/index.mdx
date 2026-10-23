@@ -90,8 +90,11 @@ GitHubでbranch・commit・PRを作成または更新する前に、タスク別
 1. [ブランチ運用規約](/branch-strategy#prの状態)でPRの状態、base、merge方式を確認する。
 2. [AI支援開発の標準ワークフロー](/ai-development#標準ワークフロー)で人間の許可範囲とGitHub Actionsによる検証方法を確認する。
 3. 対象Repositoryの最新の`AGENTS.md`、既存PR・branch、必要なCI設定を確認する。
-4. PR作成直前に通常PRかDraftかを確認する。人間からDraftの明示的な指示がない限り通常PRを作成する。Visual Review・試作・設計相談・CI待ちという作業内容だけでDraftを選ばない。
-5. PR作成後にGitHub Actionsの結果を確認し、失敗時はログに基づいて対応する。結果不明のwrite操作は再実行せず、最新状態をreadで確認する。
+4. **ブランチ名とコミット種別を分離して確認**: 新規branch作成・命名変更・既存branchでの作業継続前に[ブランチ運用規約](/branch-strategy#作業ブランチ)の接頭辞と現在のbranch名を照合する。新機能のbranchは `feature/*` とし、コミットメッセージの種別 `feat` をbranch接頭辞として流用しない。違反が判明した場合、黙って継続・統合せず既存PRへの影響（head branch変更可否、レビュー履歴、CI）を確認し、是正方法と必要な承認を整理する。
+5. **GitHubに書き込む文章を日本語で確認**: 手動commit時は[コミットメッセージ規約](/commit-message)の `<type>[(scope)]: <日本語のタイトル>` を確認する。Issue・PRのタイトル、本文、コメント、変更説明・検証報告は[AI支援開発の記述言語](/ai-development#記述言語)に従い日本語を標準とする。技術用語、固定識別子、機械処理用JSON、GitHubが自動生成したmerge commitなどの例外だけを区別し、英語のテンプレートや他Repositoryとの運用差で基準を緩めない。
+6. **書き込み直前・直後の照合**: 適用するbranch接頭辞、対象Repository / base / head、commitのtypeと本文言語、Issue・PRの文章言語、許可された操作範囲をそれぞれ独立にチェックする。操作後は最新のGitHub状態を再取得し、不適合があれば完了報告前に是正または残課題・承認待ちとして明示する。過去のコミットを書き換えるだけの言語統一はしない。
+7. PR作成直前に通常PRかDraftかを確認する。人間からDraftの明示的な指示がない限り通常PRを作成する。Visual Review・試作・設計相談・CI待ちという作業内容だけでDraftを選ばない。
+8. PR作成後にGitHub Actionsの結果を確認し、失敗時はログに基づいて対応する。結果不明のwrite操作は再実行せず、最新状態をreadで確認する。
 
 この事前確認は、タスク別の読み取り順序に追加して必ず適用します。具体的なPR運用ルールはブランチ運用規約を正本とし、Context mapへ重複して定義しません。
 
