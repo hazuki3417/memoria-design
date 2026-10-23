@@ -12,6 +12,7 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 - GraphQL Operationを定義し、Code Generatorが生成するApollo React Hooksを基本のQuery / Mutation Interfaceとする。単に名前や返り値を転送する独自Hookは作らない。
 - 複数のOperation、共通の業務ルール、Error Mapping、Cache整合性などを一つの業務責務として組み立てる必要がある場合に限り独自Hookを設ける。単一Mutationでも有意味な業務境界なら許容する。React非依存の処理は純粋関数として分離し、モックと単体Testを容易にする。
 - Server State（Community一覧、Membership等）はApollo Cacheを唯一のフロントエンド側の共有Sourceとし、同一情報をContextやuseStateへ複製しない。UI Stateは各Component、Navigation StateはURL/Routerが所有する。Contextは画面スコープの識別子など、本当に必要な情報に限る。
+- Group Browser等のPreview fixtureおよび疑似Media生成は、実際のFeature Component内に埋め込まずStory / Mock Data境界から明示的に渡す。GraphQLとの接続は生成Apollo Hookに委ね、Storybook IntegrationではApolloのGraphQL OperationをMockedProviderでMockする。表示用のServer State Snapshotを独立したReact Stateへ複製しない。追加取得のカーソルとページ結合はApollo Query結果を正本とし、追加取得のLoading / Error / RetryのみをUI状態として扱う。
 - Mutation後の整合性は関連Queryのrefetchを基本とし、正当性とTestを確認してからcache.modify等を採用する。通信結果不明時は無条件にMutationを再送しない。
 - ApolloProviderと認証境界は一箇所で構成し、Client Componentが機密Access Tokenを受け取らない通信経路を用意する。全Consumerが生成Hookを通じて共有Cacheを参照する。
 - 移行は段階的に行い、既存の表示・動作・Interaction・Responsive Behaviorを維持する。新旧通信方式の混在中は更新漏れを確認し、最終的にCustomEventと業務Server Actionの利用箇所を全て撤去する。移行途中を完了扱いにしない。
