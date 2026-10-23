@@ -45,6 +45,16 @@ file extensionやClient申告MIMEはClient側の早期Feedbackや補助情報に
 
 Mediaへ保存する`mime_type`はClient申告値ではなくServerが実内容を検証して確定したcanonical MIMEとします。Original file nameはUserが選択した元file名として保持し、実形式に合わせる目的でextensionを書き換えません。HEIC / HEIFというProduct上の入力形式と、container / profileから確定するcanonical MIMEの技術的識別は分離します。
 
+### canonical MIMEの確定・保存契約（Usageとの共通境界）
+
+- **Upload Serverの必須責務**: Client申告のMIME、HTTP Content-Type、file extensionに依存せず、受信したOriginalの実byte列からsignature / containerを解析し、対応形式であることとdecode可能性を検証した上で、検証結果に対応するcanonical MIMEを確定する。Client申告値をそのまま `media.mime_type` へ保存してはならない。
+- **保存の必須条件**: Originalの永続登録時には、検証済みcanonical MIMEを `media.media.mime_type` へ、Original実byte数を `media.media.file_size` へ保存する。Media / Custody / Processing Job等の登録transactionが成功した時点で両値が確定していることを保証する。未検証・未確定・未対応・decode不能なOriginalは登録成功にしてはならない。Variant Processingの成功を待ってcanonical MIMEを確定する実装にはしない。
+- **責務の所在**: canonical MIMEの検証・確定はUpload側の責務である。Usage側で実ファイルを再取得・再検証したり、拡張子・申告MIMEで推測・補正したりしない。Upload実装では必ず検証結果をMedia登録へ受け渡し、DB保存まで結線する（将来のUpload実装で省略しない）。
+- **形式分類**: Usageは保存済み `media.mime_type`（canonical MIME）から `OriginalImageFormat`（`JPEG` / `PNG` / `WEBP` / `HEIF`）へ導出する。専用のcanonical formatカラムは追加しない。JPEGは `image/jpeg`、PNGは `image/png`、WebPは `image/webp`、HEIF familyは実内容検証で受理したHEIC / HEIFのcanonical MIMEを同一 `HEIF` に集約する。具体的に受理するHEIF familyのMIME集合はUploadの形式検証で確定させ、Usage独自に受理対象を増やさない。
+- **未知・不整合データ**: 登録済みACTIVE OriginalにUsage分類不能なMIMEがある場合は、黙って除外、0件扱い、拡張子へのfallbackを行わない。総計とformat別内訳の一致を保てない集計結果を成功として返さず、データ不整合として検知・調査できるようにする。将来の受理形式追加時にはUploadのcanonical MIME契約・Usage分類・GraphQL enumを整合させる。
+- **境界の確認**: Upload実装時のレビューでは「実byte検証 → canonical MIMEの確定 → DB保存」および「未検証Originalの登録拒否」を必須確認項目とする。Backendの自動テスト導入は全体のテスト方針が定まるまで本変更の必須条件としない。
+
+
 Originalの向き、透過情報、decode可能性、file signature、画素数などを静止画像処理で検証します。変換できない形式を正常完了として扱いません。Upload受付時に確定できる不正入力と、受付後の非同期処理でのみ判明する処理失敗は区別します。
 
 Initial Releaseでは1 Originalあたりのfile size上限を128 MiBとします。この値はProduct上限であり、Client、GraphQL/API、HTTP server、reverse proxy等の実装上限は128 MiBの有効な画像を拒否しないよう整合させます。file sizeだけではdecode後のresource使用量を制限できないため、画像安全上限を独立して適用します。Initial Releaseでは1画像あたりの総pixel数を100 megapixels（100,000,000 pixels）以下とします。width / heightはそれぞれ32,768 pixels以下とします。総pixel数上限とは独立して適用し、総pixel数が100 MP以下でも極端に縦長・横長な画像は拒否します。
