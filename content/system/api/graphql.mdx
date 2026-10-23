@@ -310,6 +310,8 @@ UsageはCustodian scopeで集計します。me.usageはUserがCustodianである
 
 `User.usage`はUser Settings > Usageで必要なPersonal Mediaの登録済みOriginal件数、Storage使用byte数、有効上限、file format別内訳を返します。Community管理Mediaは含めません。`communityUsage(communityId)`は有効なMembershipを持つAdministrator / Memberが閲覧でき、指定CommunityがCustodianである登録済みOriginalだけを返します。共有されたUser Custodian MediaはCommunity Usageに含めません。各内訳はJPEG、PNG、WebP、HEIC / HEIFのOriginal件数・byte数を返し、.jpg / .jpegと.heic / .heifはそれぞれ統合します。各対応formatの行を常に返し、件数・容量0も明示します。Initial Releaseでは5 GB（5,000,000,000 bytes）の上限をUser accountごと・各Communityごとに独立適用し、effectiveLimitBytesとして返します。Plan / Quota等の算出モデルはGraphQL契約へ露出しません。使用率・残容量・表示単位への変換はWebで導出します。累積Storage値は32-bit `Int` の範囲を超え得るため、`Int64`を使用し、GraphQL responseでは符号付き64-bit整数を10進文字列としてserializeします。Webは生成型上もnumberとして扱わず、表示・計算時にBigInt等の安全な表現へ変換します。
 
+Usageの `OriginalImageFormat` は保存済み `media.media.mime_type`（Upload ServerがOriginal実内容を検証して確定・保存したcanonical MIME）から導出する。canonical format専用のDBカラムは追加せず、拡張子・Client申告MIME・HTTP Content-Type・Variant形式は分類の根拠にしない。JPEG / PNG / WEBPとHEIC・HEIFをまとめたHEIF familyへ分類し、HEIF familyのcanonical MIMEの受理集合はUpload側の検証契約に従う。未知のMIMEを黙って除外・別形式に推測分類せず、総件数・総byte数と内訳が一致しない成功レスポンスを返さない。Uploadでのcanonical MIME確定・保存は[Media処理と派生物](/media/processing)の必須契約とする。
+
 ## Community
 
 ### 型
