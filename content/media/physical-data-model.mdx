@@ -50,6 +50,9 @@ erDiagram
 | original_file_name | text | NOT NULL | upload時のfile名 |
 | extension | varchar(32) | NOT NULL | 正規化した拡張子 |
 | mime_type | varchar(255) | NOT NULL | 検証済みMIME type |
+
+`media.media.mime_type` はClient提供値ではなく、Upload ServerがOriginalの実byte列を検証して確定したcanonical MIMEであり、登録確定時に必ず保存する。Originalのfile extensionや申告MIMEを代替の正本にしない。Personal / Community Usageの形式分類はこの値から導出するため、canonical format用の冗長カラムは設けない。HEIC / HEIFはUploadで検証・受理したcanonical MIMEをUsageの同一 `HEIF` 分類へ集約する。未対応MIMEを黙って集計対象外にせず、集計整合性を損なう成功応答を返さない。詳細は[Media処理と派生物](/media/processing)および[GraphQL API設計](/system/api/graphql)を参照する。
+
 | file_size | bigint | NOT NULL、CHECK 0以上 | 原本byte数 |
 | original_storage_key | text | NOT NULL、UNIQUE | Object Storageへ保存したOriginalの実key |
 | uploaded_by_user_id | varchar(26) | FK users、ON DELETE SET NULL | 最初のUploader。NULLの場合は「削除済みUser」として表示 |
