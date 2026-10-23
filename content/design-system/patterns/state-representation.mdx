@@ -40,6 +40,18 @@ Memoriaのページ読み込みは、**Application Shellと判明しているペ
 
 これは全ページへの同一Component、固定Skeleton、統一Spinnerの強制ではありません。ページの主要Task、取得単位、既存Layoutに沿って表示領域を選びます。
 
+### Loading / Ready / Error間で維持する構造
+
+Loading専用のページ・Sectionレイアウトを通常表示とは別に複製せず、**状態によらず共通する外側の構造を維持し、その内側でデータ依存の表示を切り替えます**。これは表示の連続性と保守性の両方を守る原則です。
+
+- Page Header、Section Header、静的なラベル、Paper / Card等のSurface、余白、列構造、Responsive配置のうち、データ取得結果に依存しない部分は同じ表示構造を使用します。
+- Paper内の全データを切り替える場合も、Paper自体とその位置・外側のLayoutは維持し、Paperの**内容領域**をReady / Loading / Errorで差し替えます。Error時には内容を取得できなかった旨と、可能な再試行Actionだけを内容領域に表示することもできます。RetryをLoadingの表示と混同しません。
+- Skeleton化はテキスト等の最小要素に限りません。値、Tableの行、Thumbnail、Group Tile、Paper内のデータ領域など、同じ取得状態を共有する意味のある単位で置き換えられます。取得前から確定しているラベルや列見出しは原則として保持します。
+- 通常表示とLoadingで別々に同じラベル、Section、Table列定義やResponsive Layoutを記述することを標準としません。Loaderが外側の構造を独自に模倣して見た目の不一致を生じさせないようにします。
+- Tableの列見出し・列幅など共通する構造は維持し、必要ならTable Body内のPlaceholder行を差し替えます。Loading中に実データの件数や内容を推測して表示しません。
+- 状態切り替えで不要なLayout Shift、FocusやScroll位置の喪失を起こさないようにします。ただしError時に必要な説明・Actionまで通常時と同じ高さへ無理に固定する必要はありません。
+- 共通Componentや抽象化を過度に増やすことは目的としません。既存の表示・操作・Responsive仕様を保持できる範囲で共通構造を共有します。
+
 ### 状態ごとの表示と振る舞い
 
 | 状態 | 表示と振る舞い |
