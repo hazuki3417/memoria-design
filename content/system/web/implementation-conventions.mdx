@@ -17,6 +17,19 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 - ApolloProviderと認証境界は一箇所で構成し、Client Componentが機密Access Tokenを受け取らない通信経路を用意する。全Consumerが生成Hookを通じて共有Cacheを参照する。
 - 移行は段階的に行い、既存の表示・動作・Interaction・Responsive Behaviorを維持する。新旧通信方式の混在中は更新漏れを確認し、最終的にCustomEventと業務Server Actionの利用箇所を全て撤去する。移行途中を完了扱いにしない。
 
+## GraphQL非同期状態Adapterの設計方針（2026-10-23合意）
+
+GraphQLの通信結果・操作とFeatureのUI / Interactionの接点には、**Apollo固有の状態をUser-facingな非同期状態とActionへ変換するAdapterの責務**を置きます。Consumerが各自でApolloの`loading`、`error`、`networkStatus`等を解釈して表示分岐を重複実装することを避け、同じ意味の状態遷移を一貫して扱える契約を目指します。
+
+- **責務別に組み合わせる**: 単一の万能Adapterを前提にせず、Query（初回取得・再取得）、Mutation（実行・結果・結果不明）、Relay Connection（Cursorに基づく追加取得・失敗・再試行）を、それぞれ独立したLifecycle / 状態契約として扱います。Consumerは必要な責務だけを組み合わせます。Connectionは初回Queryの状態とは別に追加取得の状態を表現し、取得済みCollectionを維持します。
+- **Stateを公開契約にする**: UI向けInterfaceは複数のBooleanを基本とせず、`status`を判別キーとした明示的なState（必要なら判別可能Union）を優先します。各Stateで利用可能なDataとActionを明確化し、矛盾する組み合わせを許さない設計にします。具体的なState名・型・Hook APIは実例に基づいて決定し、この方針だけで固定しません。
+- **表示と制御を分離する**: Adapterは初回Loading、表示可能な既存Data、初回Error、Retry中、Refresh中・失敗、追加取得中・失敗等の意味とAction availabilityを導出します。Skeleton / Spinner / Error配置 / Retry Button等の具体的なPresentationとSection境界はConsumerとDesign Systemが所有します。すべての表示Componentに非同期Propsを強制しません。
+- **ApolloとのState Ownershipを維持する**: 通信・Cache・Query結果・Cursorおよびページ結合はApolloの契約を正本とし、AdapterでServer StateのSnapshotを独立して複製しません。Retryの重複実行防止、追加取得失敗後の明示再試行待ち等、必要なInteraction制御状態だけを適切なOwnerが保持できます。単純に生成Hookの戻り値を転送するだけのWrapperは作りません。
+- **異なる失敗を混同しない**: 初回取得失敗、Refresh失敗、追加取得失敗を区別し、有効な既存Dataを不必要に消しません。対象ID、Context、Query Variables等が変わったときに、別対象のData・Error・Retry状態を誤用しません。Mutationでは結果不明を確定失敗と区別し、無条件の自動再送を行いません。
+- **境界に沿って分離する**: Apolloを利用する接続部分、状態の判定・遷移を表現するPure Logic、非同期制御、Feature UIを責務に応じて分離します。ただし共通Hook・Component・Directoryを一律に必須とせず、意味的な再利用契約が成立した単位だけ共通化します。ComponentおよびPure Product LogicへApollo / Generated GraphQL Typeを漏らさない既存方針を維持します。
+
+この節はAdapterの**設計原則**を定義するものであり、現時点で特定のAdapter実装、型名、API、全画面への適用や一括変更を義務づけるものではありません。各責務の具体契約と検証は実際のUse Caseに基づいて決定します。
+
 ## React / TypeScript Coding Convention
 
 この節はCodeの**記述方法**を定義します。Architecture、Component API、State Ownership、Test、Security、Responsive Behaviorの意味的なcontractは後続の各節を正本とし、ここで重複定義しません。新規Codeと変更対象Codeに適用し、既存Codeの形式だけを揃える一括変更は行いません。Refactorでは変更前のvisual / behavioral / responsive contractを維持します。
