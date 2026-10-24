@@ -51,6 +51,14 @@ Animationは装飾やModernさ自体を目的とせず、状態遷移、空間�
 このInteraction Philosophyは[Frontend UI設計・開発方針](/system/frontend-ui-development)の **Immediate Feedback** を具体化するDesign Directionであり、Feedback Patternの具体的なsurface選択は[Feedback](/design-system/patterns/feedback)に従います。
 
 
+## アイコンの採用方針
+
+MemoriaのApplication UIで意味やActionを表現するアイコンは、原則として **Tabler Icons**（Webでは `@tabler/icons-react`）から選択します。異なる画面・Componentで同じ意味を示す場合はアイコンの種類、線幅、サイズ、配置を整合させます。
+
+- **独自SVGを作成してアイコンとして使用することは禁止**します。文字、記号、絵文字、Unicode Symbolなどを**アイコンの代用品として使用することも禁止**します。たとえば「%」を切替アイコンとして使う場合は文字を描画せず、Tabler Iconsの適切なアイコンを利用します。数値の単位や本文中の文字として「%」を表示することはこの禁止の対象外です。
+- Tabler Iconsに用途へ適合するものがない場合は、独自描画や別ライブラリ、文字による代用を独断で追加せず、意味の伝達方法や例外の必要性を人間と合意してから設計へ反映します。製品ロゴ、実コンテンツ画像、グラフ等のアイコンではない視覚素材は、このアイコン採用ルールと区別します。
+- アイコンだけの操作には識別可能な選択状態、Keyboard操作、Accessible Nameを設けます。意味の推測が必要なものにはTooltip等で補足し、アイコンの形だけに情報を依存させません。
+
 ## Foundationの利用方針
 
 Memoriaは、Visual Designの基礎となるscaleや一般的なComponent behaviorを独自に再設計することを目的とせず、MantineをDesign Systemの実装Foundationとして可能な限りそのまま利用します。
