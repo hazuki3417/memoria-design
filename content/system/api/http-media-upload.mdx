@@ -60,7 +60,7 @@ network failureやresponse喪失時は同じfile commandへ同じ`Idempotency-Ke
 HTTP Uploadの機械可読なI/Fの正本は `memoria-api/schemas/openapi/media-upload.yaml` (OpenAPI 3.0.3) とします。本ページは振る舞い・設計理由の正本であり、リクエストフィールド・レスポンス構造・HTTP statusなどはOpenAPIと一致させます。差分が生じた場合は黙って片方を優先せず、設計レビューで解消します。
 
 - BackendはOpenAPIからGoのHTTP型・Handler interface・ルーティング用コードを生成し、手書きAdapterが共通Application Use Caseへ委譲します。
-- Frontendは同じOpenAPIからTypeScriptのHTTP Clientと型を生成し、手書きのUpload orchestrationは生成Clientを利用します。
+- Frontendは同じOpenAPIからOrvalでTypeScriptのHTTP Client・型・MSW mock handlerを生成し、手書きのUpload orchestrationは生成Clientを利用します。API mockはMSWを介して利用し、生成Clientと同じHTTP契約に従います。
 - GraphQLのSchema/gqlgen生成物とは独立した出力ディレクトリに配置し、同じmemoria-apiプロセス内で共存させます。
 - 生成物を直接編集しません。生成コマンドをリポジトリへ保存し、再生成・差分検出をCIに組み込みます。
 - multipart binaryを128 MiB上限内でstream処理できること、およびBFF経由の認証・Idempotency-Key中継を維持することを生成結果で検証します。
