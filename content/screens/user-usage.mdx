@@ -1,0 +1,48 @@
+# Personal Usage — 画面詳細仕様
+
+## 概要・責務
+認証済みUserが本人Custodianの登録済みMedia Originalの使用状況を確認する読み取り専用画面。Settingsの `/settings/usage` に配置し、現在のCommunity contextに依存しない。共通UIの具体presentationは[Usage 画面UI設計](/screens/usage-ui-design)、Community固有のscope・認可・Navigationは[Community Usage](/screens/community-usage)を正本とする。
+
+## Scopeと計上規則
+- User CustodianのPersonal Originalのみを計上する。Communityへ共有してもCustodianがUserならPersonal側だけに計上する。
+- Community CustodianのOriginalはCommunity側だけに計上し、Personalへ混在させない。
+- Media登録が確定したOriginalのbyte数・件数だけが対象。Variant、処理中間データ、未登録・未確定Uploadは除外する。Original登録後のVariant Processing失敗は計上を取り消さない。
+- 集計値は正本のbyte数・件数から導出し、format別内訳の合計と一致させる。
+
+## Storage Usage
+- Personal accountごとに独立した上限は **5 GB = 5,000,000,000 bytes**。各Communityの上限とも独立する。
+- 使用済み容量、残容量、総容量、使用率、登録済みOriginalの総件数を確認可能にする。
+- Preferencesのファイルサイズ単位（既定Decimal、選択時Binary）を容量Labelに適用する。換算しても上限・集計の実byte数は変えない。
+
+## Format別内訳
+| 分類 | 表示対象の拡張子例 |
+| --- | --- |
+| JPEG | .jpg、.jpeg |
+| PNG | .png |
+| WebP | .webp |
+| HEIC / HEIF | .heic、.heif |
+
+- 分類の正本はOriginalの実内容から確定したcanonical format。拡張子・Client申告MIMEで決めない。
+- 別名拡張子は上記表示分類へ統合し、形式ごとに登録件数・使用量を示す。
+- 内訳は説明情報であり、形式別一括選択・削除・変換Actionを提供しない。
+
+## 取得状態
+- Ready（利用あり）: 確定した容量、件数、format別内訳を表示する。
+- Ready（0件）: 0件・0 bytesを確定値として示す。
+- Loading: 未確定の0件・0 bytesを実値と見せない。
+- Error: 取得失敗をEmptyと区別し、再試行可能にする。
+- 上限到達: 使用量と独立上限の到達状態を確認できるようにする。
+
+## Navigation
+- URL: `/settings/usage`。Wide / CompactのSettings Navigation、deep link、reload、browser戻る・進むから同じ画面へ到達する。
+- Community利用中でもAccount MenuからUser Settingsへ遷移し、Personal contextへ切り替えない。
+- Community Usageは `/communities/[communityId]/usage` に分離する。
+
+## Upload制約との境界
+1回のUpload件数・1 fileの最大size・対応format等の操作制約をUsageに常設しない。[Media Upload](/screens/media-upload)と[Media処理と派生物](/media/processing)を正本とする。
+
+## 関連資料
+- [Usage 画面UI設計](/screens/usage-ui-design)
+- [User Settings](/screens/user-settings)
+- [Community Usage](/screens/community-usage)
+- [Usage テストマトリクス](/system/web/usage-test-design)
