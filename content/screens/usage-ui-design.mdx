@@ -1,0 +1,39 @@
+# Usage — 画面UI設計
+
+## 対象と共有UI
+Personal UsageとCommunity Usageの共通表示Componentを対象とする。画面詳細仕様のscope・計上規則は[Personal Usage](/screens/user-usage)と[Community Usage](/screens/community-usage)を正本とし、本書は可視情報、操作、状態、Responsive Behaviorを扱う。現行Webの `SettingsUsage`、`UsageStorageSection`、`UsageFormatBreakdownSection` を比較基準とする。
+
+## 画面構成
+1. Page Header「利用状況」。Personalでは「Personal Mediaの登録済みオリジナルファイルの使用状況を確認します。」、Communityでは「このCommunityが管理する登録済みオリジナルファイルの使用状況を確認します。」を表示。
+2. 「ストレージ」Section: 「使用済み」「空き容量」「総容量」をそれぞれbyteから換算した容量と割合で表示。format別色分けした使用率Progressを用いる。
+3. 「ファイル形式別内訳」Section: 「形式」「登録件数」「使用量」「割合」をTableで表示し、最終行に「合計」を表示。形式名の隣に識別用色を併記するが、色だけに意味を依存しない。割合は各formatの容量 ÷ scopeの総容量上限で計算する。
+
+## 並び順と操作
+- 利用者の主な目的は容量への寄与が大きい形式の把握であり、**初期表示は使用量の降順**とする（既存の対話で合意済みの意図）。比較に用いるのは表示丸め前の `sizeBytes`。
+- 現行UIでは「形式」「登録件数」「使用量」「割合」の各列見出しが並べ替えcontrolであり、昇順・降順を切り替える。選択列・方向を視覚と `aria-sort` で表す。
+- 同値の場合の順序、列切替後の最初の方向等は既存実装のbehavior contractを維持し、変更が必要なら別途合意する。
+- **実装差分**: 2026-10-24確認時点の `SettingsUsage` は `useState<UsageSort>(null)` のため初期表示が入力データ順となる。初期降順への修正は本書の編集とは別の実装・テスト作業として追跡する。
+- 各format行からMediaへの遷移、一括選択・削除・変換はできない。
+
+## 状態とFeedback
+| 状態 | UI |
+| --- | --- |
+| Ready | 取得値と使用済み・空き・総容量、Progress、Table、合計を表示 |
+| Empty | 0値を正しく表示し「登録済みのオリジナルファイルはありません」と表示 |
+| Loading | Section構造は保持し、容量LabelとProgressおよび内訳の4行×4列をSkeleton表示。未確定値を実値として出さず、sort controlはdisabled |
+| Error | 「利用状況を取得できませんでした」、通信状況を確認する説明、および提供されたRetry操作を表示。Emptyとは区別 |
+| 上限到達 | 使用率100%、空き容量0を表示し、他scopeの容量を利用できるような表現をしない |
+
+## Responsive / Accessibility
+- Wide / Medium / Compactの全幅で容量・上限・件数・形式別内訳へのアクセスを維持する。狭い幅を理由に列情報や機能を削除しない。
+- Personal / CommunityでComponentのCapability・レイアウトを不必要に変えず、Page Headerの説明と渡されるscope dataだけを変更する。
+- Light / Dark双方で数値、Text、Action、Focusの意味を維持し、semantic colorとAccessible Labelを併用する。
+- ErrorのRetryとsortはkeyboardで操作可能とし、Loading / Empty / Errorの区別は非色情報で伝える。
+
+## Visual Regression確認
+Ready、Empty、Loading、Error/Retry、上限到達をDesktop / Mobile中心に比較する。Mediumでは機能欠落を確認し、独立VRTは視覚的リスクに応じて選定する。VRT BaselineはVisual Reviewで承認してから確定する。
+
+## 関連資料
+- [Personal Usage 画面詳細仕様](/screens/user-usage)
+- [Community Usage](/screens/community-usage)
+- [Usage テストマトリクス](/system/web/usage-test-design)
