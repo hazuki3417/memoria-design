@@ -28,6 +28,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 - 上限は各scope独立に5,000,000,000 bytes。0、通常量、ちょうど上限と、Decimal / Binaryで換算差が分かるbyte値を使用する。集計値は丸め済みLabelから逆算せず正本のbyte数と件数で検証する。
 - JPEG (.jpg/.jpeg)、PNG、WebP、HEIC/HEIF (.heic/.heif)と、申告MIME・拡張子が確定canonical formatと異なる例を用意する。検証済みcanonical formatが分類根拠である。
 - Loadingは応答保留、Error→成功とError→再失敗は制御された外部応答で再現する。Frontend Integrationでは生成済みGraphQL Hook・Apollo Clientを通し、外部GraphQL応答をMockする。Backendの集計・認可・永続化はFrontend Mockだけで保証済みとしない。
+- 表示モードは容量初期値・一時保持・scope非同期を区別する。Error時の「再試行」ボタンは必須とし、Personal / Communityそれぞれについて現在のCustodianのみ再取得する。
 - Active Administrator / Member / Membership失効を分離する。Visual StateとViewportの撮影条件は安定化し、VRT Baselineは承認前に確定扱いしない。
 
 ## テストマトリクス
@@ -77,9 +78,9 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | SS-01 | Usage: 画面の状態 | 取得待機中 | 画面を表示 | Loadingを示し未確定の0件・0 bytesを実値として扱わない | C/I | Interaction/VRT | 応答保留 |
-| SS-02 | Usage: 画面の状態 | Usage取得が失敗 | 失敗応答を受ける | Emptyと区別できる取得失敗を表示し再試行できる | I | Interaction/VRT | 通信Error |
-| SS-03 | Usage: 画面の状態 | 取得失敗状態 | 再試行し成功する | 取得済みのUsage値を表示して失敗表示を解消 | I | Interaction | Error→Success |
-| SS-04 | Usage: 画面の状態 | 取得失敗状態 | 再試行して再度失敗 | 失敗をEmptyと誤認させず復旧Actionを維持 | I | Interaction | Error→Error |
+| SS-02 | Usage: 画面の状態 / Usage UI: 状態とUI表現 | Usage取得が失敗 | 失敗応答を受ける | Emptyと区別したエラー文言「利用状況を取得できませんでした」「通信状況を確認して、もう一度お試しください。」と「再試行」ボタンを必ず表示する | C/I | Interaction/VRT | Personal / Communityの通信Error |
+| SS-03 | Usage: 画面の状態 | PersonalまたはCommunityの取得失敗状態 | 「再試行」を押して成功する | 現在のCustodianのUsageを再取得して成功値を表示し、エラーを解消する。他scopeの値へ代替しない | I | Interaction | 両scopeのError→Success |
+| SS-04 | Usage: 画面の状態 / Usage UI: 状態とUI表現 | 取得失敗状態 | 「再試行」を押して再び失敗する | Emptyと区別できるエラー表示と「再試行」ボタンを引き続き表示する | I | Interaction | Error→Error |
 | SS-05 | Usage: 画面の状態 | Usageが0 bytesで取得成功 | 表示 | Loading・Errorと区別した正常0件状態を表示 | C/I | Interaction/VRT | 成功0件 |
 | SS-06 | Usage: 画面の状態 | 5GB上限到達の取得成功 | 表示 | 上限到達状態として識別可能 | C | Interaction/VRT | 上限到達 |
 
@@ -109,11 +110,12 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 | UI-06 | Usage: 表示モード / Usage UI: 切替 | 容量モードでUsageを表示 | ページ見出しの「割合」を選択 | Storageの使用済み・空き容量と形式別内訳の最終列が割合に連動して切り替わり、容量上限と件数は維持 | C/I | Interaction/VRT | 複数形式・上限5 GB |
 | UI-07 | Usage: 表示モード / Usage UI: 切替 | 割合モードで形式別内訳を並べ替え済み | 「容量」へ戻す | 同じbyte数を基準にした並び順を維持し、見出し「使用量」を変えず最終列の値だけが容量に戻る | C | Interaction | 丸め後の割合が一致する形式 |
 | UI-08 | Usage: 表示モード / Usage UI: 切替 | Desktop / CompactのUsage | 見出しと切替を表示 | Tabler IconsのIconDatabaseとIconPercentageによる切替が見出し右側または見出し下に収まり、Tooltip・アクセシブルな名前・Keyboard操作・選択状態を識別できる | C | Accessibility/VRT | 2幅・Keyboard |
-| UI-09 | Usage: 形式別内訳 | Originalが0件／読み込み中 | 形式別内訳を確認 | 3列の見出し・4形式の行・合計フッターを維持し、未確定値はSkeletonで隠す | C | Interaction/VRT | 確定0件・Loading |
+| UI-09 | Usage: 形式別内訳 / Usage UI: 状態とUI表現 | Originalが0件で取得成功、または取得待機中 | 形式別内訳を確認 | いずれも3列の見出し・JPEG/PNG/WebP/HEIC / HEIFの4形式行と合計フッターを保持。成功0件では各形式と合計が0件・0容量、Loadingでは未確定値をSkeletonで隠し、sortを無効化する | C | Interaction/VRT | 確定0件・Loadingを別fixtureで検証 |
 | UI-10 | Usage: 表示モードとソート | 件数・使用量がすべて0、または複数形式で同値 | 件数・使用量を昇順・降順にする | 同値の形式は標準形式順を維持し、全0件では並び順が変わらない | Unit/C | Unit/Interaction | 4形式0件・同値混在 |
 | UI-11 | Usage: 表示モードとソート | 未ソートまたは特定列でソート中 | 同じ見出しを順次押す／別列を選ぶ | 初期表示は使用量降順を選択。使用量列の最初のクリックでソートなし・標準形式順へ戻り、以降は昇順→降順→ソートなしと循環。別列は昇順から開始 | Unit/C | Unit/Interaction | 3連続クリック・列変更 |
 | UI-12 | Usage: ソート / Usage UI: Storage | 形式内訳をAPI側の標準順以外で取得 | Usageを表示後に別列でソート | 内訳の初期表示はbyte使用量降順（同値は標準形式順）。Storageの色分けバーは常に使用量降順で、テーブルソートには連動せず、形式の色も不変 | Unit/C | Unit/Interaction | 形式順シャッフル・容量順位逆転・同値 |
 | UI-13 | Usage UI: Interaction・Feedback / Responsive | Light / DarkでReadyとErrorを表示 | Keyboardで切替・ソート・再試行を操作 | Actionとfocusが識別可能で、ソート方向はアイコンに加えaria-sortでも把握でき、値や状態を色だけで伝えない | C | Accessibility/Interaction | 両Theme・Ready/Error |
+| UI-14 | Usage: 表示モードとソートの操作 | Personal / Communityそれぞれで容量モードを選択 | Usageを表示し、モードを切り替え、別scopeの画面を開く | 初期は容量モード、表示中だけ選択状態を保持。Preferencesへ保存せず、別scopeへ表示モードを同期しない | C/I | Interaction | Personal / Community独立セッション |
 
 ## VRT候補とViewport
 
@@ -123,9 +125,9 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 | --- | --- | --- | --- |
 | Ready（形式別内訳あり） | 容量モードの上限、件数、3列内訳と共通切替の理解 | Desktop 1440px / Mobile 375px | 情報密度・Responsive差分 |
 | 割合モード | Storageと内訳の連動、容量上限の固定表示、見出し「使用量」の維持と表下の補足なし | Desktop / Mobile | 切替による情報喪失・操作の誤認防止 |
-| Empty（確定0件） | 実値0と説明の視認性 | Desktop / Mobile | Loadingとの視覚的区別 |
+| Empty（確定0件） | 3列の見出し・4形式の0件行・合計フッター、実値0の視認性 | Desktop / Mobile | Loadingとの視覚的区別と4形式の欠落防止 |
 | Loading | 未確定値の隠蔽、既知の画面構造維持 | Desktop / Mobile | 幅ごとのPlaceholder表示 |
-| Error / Retry | 説明、Action、Focus可能性 | Desktop / Mobile | 復帰Actionの欠落防止 |
+| Error / Retry | エラー文言と必須「再試行」ボタン、Focus可能性 | Desktop / Mobile | 復旧Actionの欠落防止 |
 | Limit reached | 使用量と上限到達の理解 | Desktop / Mobile | 重要な境界状態 |
 | Community Ready | Community scopeの表示・Navigation | Desktop / Mobile | Personalと異なるConsumer境界 |
 
@@ -133,7 +135,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 ## 未決定事項と検証範囲
 
-- 画面詳細仕様と画面UI設計で確定した3列構造・0件時の4形式・Loadingフッター・表示切替とソートの連動・初期使用量降順・Storage Barの表示順はUI-06〜12で検証する。特定のSkeleton寸法や固定色、実装固有のDOM構造など、画面仕様が定めない詳細は本書で固定しない。
+- 画面詳細仕様と画面UI設計で確定した3列構造・0件時の4形式・Loadingフッター・表示切替とソートの連動・初期使用量降順・Storage Barの表示順はSS-01、UI-06〜12で検証する。取得失敗時の必須「再試行」はSS-02〜04で検証する。特定のSkeleton寸法や固定色、実装固有のDOM構造など、画面仕様が定めない詳細は本書で固定しない。
 - Personal Usageの採用routeは `/settings/usage` とし、過去の独立Destination案PR [#224](https://github.com/hazuki3417/memoria-design/pull/224) を現行の確定仕様として扱わない。
 - APIの具体Operation・Error型、集計更新タイミングと実際の見た目は各所有正本で判断する。本書のFixtureから仕様を追加決定しない。
 
