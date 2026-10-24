@@ -105,7 +105,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 | UI-04 | P: Accessibility | 色を識別できない利用者 | 内訳・使用率を確認 | 色のみに依存せず数値・文字から内容を理解できる | C | Accessibility | 複数形式・割合 |
 | UI-05 | Frontend UX・Design System | 操作可能なActionがある | Keyboardで操作・Focus移動 | 意味を持つ操作にアクセスできFocusを識別可能 | C | Accessibility/Interaction | Retryがある状態 |
 | UI-06 | P/C: Usage表示切替 | 容量モードでUsageを表示 | ページ見出しの「割合」を選択 | Storageの使用済み・空き容量と形式別内訳の最終列が割合に連動して切り替わり、容量上限と件数は維持 | C/I | Interaction/VRT | 複数形式・上限5 GB |
-| UI-07 | P/C: Usage表示切替 | 割合モードで形式別内訳を並べ替え済み | 「容量」へ戻す | 同じbyte数を基準にした並び順を維持し、最終列名と値が容量に変わる | C | Interaction | 丸め後の割合が一致する形式 |
+| UI-07 | P/C: Usage表示切替 | 割合モードで形式別内訳を並べ替え済み | 「容量」へ戻す | 同じbyte数を基準にした並び順を維持し、見出し「使用量」を変えず最終列の値だけが容量に戻る | C | Interaction | 丸め後の割合が一致する形式 |
 | UI-08 | P/C: Usage表示切替 | Desktop / CompactのUsage | 見出しと切替を表示 | 切替操作が見出し右側または見出し下に収まり、操作対象と選択状態を識別できる | C | Accessibility/VRT | 2幅・Keyboard |
 | UI-09 | P/C: File format別内訳 | Originalが0件／読み込み中 | 形式別内訳を確認 | 3列の見出し・4形式の行・合計フッターを維持し、未確定値はSkeletonで隠す | C | Interaction/VRT | 確定0件・Loading |
 
@@ -116,7 +116,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 | Visual State | 主な観測内容 | Viewport候補 | 選定理由 |
 | --- | --- | --- | --- |
 | Ready（形式別内訳あり） | 容量モードの上限、件数、3列内訳と共通切替の理解 | Desktop 1440px / Mobile 375px | 情報密度・Responsive差分 |
-| 割合モード | Storageと内訳の連動、容量上限の固定表示、割合の分母の説明 | Desktop / Mobile | 切替による情報喪失・操作の誤認防止 |
+| 割合モード | Storageと内訳の連動、容量上限の固定表示、見出し「使用量」の維持と表下の補足なし | Desktop / Mobile | 切替による情報喪失・操作の誤認防止 |
 | Empty（確定0件） | 実値0と説明の視認性 | Desktop / Mobile | Loadingとの視覚的区別 |
 | Loading | 未確定値の隠蔽、既知の画面構造維持 | Desktop / Mobile | 幅ごとのPlaceholder表示 |
 | Error / Retry | 説明、Action、Focus可能性 | Desktop / Mobile | 復帰Actionの欠落防止 |
