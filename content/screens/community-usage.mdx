@@ -12,7 +12,7 @@ Community contextのSide Menuから、現在のCommunityの全Active Memberが�
 
 Initial Releaseでは、各Communityに独立した **5 GB**（5,000,000,000 bytes）の上限を適用します。別Community、または同じUserのPersonal accountとは連動しません。
 
-画面では現在の使用量、5 GBの上限、残容量または使用率、および登録済みOriginalの総件数を提示します。容量表示はPreferencesで選択したファイルサイズ単位に従います。Initial Releaseの初期値はDecimalです。
+画面では現在の使用量、5 GBの上限、残容量または使用率、および登録済みOriginalの総件数を提示します。容量表示はPreferencesで選択したファイルサイズ単位に従います。Initial Releaseの初期値はDecimalです。ストレージの使用済み・空き容量・総容量は、サイズ値と割合が行をまたいで整列するように表示します。
 
 算入対象は、CommunityがCustodianでMedia登録が確定したOriginal fileのみです。Personal Mediaから共有されているUser Custodian Media、Variant等の派生file、処理中間data、未登録・未確定Uploadは含めません。Original登録後にVariant Processingが失敗してもOriginalは使用量・件数に含めます。
 
@@ -28,6 +28,8 @@ Initial Releaseでは、各Communityに独立した **5 GB**（5,000,000,000 byt
 | HEIC / HEIF | .heic、.heif |
 
 JPEGの.jpgと.jpegは一つに統合し、.heicと.heifも一つのHEIC / HEIF行に統合します。format分類はfile extensionやClient申告MIMEではなく、Originalの実内容を検証して確定したcanonical formatを正本とします。表中の拡張子は利用者向けの表示例です。総件数・総使用量は内訳の合計と一致します。形式ごとのMediaを選択・削除・変換するActionはこの画面から提供しません。
+
+形式別内訳は登録済みOriginalが0件の場合もJPEG、PNG、WebP、HEIC / HEIFの4行を常に表示し、各形式の登録件数・使用量・割合を0として示します。取得待機中は確定値の0と混同しないようSkeletonを使い、形式別内訳表の見出し・4行・合計フッターという構造を維持します。
 
 ## 状態
 
