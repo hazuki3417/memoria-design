@@ -4,6 +4,8 @@ export default {
   "user-registration": "User登録",
   "user-settings": "User設定",
   "user-settings-profile": "設定：プロフィール",
+  "usage": "Usage：画面詳細仕様",
+  "usage-ui-design": "Usage：画面UI設計",
   "-- Account Deletion": {"type":"separator","title":"アカウント削除"},
   "account-deletion-flow": "フロー概要",
   "account-deletion-impact": "1. 影響確認",
