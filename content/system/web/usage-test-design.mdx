@@ -8,8 +8,10 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 ## 関連仕様
 
-- **P**: [User Settings：Usage](/screens/user-settings#usage) — Personal scope、容量・形式・表示単位、Settings Navigation。
-- **C**: [Community Usage](/screens/community-usage) — Community scope、取得状態、Navigation・権限・Responsive。
+- **Usage機能仕様（P/C）**: [Usage：画面詳細仕様](/screens/usage) — Custodian別の集計・容量・形式・ソート・表示単位・取得状態。
+- **Usage UI設計（P/C）**: [Usage：画面UI設計](/screens/usage-ui-design) — 具体的な配置、3列表・色分けBar・Icon、状態の表現とResponsive。
+- **P**: [User Settings](/screens/user-settings#usage) — Personal Usageの入口、Settings Navigation。
+- **C**: [Community Usage](/screens/community-usage) — Communityのscope・Navigation・閲覧権限。
 - [Application Information Architecture](/system/application-information-architecture) — Personal / Communityの入口・Context境界。
 - [Media処理と派生物](/media/processing)、[Media Upload](/screens/media-upload) — Original登録・確定とUpload側の制約。
 - [Frontendテスト戦略](/system/web/frontend-testing)、[テスト設計](/test-design)、[テストマトリクステンプレート](/design-document-templates#テストマトリクス仕様から導く検証条件)。
@@ -18,7 +20,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 各行のGiven / When / Thenは前提／操作・イベント／外から観測できる結果を示す。階層は **Unit**=純粋計算、**C**=Component、**I**=Frontend Integration（GraphQL境界Mock）、**BE**=Backend・Domain・DBの契約検証、**E2E**=実Frontend・API・Test DBを用いる主要Flowを表す。階層の複数候補は全階層での一律重複を義務づけない。**P0** は集計・scope・状態・権限の欠陥影響が大きい主要保証、**P1** は補完的な表示・操作保証とする。優先度は実装完了状態を表さない。
 
-**設計状態**: 記載した条件は参照先の確定仕様またはその直接的なテスト分解である。**実装・実行状態**: 全件未照合。設計済み・実装済み・成功を混同しない。UI表現に関する未採用事項は下記に分ける。
+**設計状態**: 記載した条件は参照先の確定仕様またはその直接的なテスト分解である。**実装・実行状態**: 本書では網羅的な実装・実行結果を管理していない。設計済み・実装済み・成功を混同せず、最新状態は各Repositoryの実装・CIで確認する。UI表現に関する未採用事項は下記に分ける。
 
 ## Fixture・依存境界
 
