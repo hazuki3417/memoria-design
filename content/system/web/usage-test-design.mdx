@@ -36,82 +36,83 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| SC-01 | P: Scope | 本人Custodianの確定Originalがある | Personal Usageを取得 | 本人のOriginalだけが容量・件数に含まれる | BE/I | Contract | 本人Originalと他主体Original |
-| SC-02 | C: 概要 | Community A Custodianの確定Originalがある | AのUsageを取得 | AのOriginalだけが容量・件数に含まれる | BE/I | Contract | A・B・Personal |
-| SC-03 | P: Scope / C: Storage Usage | Personal OriginalがCommunity Aに共有済み | 両Usageを取得 | Personalだけに計上しAには重複計上しない | BE | Contract | User Custodianの共有Original |
-| SC-04 | P: Scope / C: Storage Usage | Communityへ直接Uploadして登録が確定 | Personalと当該Communityを取得 | Communityだけに計上 | BE | Contract | Community CustodianのOriginal |
-| SC-05 | C: 概要 | Community A・BそれぞれにOriginalがある | AのUsageを取得 | BのOriginalを混入しない | BE/I | Contract | 2 Community |
-| SC-06 | P: Storage Usage / C: Storage Usage | 未登録・未確定Uploadがある | Usageを取得 | 容量にも件数にも算入しない | BE | Contract | Upload確定前後 |
-| SC-07 | P: Storage Usage / C: Storage Usage | 確定済みOriginalと派生Variant・中間データがある | Usageを取得 | Originalだけ算入し派生物と中間データを除外 | BE | Contract | Original・Variant・中間データ |
-| SC-08 | P: Storage Usage / C: Storage Usage | Original確定後にVariant Processingが失敗 | Usageを再取得 | 確定済みOriginalの容量・件数は維持 | BE | Contract | 処理失敗Original |
+| SC-01 | Usage: 対象・関連ユースケース | 本人Custodianの確定Originalがある | Personal Usageを取得 | 本人のOriginalだけが容量・件数に含まれる | BE/I | Contract | 本人Originalと他主体Original |
+| SC-02 | Community Usage: 利用範囲 | Community A Custodianの確定Originalがある | AのUsageを取得 | AのOriginalだけが容量・件数に含まれる | BE/I | Contract | A・B・Personal |
+| SC-03 | Usage: 対象・関連ユースケース | Personal OriginalがCommunity Aに共有済み | 両Usageを取得 | Personalだけに計上しAには重複計上しない | BE | Contract | User Custodianの共有Original |
+| SC-04 | Usage: 対象・関連ユースケース | Communityへ直接Uploadして登録が確定 | Personalと当該Communityを取得 | Communityだけに計上 | BE | Contract | Community CustodianのOriginal |
+| SC-05 | Community Usage: 利用範囲 | Community A・BそれぞれにOriginalがある | AのUsageを取得 | BのOriginalを混入しない | BE/I | Contract | 2 Community |
+| SC-06 | Usage: ストレージ利用量 | 未登録・未確定Uploadがある | Usageを取得 | 容量にも件数にも算入しない | BE | Contract | Upload確定前後 |
+| SC-07 | Usage: ストレージ利用量 | 確定済みOriginalと派生Variant・中間データがある | Usageを取得 | Originalだけ算入し派生物と中間データを除外 | BE | Contract | Original・Variant・中間データ |
+| SC-08 | Usage: ストレージ利用量 | Original確定後にVariant Processingが失敗 | Usageを再取得 | 確定済みOriginalの容量・件数は維持 | BE | Contract | 処理失敗Original |
 
 ### 容量・集計整合性
 
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ST-01 | P: Storage Usage | 本人Usageで任意の使用量 | 表示 | 5,000,000,000 bytesの独立上限と使用量・残容量または使用率を確認できる | BE/I | Contract/Interaction | 上限5GB・使用量 |
-| ST-02 | C: Storage Usage | Community A・Bが存在 | 両者のUsageを表示 | 各Communityに独立した5,000,000,000 bytes上限を適用 | BE/I | Contract | Community別使用量 |
-| ST-03 | P: Storage Usage / C: 状態 | 登録済みOriginalなし | Usage取得が成功 | 0件・0容量を確定した実値として表示 | C/I | Interaction/VRT | 空データ |
-| ST-04 | C: 状態 | 上限未満の使用量 | Usage取得成功 | 現在の使用量・上限・残容量または使用率・件数を表示 | C/I | Interaction/VRT | 通常の使用量 |
-| ST-05 | C: 状態 | 使用量が5,000,000,000 bytesに到達 | Usageを表示 | 上限到達と現在量を明示し他scopeの残容量を流用可能と見せない | C/I | Interaction/VRT | ちょうど上限 |
-| ST-06 | P: Storage Usage / C: Storage Usage | PersonalとCommunityのUsageが独立 | Personalの登録済みOriginalが増える | Communityの計上量・上限が変わらない | BE | Contract | 登録前後の2 scope |
-| ST-07 | C: Storage Usage | Community A・Bが独立 | Aの登録済みOriginalが増える | Bの計上量・上限が変わらない | BE | Contract | 登録前後の2 Community |
-| ST-08 | P: File format別内訳 / C: File format別内訳 | 複数canonical formatのOriginalがある | 集計する | 総件数と総byte数が形式別合計に一致する | BE/I | Contract | 複数形式・件数・byte数 |
+| ST-01 | Usage: ストレージ利用量 | 本人Usageで任意の使用量 | 表示 | 5,000,000,000 bytesの独立上限と使用量・残容量または使用率を確認できる | BE/I | Contract/Interaction | 上限5GB・使用量 |
+| ST-02 | Usage: ストレージ利用量 | Community A・Bが存在 | 両者のUsageを表示 | 各Communityに独立した5,000,000,000 bytes上限を適用 | BE/I | Contract | Community別使用量 |
+| ST-03 | Usage: 画面の状態 | 登録済みOriginalなし | Usage取得が成功 | 0件・0容量を確定した実値として表示 | C/I | Interaction/VRT | 空データ |
+| ST-04 | Usage: 画面の状態 | 上限未満の使用量 | Usage取得成功 | 現在の使用量・上限・残容量または使用率・件数を表示 | C/I | Interaction/VRT | 通常の使用量 |
+| ST-05 | Usage: 画面の状態 | 使用量が5,000,000,000 bytesに到達 | Usageを表示 | 上限到達と現在量を明示し他scopeの残容量を流用可能と見せない | C/I | Interaction/VRT | ちょうど上限 |
+| ST-06 | Usage: ストレージ利用量 | PersonalとCommunityのUsageが独立 | Personalの登録済みOriginalが増える | Communityの計上量・上限が変わらない | BE | Contract | 登録前後の2 scope |
+| ST-07 | Usage: ストレージ利用量 | Community A・Bが独立 | Aの登録済みOriginalが増える | Bの計上量・上限が変わらない | BE | Contract | 登録前後の2 Community |
+| ST-08 | Usage: 形式別内訳 | 複数canonical formatのOriginalがある | 集計する | 総件数と総byte数が形式別合計に一致する | BE/I | Contract | 複数形式・件数・byte数 |
 
 ### 形式分類・表示単位
 
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| FM-01 | P/C: File format別内訳 | 確定canonical formatがJPEG・PNG・WebP・HEIC・HEIFのOriginal | 内訳を取得・表示 | JPEG、PNG、WebP、HEIC / HEIFの分類で件数・容量を確認 | BE/I | Contract | 各canonical format |
-| FM-02 | P/C: File format別内訳 | 同じJPEG formatの.jpg/.jpegがある | 内訳を集計 | JPEGの単一分類に合算 | BE | Contract | JPEGの拡張子差 |
-| FM-03 | P/C: File format別内訳 | 同じHEIC/HEIF分類の.heic/.heifがある | 内訳を集計 | HEIC / HEIFの単一分類に合算 | BE | Contract | HEIC/HEIF |
-| FM-04 | P/C: File format別内訳 | 拡張子または申告MIMEと検証済みformatが不一致 | 内訳を集計 | 申告値でなく確定canonical formatで分類 | BE | Contract | 申告と検証の不一致 |
-| FM-05 | P/C: File format別内訳 | 同一形式に容量の異なる複数Original | 内訳を表示 | 件数は件数合計、使用量はOriginal byte数合計から導出 | BE/I | Contract | 同形式複数件 |
-| FM-06 | P/C: File format別内訳 | 内訳を表示 | 行のActionを確認 | 形式別一括選択・削除・変換Actionを提供しない | C | Interaction | 通常の内訳 |
-| UN-01 | P: Preferences・Storage Usage / C: Storage Usage | 既定のDecimal設定 | Usageを表示 | DecimalのKB/MB/GB体系で容量を表示 | Unit/C | Contract | 1,000,000,000 bytes |
-| UN-02 | P: Preferences・Storage Usage / C: Storage Usage | Binary設定 | Usageを表示 | KiB/MiB/GiB体系を使用し1024基準に換算 | Unit/C | Contract | 1,073,741,824 bytes |
-| UN-03 | P: Preferences・Storage Usage / C: Storage Usage | 同一Usage byte数を保持 | 単位Preferenceを変更 | 総量・形式別量・上限の表示単位のみ変わり実byte数・件数は不変 | Unit/I | Contract/Interaction | 5,000,000,000 bytes・単位切替 |
+| FM-01 | Usage: 形式別内訳 | 確定canonical formatがJPEG・PNG・WebP・HEIC・HEIFのOriginal | 内訳を取得・表示 | JPEG、PNG、WebP、HEIC / HEIFの分類で件数・容量を確認 | BE/I | Contract | 各canonical format |
+| FM-02 | Usage: 形式別内訳 | 同じJPEG formatの.jpg/.jpegがある | 内訳を集計 | JPEGの単一分類に合算 | BE | Contract | JPEGの拡張子差 |
+| FM-03 | Usage: 形式別内訳 | 同じHEIC/HEIF分類の.heic/.heifがある | 内訳を集計 | HEIC / HEIFの単一分類に合算 | BE | Contract | HEIC/HEIF |
+| FM-04 | Usage: 形式別内訳 | 拡張子または申告MIMEと検証済みformatが不一致 | 内訳を集計 | 申告値でなく確定canonical formatで分類 | BE | Contract | 申告と検証の不一致 |
+| FM-05 | Usage: 形式別内訳 | 同一形式に容量の異なる複数Original | 内訳を表示 | 件数は件数合計、使用量はOriginal byte数合計から導出 | BE/I | Contract | 同形式複数件 |
+| FM-06 | Usage: 形式別内訳 | 内訳を表示 | 行のActionを確認 | 形式別一括選択・削除・変換Actionを提供しない | C | Interaction | 通常の内訳 |
+| UN-01 | Usage: ストレージ利用量 / Settings: Preferences | 既定のDecimal設定 | Usageを表示 | DecimalのKB/MB/GB体系で容量を表示 | Unit/C | Contract | 1,000,000,000 bytes |
+| UN-02 | Usage: ストレージ利用量 / Settings: Preferences | Binary設定 | Usageを表示 | KiB/MiB/GiB体系を使用し1024基準に換算 | Unit/C | Contract | 1,073,741,824 bytes |
+| UN-03 | Usage: ストレージ利用量 / Settings: Preferences | 同一Usage byte数を保持 | 単位Preferenceを変更 | 総量・形式別量・上限の表示単位のみ変わり実byte数・件数は不変 | Unit/I | Contract/Interaction | 5,000,000,000 bytes・単位切替 |
 
 ### 取得状態・復旧
 
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| SS-01 | C: 状態 / 共通取得UX | 取得待機中 | 画面を表示 | Loadingを示し未確定の0件・0 bytesを実値として扱わない | C/I | Interaction/VRT | 応答保留 |
-| SS-02 | C: 状態 / 共通取得UX | Usage取得が失敗 | 失敗応答を受ける | Emptyと区別できる取得失敗を表示し再試行できる | I | Interaction/VRT | 通信Error |
-| SS-03 | C: 状態 / 共通取得UX | 取得失敗状態 | 再試行し成功する | 取得済みのUsage値を表示して失敗表示を解消 | I | Interaction | Error→Success |
-| SS-04 | C: 状態 / 共通取得UX | 取得失敗状態 | 再試行して再度失敗 | 失敗をEmptyと誤認させず復旧Actionを維持 | I | Interaction | Error→Error |
-| SS-05 | C: 状態 | Usageが0 bytesで取得成功 | 表示 | Loading・Errorと区別した正常0件状態を表示 | C/I | Interaction/VRT | 成功0件 |
-| SS-06 | C: 状態 | 5GB上限到達の取得成功 | 表示 | 上限到達状態として識別可能 | C | Interaction/VRT | 上限到達 |
+| SS-01 | Usage: 画面の状態 | 取得待機中 | 画面を表示 | Loadingを示し未確定の0件・0 bytesを実値として扱わない | C/I | Interaction/VRT | 応答保留 |
+| SS-02 | Usage: 画面の状態 | Usage取得が失敗 | 失敗応答を受ける | Emptyと区別できる取得失敗を表示し再試行できる | I | Interaction/VRT | 通信Error |
+| SS-03 | Usage: 画面の状態 | 取得失敗状態 | 再試行し成功する | 取得済みのUsage値を表示して失敗表示を解消 | I | Interaction | Error→Success |
+| SS-04 | Usage: 画面の状態 | 取得失敗状態 | 再試行して再度失敗 | 失敗をEmptyと誤認させず復旧Actionを維持 | I | Interaction | Error→Error |
+| SS-05 | Usage: 画面の状態 | Usageが0 bytesで取得成功 | 表示 | Loading・Errorと区別した正常0件状態を表示 | C/I | Interaction/VRT | 成功0件 |
+| SS-06 | Usage: 画面の状態 | 5GB上限到達の取得成功 | 表示 | 上限到達状態として識別可能 | C | Interaction/VRT | 上限到達 |
 
 ### Navigation・認可
 
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| NV-01 | P: IA・Settings Navigation | 認証済みUser | /settings/usageへ遷移 | 本人Personal Usageに到達しCommunityの数値は混ぜない | I/E2E | Interaction | Personal・Community併存 |
-| NV-02 | C: Navigation | Community Aを選択中 | /communities/A/usageへ遷移 | AのUsageに到達 | I/E2E | Interaction | Community A |
-| NV-03 | P: Scope / IA | Community利用中のUser | Account MenuからUser Settingsへ移動 | Personal contextへの切替なしでUser本人のSettingsに到達 | E2E | Interaction | Community選択中 |
-| NV-04 | C: Navigation | Community A Usage表示中 | Community Bへ切り替える | BのUsage routeとBの数値を表示 | I/E2E | Interaction | A/B別容量 |
-| NV-05 | C: 権限 | Active Administrator | Community Usageを開く | 閲覧可能 | BE/E2E | Authorization | Active admin |
-| NV-06 | C: 権限 | Active Member | Community Usageを開く | 閲覧可能 | BE/E2E | Authorization | Active member |
-| NV-07 | C: 権限 | Membershipを喪失したUser | Community Usageに再アクセス | Usageを継続閲覧できない | BE/E2E | Authorization | 失効membership |
-| NV-08 | P: Settings NavigationとURL state | /settings/usageのURL | reload・deep link・戻る／進む | URLに対応したsectionと選択状態を復元 | I/E2E | Interaction | URL遷移履歴 |
-| NV-09 | C: Navigation / IA | Community contextを表示 | Community navigationからUsageへ移動 | 対象CommunityのUsageへ到達しAccount MenuのPersonal Usage入口と混同しない | I/E2E | Interaction | Community navigation |
+| NV-01 | Settings: Information Architecture | 認証済みUser | /settings/usageへ遷移 | 本人Personal Usageに到達しCommunityの数値は混ぜない | I/E2E | Interaction | Personal・Community併存 |
+| NV-02 | Community Usage: Navigation | Community Aを選択中 | /communities/A/usageへ遷移 | AのUsageに到達 | I/E2E | Interaction | Community A |
+| NV-03 | Usage: 対象・関連ユースケース / IA | Community利用中のUser | Account MenuからUser Settingsへ移動 | Personal contextへの切替なしでUser本人のSettingsに到達 | E2E | Interaction | Community選択中 |
+| NV-04 | Community Usage: Navigation | Community A Usage表示中 | Community Bへ切り替える | BのUsage routeとBの数値を表示 | I/E2E | Interaction | A/B別容量 |
+| NV-05 | Community Usage: 利用範囲と権限 | Active Administrator | Community Usageを開く | 閲覧可能 | BE/E2E | Authorization | Active admin |
+| NV-06 | Community Usage: 利用範囲と権限 | Active Member | Community Usageを開く | 閲覧可能 | BE/E2E | Authorization | Active member |
+| NV-07 | Community Usage: 利用範囲と権限 | Membershipを喪失したUser | Community Usageに再アクセス | Usageを継続閲覧できない | BE/E2E | Authorization | 失効membership |
+| NV-08 | Settings: Settings NavigationとURL state | /settings/usageのURL | reload・deep link・戻る／進む | URLに対応したsectionと選択状態を復元 | I/E2E | Interaction | URL遷移履歴 |
+| NV-09 | Community Usage: Navigation / IA | Community contextを表示 | Community navigationからUsageへ移動 | 対象CommunityのUsageへ到達しAccount MenuのPersonal Usage入口と混同しない | I/E2E | Interaction | Community navigation |
 
 ### Responsive・Accessibility・視覚状態
 
 | ID | 仕様参照 | Given | When | Then | 階層 | 観点 | Fixture・境界 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| UI-01 | C: Responsive | Wide / Medium / Compact | Usageを表示 | 容量と上限の関係、件数、全形式内訳がいずれも確認可能 | C | Accessibility/VRT | 通常データ・3幅 |
-| UI-02 | P: Settings Navigation / IA | WideとCompact | SettingsのUsageへ移動 | 両Navigation方式から同じURL・内容に到達 | I | Interaction/VRT | Wide / Compact |
-| UI-03 | P: Accessibility | LightとDarkのTheme | Usageを表示 | 重要情報・Action・状態とFocusの意味がThemeで失われない | C | Accessibility/VRT | 両Theme |
-| UI-04 | P: Accessibility | 色を識別できない利用者 | 内訳・使用率を確認 | 色のみに依存せず数値・文字から内容を理解できる | C | Accessibility | 複数形式・割合 |
+| UI-01 | Usage: Responsive / UI設計 | Wide / Medium / Compact | Usageを表示 | 容量と上限の関係、件数、全形式内訳がいずれも確認可能 | C | Accessibility/VRT | 通常データ・3幅 |
+| UI-02 | Settings: Settings Navigation / IA | WideとCompact | SettingsのUsageへ移動 | 両Navigation方式から同じURL・内容に到達 | I | Interaction/VRT | Wide / Compact |
+| UI-03 | Usage UI: Responsive・入力方式 | LightとDarkのTheme | Usageを表示 | 重要情報・Action・状態とFocusの意味がThemeで失われない | C | Accessibility/VRT | 両Theme |
+| UI-04 | Usage UI: Responsive・入力方式 | 色を識別できない利用者 | 内訳・使用率を確認 | 色のみに依存せず数値・文字から内容を理解できる | C | Accessibility | 複数形式・割合 |
 | UI-05 | Frontend UX・Design System | 操作可能なActionがある | Keyboardで操作・Focus移動 | 意味を持つ操作にアクセスできFocusを識別可能 | C | Accessibility/Interaction | Retryがある状態 |
-| UI-06 | P/C: Usage表示切替 | 容量モードでUsageを表示 | ページ見出しの「割合」を選択 | Storageの使用済み・空き容量と形式別内訳の最終列が割合に連動して切り替わり、容量上限と件数は維持 | C/I | Interaction/VRT | 複数形式・上限5 GB |
-| UI-07 | P/C: Usage表示切替 | 割合モードで形式別内訳を並べ替え済み | 「容量」へ戻す | 同じbyte数を基準にした並び順を維持し、見出し「使用量」を変えず最終列の値だけが容量に戻る | C | Interaction | 丸め後の割合が一致する形式 |
-| UI-08 | P/C: Usage表示切替 | Desktop / CompactのUsage | 見出しと切替を表示 | Tabler IconsのIconDatabaseとIconPercentageによる切替が見出し右側または見出し下に収まり、Tooltip・アクセシブルな名前・Keyboard操作・選択状態を識別できる | C | Accessibility/VRT | 2幅・Keyboard |
-| UI-09 | P/C: File format別内訳 | Originalが0件／読み込み中 | 形式別内訳を確認 | 3列の見出し・4形式の行・合計フッターを維持し、未確定値はSkeletonで隠す | C | Interaction/VRT | 確定0件・Loading |
-| UI-10 | P/C: 内訳ソート | 件数・使用量がすべて0、または複数形式で同値 | 件数・使用量を昇順・降順にする | 同値の形式は標準形式順を維持し、全0件では並び順が変わらない | Unit/C | Unit/Interaction | 4形式0件・同値混在 |
-| UI-12 | P/C: 内訳とStorageの表示順 | 形式内訳をAPI側の標準順以外で取得 | Usageを表示後に別列でソート | 内訳の初期表示はbyte使用量降順（同値は標準形式順）。Storageの色分けバーは常に使用量降順で、テーブルソートには連動せず、形式の色も不変 | Unit/C | Unit/Interaction | 形式順シャッフル・容量順位逆転・同値 |\n| UI-11 | P/C: 内訳ソート | 未ソートまたは特定列でソート中 | 同じ見出しを順次押す／別列を選ぶ | 初期表示は使用量降順を選択。使用量列の最初のクリックでソートなし・標準形式順へ戻り、以降は昇順→降順→ソートなしと循環。別列は昇順から開始 | Unit/C | Unit/Interaction | 3連続クリック・列変更 |
+| UI-06 | Usage: 表示モード / Usage UI: 切替 | 容量モードでUsageを表示 | ページ見出しの「割合」を選択 | Storageの使用済み・空き容量と形式別内訳の最終列が割合に連動して切り替わり、容量上限と件数は維持 | C/I | Interaction/VRT | 複数形式・上限5 GB |
+| UI-07 | Usage: 表示モード / Usage UI: 切替 | 割合モードで形式別内訳を並べ替え済み | 「容量」へ戻す | 同じbyte数を基準にした並び順を維持し、見出し「使用量」を変えず最終列の値だけが容量に戻る | C | Interaction | 丸め後の割合が一致する形式 |
+| UI-08 | Usage: 表示モード / Usage UI: 切替 | Desktop / CompactのUsage | 見出しと切替を表示 | Tabler IconsのIconDatabaseとIconPercentageによる切替が見出し右側または見出し下に収まり、Tooltip・アクセシブルな名前・Keyboard操作・選択状態を識別できる | C | Accessibility/VRT | 2幅・Keyboard |
+| UI-09 | Usage: 形式別内訳 | Originalが0件／読み込み中 | 形式別内訳を確認 | 3列の見出し・4形式の行・合計フッターを維持し、未確定値はSkeletonで隠す | C | Interaction/VRT | 確定0件・Loading |
+| UI-10 | Usage: 表示モードとソート | 件数・使用量がすべて0、または複数形式で同値 | 件数・使用量を昇順・降順にする | 同値の形式は標準形式順を維持し、全0件では並び順が変わらない | Unit/C | Unit/Interaction | 4形式0件・同値混在 |
+| UI-11 | Usage: 表示モードとソート | 未ソートまたは特定列でソート中 | 同じ見出しを順次押す／別列を選ぶ | 初期表示は使用量降順を選択。使用量列の最初のクリックでソートなし・標準形式順へ戻り、以降は昇順→降順→ソートなしと循環。別列は昇順から開始 | Unit/C | Unit/Interaction | 3連続クリック・列変更 |
+| UI-12 | Usage: ソート / Usage UI: Storage | 形式内訳をAPI側の標準順以外で取得 | Usageを表示後に別列でソート | 内訳の初期表示はbyte使用量降順（同値は標準形式順）。Storageの色分けバーは常に使用量降順で、テーブルソートには連動せず、形式の色も不変 | Unit/C | Unit/Interaction | 形式順シャッフル・容量順位逆転・同値 |
 
 ## VRT候補とViewport
 
@@ -131,7 +132,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 ## 未決定事項と検証範囲
 
-- 画面仕様で確定している3列構造・0件時の4形式・Loadingフッター・表示切替とソートの連動はUI-06〜09で検証する。特定のSkeleton寸法や固定色、実装固有のDOM構造など、画面仕様が定めない詳細は本書で固定しない。
+- 画面詳細仕様と画面UI設計で確定した3列構造・0件時の4形式・Loadingフッター・表示切替とソートの連動・初期使用量降順・Storage Barの表示順はUI-06〜12で検証する。特定のSkeleton寸法や固定色、実装固有のDOM構造など、画面仕様が定めない詳細は本書で固定しない。
 - Personal Usageの独立Destination化については既存の設計PR [#224](https://github.com/hazuki3417/memoria-design/pull/224) が存在する。現在の`develop`にあるSettings配下の仕様を本書の基準とし、変更が統合された際にNavigation関連ケースと参照を再照合する。PR本文のみを根拠に未統合仕様を確定しない。
 - APIの具体Operation・Error型、集計更新タイミングと実際の見た目は各所有正本で判断する。本書のFixtureから仕様を追加決定しない。
 
