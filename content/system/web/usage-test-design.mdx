@@ -10,7 +10,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 - **Usage機能仕様（P/C）**: [Usage：画面詳細仕様](/screens/usage) — Custodian別の集計・容量・形式・ソート・表示単位・取得状態。
 - **Usage UI設計（P/C）**: [Usage：画面UI設計](/screens/usage-ui-design) — 具体的な配置、3列表・色分けBar・Icon、状態の表現とResponsive。
-- **P**: [User Settings](/screens/user-settings#usage) — Personal Usageの入口、Settings Navigation。
+- **P**: [User Settings](/screens/user-settings) — Personal Usageの入口、Settings Navigation。
 - **C**: [Community Usage](/screens/community-usage) — Communityのscope・Navigation・閲覧権限。
 - [Application Information Architecture](/system/application-information-architecture) — Personal / Communityの入口・Context境界。
 - [Media処理と派生物](/media/processing)、[Media Upload](/screens/media-upload) — Original登録・確定とUpload側の制約。
@@ -113,6 +113,7 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 | UI-10 | Usage: 表示モードとソート | 件数・使用量がすべて0、または複数形式で同値 | 件数・使用量を昇順・降順にする | 同値の形式は標準形式順を維持し、全0件では並び順が変わらない | Unit/C | Unit/Interaction | 4形式0件・同値混在 |
 | UI-11 | Usage: 表示モードとソート | 未ソートまたは特定列でソート中 | 同じ見出しを順次押す／別列を選ぶ | 初期表示は使用量降順を選択。使用量列の最初のクリックでソートなし・標準形式順へ戻り、以降は昇順→降順→ソートなしと循環。別列は昇順から開始 | Unit/C | Unit/Interaction | 3連続クリック・列変更 |
 | UI-12 | Usage: ソート / Usage UI: Storage | 形式内訳をAPI側の標準順以外で取得 | Usageを表示後に別列でソート | 内訳の初期表示はbyte使用量降順（同値は標準形式順）。Storageの色分けバーは常に使用量降順で、テーブルソートには連動せず、形式の色も不変 | Unit/C | Unit/Interaction | 形式順シャッフル・容量順位逆転・同値 |
+| UI-13 | Usage UI: Interaction・Feedback / Responsive | Light / DarkでReadyとErrorを表示 | Keyboardで切替・ソート・再試行を操作 | Actionとfocusが識別可能で、ソート方向はアイコンに加えaria-sortでも把握でき、値や状態を色だけで伝えない | C | Accessibility/Interaction | 両Theme・Ready/Error |
 
 ## VRT候補とViewport
 
@@ -133,8 +134,12 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 ## 未決定事項と検証範囲
 
 - 画面詳細仕様と画面UI設計で確定した3列構造・0件時の4形式・Loadingフッター・表示切替とソートの連動・初期使用量降順・Storage Barの表示順はUI-06〜12で検証する。特定のSkeleton寸法や固定色、実装固有のDOM構造など、画面仕様が定めない詳細は本書で固定しない。
-- Personal Usageの独立Destination化については既存の設計PR [#224](https://github.com/hazuki3417/memoria-design/pull/224) が存在する。現在の`develop`にあるSettings配下の仕様を本書の基準とし、変更が統合された際にNavigation関連ケースと参照を再照合する。PR本文のみを根拠に未統合仕様を確定しない。
+- Personal Usageの採用routeは `/settings/usage` とし、過去の独立Destination案PR [#224](https://github.com/hazuki3417/memoria-design/pull/224) を現行の確定仕様として扱わない。
 - APIの具体Operation・Error型、集計更新タイミングと実際の見た目は各所有正本で判断する。本書のFixtureから仕様を追加決定しない。
+
+## developとの設計統合（2026-10-24）
+
+`develop` のテストマトリクスにあったSC / ST / FM / UN / SS / NV / UIケースを、共通Usage画面詳細仕様と3列UI設計へ照合した。develop側のSO-01〜04は本書のUI-10〜12、UI-13および既存のLoadingケースへ観点を統合し、重複するIDを追加しない。確定済み契約は初期使用量降順・標準形式順・列操作・Keyboard / aria-sort・Loading中の操作不可・同値と0件・scope間共通性として検証する。特定の実装テストの成功を意味しない。
 
 ## 実装との対応・課題
 
