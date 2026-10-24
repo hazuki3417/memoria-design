@@ -1,0 +1,79 @@
+# Usage：画面詳細仕様
+
+## 概要・目的
+
+Usageは、登録済みMedia Originalの容量・件数をCustodian単位で確認し、どの形式がストレージを多く消費しているか把握するための読み取り専用画面です。**Personal Usage**と**Community Usage**に共通する機能仕様を本書で定義します。画面固有の構成、表示・操作の具体表現は[Usage：画面UI設計](/screens/usage-ui-design)を正本とします。
+
+利用者がUsageからMediaの選択・一括削除・形式変換を実行することはできません。Upload時の入力条件や拒否条件は[Media Upload](/screens/media-upload)を参照します。
+
+## 対象・関連ユースケース
+
+- Personal: ACTIVE User本人がCustodianであるPersonal Mediaの保存状況を確認する。Account MenuからSettingsの「利用状況」（`/settings/usage`）へアクセスする。[User Settings](/screens/user-settings)と[Application Information Architecture](/system/application-information-architecture)を参照する。
+- Community: 現在のCommunityをCustodianとするOriginalの保存状況を確認する。ACTIVE Membershipを持つAdministrator / MemberがCommunityのNavigationから`/communities/[communityId]/usage`へアクセスする。[Community Usage](/screens/community-usage)を参照する。
+
+両者の集計・表示は共通ですが、**Custodianと閲覧権限と遷移元**は異なります。Personal OriginalをCommunityへ共有してもCustodianはUserのままであり、Personalにだけ計上します。Communityへ直接UploadしたCommunity CustodianのOriginalはCommunityにだけ計上します。別CommunityやPersonalの上限・使用量を合算しません。
+
+## 表示する情報と集計範囲
+
+### ストレージ利用量
+
+各Personal account／Communityに独立したInitial Releaseの上限 **5 GB（5,000,000,000 bytes）** を適用します。画面では現在適用される上限、使用済み容量、空き容量またはそれぞれの割合、およびOriginalの総登録件数を確認できます。
+
+容量と件数の計上対象は**登録が確定したCustodian所有のOriginal file**です。表示用Variant等の派生file、処理中間file、未登録・未確定Uploadは計上しません。Original登録後にVariant Processingが失敗した場合、確定済みOriginalの使用量・件数は変わりません。DB／APIの集計方式は画面仕様とは区別します。
+
+容量はUserのファイルサイズ単位Preferenceに従い、DecimalではKB / MB / GB、BinaryではKiB / MiB / GiB等に変換します。初期PreferenceはDecimalです。変換によって実際のbyte値や上限は変わりません。割合表示の分母は**現在のCustodianのストレージ上限**であり、形式別使用量の構成比ではありません。
+
+### 形式別内訳
+
+Originalの確定済みcanonical formatごとに**登録件数**と**Original byte数に基づく使用量**を表示します。申告MIMEやファイル拡張子では分類しません。利用者向け表示形式と拡張子の例は次のとおりです。
+
+| 表示分類 | 拡張子例 |
+| --- | --- |
+| JPEG | .jpg、.jpeg |
+| PNG | .png |
+| WebP | .webp |
+| HEIC / HEIF | .heic、.heif |
+
+同一formatの別名拡張子は統合し、HEIC・HEIFも一つの分類とします。**登録済みOriginalが0件でも4形式それぞれを0件・0 byteとして扱います。** 総登録件数と総使用量は内訳の合計に一致します。
+
+## 表示モードとソートの操作
+
+- ページ単位で「容量」または「割合」を切り替えます。初期は容量です。ストレージの使用済み・空き容量と形式別内訳の使用量に同時に反映され、件数、上限の実容量表示、ストレージの色分け・使用率は変更しません。
+- 切替状態はその画面の表示中に限って保持します。Preferencesへ保存せず、PersonalとCommunity間で同期しません。
+- 内訳は「形式」「登録件数」「使用量」でソートできます。初期状態は**実byte数に基づく使用量の降順**であり、初期から使用量列の降順が選択済みです。
+- 同じ列のソート操作は **昇順 → 降順 → ソートなし → 昇順** の順に循環します。初期の使用量降順から同じ列を最初に選択した場合は「ソートなし」になります。別列を選択した場合はその列の昇順から開始します。
+- 「ソートなし」では **JPEG → PNG → WebP → HEIC / HEIF** の標準形式順に戻ります。APIの配列順に依存しません。比較値が等しい形式も標準形式順を維持するため、全件0のときは件数・使用量ソートで順序が変わりません。
+- 容量／割合モードを切り替えてもソート状態を維持します。使用量は表示上の丸め値でなく実byte数で比較し、割合モードも同じ順序を使います。
+- Storageの形式別表示は**常に使用量降順**、同量なら標準形式順とします。テーブルの手動ソートには連動しません。各形式に対応する色は順位によらず一定です。
+
+具体的なアイコン、配置、列構成、色や状態の視覚表現は[画面UI設計](/screens/usage-ui-design)に定義します。
+
+## 画面の状態・取得失敗と復旧
+
+| 状態 | 成立条件・利用者への保証 |
+| --- | --- |
+| 取得中 | 値が未確定であることが分かり、仮の0件・0 byteを実値として提示しない。内訳ソートは操作不可 |
+| 取得成功・利用あり | Custodian固有の合計、上限、空き、形式別内訳、件数を確認できる |
+| 取得成功・0件 | 本当に0件・0 byteであると分かり、4形式の0件内訳を確認できる。取得中や取得失敗と区別する |
+| 上限到達 | 使用量と適用上限を確認でき、別scopeの空き容量を流用できるようには見せない |
+| 取得失敗 | 取得できなかったことを0件と区別して伝え、利用者は再試行できる |
+
+再試行は現在のCustodianのUsageの再取得に対して行い、別scopeへ切り替えて代替しません。読み込み中はソート等、確定した集計を前提とする操作を実行できません。
+
+## Navigation・権限
+
+Personal Usageは認証済みACTIVE User本人の情報を扱い、Settingsの他セクションとはURLで区別します。Community Usageは現在のCommunityを識別するrouteと結びつき、Community切替後は対象CommunityのUsageへ遷移します。Personalの入口はAccount Menu経由のSettings、Communityの入口はCommunity Navigationとし、混同しません。
+
+Communityの閲覧はACTIVE Membershipを持つAdministrator / Memberに許可し、Membershipを失ったUserへ継続して公開しません。認可の正本はAPI・Domainの関連設計であり、この画面は結果を表示します。
+
+## Responsive・入力方式で維持する機能
+
+Compact / Medium / Wideのすべてで、利用範囲、使用済み・空き・上限、総件数、4形式の内訳、容量／割合の切替、利用可能時のソート、取得失敗時の再試行を確認・操作できます。表示領域の都合で情報・操作を省略しません。Keyboardと支援技術でも選択状態・ソート方向・操作可能性を識別できるようにします。
+
+## 関連仕様
+
+- [Usage：画面UI設計](/screens/usage-ui-design) — ページ構成、表示状態、Interaction、色・Responsiveの具体表現
+- [User Settings](/screens/user-settings)、[Community Usage](/screens/community-usage) — 各画面への入口とscope固有の文脈
+- [Usageテストマトリクス](/system/web/usage-test-design) — 検証条件とテスト境界
+- [Media処理と派生物](/media/processing)、[Media Upload](/screens/media-upload) — Originalの確定とUpload側の制約
+- [Application Information Architecture](/system/application-information-architecture)、[Design System](/design-system)
