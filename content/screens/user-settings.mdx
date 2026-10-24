@@ -203,7 +203,7 @@ Personal accountのStorage上限は **5 GB**（5,000,000,000 bytes）です。�
 
 容量・件数に算入するのは、Media登録が確定したOriginal fileだけです。表示用Variant等の派生file、処理中間データ、未登録・未確定のUploadは含めません。Media登録後に派生fileのProcessingが失敗しても、登録済みOriginalは使用量・件数に含みます。
 
-容量表示はPreferencesのファイルサイズ単位に従います。Initial Releaseの初期設定はDecimalのため、通常はGB表記です。Binaryを選択した場合は同じbyte数をMiB / GiB等で表示し、上限の実体は5,000,000,000 bytesのままです。
+容量表示はPreferencesのファイルサイズ単位に従います。Initial Releaseの初期設定はDecimalのため、通常はGB表記です。Binaryを選択した場合は同じbyte数をMiB / GiB等で表示し、上限の実体は5,000,000,000 bytesのままです。ストレージの使用済み・空き容量・総容量は、サイズ値と割合が行をまたいで整列するように表示します。
 
 ### File format別内訳
 
@@ -217,6 +217,8 @@ Personal accountのStorage上限は **5 GB**（5,000,000,000 bytes）です。�
 | HEIC / HEIF | .heic、.heif |
 
 同じformatの別名拡張子は統合します。JPEGの.jpgと.jpegは一つのJPEG行に、.heicと.heifは一つのHEIC / HEIF行に集計します。format分類はfile extensionやClient申告MIMEではなく、Originalの実内容を検証して確定したcanonical formatを正本とします。表中の拡張子は利用者向けの表示例です。各行には登録済みOriginalの件数とOriginal byte数から導出した使用量を表示します。総件数・総使用量はformat別内訳の合計と一致します。
+
+形式別内訳は登録済みOriginalが0件の場合もJPEG、PNG、WebP、HEIC / HEIFの4行を常に表示し、各形式の登録件数・使用量・割合を0として示します。取得待機中は確定値の0と混同しないようSkeletonを使い、形式別内訳表の見出し・4行・合計フッターという構造を維持します。
 
 内訳はMediaの業務分類や操作対象ではなく、Personal Storage Usageの説明情報です。ここからMediaをformat別に一括削除・変換するActionは提供しません。
 
