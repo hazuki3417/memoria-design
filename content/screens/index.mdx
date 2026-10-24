@@ -4,13 +4,15 @@
 
 このdirectoryはMemoriaの画面単位のUI仕様を管理します。設計書本文・見出し・ページタイトルは日本語を基本とし、Media / Group / Tag / Custodian / GraphQL等のドメイン・技術上の正式名称やコード識別子は必要に応じて英語表記を維持します。Screen Specificationは、画面が満たすべき意味と振る舞いを定義し、具体的なReact / Mantine実装やpixel単位のlayoutは定義しません。
 
-Screen Specificationでは、必要なInformation、Action、State、Navigation上の意味、制約、Responsiveで維持すべきCapabilityを定義します。`Dialog` / `Drawer` / `Modal` / `Page` / `Sidebar` / `split view`等のpresentation、Component構成、配置、寸法、visual designは原則として固定しません。特定のpresentation自体がProduct要件として必要な場合だけ、その理由と要件を明示して例外的に定義します。
+Screen Specificationでは、必要なInformation、Action、State、Navigation上の意味、制約、Responsiveで維持すべきCapabilityを定義します。採用した具体的なpresentation、配置、操作感、視覚状態、Responsive設計は、画面仕様内の独立した節または関連するUI Design文書を正本として記述します。React ComponentやCSS等の実装方式を画面仕様として固定しません。
 
 UI設計全体の方針は[Frontend UI設計・開発方針](/system/frontend-ui-development)、設計書セットの構成と正本境界は[ドキュメント管理方針](/documentation-policy)、各Screen Specificationの章立て・必須情報・記載粒度は[設計書テンプレート](/design-document-templates#画面詳細仕様)を正本とします。
 
 ## 配置
 
 画面ごとに `content/screens/<screen-name>.mdx` を作成します。Nextra上ではProduct domainと利用者のFlowが追いやすい単位でseparatorを設け、同一Flowの画面は実際の確認順に並べます。URLを変える必要がない分類ではflatなfile配置を維持し、各分類が独立した案内や階層を必要とする規模になった場合にsubdirectoryへ移行します。
+
+UsageはPersonal／Communityで同じ画面の表示・操作を共有するため、[Usage：画面詳細仕様](/screens/usage)と[Usage：画面UI設計](/screens/usage-ui-design)を独立して配置しています。[User Settings](/screens/user-settings)と[Community Usage](/screens/community-usage)は各入口・scope固有のNavigationと権限の参照先です。
 
 各Screen Specificationは対応するProduct domainのUse Caseを明示的に参照します。Use Case、domain rule、共通Design System ruleをこのdirectoryへ複製しません。
 
