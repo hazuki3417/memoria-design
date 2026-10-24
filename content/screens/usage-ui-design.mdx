@@ -1,39 +1,78 @@
-# Usage — 画面UI設計
+# Usage：画面UI設計
 
-## 対象と共有UI
-Personal UsageとCommunity Usageの共通表示Componentを対象とする。画面詳細仕様のscope・計上規則は[Personal Usage](/screens/user-usage)と[Community Usage](/screens/community-usage)を正本とし、本書は可視情報、操作、状態、Responsive Behaviorを扱う。現行Webの `SettingsUsage`、`UsageStorageSection`、`UsageFormatBreakdownSection` を比較基準とする。
+## 概要・適用範囲
 
-## 画面構成
-1. Page Header「利用状況」。Personalでは「Personal Mediaの登録済みオリジナルファイルの使用状況を確認します。」、Communityでは「このCommunityが管理する登録済みオリジナルファイルの使用状況を確認します。」を表示。
-2. 「ストレージ」Section: 「使用済み」「空き容量」「総容量」をそれぞれbyteから換算した容量と割合で表示。format別色分けした使用率Progressを用いる。
-3. 「ファイル形式別内訳」Section: 「形式」「登録件数」「使用量」「割合」をTableで表示し、最終行に「合計」を表示。形式名の隣に識別用色を併記するが、色だけに意味を依存しない。割合は各formatの容量 ÷ scopeの総容量上限で計算する。
+[Usage：画面詳細仕様](/screens/usage)に定義されたPersonal Usage（Settings内）とCommunity Usageの共通画面を、具体的なUIとしてどのように提示するかを定義します。画面の対象、集計条件、権限、ソート・切替の意味、状態の成立条件は画面詳細仕様を正本とし、本書では重複して決定しません。
 
-## 並び順と操作
-- 利用者の主な目的は容量への寄与が大きい形式の把握であり、**初期表示は使用量の降順**とする（既存の対話で合意済みの意図）。比較に用いるのは表示丸め前の `sizeBytes`。
-- 現行UIでは「形式」「登録件数」「使用量」「割合」の各列見出しが並べ替えcontrolであり、昇順・降順を切り替える。選択列・方向を視覚と `aria-sort` で表す。
-- 同値の場合の順序、列切替後の最初の方向等は既存実装のbehavior contractを維持し、変更が必要なら別途合意する。
-- **実装差分**: 2026-10-24確認時点の `SettingsUsage` は `useState<UsageSort>(null)` のため初期表示が入力データ順となる。初期降順への修正は本書の編集とは別の実装・テスト作業として追跡する。
-- 各format行からMediaへの遷移、一括選択・削除・変換はできない。
+同じUsage表示UIを両scopeで使用し、ページ説明文と取得対象のみ文脈に応じて変えます。
 
-## 状態とFeedback
-| 状態 | UI |
+## UI構成・情報の優先順位
+
+1. ページ見出し「利用状況」とscopeを説明するDescriptionを置き、見出し右側に画面全体の容量／割合の表示切替を一つだけ配置します。
+2. 「ストレージ」セクションに「使用済み」「空き容量」の値、形式別の色分けProgress Bar、「容量上限」を表示します。容量上限は表示モードにかかわらず実容量値で固定します。
+3. 「ファイル形式別内訳」セクションに3列の表と合計フッターを置きます。形式別の行には形式と対応色のindicator、登録件数、選択中の使用量／割合を表示します。
+
+DescriptionはPersonalの場合「Personal Mediaの登録済みオリジナルファイルの使用状況を確認します。」、Communityの場合「このCommunityが管理する登録済みオリジナルファイルの使用状況を確認します。」を使用します。データのscopeとアクセス入口は[画面詳細仕様](/screens/usage)に従います。
+
+### 容量／割合の切替
+
+- ページ見出し右側で「表示」のラベルと二択のSegmented Controlを並べます。Media Browserのモード切替と同じ**xsサイズ**を採用します。
+- 容量側はTabler Iconsの `IconDatabase`、割合側は `IconPercentage` とし、両方のアイコンを15pxで揃えます。独自SVGや文字によるアイコン代用はしません。
+- それぞれに「容量で表示」「割合で表示」のTooltipとAccessible Nameを設け、選択中が背景等で識別できます。フォーカスとKeyboard操作を維持します。
+- 初期は容量側を選択し、Storageと内訳表の値が同時に変化します。両方の値を常時併記しません。選択によって件数、上限の実容量表示、Progress Barの意味や配色を変えません。
+
+### Storageの表現
+
+- セクションには「使用済み」「空き容量」「容量上限」の各ラベルと数値を配置します。容量モードではPreferenceで指定された単位、割合モードでは使用済み・空きだけを `%` 付きの数値で表示します。
+- 形式ごとのProgress Bar区間の順序は**使用量降順**（同量は標準形式順）で固定し、内訳テーブルの手動ソートとは独立させます。
+- 形式と色の対応は固定します。JPEGはblue、PNGはteal、WebPはviolet、HEIC / HEIFはorangeの系統です。特定のThemeのRGB値は固定しません。各形式の内訳表のindicatorも対応する色を使用します。
+- 色のみで意味を伝えず、内訳表の形式名・値と関連付けて確認できます。使用率と形式別内訳のAccessible Labelを設けます。
+
+### File format別内訳の表
+
+- 3列は「形式」「登録件数」「使用量」。表示切替でも最後の**列名は「使用量」のまま**とし、値のみ容量または割合へ切り替えます。
+- 形式は左揃え、件数と使用量は右揃え。各見出しはクリック・Keyboard操作で並べ替えられます。選択中列の昇順・降順と未ソートはTablerのソートアイコンと `aria-sort` で区別します。
+- 初期表示は使用量の降順で、最終列に降順の選択状態が表示されます。同じ列をクリックしてソートなしに戻した場合は標準形式順で表示します。操作の循環順は[画面詳細仕様](/screens/usage#表示モードとソートの操作)に従います。
+- 行は形式・件数・容量または割合を表示し、表の末尾に太めの境界線を挟んで「合計」フッターを置きます。合計には総件数と使用済み容量または割合を表示します。
+- 割合表示時、表の下に説明文「割合はストレージ上限に対する値です。」を常設しません。表示モードと `%` を付した値から判別できる構成とします。
+- 通常の内訳行にMediaの一括操作、削除、変換へのActionは表示しません。
+
+## 状態とUI表現
+
+| 状態 | 表現 |
 | --- | --- |
-| Ready | 取得値と使用済み・空き・総容量、Progress、Table、合計を表示 |
-| Empty | 0値を正しく表示し「登録済みのオリジナルファイルはありません」と表示 |
-| Loading | Section構造は保持し、容量LabelとProgressおよび内訳の4行×4列をSkeleton表示。未確定値を実値として出さず、sort controlはdisabled |
-| Error | 「利用状況を取得できませんでした」、通信状況を確認する説明、および提供されたRetry操作を表示。Emptyとは区別 |
-| 上限到達 | 使用率100%、空き容量0を表示し、他scopeの容量を利用できるような表現をしない |
+| 取得中 | 値の位置にSkeletonを配置し、表の見出し3列・形式行4行・合計フッターの構造を保持。ソート見出しは操作不可 |
+| 取得成功・利用あり | Storage値、色分けProgress Bar、形式別の4行と合計フッターを表示 |
+| 取得成功・0件 | 取得済みの実値「0」として表示。JPEG、PNG、WebP、HEIC / HEIFの4行を省略しない |
+| 上限到達 | 上限と使用済みをそのまま提示し、空き容量は0であると分かる表示 |
+| 取得失敗 | 取得失敗を伝えるError表示と「再試行」ボタンを必ず配置する。確定0件とは区別する |
 
-## Responsive / Accessibility
-- Wide / Medium / Compactの全幅で容量・上限・件数・形式別内訳へのアクセスを維持する。狭い幅を理由に列情報や機能を削除しない。
-- Personal / CommunityでComponentのCapability・レイアウトを不必要に変えず、Page Headerの説明と渡されるscope dataだけを変更する。
-- Light / Dark双方で数値、Text、Action、Focusの意味を維持し、semantic colorとAccessible Labelを併用する。
-- ErrorのRetryとsortはkeyboardで操作可能とし、Loading / Empty / Errorの区別は非色情報で伝える。
+取得失敗の具体文言は「利用状況を取得できませんでした」「通信状況を確認して、もう一度お試しください。」を用い、再試行Actionは「再試行」とします。失敗とLoadingの条件は[画面詳細仕様](/screens/usage#画面の状態取得失敗と復旧)に従います。
 
-## Visual Regression確認
-Ready、Empty、Loading、Error/Retry、上限到達をDesktop / Mobile中心に比較する。Mediumでは機能欠落を確認し、独立VRTは視覚的リスクに応じて選定する。VRT BaselineはVisual Reviewで承認してから確定する。
+## Interaction・Feedback
 
-## 関連資料
-- [Personal Usage 画面詳細仕様](/screens/user-usage)
-- [Community Usage](/screens/community-usage)
-- [Usage テストマトリクス](/system/web/usage-test-design)
+- 容量／割合の切替はページ共通で即座に表示値を変更します。表のソート方向と行順は切替時に維持し、切替対象外の上限・件数を消しません。
+- 表のソート見出しは昇順・降順・ソートなしの3状態を視覚的に示します。初期は使用量降順を選択済みとします。
+- Loading中のソートは無効化します。取得失敗中の画面には誤った集計表を提示しません。
+- Tooltipの存在を前提とせず、支援技術にはラベルと状態を伝えます。Keyboardから切替とソート、再試行に到達できることを維持します。
+
+## Responsive・入力方式
+
+Wideではページ見出しと表示切替を横方向に配置します。**Compactでは切替を見出しの下へ折り返す**ことを許容し、ラベルとコントロールが分離しないようにします。Storageの情報・上限・形式別内訳・合計・操作は画面幅を理由に省略しません。
+
+内訳テーブルの意味的な列とソート操作はCompactでも保持します。採用した具体的な固定Breakpointや内部CSS値は画面契約として新規に推測・固定せず、実装上のResponsive動作を基準に回帰を確認します。
+
+## 設計判断・制約
+
+- 切替はセクションごとに独立させず、ページ全体に一つ置きます。表示を簡潔に保ちながら、容量と割合の両方へアクセスできるようにするためです。
+- Storageは容量の主要因を把握しやすいよう使用量降順で表示し、テーブルの手動ソートとは連動させません。順位が変化しても形式色は維持します。
+- テーブルは「使用量」の見出しを固定して3列に収めます。容量と割合を別列として常時併記しません。
+- 同値の並び順・初期降順・ソートなしの標準形式順については[画面詳細仕様](/screens/usage#表示モードとソートの操作)を正本とします。
+- 画面固有のアイコン・色・配置は本書の採用UIを維持し、アイコン一般の採用原則は[Design System](/design-system)に従います。
+
+## 関連仕様
+
+- [Usage：画面詳細仕様](/screens/usage)
+- [User Settings](/screens/user-settings)、[Community Usage](/screens/community-usage)
+- [Usageテストマトリクス](/system/web/usage-test-design)
+- [Design System](/design-system)、[Frontend UI設計・開発方針](/system/frontend-ui-development)

@@ -4,7 +4,7 @@
 
 User Settingsは、現在のPersonal / Community contextに依存しないUser本人の設定を扱う画面です。
 
-Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界とPreferencesを定義します。Usageの詳細は独立した画面仕様を正本とします。
+Application ShellのAccount Menuから到達し、既存のApplication Information Architectureに従ってProfile、Preferences、Usage、AccountをSettings配下の意味的な領域として扱います。本ページではSettings全体の境界とPreferencesを定義し、Usageの詳細は独立した画面詳細仕様と画面UI設計へ接続します。
 
 ## Information Architecture
 
@@ -23,7 +23,7 @@ Settingsは次の領域を持ちます。
 
 - **Profile**: User Profileを確認・変更する。Initial Releaseではnicknameを扱う。詳細は[設定：プロフィール](/screens/user-settings-profile)を正本とする。
 - **Preferences**: UserがApplicationの利用体験を調整する設定を扱う。Initial ReleaseではTheme、Personal Accent Color、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示を提供する。Language / LocaleとTimezoneは将来拡張できる境界を持つが、Initial Releaseでは選択UIを提供しない。
-- **Usage**: User本人がCustodianであるPersonal Mediaの利用状況を確認する。Initial Releaseではアカウント用5 GB上限、オリジナルfileのStorage Usage、file format別内訳、登録済みオリジナル件数を提供する。Community管理Mediaの使用量は含めず、各Community contextのUsageから確認する。詳細は[Usage 画面詳細仕様](/screens/user-usage)を正本とする。
+- **Usage**: User本人がCustodianであるPersonal Mediaの利用状況を確認する。詳細は[Usage：画面詳細仕様](/screens/usage)と[画面UI設計](/screens/usage-ui-design)を参照し、Community Usageとは集計scopeを分離する。
 - **Account**: account lifecycleに関する操作を扱う。account削除は[Account Deletion Flow](/screens/account-deletion-flow)を正本とする。
 
 SettingsはCommunity管理設定とは分離します。Community contextを利用中でもPersonal contextへ切り替えずAccount Menuから直接到達でき、Settings内の値は現在のCommunityによって変化しません。
@@ -189,7 +189,13 @@ Detailを開いたままviewportが変化した場合は、breakpointを跨ぐ�
 
 ## Usage
 
-Personal Usageの製品仕様は[Usage 画面詳細仕様](/screens/user-usage)を、表示と操作のUI契約は[Usage 画面UI設計](/screens/usage-ui-design)を正本とします。Personal / Community間で共有するUsage UIの差異は各仕様に従います。
+Settingsの「利用状況」（`/settings/usage`）は、ACTIVE User本人をCustodianとするPersonal Originalの使用量・形式別内訳を確認する独立した画面です。CommunityをCustodianとするMediaは含みません。Account MenuからSettingsへ到達するNavigationと、Settings共通のsection切替は本書が所有します。
+
+- [Usage：画面詳細仕様](/screens/usage) — Personal / Communityの集計scope、表示情報、状態、操作、表示順、取得失敗と復旧の共通仕様。
+- [Usage：画面UI設計](/screens/usage-ui-design) — Storageの色分け、形式別テーブル、ページ共通の容量／割合切替、Responsive、表示状態の採用UI。
+- [Usageテストマトリクス](/system/web/usage-test-design) — 仕様から導く検証条件。
+
+Community Usageは[Community Usage](/screens/community-usage)を入口とし、集計はPersonalと独立します。
 
 ## Accessibility / Design System
 
