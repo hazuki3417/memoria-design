@@ -120,9 +120,17 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 上記はVRT候補であり、撮影の必要性・重複削減・具体的な採用UIのBaselineはVisual Reviewで確定する。現段階でStoryへの`vrt`タグ付与やBaseline採用を要求しない。Medium幅のCapabilityはUI-01で検証し、独立VRTは幅固有の視覚リスクが確認された場合に選ぶ。Light / Darkは意味・Contrastの検証を行い、別Baselineの必要性を視覚リスクで判断する。
 
+## 初期並び順の回帰テスト追加候補（2026-10-24確認）
+
+- **SO-01（未実装・要追跡）**: format別内訳が取得済みでsizeBytesに大小差があるとき、初期表示がsizeBytesの降順（使用量の大きい順）になり、選択列が「使用量」降順として認識できる。比較には丸め済みLabelを使わない。
+- **SO-02（既存動作の継続確認）**: 列見出しの操作で形式・登録件数・使用量・割合を昇順・降順で並べ替え、sort方向・aria-sortが一致する。Loadingでは操作できない。
+- **SO-03（境界条件）**: 使用量同値、四捨五入後Labelだけ同値、0件、scope切替、Personal / Community共通Consumerで順序が正しく維持される。
+
+SO-01の合意済み目的に対し現行Webの初期sort stateはnullで、入力順のままである。**本追記はテスト実装・テスト成功を意味しない**。Web側修正後にStory / Unit / Interactionを追加し、実行結果とともにcoverageを更新する。
+
 ## 未決定事項と検証範囲
 
-- 形式別内訳の並べ替え、特定の`aria-sort`変化、Skeleton行数、固定色、0件の具体的なTable構造は、現行Screen Specificationの確定要件として本書に加えない。既存実装の回帰を防ぐ必要があるかは、実装調査と採用UI設計を別途照合する。
+- 形式別内訳の初期使用量降順は合意済みの設計意図として[Usage 画面UI設計](/screens/usage-ui-design)に記述した。その他の細かなTable構造とVisual Baselineは現行UI契約とVisual Reviewを照合する。
 - Personal Usageの独立Destination化については既存の設計PR [#224](https://github.com/hazuki3417/memoria-design/pull/224) が存在する。現在の`develop`にあるSettings配下の仕様を本書の基準とし、変更が統合された際にNavigation関連ケースと参照を再照合する。PR本文のみを根拠に未統合仕様を確定しない。
 - APIの具体Operation・Error型、集計更新タイミングと実際の見た目は各所有正本で判断する。本書のFixtureから仕様を追加決定しない。
 
