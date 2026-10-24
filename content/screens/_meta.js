@@ -18,6 +18,7 @@ export default {
   "community-invitation-acceptance": "Community招待の受諾",
   "community-members": "Community参加者",
   "community-management": "Community管理",
+  "community-usage": "Community Usage",
   "community-deletion-confirmation": "Community削除確認",
   "-- Media": {"type":"separator","title":"Media・Group"},
   "personal-media": "Personal Media",
