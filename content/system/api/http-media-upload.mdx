@@ -54,6 +54,20 @@ S3 Original PUT成功後のDB失敗と補償DELETEはMedia consistency正本に�
 
 network failureやresponse喪失時は同じfile commandへ同じ`Idempotency-Key`を再利用します。Userが明示的に再度uploadを開始した場合は新しいkeyを生成します。複数file uploadはfileごとに独立key / requestとし、一部失敗を他fileのrollback理由にしません。
 
+
+## Schema-first契約とコード生成
+
+HTTP Uploadの機械可読なI/Fの正本は `memoria-api/schemas/openapi/media-upload.yaml` (OpenAPI 3.0.3) とします。本ページは振る舞い・設計理由の正本であり、リクエストフィールド・レスポンス構造・HTTP statusなどはOpenAPIと一致させます。差分が生じた場合は黙って片方を優先せず、設計レビューで解消します。
+
+- BackendはOpenAPIからGoのHTTP型・Handler interface・ルーティング用コードを生成し、手書きAdapterが共通Application Use Caseへ委譲します。
+- Frontendは同じOpenAPIからTypeScriptのHTTP Clientと型を生成し、手書きのUpload orchestrationは生成Clientを利用します。
+- GraphQLのSchema/gqlgen生成物とは独立した出力ディレクトリに配置し、同じmemoria-apiプロセス内で共存させます。
+- 生成物を直接編集しません。生成コマンドをリポジトリへ保存し、再生成・差分検出をCIに組み込みます。
+- multipart binaryを128 MiB上限内でstream処理できること、およびBFF経由の認証・Idempotency-Key中継を維持することを生成結果で検証します。
+- 生成Clientが担当しないUI状態・複数fileの同時実行制御・曖昧な失敗の再試行判断は手書きのApplication/Presentation側へ残します。
+
+OpenAPIはGraphQLに置き換わるものではありません。GraphQLのQuery/Mutationは従来どおりgqlgenを利用します。GraphQL multipart UploadはInitial Releaseでは引き続き対象外です。
+
 ## 対象外
 
 GraphQL multipart Upload、1 request複数Media、direct browser-to-S3、resumable / chunk upload、video固有transportはInitial Release対象外です。
