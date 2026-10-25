@@ -4,7 +4,7 @@
 
 ## 概要
 
-> 実装状況: 現在は画像用のthumbnail・previewを扱っています。共通の幅別Variant、Processing Job、Outboxによる非同期処理への統一は未実装です。
+> 実装状況: 幅別Variant生成、Processing Job、Outbox、Media Workerを実装中です。各処理の接続は進んでいますが、ビルド・統合検証は未完了です。
 
 Originalは利用者がアップロードした画像・動画そのものです。表示用の派生物を生成してもOriginalを変更せず、管理主体や公開範囲を保存パスへ含めません。PDF、Office文書、音声単体は対象外です。
 
@@ -37,20 +37,20 @@ Mediaは画像と動画を共通に表す概念です。Image・Videoが種別�
 | 800px | 320px、640px、800px |
 | 2400px | 320px、640px、960px、1280px、1920px |
 
-Initial ReleaseでUploadを受け付けるOriginal形式はJPEG、PNG、WebP、HEIC / HEIFとします。AVIFはInitial Releaseの入力形式には含めません。
+Initial ReleaseでUploadを受け付けるOriginal形式は**JPEG、PNG、WebP**です。**HEIC / HEIFは初回リリースの受理対象から延期**し、対応可否を別課題で管理します。AVIFもInitial Releaseの入力形式には含めません。
 
-拡張子やClient申告MIME / HTTP Content-Typeを形式判定の正本にしません。Server側で実fileのsignature / containerを解析し、許可形式として識別でき、かつ画像としてdecode可能であることを受理条件とします。HEIC / HEIFを含めOriginalは無加工で保持し、表示用には他形式と同じWebP Variant集合を生成します。
+拡張子やClient申告MIME / HTTP Content-Typeを形式判定の正本にしません。Server側で実fileのsignature / containerを解析し、許可形式として識別でき、かつ画像としてdecode可能であることを受理条件とします。受理したOriginalは無加工で保持し、表示用には他形式と同じWebP Variant集合を生成します。
 
 file extensionやClient申告MIMEはClient側の早期Feedbackや補助情報に利用できますが、それらと実file内容が一致しないことだけを理由に拒否しません。実内容が許可形式として正常なら受理でき、反対にextensionや申告MIMEが許可形式を示していても実内容が未許可形式・不正container・decode不能なら拒否します。
 
-Mediaへ保存する`mime_type`はClient申告値ではなくServerが実内容を検証して確定したcanonical MIMEとします。Original file nameはUserが選択した元file名として保持し、実形式に合わせる目的でextensionを書き換えません。HEIC / HEIFというProduct上の入力形式と、container / profileから確定するcanonical MIMEの技術的識別は分離します。
+Mediaへ保存する`mime_type`はClient申告値ではなくServerが実内容を検証して確定したcanonical MIMEとします。Original file nameはUserが選択した元file名として保持し、実形式に合わせる目的でextensionを書き換えません。将来HEIC / HEIFを導入する場合、Product上の受理形式とcontainer / profileから確定するcanonical MIMEの識別を分離します。
 
 ### canonical MIMEの確定・保存契約（Usageとの共通境界）
 
 - **Upload Serverの必須責務**: Client申告のMIME、HTTP Content-Type、file extensionに依存せず、受信したOriginalの実byte列からsignature / containerを解析し、対応形式であることとdecode可能性を検証した上で、検証結果に対応するcanonical MIMEを確定する。Client申告値をそのまま `media.mime_type` へ保存してはならない。
 - **保存の必須条件**: Originalの永続登録時には、検証済みcanonical MIMEを `media.media.mime_type` へ、Original実byte数を `media.media.file_size` へ保存する。Media / Custody / Processing Job等の登録transactionが成功した時点で両値が確定していることを保証する。未検証・未確定・未対応・decode不能なOriginalは登録成功にしてはならない。Variant Processingの成功を待ってcanonical MIMEを確定する実装にはしない。
 - **責務の所在**: canonical MIMEの検証・確定はUpload側の責務である。Usage側で実ファイルを再取得・再検証したり、拡張子・申告MIMEで推測・補正したりしない。Upload実装では必ず検証結果をMedia登録へ受け渡し、DB保存まで結線する（将来のUpload実装で省略しない）。
-- **形式分類**: Usageは保存済み `media.mime_type`（canonical MIME）から `OriginalImageFormat`（`JPEG` / `PNG` / `WEBP` / `HEIF`）へ導出する。専用のcanonical formatカラムは追加しない。JPEGは `image/jpeg`、PNGは `image/png`、WebPは `image/webp`、HEIF familyは実内容検証で受理したHEIC / HEIFのcanonical MIMEを同一 `HEIF` に集約する。具体的に受理するHEIF familyのMIME集合はUploadの形式検証で確定させ、Usage独自に受理対象を増やさない。
+- **形式分類**: Usageは保存済み `media.mime_type`（canonical MIME）から `OriginalImageFormat` へ導出する。初回リリースの新規受理形式は `JPEG` / `PNG` / `WEBP` に限り、互換性のため `HEIF` がenumに存在する場合でもUpload受理を意味しない。専用のcanonical formatカラムは追加しない。JPEGは `image/jpeg`、PNGは `image/png`、WebPは `image/webp`、将来HEIF familyを受理する際は実内容検証で確認したcanonical MIMEを `HEIF` に集約し、具体的なMIME集合をUploadの形式検証で確定させる。Usage独自に受理対象を増やさない。
 - **未知・不整合データ**: 登録済みACTIVE OriginalにUsage分類不能なMIMEがある場合は、黙って除外、0件扱い、拡張子へのfallbackを行わない。総計とformat別内訳の一致を保てない集計結果を成功として返さず、データ不整合として検知・調査できるようにする。将来の受理形式追加時にはUploadのcanonical MIME契約・Usage分類・GraphQL enumを整合させる。
 - **境界の確認**: Upload実装時のレビューでは「実byte検証 → canonical MIMEの確定 → DB保存」および「未検証Originalの登録拒否」を必須確認項目とする。Backendの自動テスト導入は全体のテスト方針が定まるまで本変更の必須条件としない。
 
@@ -58,6 +58,14 @@ Mediaへ保存する`mime_type`はClient申告値ではなくServerが実内容�
 Originalの向き、透過情報、decode可能性、file signature、画素数などを静止画像処理で検証します。変換できない形式を正常完了として扱いません。Upload受付時に確定できる不正入力と、受付後の非同期処理でのみ判明する処理失敗は区別します。
 
 Initial Releaseでは1 Originalあたりのfile size上限を128 MiBとします。この値はProduct上限であり、Client、GraphQL/API、HTTP server、reverse proxy等の実装上限は128 MiBの有効な画像を拒否しないよう整合させます。file sizeだけではdecode後のresource使用量を制限できないため、画像安全上限を独立して適用します。Initial Releaseでは1画像あたりの総pixel数を100 megapixels（100,000,000 pixels）以下とします。width / heightはそれぞれ32,768 pixels以下とします。総pixel数上限とは独立して適用し、総pixel数が100 MP以下でも極端に縦長・横長な画像は拒否します。
+
+## EXIF OrientationとVariant幅の整合
+
+JPEGのEXIF Orientation（1〜8）を表示用pixelへ反映してからWebP Variantを生成します。Original byte列とEXIF自体は改変しません。90度・270度回転の場合は**補正後の幅**をVariant生成幅の基準とします。
+
+- publicationではGeneratorから補正後の幅・高さを渡し、保存済みOriginal寸法と同値または縦横反転であることを照合します。
+- 320 / 640 / 960 / 1280 / 1920pxのうち補正後の幅以下の候補を生成し、1920px以下なら補正後Original幅も含めます。拡大はしません。
+- terminal Jobのcleanupは縦横入替時に生成し得る幅も候補とし、公開中のStorage keyを除外します。
 
 ## 処理単位
 
