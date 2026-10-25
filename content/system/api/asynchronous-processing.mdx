@@ -33,6 +33,16 @@ Initial Releaseの画像WebPエンコードは成熟した `libwebp` をCGOか�
 - Worker専用イメージのbuildとlibwebpの実行検証、セキュリティ更新を運用要件とします。CGOやlibwebpの導入を理由にWorkerのRedis ownershipやpublicationの整合性契約を変更しません。
 - 実装途中に設けるエンコード確認用CLI・Compose profileは検証専用であり、Redis配送・DB publicationを行う本番Workerの完成を意味しません。
 
+## Publication保護区間（実装中）
+
+Redis PELの所有権確認とPostgreSQL COMMITの間に生じる競合を防ぐため、Jobのpublication中にはRedis上でmessage固有の短期保護区間を取得する。保護区間はRedisの実行ownershipに付随する一時制御であり、PostgreSQLにWorker leaseを追加しない。
+
+- 保護区間の取得はRedis LuaによってPELの現在ownerを照合してから行い、成功したWorkerに一意なtokenを発行する。
+- reclaimは保護区間を確認する同一Redis原子操作内でのみownershipを移譲し、保護区間が有効なら移譲しない。Redisの素の`XAUTOCLAIM`をこの経路で使い続けない。
+- publicationは保護区間取得後に短いDB transactionを実行し、確定後にtoken照合付きで保護区間を解放する。保護区間保持中の長時間のStorage I/Oは禁止する。
+- Worker crashに備え保護区間は期限付きとする。ただしTTL満了とPostgreSQL COMMITの境界をまたぐ安全性はRedis単体では保証できない。DB transaction timeout、期限の残量検証、保護区間切れ時の運用手順を含めて厳密なfencingを完成させるまではproduction-readyとはみなさない。
+- Redis再起動・data loss時は既存のstop/fence確認を要するrecovery契約を優先する。
+
 ## Redis Streamの分割
 
 初期構成は`media-processing`という1つのStreamを使用します。Consumer Group名は`media-workers`とし、Consumer名はWorker processごとの一意なruntime identityを使用します。画像・動画の種別やMIME typeごとにStreamやConsumer Groupを増やさず、Worker内で必要なPipelineを選択します。
