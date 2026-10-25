@@ -23,6 +23,16 @@ flowchart TD
 
 APIは業務dataとOutbox eventを同じPostgreSQL transactionへ保存します。Publisherが未送信eventを取得して`XADD`し、WorkerがConsumer Groupからeventを受け取ります。
 
+## 画像WebPエンコーダーの実行環境
+
+Initial Releaseの画像WebPエンコードは成熟した `libwebp` をCGOから利用します。ネイティブ依存をAPI受付プロセスへ持ち込まないため、**Media Worker専用のDockerイメージ**で `libwebp` と必要なruntimeライブラリを提供します。APIとOutbox Publisherは従来のGo実行環境を維持します。
+
+- `memoria-api` の `mediaworker` ビルドタグでWorker専用CGOコードを分離し、既存APIの通常ビルドを変更しません。
+- Workerの処理単位は従来どおり1 Media / 1 Jobであり、独立したWorker process内にdecode、orientation補正、resize、WebP encodeをまとめます。WebP encoderの採用はStreamの分割やStep別processの導入を意味しません。
+- 生成WebPへEXIF/GPS等のOriginal metadataを引き継がず、Originalそのものは変更しません。
+- Worker専用イメージのbuildとlibwebpの実行検証、セキュリティ更新を運用要件とします。CGOやlibwebpの導入を理由にWorkerのRedis ownershipやpublicationの整合性契約を変更しません。
+- 実装途中に設けるエンコード確認用CLI・Compose profileは検証専用であり、Redis配送・DB publicationを行う本番Workerの完成を意味しません。
+
 ## Redis Streamの分割
 
 初期構成は`media-processing`という1つのStreamを使用します。Consumer Group名は`media-workers`とし、Consumer名はWorker processごとの一意なruntime identityを使用します。画像・動画の種別やMIME typeごとにStreamやConsumer Groupを増やさず、Worker内で必要なPipelineを選択します。
