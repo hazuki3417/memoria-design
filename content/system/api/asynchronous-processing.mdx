@@ -4,7 +4,7 @@
 
 ## 概要
 
-> 実装状況: Redis Streams、Media Worker、Outbox Publisher、画像・動画の非同期Pipelineは未実装です。
+> 実装状況: Redis Streams、Outbox Publisher、画像用Media Worker、WebP Pipeline、Storage DELETE Workerのコードを実装中です。動画Pipelineは未実装です。ビルド・統合検証が未完了のため、リリース可能な状態を意味しません。
 
 Mediaの派生file生成は、GraphQL APIのrequest処理から分離し、Redis Streamsを通じてMedia Workerへ委譲します。API、Worker、Outbox Publisherは`memoria-api`で管理し、実行processとDeploymentを分けます。
 
@@ -33,15 +33,29 @@ Initial Releaseの画像WebPエンコードは成熟した `libwebp` をCGOか�
 - Worker専用イメージのbuildとlibwebpの実行検証、セキュリティ更新を運用要件とします。CGOやlibwebpの導入を理由にWorkerのRedis ownershipやpublicationの整合性契約を変更しません。
 - 実装途中に設けるエンコード確認用CLI・Compose profileは検証専用であり、Redis配送・DB publicationを行う本番Workerの完成を意味しません。
 
-## Publication保護区間（実装中）
+## Publication保護区間（既知リスクを伴う初期実装）
 
 Redis PELの所有権確認とPostgreSQL COMMITの間に生じる競合を防ぐため、Jobのpublication中にはRedis上でmessage固有の短期保護区間を取得する。保護区間はRedisの実行ownershipに付随する一時制御であり、PostgreSQLにWorker leaseを追加しない。
 
 - 保護区間の取得はRedis LuaによってPELの現在ownerを照合してから行い、成功したWorkerに一意なtokenを発行する。
 - reclaimは保護区間を確認する同一Redis原子操作内でのみownershipを移譲し、保護区間が有効なら移譲しない。Redisの素の`XAUTOCLAIM`をこの経路で使い続けない。
 - publicationは保護区間取得後に短いDB transactionを実行し、確定後にtoken照合付きで保護区間を解放する。保護区間保持中の長時間のStorage I/Oは禁止する。
-- Worker crashに備え保護区間は期限付きとする。ただしTTL満了とPostgreSQL COMMITの境界をまたぐ安全性はRedis単体では保証できない。DB transaction timeout、期限の残量検証、保護区間切れ時の運用手順を含めて厳密なfencingを完成させるまではproduction-readyとはみなさない。
+- Worker crashに備え保護区間は期限付きとする。現在の初期値は保護区間60秒、publication context timeout 20秒です。ただしTTL満了とPostgreSQL COMMITの境界をまたぐ安全性はRedis単体では保証できません。保護区間を使わない外部のreclaim操作でも回避され得るため、操作主体をWorkerへ限定します。残存リスクはIssueで管理し、初回リリース可否はビルド・統合検証と障害時復旧能力を確認した上で判断します。
 - Redis再起動・data loss時は既存のstop/fence確認を要するrecovery契約を優先する。
+
+### 実装上のRedis/DB整合条件
+
+- WorkerはPEL ownerをJob開始前に確認し、生成済みVariant集合のpublication前にも再確認します。DB publicationはMedia→Jobの順に行ロックを取得し、Processing Jobの`attempts` がWorkerの実行世代と一致することを検証します。
+- publication gateはRedis LuaでPEL ownerを検査し、message固有keyにtoken付きで60秒保持します。通常のreclaimはPending候補の取得後、gateの不存在と5分idle条件を同一Lua操作内で再確認して`XCLAIM`します。`XAUTOCLAIM`を直接呼ぶ外部consumerはこの保護契約を破ります。
+- S3へすべてのVariantを保存した後にだけgateを取得し、PostgreSQL transactionの確定・Rollback後にtoken照合で解放します。Redis ACKもPEL owner照合付きLuaで行い、旧ownerによるACKを拒否します。
+- これらは通常経路の競合を抑制しますが、Redis TTLとDB commitは共通transactionではありません。厳密なfencingを保証したものとは扱わず、重大な影響・復旧不能がないことを統合検証で確認します。稀な境界競合は既知リスクとして追跡します。
+
+### Storage cleanupと回復
+
+- Variant keyは`media/{mediaId}/variants/{jobId}/{width}.webp` とし、DBの`image_variants`だけを公開中集合の正本とします。新集合とJob完了状態の切替Transactionで、旧公開keyのStorage DELETE operationも同時に記録します。S3のDELETE I/OはDB transaction外で実施します。
+- Storage DELETE WorkerはPostgreSQLの`media_storage_operations`を`FOR UPDATE SKIP LOCKED`でclaimし、初期30秒lease・20秒S3 timeoutで処理します。失敗は次回実行時刻を設定して永続的にretryし、削除済みか不明な場合も安全な冪等DELETEを前提とします。
+- terminal Jobの未公開keyは公開参照を確認して削除要求を記録し、初期10分の猶予を設けます。PUT成功応答消失やWorker crashで記録自体が欠落する場合は、別途定義した定期orphan reconciliationが安全網です。単なるterminal cleanupを完全なreconciliationの代わりとはみなしません。
+- 現状の実装途中のコードと、仕様として要求する定期reconciliation・恒久失敗のFAILED確定などは区別し、未接続の経路を完了扱いにしません。
 
 ## Redis Streamの分割
 
