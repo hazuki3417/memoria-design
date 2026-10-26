@@ -1,7 +1,6 @@
 export default {
   "index": "画面仕様",
   "-- User": {"type":"separator","title":"User"},
-  "user-registration": "User登録",
   "user-settings": "User設定：全体",
   "user-settings-ui-design": "User設定：共通UI",
   "user-settings-profile": "設定：プロフィール",
@@ -12,6 +11,9 @@ export default {
   "user-settings-preferences-ui-design": "環境設定UI",
   "usage": "Usage：画面詳細仕様",
   "usage-ui-design": "Usage：画面UI設計",
+  "-- Account": {"type":"separator","title":"アカウント"},
+  "account-registration": "アカウント登録",
+  "account-registration-ui-design": "アカウント登録UI",
   "-- Account Deletion": {"type":"separator","title":"アカウント削除"},
   "account-deletion-flow": "フロー概要",
   "account-deletion-impact": "1. 影響確認",

@@ -1,0 +1,43 @@
+# アカウント登録：UI設計
+
+## 概要・適用範囲
+
+`/register` の登録フォーム・通知・終了確認Dialogの採用UIを定義します。認証・登録の成立条件、結果未確定時の再照合、遷移先などのProduct Contractは[アカウント登録](/screens/account-registration)を正本とします。Domain EntityのUserと利用者のAccount登録操作は区別します。
+
+## UI構成・情報の優先順位
+
+- 共通Application Headerを伴う専用の登録画面を表示し、通常のApplication Navigationは表示しません。
+- 本文は中央寄せの読みやすい幅に収め、上から「Memoriaへようこそ」の見出し、「Memoriaで使用するプロフィールを設定して、登録を完了してください。」の説明、「基本情報」のSectionを縦に配置します。
+- 「基本情報」では「ニックネーム」と「Memoria内で表示される名前です。」の説明を持つ入力欄を置き、その下に左から主Action「登録」、副Action「終了」を横並びに配置します。Profile変更画面と同じく編集開始モードや別の保存用画面を設けません。
+- 入力欄の下にはField Errorの表示スペースを確保し、その下のActionとFeedbackの配置が入力検証によって大きく動かないようにします。Actionの下には継続不能・終了済み等のページ内Feedback領域を確保します。
+
+## 状態別の表示
+
+| 状態 | UI表現 |
+| --- | --- |
+| 登録可能 | nicknameを入力欄に表示し、有効な値なら「登録」を押せる。入力値が初期値から未変更でも登録可能 |
+| 未入力・空白のみ | 入力欄の下に「ニックネームを入力してください。」をField Errorとして表示し、登録Actionを無効化 |
+| 登録中 | 入力欄と「登録」「終了」の操作を制限し、「登録」にLoading表示を出す |
+| 再試行可能な失敗 | 入力値を保持し、失敗のNotification「アカウント登録 / 入力内容は保持されています。再試行してください。」を表示。入力の変更や「登録」の再操作が可能 |
+| 認証を確認できない | Action下のページ内Alert「登録できませんでした / 認証情報を確認できませんでした。もう一度ログインしてください。」を表示し、登録・入力を制限。終了入口は維持 |
+| 登録済み | 登録・終了の操作を抑止し、Product本体では登録後Navigationを行う。Visual Prototypeでは実際に遷移せず成功Notificationを表示 |
+| 登録せず終了 | Visual Prototypeではページ内に「登録せずに終了しました」の情報Alertを表示。本体では明示的にLogoutへ遷移 |
+
+## Interaction・終了確認
+
+- 「終了」は入力値の有無・変更の有無にかかわらず、確認Dialogを開きます。
+- Dialogタイトルは「登録せずに終了しますか？」、本文は「登録せずに終了すると、ログアウトしてトップページに戻ります。」とします。
+- Dialog内に副Action「戻る」と破壊的なAction「終了」を横並びで配置します。「戻る」およびDialogを閉じる操作で入力値を保持して画面へ戻ります。
+- 最終の「終了」が確定したときだけ本体ではLogoutへ進みます。Visual PrototypeではLogoutを実行せず、終了済み状態を画面内で示します。
+
+## Responsive・Accessibility
+
+Wide / Compactとも内容と操作の順を維持します。狭い表示領域では入力欄・見出し・Dialog本文が収まる幅で折り返し、各ActionへのKeyboard・Touchでの到達性を維持します。Field Errorは入力欄と意味的に関連付け、Loading・Blockedを色だけに依存せずテキストまたは操作状態で伝えます。
+
+## 設計判断・関連仕様
+
+登録のために追加の多段階Wizardを導入せず、登録を完了するまでの単一入力Formと退出確認を分けます。Account Deletionの段階的確認とは、操作の危険性と必要な意思決定が異なるため、同じStepper UIを機械的に適用しません。登録のために本体UIとPrototype UIを別実装しません。
+
+- [アカウント登録の画面仕様](/screens/account-registration)
+- [アカウント削除フロー](/screens/account-deletion-flow)
+- [Feedback Pattern](/design-system/patterns/feedback)

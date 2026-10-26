@@ -12,6 +12,8 @@ UI設計全体の方針は[Frontend UI設計・開発方針](/system/frontend-ui
 
 画面ごとに `content/screens/<screen-name>.mdx` を作成します。Nextra上ではProduct domainと利用者のFlowが追いやすい単位でseparatorを設け、同一Flowの画面は実際の確認順に並べます。URLを変える必要がない分類ではflatなfile配置を維持し、各分類が独立した案内や階層を必要とする規模になった場合にsubdirectoryへ移行します。
 
+アカウント登録は[登録の画面仕様](/screens/account-registration)と[採用UI](/screens/account-registration-ui-design)、アカウント削除は[削除フロー](/screens/account-deletion-flow)をそれぞれ正本として管理します。利用者向けの操作名はAccount Registration / Account Deletionで揃えますが、登録時に作成するDomain EntityはUserのままです。
+
 User Settingsは[全体仕様](/screens/user-settings)と[共通UI](/screens/user-settings-ui-design)を入口とし、[Profile](/screens/user-settings-profile)、[Account](/screens/user-settings-account)、[Preferences](/screens/user-settings-preferences)を各画面の仕様とUI Designに分けます。Account削除の手順は[アカウント削除フロー](/screens/account-deletion-flow)が独立して所有します。
 
 UsageはPersonal／Communityで同じ画面の表示・操作を共有するため、[Usage：画面詳細仕様](/screens/usage)と[Usage：画面UI設計](/screens/usage-ui-design)を独立して配置しています。[User Settings](/screens/user-settings)と[Community Usage](/screens/community-usage)は各入口・scope固有のNavigationと権限の参照先です。

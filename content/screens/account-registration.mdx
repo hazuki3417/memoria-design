@@ -1,6 +1,9 @@
-# User登録
+# アカウント登録
 
 ## 概要
+
+本画面はAccount Registrationという利用者の操作を表しますが、登録により作成するDomain EntityはMemoria Userです。既存の`/register` routeとGraphQLの`registerUser`は変更しません。[Account Deletion Flow](/screens/account-deletion-flow)と対応する名称に揃えます。
+
 
 Auth0で認証済みだがMemoria Userとして未登録の利用者が、Memoriaで利用するProfileを確認し、登録を確定する画面です。
 
@@ -105,9 +108,9 @@ Login / Registration前後のreturn destinationと認証後のoperation再開に
 - 同じissuer・subjectに対応するMemoria Userを重複作成しません。
 - 認証主体を一意に解決できない場合は登録を拒否します。
 
-## Visual Design（Visual Review方針）
+## 採用されたUI設計
 
-User Profile更新画面と同じフォーム・Field Error・Alert／Notificationのvisual表現を基準とします。登録画面固有の差分は見出し・説明、主Action「登録」、副Action「終了」、および終了確認Dialogです。新規登録では保存済み基準値との差分判定を適用せず、nicknameが有効であれば初期値のまま登録できます。
+[アカウント登録UI設計](/screens/account-registration-ui-design)を参照し、User Profile更新画面と同じフォーム・Field Error・Alert／Notificationのvisual表現を基準とします。登録画面固有の差分は見出し・説明、主Action「登録」、副Action「終了」、および終了確認Dialogです。新規登録では保存済み基準値との差分判定を適用せず、nicknameが有効であれば初期値のまま登録できます。
 
 登録中は重複操作を防ぎ、再試行可能な失敗では入力を保持します。継続不能な問題は一時的なNotificationだけに依存せず、ページ内Alertとして提示します。認証情報を確認できないBlocked状態では、タイトルを「登録できませんでした」、本文を「認証情報を確認できませんでした。もう一度ログインしてください。」とし、失敗した操作と確認できた理由・次の行動を分けて伝えます。登録成功はUser Profile更新のSavedと同じSuccessのOperation Feedbackとして扱い、共通のMantine Alertを内包したNotificationで提示します。登録完了のためだけに別外観のページ内Alertを追加しません。登録成功後は保持された安全な復帰先または標準入口へ遷移します。画面試作では実際のNavigationを行わず、Success Notificationを確認できるようにします。
 
@@ -115,10 +118,16 @@ User Profile更新画面と同じフォーム・Field Error・Alert／Notificati
 
 表示領域や入力方式が変わっても、nicknameの確認・編集と登録確定というCapabilityは維持します。
 
-現時点では表示領域ごとに異なるInformation、Action、Navigation要件はありません。具体的なlayoutは実装で決定します。
+表示領域ごとに異なるInformation、Action、Navigation要件はありません。採用された具体的な配置は[アカウント登録UI設計](/screens/account-registration-ui-design)を参照します。
 
 
 
 ### 登録成功後の遷移と通知
 
-登録処理が成功した場合はPersonal ContextのDashboard（`/dashboard`）へ遷移し、遷移先で成功Notification「登録しました / 登録が完了しました。」を一度だけ表示します。登録画面上で成功Notificationを表示してから遷移するのではなく、遷移先のDashboardで表示します。登録失敗時は登録画面に留まり、入力内容を保持します。現行Webの登録処理はモックであり、Backend接続後は登録APIの成功応答を遷移条件とします。
+登録処理が成功した場合はPersonal ContextのDashboard（`/dashboard`）へ遷移し、遷移先で成功Notification「登録しました / 登録が完了しました。」を一度だけ表示します。登録画面上で成功Notificationを表示してから遷移するのではなく、遷移先のDashboardで表示します。登録失敗時は登録画面に留まり、入力内容を保持します。本体Webの登録はGraphQLの`registerUser` Mutationに接続します。StorybookのVisual Prototypeでは実登録・Navigationを実行しません。
+
+## 実装との差分
+
+既存の本体Webは、Auth0表示名からのnickname初期化、`CONFLICT`・通信結果不明時の`me`再照合、安全な復帰先へのNavigation、遷移先Dashboardでの登録成功通知について、上記画面仕様と一致していません。またNavigationの仕様本文にも、復帰先を優先する説明と常にDashboardへ進む説明があります。
+
+これらはAccount Registrationへの命名変更・Component共通化で暗黙に解決せず、[設計・実装の未整合 Issue #335](https://github.com/hazuki3417/memoria-design/issues/335)で合意内容と実装を追跡します。GraphQLの`registerUser`および既存`/register`は現状維持します。
