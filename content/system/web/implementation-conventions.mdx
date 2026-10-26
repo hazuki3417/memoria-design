@@ -127,6 +127,9 @@ export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
 - **推奨**: Module内部はrelative import、外部は`@/` importを使用します。
 - **必須**: 意味のない共通化、先回りしたGeneric Component / Hook / Layerを導入しません。既存consumerのCapabilityを共通化の都合で削りません。
 - **推奨**: 名前は実際の責務やeventの意味を表し、型やCommentで不明瞭な名前を補うより命名を改善します。
+- **必須**: 三項演算子（`condition ? a : b`）を別の三項演算子の条件部・結果部へネストしません。複数条件による表示・状態選択は、`if / else`、`switch`、意味の明確なLookup、または責務に応じた小さな関数・Componentへ分離し、各条件と結果を読み取れるようにします。JSXの条件付き表示でも同様です。
+- **許容**: 単純な二択の三項演算子、独立した三項演算子を並列に使用する場合は対象外です。分割のためだけに不必要な抽象化を増やさず、元の条件優先順位、Fallback、表示・状態遷移を維持します。
+- **検証**: 変更対象のCode Reviewでネストの有無を確認します。既存Code全体の機械的な一括置換は行わず、Biome等のLint設定追加は別途影響を検討します。
 - **必須**: Formatと一般的な静的解析は既存のBiome / TypeScriptの責務とし、競合するFormatterやLint基盤を追加しません。
 
 ### 検証と適用範囲
