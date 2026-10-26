@@ -197,3 +197,8 @@ Upload用のdrop zone、file picker、file validation、Upload progress、Proces
 次はVisual PrototypeでMedia Uploadとの共通Component境界、複数Media編集時の共通Tag操作と個別Tag操作のpresentation、部分失敗時の表示を検証します。
 
 Group操作は本Screenへ追加せず、Media Browser / Media DetailのGroup分類Interactionを正本とします。
+
+
+## Media行の表示情報（2026-10-26合意）
+
+Media Update画面では実ファイル名を表示せず、取得も要求しません。編集対象の区別には画面内の連番等の中立的な表示名を使用し、Media IDはAPI操作の識別子として保持します。既存のTag入力・選択・Responsive Layoutは維持します。
