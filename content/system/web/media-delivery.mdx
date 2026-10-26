@@ -2,11 +2,11 @@
 
 ## 概要
 
-> 実装状況: 画像一覧と詳細表示、`new Image()`による先読みは存在します。複数幅のImage Variant、`srcset`、`sizes`、S3互換StorageによるPrivate Variant署名URL配信は実装・検証中です。
+> 実装状況（2026-10-26）: [API PR #114](https://github.com/hazuki3417/memoria-api/pull/114) でPrivate S3互換SigV4 Variant署名URL、[Web PR #174](https://github.com/hazuki3417/memoria-web/pull/174) で一覧の`srcSet` / `sizes`と署名URL更新を実装済み（未merge）。実Storage・期限切れ・画面上の配信確認は未実施です。DetailのVariant表示と先読みはこの一覧PRで接続・検証済みではありません。
 
 一覧画面の画像タイルと、選択後にdialogで開く詳細画面は、同じImage Variant群を共用します。
 
-Initial ReleaseのVariant配信はCloudFrontを使わず、APIがMedia閲覧を認可して発行する15分有効のS3互換SigV4 Presigned GET URLを使用します。配信EndpointはBrowserから到達可能かつ認証付きGETに対応している必要があります。署名URLはsecretとして扱い、log / traceへ記録しません。 Browser一覧は15分の期限より短い12分間隔でQueryを再取得し、background tabから復帰した際にも経過時間を確認して更新します。再取得は先頭ページから行い、以前のページに含まれる失効済みURLを保持しません。thumbnailやpreviewは画面上の利用場面であり、独立した保存resourceにはしません。
+Initial ReleaseのVariant配信はCloudFrontを使わず、APIがMedia閲覧を認可して発行する15分有効のS3互換SigV4 Presigned GET URLを使用します。配信EndpointはBrowserから到達可能かつ認証付きGETに対応している必要があります。署名URLはsecretとして扱い、log / traceへ記録しません。Browser一覧は15分の期限より短い12分間隔でQueryを再取得し、background tabから復帰した際にも経過時間を確認して更新します。再取得は先頭ページから行い、以前のページに含まれる失効済みURLを保持しません。thumbnailやpreviewは画面上の利用場面であり、独立した保存resourceにはしません。
 
 ## Responsive image
 
