@@ -1,0 +1,25 @@
+# 設定：アカウントUI設計
+
+## 概要・適用範囲
+
+`/settings/account` のアカウント削除への導線の採用UIを定義します。削除を実行する段階的なUIは[アカウント削除フロー](/screens/account-deletion-flow)と関連する各画面仕様を正本とし、このページでは再定義しません。
+
+## UI構成・情報の優先順位
+
+上部に「アカウント」のページ見出しと「アカウントを管理します。」の補足説明を置きます。その下に「アカウント削除」の区分を配置し、削除の危険性を識別できる色の見出し、対象とCommunityへの影響を事前に確認できる説明、「アカウントを削除する」のActionを縦に並べます。
+
+削除区分は破壊的な操作であることを示しますが、ページ内Actionは最終削除ではなく削除フローへの**画面遷移**です。
+
+## 表示状態とInteraction
+
+このページに削除処理中のProgressや最終Confirm Dialogは置きません。Actionを選択すると `/settings/account/delete` へ移動し、そこで影響確認・Community判断・再認証・最終確定を行います。ActionのLabelと説明から、直ちに削除されず内容の確認が先に行われることを理解できるようにします。
+
+## Responsive・Accessibility
+
+Compact / Wideで見出し、影響説明、遷移Actionを同じ順序で利用可能にします。危険性の表現を色だけに依存させず、「アカウント削除」の文言と説明を併用します。Keyboard / Touchから遷移Actionへ到達可能とします。
+
+## 関連仕様
+
+- [設定：アカウント](/screens/user-settings-account)
+- [アカウント削除フロー](/screens/account-deletion-flow)
+- [User Settings共通UI](/screens/user-settings-ui-design)
