@@ -588,6 +588,14 @@ type MediaConnection {
 
 Image Variantは `Media -> Image -> ImageVariant` の構造を正本とします。Object Storage keyは公開せず、閲覧権限を確認したAPI / delivery境界からClientが利用できるURLを返します。
 
+**Media Browser一覧表示のI/F契約（2026-10-26追記）**
+
+- 一覧は既存の`mediaList(scope:, filter:, first:, after:)`を利用し、画面固有の同義QueryやThumbnail専用の重複モデルは追加しない。Webは選択中scopeを明示したOperationを所有する。
+- `Media.image`はIMAGE subtypeの情報であり、公開済みVariantがまだ存在しない間は`image.variants = []`を許容する。画像処理中・失敗時もMedia自体を一覧に残し、Thumbnail欠落をMedia欠落や読み込み失敗に変換しない。
+- `Media.processing.status`は`PROCESSING` / `READY` / `FAILED`のMedia-level表示状態を表す。画像処理中は処理中のUI、terminal失敗時は失敗Placeholder、READYかつ配信可能なVariantがある場合だけ画像を表示する。GraphQL接続後のWebで、`image`や`processing`が未実装のまま正常表示とみなさない。
+- `ImageVariant.url`はAPI / delivery層が認可済みMediaに対して発行する、Browserから直接取得可能な完全URLとする。URLをStorage keyと混同しない。URLの実際のdelivery方式・失効設計はSecurity / Storageの正本で確認して実装し、具体的な配信方式をこのGraphQL契約から推測しない。
+- Variantは幅の昇順などの暗黙の並びをClient契約にしない。Webはvariantの`width`・`height`を参照して表示に適したサイズを選ぶ。配列先頭のVariantを「サムネイル」として固定しない。
+
 `uploadedBy` はUploader削除後も「削除済みUser」を表現できる必要があります。削除前nickname等を保持しないため、削除済みUploaderにnicknameを返しません。
 
 `processing` はClientがVariant生成中・完了・terminal failureを区別するためのMedia-level状態です。内部Processing Jobの `PENDING` / `PROCESSING` は `PROCESSING`、`COMPLETED` は `READY`、`FAILED` は `FAILED` へ写像します。`CANCELLED`、attempt数、Redis ownership、lease、内部error本文等のJob runtime状態は公開しません。
@@ -607,7 +615,7 @@ extend type Query {
 
 `mediaList(scope:)` は1つのscope内のMedia一覧を取得する共通Queryです。`PERSONAL` は現在UserがCustodianであるACTIVE Mediaを返し、`COMMUNITY` は有効なMembershipを持つ指定Communityについて、Community Custody MediaとそのCommunityへ共有されたUser Custody Mediaを返します。異なるscopeのMediaを1つのConnectionへ混在させません。Web側では画面・ユースケースに対応するGraphQL Operationを定義し、この共通Queryへscopeを渡します。Dashboardの「最近のメディア」も専用Queryを追加せず、現在scopeの `mediaList` を `first: 32` で使用します。Media一覧の固定順序 `createdAt DESC, id DESC` をそのまま利用し、Dashboard専用のsort・selection・Detail用Connectionを導入しません。
 
-Tag filterは現在scopeのTagだけを受け付け、Tag IDの形式からscopeを推測せず保存済みの所属情報を検証します。複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。
+Tag filterは現在scopeのTagだけを受け付け、Tag IDの形式からscopeを推測せず保存済みの所属情報を検証します。複数指定時は既存Product仕様どおりAND条件とします。query結果全件をMutation対象として暗黙利用しません。空配列またはfilter省略時は絞り込まず、存在しないTag・別scopeのTag・重複したTag ID等の不正な指定は`VALIDATION`として扱い、単に一致結果0件とみなさない。Media BrowserのTag入力は表示名を利用するが、Web Operationは`mediaTags(scope:, search:)`で現在scopeのTag IDを解決してから`MediaFilterInput.tagIds`へ渡す。Tag nameをMedia filter IDとして送信しない。
 
 `media(id:)` は現在Userが閲覧可能なMediaだけを返します。Media詳細の分類情報は `Media.groups(scope:)` / `Media.tags(scope:)` から現在のPersonal / Community scopeを明示して取得します。指定scopeでMediaが閲覧可能であることを再検証し、別CommunityやPersonalの分類情報を暗黙に混在させません。Group / Tagの一覧・検索・管理は独立Queryで提供し、Community自身の子fieldには追加しません。
 
