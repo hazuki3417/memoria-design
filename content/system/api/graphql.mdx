@@ -1002,6 +1002,8 @@ extend type Mutation {
 }
 ```
 
+`Media.tagStateToken(scope: ScopeInput!): String!` をMedia型に設け、現在ScopeのTag relationに対するTokenを取得します。`Media.tags(scope:)` と同じ認可境界を適用し、Clientは一致するScopeのTokenとTag ID集合を編集開始時に取得します。複数ページにまたがるTag relationを部分取得しただけで完全なDesired Stateを構成してはいけません。
+
 現在のTag ID集合に対して発行した`expectedStateToken`はMedia IDおよびScopeに結びつき、Tag名変更のようなTag Entity属性の変更はToken対象外です。更新Transaction内で現在状態とTokenを比較し、不一致時は`CONFLICT`でそのMediaの変更全体を拒否します。初期Tokenは対象Mediaの`tags(scope:)`取得結果と一貫して取得できる必要があり、実装では同一Snapshotから読み取れる仕組みを提供します。Tokenを持たないClientによる無条件の最終集合更新は許可しません。
 
 複数MediaはFrontendで各MediaのMutationを順次または制限付き並列に実行し、全Mediaを1つのTransactionへ統合しません。成功済みMediaは維持し、失敗Mediaだけを最新のServer状態・Tokenと照合して再編集・再試行します。新規Tag名は`createMediaTag`で先にTag Entityを作成または同一Scopeの既存Tagを解決し、そのIDを期待集合に含めます。Tag作成とMedia分類更新は別Transactionであり、Tag作成成功だけで分類成功とは表示しません。
