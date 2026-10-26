@@ -19,7 +19,7 @@
 | 通常 | 各Controlに現在の選択値を表示し、変更後は直ちに新しい値がControlへ反映される |
 | Color Picker入力途中 | HEX値がまだ6桁として完成していなくても編集中のDraftを保持する。完成した値のみをaccount保存対象へ送る |
 | 保存結果が未確認 | ページ見出し直後、設定区分より前にエラーAlertを表示。「保存できませんでした」と変更内容を保持した旨を伝え、「再試行」を同じAlert内に配置する |
-| 変更継続不可 | 同じ位置に「設定を変更できません」のエラーAlertと再読み込みの案内を表示する。継続を促す再試行Actionは表示しない |
+| 変更継続不可 | 同じ位置に「設定を変更できません」のエラーAlertと再読み込みの案内を表示する。再試行Actionは表示しない。Personal Accent ColorのColor Pickerは入力中のDraft文字列を編集できるが、その入力をPreferencesの選択値・保存へ反映しない |
 | Theme切替 | 選択後にLight / Dark / Systemの表示が切り替わり、編集中のPreferences、現在Section、操作可能なControlを維持する |
 
 ## Interaction・Feedback
