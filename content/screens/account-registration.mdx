@@ -125,3 +125,9 @@ Login / Registration前後のreturn destinationと認証後のoperation再開に
 ### 登録成功後の遷移と通知
 
 登録処理が成功した場合はPersonal ContextのDashboard（`/dashboard`）へ遷移し、遷移先で成功Notification「登録しました / 登録が完了しました。」を一度だけ表示します。登録画面上で成功Notificationを表示してから遷移するのではなく、遷移先のDashboardで表示します。登録失敗時は登録画面に留まり、入力内容を保持します。本体Webの登録はGraphQLの`registerUser` Mutationに接続します。StorybookのVisual Prototypeでは実登録・Navigationを実行しません。
+
+## 実装との差分
+
+既存の本体Webは、Auth0表示名からのnickname初期化、`CONFLICT`・通信結果不明時の`me`再照合、安全な復帰先へのNavigation、遷移先Dashboardでの登録成功通知について、上記画面仕様と一致していません。またNavigationの仕様本文にも、復帰先を優先する説明と常にDashboardへ進む説明があります。
+
+これらはAccount Registrationへの命名変更・Component共通化で暗黙に解決せず、[設計・実装の未整合 Issue #335](https://github.com/hazuki3417/memoria-design/issues/335)で合意内容と実装を追跡します。GraphQLの`registerUser`および既存`/register`は現状維持します。
