@@ -66,6 +66,12 @@ flowchart TD
 
 Media分類のrelation semanticsと権限は本設計を正本とします。Initial Releaseの具体的Interactionは[Media Browser / Detail](/screens/media-browser-detail)を正本とし、Media Detailでは1 Mediaのdirect Group relationを確認して追加・除外でき、Browserで明示選択した複数Mediaには1つ以上の同じ既存Groupを一括追加できます。Initial ReleaseではGroupからのbulk除外を主要Capabilityとしません。bulk追加でもMediaごとに現在scope・可視性・権限を再検証し、部分成功を許容します。
 
+### Browserでの一括分類の確定単位
+
+Browserでは複数のMediaに対して複数の同一scope Groupを一度に指定できる。**指定Group集合の成立は操作全体の前提条件**とし、Group集合に不存在・異scope・権限失効があれば一切適用しない。前提条件が成立した場合、**1 Mediaに対する指定Group集合の追加を一つの原子的な適用単位**とする。Media間では部分成功を許容し、成功済みMediaの追加を別Mediaの失敗によって取り消さない。Group起点・Media起点のいずれでも同じ分類契約を用い、UIの入口をDB Transactionの成功単位の根拠にしない。
+
+DBの具体的なTransaction境界は[Media Browser / Detail](/screens/media-browser-detail)の「Group一括追加の原子性とTransaction境界」を参照。単一Transaction＋Media別SAVEPOINTを第一候補とし、競合時のロック戦略などは未確定の実装詳細として検証する。
+
 ## Group同士の関係
 
 Media Groupは有向非巡回グラフ（DAG）として扱います。同じGroupを複数の所属先Groupへ関連付けられますが、循環は許可しません。
