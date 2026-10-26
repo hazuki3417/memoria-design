@@ -1,0 +1,61 @@
+# アカウント削除：共通UI設計
+
+## 適用範囲
+
+`/settings/account/delete` の4ステップ共通Presentation・Navigation・状態表現を定義する。業務上の順序・前提条件・削除条件は[アカウント削除フロー](/screens/account-deletion-flow)と各[画面仕様](/screens/account-deletion-impact)、Auth0再認証のSecurity Contractを正本とする。本書はReact Componentの分割方法やFixtureを製品契約にしない。
+
+## 共通画面構成
+
+- 通常のApplication Shellが提供する表示領域内に、ページ見出し「アカウント削除」と説明「アカウントを削除した場合の影響と、削除前に必要な対応を確認します。」を表示する。
+- 4段階の順序は「個人データへの影響」→「Communityへの対応」→「Communityへの影響」→「最終確認」。該当しないCommunity段階はスキップするが、4段階の位置関係は維持する。
+- **Wide**: 横並びStepperで段階名と現在段階の「確認中」、スキップ済み段階の「対象なし」を示す。本文では各段階の見出しと区切り線を配置する。
+- **Compact**: 横並びStepperを「ステップ N/4」、現在段階の名称、過去にスキップした段階の「対象なし」に置き換える。本文側の重複見出しは必要に応じて抑えるが、段階名と全操作を失わせない。
+- StepperはApplication Shell内のスクロール領域上端に追従する。スクロール時も現在段階を確認できる。Headerと重なる位置へ固定しない。
+- 通常のStepは左に「戻る」（Step 1は空欄）、中央に「削除手続きを中止して設定に戻る」、右に「次へ」または段階固有のActionを置く。
+
+## ステップ固有のPresentation
+
+### 1. 個人データへの影響
+
+- 削除対象Media件数を強調して示す。正常に0件と確認できた場合はEmpty文言で示し、未取得や取得エラーを0件と混同しない。
+- 「注意事項」ではError色のAlert「削除したデータは復元できません」と不可逆な結果の説明を表示する。
+- 取得失敗時はMedia件数領域にページ内Feedbackを表示し、「次へ」に代えて「再試行」を提示する。再試行中はLoading状態と進行中の説明を同位置で示し、重複操作を防ぐ。
+
+### 2. Communityへの対応
+
+- 最後のAdministratorであるCommunityごとに、名称、参加者・Mediaの情報、保持する場合の後任Administrator選択、Communityを削除する選択をまとめる。
+- 後任候補がいなければ保持を有効な選択肢として扱わない。複数Communityの判断はそれぞれ独立する。
+- 「次へ」は対象すべての判断が成立するまで無効。戻って選択を変更しても未変更のCommunityについて決定を失わない。
+
+### 3. Communityへの影響
+
+- Community削除を選択した対象だけを表示し、Community名の再入力と影響の注意事項を関連付ける。
+- それぞれの確認が揃うまで「次へ」は無効。前段階の判断変更後は変更された対象の再確認を要求する。
+
+### 4. 最終確認
+
+- 個人データとCommunityへの影響をまとめ、削除計画を確認したうえで「再認証する」へ進む。
+- 再認証成功後は「再認証済み」をページ内Feedbackとして示し、最後のActionを危険色の「アカウントを削除する」に変更する。再認証だけで削除処理を自動実行しない。
+- 再認証・削除の失敗は消えるだけのNotificationではなくページ内Alertで表示する。再認証結果は前段階へ戻ると破棄する。
+
+## 中止と最終確定の状態
+
+- 判断や入力がない段階では中止で設定画面へ戻り、破棄対象がある場合だけ確認Dialog「アカウント削除を中止しますか？」を開く。
+- Dialogには「Communityへの対応など、この画面で行った変更は保存されません。」を表示し、「確認を続ける」と「中止する」の2つの操作を用意する。継続を選ぶ場合は入力値・選択を保持する。
+- 実削除受付中は「削除リクエストを処理しています」を表示して重複操作を抑止する。確定応答後は「アカウント削除を受け付けました」と受付結果を表示し、非同期Cleanupの終了を待たせない。
+- 開発時のMock Gatewayはアカウントを削除せず、完了画面で実削除済みと混同させない文言を使う。
+- Visual Prototypeでは実削除・実Navigation・Auth0再認証を実行しない。確認済み・中止状態はStorybook上で観察できるが、実削除が成立したことを意味しない。
+
+## Responsive / Accessibility
+
+WideとCompactでCommunity数・選択機能・再試行・中止・最終確定のCapabilityを維持する。選択Control、入力、ButtonおよびDialogをKeyboardとTouchで操作できること、FocusとValidation・Errorが色だけに依存しないことを保証する。狭い幅では文言を省略して意味を変えるのではなく、折返し・適切な縦配置で対応する。
+
+## 関連仕様
+
+- [アカウント削除フロー](/screens/account-deletion-flow)
+- [影響確認](/screens/account-deletion-impact)
+- [Community管理状態の解消](/screens/account-deletion-community-resolution)
+- [Community確認](/screens/account-deletion-community-review)
+- [最終レビュー](/screens/account-deletion-final-review)
+- [最終確認](/screens/account-deletion-final-confirmation)
+- [Feedback Pattern](/design-system/patterns/feedback)
