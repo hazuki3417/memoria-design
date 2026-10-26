@@ -940,64 +940,25 @@ TagもGroupと共通の一覧規則（name昇順・同名はID昇順、大文字
 ### Command
 
 ```graphql
-input CreateMediaTagInput {
-  scope: ScopeInput!
-  name: String!
-}
-
-input RenameMediaTagInput {
-  tagId: ID!
-  name: String!
-}
-
-input DeleteMediaTagInput {
-  tagId: ID!
-}
-
-input ChangeMediaTagClassificationInput {
-  tagId: ID!
-  mediaIds: [ID!]!
-}
-
-type MediaTagPayload {
-  tag: MediaTag!
-}
-
-type DeleteMediaTagPayload {
-  tagId: ID!
-}
-
-type MediaTagClassificationItemResult {
-  mediaId: ID!
-  status: BulkItemStatus!
-  errorCode: String
-}
-
-type ChangeMediaTagClassificationPayload {
-  results: [MediaTagClassificationItemResult!]!
-}
-
-extend type Mutation {
-  createMediaTag(input: CreateMediaTagInput!): MediaTagPayload!
-  renameMediaTag(input: RenameMediaTagInput!): MediaTagPayload!
-  deleteMediaTag(input: DeleteMediaTagInput!): DeleteMediaTagPayload!
-  addMediaTag(input: ChangeMediaTagClassificationInput!): ChangeMediaTagClassificationPayload!
-  removeMediaTag(input: ChangeMediaTagClassificationInput!): ChangeMediaTagClassificationPayload!
-}
-```
+Initial ReleaseではTagの独立管理Mutation（create / rename / delete）および個別付与・解除Mutation（add / remove）を公開しません。Media Updateの唯一のTag書き込みAPIは `updateMediaTags` です。将来のTag管理画面とそのI/Fは、その要件が具体化した際に設計します。
 
 Personal TagはUser本人が管理します。CommunityではAdministrator / MemberがTagを作成し、閲覧可能Mediaへ付与・解除できます。Community Tagのrename / deleteはAdministratorだけが実行します。
 
 Tag IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Tag IDとMedia IDのULID形式からscopeを推測しません。Media Browserの複数Tag filterはAND条件です。OR切替や複雑な検索式はInitial Releaseへ追加しません。複数Media分類は部分成功を許容し、query結果全件を暗黙対象にしません。
 
-Media Update / Uploadで保存済みMediaのTag Draftを反映するときは、Tag付与・解除Commandの逐次編成ではなく、**1 Media・1 Scopeの期待するTag ID集合（Desired State）**を `updateMediaTags` に渡します。Backendが現在集合との差分を計算し、認可・競合・30件上限・同一Scope所属を検証したうえで、1 Mediaの全追加・全解除を**1つのTransaction**でcommit / rollbackします。Frontendから既存Tag集合の上書きCommand列を渡す方式は使用しません。
+Media UpdateでFrontendが渡すTag情報全体を、**1 Media・1 Scopeの期待状態（Desired State）**とします。既存TagはIDで指定し、新規Tagは名前で指定できます。Backendは同一Scope内の名前完全一致を再利用し、必要ならTag Entityを作成したうえでMedia relationとの差分を計算します。Token検証、認可、名前検証、30件上限、Tag作成、relation追加・解除を**1 Media単位の同一Transaction**でcommit / rollbackします。新規Tag作成成功後にrelation適用だけ失敗する部分成功は許容しません。Tagのrename・削除は本Mutationでは行いません。
 
 ```graphql
+input MediaTagDesiredInput {
+  id: ID
+  name: String!
+}
+
 input UpdateMediaTagsInput {
   mediaId: ID!
   scope: ScopeInput!
   expectedStateToken: String!
-  tagIds: [ID!]!
+  tags: [MediaTagDesiredInput!]!
 }
 
 type UpdateMediaTagsPayload {
@@ -1010,7 +971,7 @@ extend type Mutation {
 }
 ```
 
-編集開始時の完全な状態を一貫して取得するため、`mediaTagEditState(mediaId: ID!, scope: ScopeInput!): MediaTagEditState!` を提供します。`MediaTagEditState` は `mediaId: ID!`、`scope: ScopeType!`、`tagIds: [ID!]!`、`stateToken: String!` を返し、Tag IDsとTokenは同一の認可済みDB Transactionで取得します。独立したGraphQLフィールドを別々に取得して同一snapshotとみなしてはいけません。Tag名の表示はscopeのTag catalogから引き、保存の正本はTag ID集合です。
+編集開始時の完全な状態を一貫して取得するため、`mediaTagEditState(mediaId: ID!, scope: ScopeInput!): MediaTagEditState!` を提供します。`MediaTagEditState` は `mediaId: ID!`、`scope: ScopeType!`、`tagIds: [ID!]!`、`stateToken: String!` を返し、Tag IDsとTokenは同一の認可済みDB Transactionで取得します。独立したGraphQLフィールドを別々に取得して同一snapshotとみなしてはいけません。Tag名の表示はscopeのTag catalogから引き、保存時の正本は既存IDと新規名称を含むTag期待集合です。
 
 `Media.tagStateToken(scope: ScopeInput!): String!` をMedia型に設け、現在ScopeのTag relationに対するTokenを取得します。`Media.tags(scope:)` と同じ認可境界を適用し、Clientは一致するScopeのTokenとTag ID集合を編集開始時に取得します。複数ページにまたがるTag relationを部分取得しただけで完全なDesired Stateを構成してはいけません。
 
