@@ -16,6 +16,7 @@ export default {
   "account-registration-ui-design": "アカウント登録UI",
   "-- Account Deletion": {"type":"separator","title":"アカウント削除"},
   "account-deletion-flow": "フロー概要",
+  "account-deletion-ui-design": "共通UI設計",
   "account-deletion-impact": "1. 影響確認",
   "account-deletion-community-resolution": "2. Community管理状態の解消",
   "account-deletion-community-review": "3. Community確認",
