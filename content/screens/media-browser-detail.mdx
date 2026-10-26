@@ -270,7 +270,7 @@ Application Shell上のDialog / ModalはfeatureごとにHeaderとのz-index競�
 
 ### Media Browser一覧実装と未達契約の区別（2026-10-26）
 
-[Web PR #174](https://github.com/hazuki3417/memoria-web/pull/174) の現行実装はGroup選択後、既存の `addMediaToGroup(input: {groupId, mediaIds})` を**選択Groupごとに呼び出します**。各GroupのMedia item resultは返りますが、選択Group集合全体の事前検証・Media単位のGroup集合原子性は保証できません。加えて現在のDialogは失敗Mediaを識別する結果状態・失敗Mediaのみの再試行を実装していません。これは本書の「Group集合を共通preconditionとして扱い、Media単位でGroup集合を一つの適用単位とする」契約（上記「bulk分類」節）と**不一致**です。仕様の緩和は合意していないため、実装を正として本文を変更しません。動作確認・マージ判定前に別Issueで解消方法を合意・実装してください。
+[Web PR #174](https://github.com/hazuki3417/memoria-web/pull/174) の現行実装はGroup選択後、既存の `addMediaToGroup(input: {groupId, mediaIds})` を**選択Groupごとに呼び出します**。各GroupのMedia item resultは返りますが、選択Group集合全体の事前検証・Media単位のGroup集合原子性は保証できません。加えて現在のDialogは失敗Mediaを識別する結果状態・失敗Mediaのみの再試行を実装していません。これは本書の「Group集合を共通preconditionとして扱い、Media単位でGroup集合を一つの適用単位とする」契約（上記「bulk分類」節）と**不一致**です。仕様の緩和は合意していないため、実装を正として本文を変更しません。動作確認・マージ判定前に[API Issue #115](https://github.com/hazuki3417/memoria-api/issues/115)でBackendのGroup集合契約を、[Web Issue #70](https://github.com/hazuki3417/memoria-web/issues/70)で結果表示・再試行UIの契約を解消してください。
 
 MediaタイルクリックからDetailを開く動作は今回のPRの対象外としてユーザーが明示承認していますが、Initial Release全体のDetail要件を削除する判断ではありません。共有・削除の実操作も設計上のCapabilityとして存続し、現行のAPI未提供・画面無効化は暫定的な実装状態です。
 
