@@ -1,0 +1,35 @@
+# 設定：プロフィールUI設計
+
+## 概要・適用範囲
+
+`/settings/profile` のnickname編集画面に採用された表示・状態表現を定義します。編集可否、保存の成立条件、破棄・失敗の意味は[設定：プロフィール](/screens/user-settings-profile)を正本とし、Settings共通Navigationは[共通UI設計](/screens/user-settings-ui-design)に従います。
+
+## UI構成・情報の優先順位
+
+ページ上部に「プロフィール」の見出しと「プロフィール情報を変更します。」の説明を置き、「基本情報」区分の中に「ニックネーム」のラベル、説明「Memoriaで表示する名前です。」、現在値を示す単一行入力欄を配置します。保存Action「更新」は入力欄の下に置き、左揃えで表示します。
+
+編集開始Action、編集専用Modal、Cancelボタン、保存前の確認Screenを追加せず、最初から直接編集できる状態にします。
+
+## 状態とUI表現
+
+| 状態 | 採用された表現 |
+| --- | --- |
+| 未変更 | 現在のnicknameを入力欄に表示し、更新Actionは無効 |
+| 有効な変更 | 入力欄にDraftを表示し、更新Actionを有効にする |
+| 空白のみ／空 | 入力欄に「ニックネームを入力してください。」のField Errorを表示し、更新Actionを無効にする |
+| 保存中 | 入力欄を編集不可にし、更新Actionの進行状態と「更新中」を表示する |
+| 再試行可能な失敗 | 入力欄の前に「保存の完了を確認できませんでした」のAlertを出し、入力を保持する。ActionのLabelを「再試行」にする |
+| 保存継続不可 | 入力欄の前に「プロフィールを変更できません」のAlertと再読み込みの案内を出す。入力欄と更新Actionは編集不可・無効 |
+| 保存成功 | 更新済み値を入力欄の基準値とし、短い成功Notification「プロフィールを保存」を表示する |
+
+## Interaction・Feedback
+
+保存Actionは有効な変更がある場合にのみ操作可能です。前後空白を除去したnicknameを保存対象とし、二重実行を抑止します。再試行可能な失敗では入力を失わせず、Userが修正してから再試行できます。画面離脱時の未保存値破棄については[画面仕様](/screens/user-settings-profile)を参照します。
+
+## Responsive・入力方式
+
+Compact / Wideのいずれでも、ページ見出し → 基本情報 → 入力 → 保存Actionの順を維持します。入力欄とActionを画面の読める幅に収め、保存中／失敗中の通知を離れた場所へ移しません。Keyboardで入力・Actionへ移動でき、Field Errorや処理状態を色だけで示しません。
+
+## 設計判断と関連仕様
+
+一つのnickname編集のために表示／編集モードを増やさず、同じページで更新する構成とします。Profileの保存UIをPreferencesの自動保存UIへ機械的に統一しません。適用する共通Patternは[Editable Form](/design-system/patterns/editable-form)と[Feedback](/design-system/patterns/feedback)です。

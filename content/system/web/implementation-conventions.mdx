@@ -127,6 +127,9 @@ export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
 - **推奨**: Module内部はrelative import、外部は`@/` importを使用します。
 - **必須**: 意味のない共通化、先回りしたGeneric Component / Hook / Layerを導入しません。既存consumerのCapabilityを共通化の都合で削りません。
 - **推奨**: 名前は実際の責務やeventの意味を表し、型やCommentで不明瞭な名前を補うより命名を改善します。
+- **必須**: 三項演算子（`condition ? a : b`）を別の三項演算子の条件部・結果部へネストしません。複数条件による表示・状態選択は、`if / else`、`switch`、意味の明確なLookup、または責務に応じた小さな関数・Componentへ分離し、各条件と結果を読み取れるようにします。JSXの条件付き表示でも同様です。
+- **許容**: 単純な二択の三項演算子、独立した三項演算子を並列に使用する場合は対象外です。分割のためだけに不必要な抽象化を増やさず、元の条件優先順位、Fallback、表示・状態遷移を維持します。
+- **検証**: 変更対象のCode Reviewでネストの有無を確認します。既存Code全体の機械的な一括置換は行わず、Biome等のLint設定追加は別途影響を検討します。
 - **必須**: Formatと一般的な静的解析は既存のBiome / TypeScriptの責務とし、競合するFormatterやLint基盤を追加しません。
 
 ### 検証と適用範囲
@@ -296,7 +299,7 @@ src/features/media-browser/
     └── MediaTile.stories.tsx  # 必要な場合
 ```
 
-Feature内部はflatをdefaultとします。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のtechnical-type directoryを標準化しません。独立した責務のまとまりが生じた場合だけ、`selection/` 等のresponsibility名でnestingします。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。
+Feature内部は、Frontendで役割や変更理由を理解しやすい**責務・機能のまとまり**を起点に配置します。独立したまとまりが複数ある場合は `profile/`、`preferences/` 等、その意味を示すdirectoryへ分割し、各まとまりに属するComponent・Hook・Pure Logic・Type・Story・Testを近接配置します。Domainの厳密な境界やURL・Screenの階層を機械的にdirectoryへ写すのではなく、実際に一緒に変更・検証する単位で判断します。一つの明確な責務に収まる小規模Featureではflat構成を許容します。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のcode種別だけによる分類を標準化しません。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。Feature内部の分割で別の独立した利用目的や複数Feature間の依存を隠さず、外部から再利用される責務が明確な場合は独立FeatureとPublic APIを検討します。
 
 Feature rootの `index.ts` はArchitecture BoundaryとしてPublic APIを定義します。外部consumerはFeature rootからimportし、内部Fileへdeep importしません。Public APIは実際に必要なsymbolだけをexplicit exportし、`export *` で内部実装を公開しません。Feature内部では `index.ts` を経由せずrelative importを使用します。
 

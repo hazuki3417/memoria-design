@@ -1,0 +1,22 @@
+# 設定：アカウント
+
+## 概要・目的
+
+`/settings/account` はUser本人のAccount lifecycle操作へ進むためのSettings領域です。Initial Releaseで提供する操作は**アカウント削除のみ**とし、この画面では破壊的操作を直ちに実行しません。Settings内の位置づけとSection間Navigationは[User Settings](/screens/user-settings)を参照します。
+
+## 表示情報・操作
+
+アカウント管理のページ見出し、削除対象と関連データへの影響を事前に確認できる説明、および「アカウントを削除する」導線を提示します。この導線を選択すると `/settings/account/delete` へ遷移し、[アカウント削除フロー](/screens/account-deletion-flow)で影響把握・Community上の判断・再認証・最終確定を段階的に扱います。
+
+削除確定ActionはSettings Accountページには配置しません。削除対象や実行条件、処理結果・復旧は削除フローの各Screen SpecificationとUser domainを正本とします。
+
+## 状態・Navigation・制約
+
+- Account領域では入力や非同期更新を行わず、削除導線からの遷移を担当します。削除処理のLoading・Retry・Confirmationは削除フロー側で扱います。
+- ACTIVE User本人のAccount管理領域とし、Community管理者向け設定とは混同しません。
+- 認証情報の正本はAuth0です。Password変更、認証方法確認、Session / Device管理、外部Account連携をMemoria独自のSettings機能としてInitial Releaseへ追加しません。必要性が確認された時点でAuth0との責務境界を再評価します。
+- Wide / Compactいずれも削除の説明と遷移Actionを利用でき、削除の実行と単なる画面遷移を混同させません。
+
+## 採用UIと関連仕様
+
+ページ見出し、削除の危険性を示す区分、説明文とActionの配置は[設定：アカウントUI設計](/screens/user-settings-account-ui-design)を参照します。削除フローのUIやステップ内容を本ページで再定義しません。

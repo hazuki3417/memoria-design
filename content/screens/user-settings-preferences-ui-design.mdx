@@ -1,0 +1,44 @@
+# 設定：環境設定UI設計
+
+## 概要・適用範囲
+
+`/settings/preferences` の採用されたUI構成・操作表現を定義します。設定の初期値、保存scope、保存失敗時の保持・再試行の意味は[設定：環境設定](/screens/user-settings-preferences)を正本とします。共通Navigationは[User Settings共通UI](/screens/user-settings-ui-design)に従います。
+
+## UI構成・情報の優先順位
+
+- 先頭に「環境設定」のページ見出しと「表示とプレビューの動作を設定します。」の説明を配置します。
+- 設定項目を「表示」と「プレビュー」の2つの区分に分けます。表示は**表示テーマ → Personal Accent Color → 日付形式 → ファイルサイズの単位 → Mediaサムネイルサイズ**の順、プレビューは**Media Detailの前後Navigation循環 → 詳細情報の初期表示（Wide） → 詳細情報の初期表示（Medium）**の順に配置します。
+- 各項目は項目名・補足説明・操作Controlを一つの設定行としてまとめ、設定の意味を確認してから値を選べるようにします。
+- 表示テーマ、日付形式、ファイルサイズ単位、Mediaサムネイルサイズは単一選択Control、Personal Accent ColorはHEX入力を備えたColor Picker、各Media Detail設定はON / OFF Switchを使用します。
+- Switchは選択状態だけでなく「オン」「オフ」のテキストを伴い、色だけで状態を伝えません。
+
+## 状態とUI表現
+
+| 状態 | 採用された表現 |
+| --- | --- |
+| 通常 | 各Controlに現在の選択値を表示し、変更後は直ちに新しい値がControlへ反映される |
+| Color Picker入力途中 | HEX値がまだ6桁として完成していなくても編集中のDraftを保持する。完成した値のみをaccount保存対象へ送る |
+| 保存結果が未確認 | ページ見出し直後、設定区分より前にエラーAlertを表示。「保存できませんでした」と変更内容を保持した旨を伝え、「再試行」を同じAlert内に配置する |
+| 変更継続不可 | 同じ位置に「設定を変更できません」のエラーAlertと再読み込みの案内を表示する。再試行Actionは表示しない。Personal Accent ColorのColor Pickerは入力中のDraft文字列を編集できるが、その入力をPreferencesの選択値・保存へ反映しない |
+| Theme切替 | 選択後にLight / Dark / Systemの表示が切り替わり、編集中のPreferences、現在Section、操作可能なControlを維持する |
+
+## Interaction・Feedback
+
+- 選択操作は明示Saveボタンを要求せず即時に反映します。保存処理の進行中も最新の選択意図を失わないようにします。
+- 保存失敗のAlertは短時間で消える通知だけに置き換えず、Userがエラー内容と再試行入口を同時に認識できるようにします。
+- Personal Accent Colorは選択値をHEXで確認できる入力Controlとし、保存失敗後も選択した色を巻き戻しません。
+- 項目説明は設定対象と効果を示し、値の意味が分からないまま変更を要求しません。
+
+## Responsive・入力方式
+
+Wideでは各設定行のラベル・補足説明とControlを横方向に対応づけて配置します。Compactでは各行の説明とControlを限られた幅でも読める配置へ切り替えます。表示／プレビューの区分、全設定項目、選択状態、エラーと再試行をいずれの幅でも維持します。Select・Color Picker・SwitchはKeyboard／Touchの双方から操作でき、Focusとエラー内容を視覚色だけに依存させません。
+
+## 設計判断・制約
+
+画面全体を単一の巨大Formとして最後に保存させる構成は採りません。設定の変更は項目ごとの即時反映を基本としつつ、保存失敗時はユーザーの最新の意図を保持して再試行させます。GraphQLのEnumや保存Queueの実装方式はUI Designで固定しません。
+
+## 関連仕様
+
+- [設定：環境設定](/screens/user-settings-preferences)
+- [User Settings共通UI](/screens/user-settings-ui-design)
+- [Feedback Pattern](/design-system/patterns/feedback)

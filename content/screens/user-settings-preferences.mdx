@@ -1,0 +1,196 @@
+# 設定：環境設定
+
+## 概要・対象範囲
+
+User本人の環境設定（`/settings/preferences`）の画面仕様です。現在のPersonal / Community Contextから独立した設定と、保存scopeの異なるThemeを同じ画面から変更できます。画面共通のNavigationは[User Settings](/screens/user-settings)、採用された表示構成は[環境設定UI設計](/screens/user-settings-preferences-ui-design)を正本とします。
+
+## 関連Use Case・設計
+
+- [Userユースケース](/user/use-cases)
+- [User論理データモデル](/user/data-model)
+- [GraphQL API設計](/system/api/graphql)
+- [Editable Form Pattern](/design-system/patterns/editable-form)
+- [Feedback Pattern](/design-system/patterns/feedback)
+
+## 設定内容
+
+### Appearance
+
+Initial ReleaseではTheme、Personal Accent Color、日付形式、ファイルサイズ単位、Mediaサムネイルサイズ、Media Detailの前後Navigation循環、Media Detailの詳細情報初期表示をPreferencesとして提供します。Language / LocaleとTimezoneはApplicationとして扱える境界を持ちますが、Initial ReleaseではUserが変更する設定項目として表示しません。
+
+#### Theme
+
+ApplicationのTheme preferenceとして次の3状態を提供します.
+
+| Preference | Behavior |
+| --- | --- |
+| System | OS / browserが公開するcolor scheme preferenceに追従する |
+| Light | System preferenceに関係なくLight themeを使用する |
+| Dark | System preferenceに関係なくDark themeを使用する |
+
+初期値は **System** とします。
+
+System選択中にOS / browserのcolor schemeが変化した場合は、reloadや再選択を要求せずApplicationの実効Themeを追従させます。Light / Darkを明示選択している場合はSystem preferenceの変化でThemeを変更しません。
+
+#### Personal Accent Color
+
+Personal ContextのAccent Colorは、Personalを他のApplication Contextから視覚的に識別するためのUser向けpresentation設定です。
+
+初期値は[Design SystemのColor System](/design-system#color-system)で定めるMemoria EmeraldをSourceとするdefault Accentを使用します。具体的なEmerald paletteとshadeはDesign SystemのVisual Reviewを通して確定します。
+
+UserはColor Pickerから任意の `#RRGGBB` 値へ変更できます。Personal ContextはUserごとに1つのため、Community Accentのようなランダム初期生成や重複回避は行いません。
+
+色を選択した時点で明示的なSave操作を要求せず、即時保存・即時反映します。保存失敗時もUserが選択した色と未保存の変更内容を保持し、保存が完了していない可能性をFeedbackで伝え、手動の再試行を提供します。自動的に最後の保存済み色へ戻したり、失敗した変更を破棄したりしません。再試行時は保持した最新の変更値を保存し、成功後はその値を保存済み状態として扱います。複数のPreference変更がある場合も、失敗した変更を保持し、新しい変更を失わないようにします。
+
+Personal AccentはLight / Darkで同じ保存済み値をSourceとして扱い、Theme preferenceとは独立して扱います。UIへ適用するResolved ColorはThemeごとのAccessibilityと視認性を保つため[Design SystemのColor System](/design-system#color-system)に従って解決し、shadeやforeground等まで同一であることは要求しません。色だけにContext識別を依存しません。
+
+Personal AccentはUser accountに紐づくpresentation preferenceとしてdevice / browser間で同期します。Themeがbrowser / device-localであることを理由にPersonal Accentをlocal preferenceへ含めません。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+### 変更Behavior
+
+Appearanceの選択は明示的なSave操作を要求せず、選択時に即時反映します。
+
+Theme変更によって現在のApplication context、Navigation先、入力中の内容、選択状態等を失わせません。Theme変更はpresentationの変更であり、Domain Actionの再実行やNavigationを発生させません。
+
+AppearanceはPersonal / Communityごとに分けず、同一browser / device上のApplication全体へ適用します。
+
+### 永続化scope
+
+Initial ReleaseのAppearance preferenceは **browser / device-local preference** とします。Memoria User accountへ同期するUser domain dataとして扱いません。
+
+- Themeは同じUserでもbrowser / deviceごとに異なる値を選択できます。
+- Themeは同じbrowserでlogout / loginしても、local preferenceが利用可能である限り選択を維持できます。
+- Themeを別deviceや別browserへ同期しません。
+- Personal Accentを含むaccount同期PreferenceはUser Preferencesとして別device / browserへ同期します。
+- Theme preferenceのためだけにUser entity、Profile、GraphQL / APIへ永続化fieldを追加しません。
+
+local preferenceを読み取れない、未保存、または保存値を解釈できない場合はSystemとして扱います。
+
+browser storageの具体方式、SSR / hydration時のTheme適用順序、flash防止等はFrontend implementation contractで決定します。ただし初期表示で不要なTheme切り替わりを可能な範囲で避けることを実装上の品質要件とします。
+
+### 日付形式
+
+日付形式はUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。任意のformat stringは入力させず、Initial Releaseでは次の3パターンから選択します。
+
+| Preference | 表示例 |
+| --- | --- |
+| YYYY/MM/DD | 2026/10/05 |
+| MM/DD/YYYY | 10/05/2026 |
+| DD/MM/YYYY | 05/10/2026 |
+
+初期値は **YYYY/MM/DD** とします。
+
+このPreferenceは日付部分の表示順とseparatorだけを対象とします。Timezoneの選択・変換とは分離し、Initial Releaseでは時刻部分を24時間表記として扱います。12 / 24時間表記の切り替えは日付形式Preferenceへ含めません。
+
+日付形式の変更は他のPreferenceと同様に選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
+
+Themeとは永続化scopeが異なります。Appearanceがbrowser / device-localであることを理由に、Preferences全体をlocal storageへ一律に保存しません。日付形式はaccount同期対象として扱い、具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+### Language / Locale
+
+Applicationは将来の多言語対応を妨げないようLanguage / Localeを独立したPreferenceとして扱える境界を持ちます。ただしInitial Releaseで提供する言語は **日本語のみ** とし、SettingsにはLanguage選択controlを表示しません。選択肢が1つしかない状態で意味のない設定操作をUserへ要求しないためです。
+
+Language / Localeは日付形式、Timezone、ファイルサイズ単位等のPreferenceと同一視しません。将来複数言語を正式に提供するときに、Language選択UI、初期値、fallback、永続化scopeをその時点のProduct requirementに基づいて設計します。
+
+### Timezone
+
+ApplicationはUser-facingな日時をTimezoneへ変換して表示できる境界を持ちます。ただしInitial ReleaseではSettingsにTimezone選択controlを表示せず、実効Timezoneを **Asia/Tokyo** とします。
+
+User-facingな日時表示には原則としてAsia/Tokyoを一貫して適用し、Timezone変換後の日付部分へ日付形式Preferenceを適用します。時刻部分はInitial Releaseでは24時間表記とします。Timezoneはpresentation上の日時解釈を決めるものであり、Domain / APIが保持する日時データそのものを書き換えません。
+
+将来Timezone選択を提供する場合は、System / 明示指定Timezone等の選択方法とaccount同期を含むPreferenceとして改めて有効化します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+### ファイルサイズ単位
+
+ファイルサイズ単位はUser accountに紐づくPreferenceとして保持し、同じUserが利用するdevice / browser間で同期します。
+
+Initial Releaseでは次の2つの単位体系から選択します。
+
+| Preference | 単位 | 基数 |
+| --- | --- | --- |
+| Decimal | KB / MB / GB | 1 KB = 1000 bytes |
+| Binary | KiB / MiB / GiB | 1 KiB = 1024 bytes |
+
+初期値は **Decimal** とします。Binaryを選択した場合は1024基準の値に `KB` / `MB` / `GB` を使用せず、`KiB` / `MiB` / `GiB` として単位体系を明示します。
+
+このPreferenceはMedia DetailのOriginal file size、Usage等、Application内でUserへ提示するfile size表示へ一貫して適用します。Domain dataやStorage上のsizeそのものを書き換える設定ではなく、保持しているbyte数等の正本から表示値を導出するpresentation preferenceとして扱います。
+
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。
+
+具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+### Mediaサムネイルサイズ
+
+Media Collectionで表示するサムネイルサイズはUser accountに紐づく共通Preferenceとして保持し、同じUserが利用するdevice / browser間で同期します。Media Browserだけでなく、Group Browser内のaggregate Media等、Media CollectionとしてMediaを一覧表示する箇所へ一貫して適用します。
+
+Initial Releaseでは **小 / 中 / 大** の3段階を提供し、初期値は **中** とします。
+
+| Preference | 意図 |
+| --- | --- |
+| 小 | 一覧性を優先し、一度により多くのMediaを確認しやすくする |
+| 中 | 一覧性と個々のMediaの確認しやすさを両立する |
+| 大 | 個々のMediaのvisual contentをより確認しやすくする |
+
+このPreferenceは固定pixel値や固定grid列数をUser preferenceとして定義するものではありません。Responsive viewport classificationとは独立して扱い、各viewportで適切な実寸・列数へ適応しながら、同一viewport内では小 < 中 < 大の相対的なサムネイルサイズ関係を維持します。
+
+具体的なthumbnail寸法、spacing、grid layoutはUI具体化とVisual Reviewで決定します。Preferenceとしてraw pixel値を保存・公開しません。
+
+このPreferenceはMedia Collectionの閲覧密度を調整するものであり、Media Detailのメイン画像、Upload preview、選択control内の補助thumbnail等、Collection閲覧を目的としないMedia表示には適用しません。Initial ReleaseではCollectionごとの個別設定を持たず、1つの共通Preferenceを使用します。将来、Collectionごとに異なるサイズを必要とするProduct needが確認された場合は、共通Preferenceをdefaultとして個別overrideする方式を検討します。
+
+変更は選択時に即時反映し、明示的なSave操作を要求しません。accountへ保存された値は別device / browserで同じUserが利用する場合にも適用します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+### Media Detailの前後Navigation循環
+
+Media Detailの前後NavigationをCollectionの境界で循環させるかはUser accountに紐づくPreferenceとして保持し、device / browser間で同期します。
+
+Initial Releaseでは **OFF** を初期値とします。OFFでは利用元Collectionの先頭・末尾をNavigationの境界とします。ONでは末尾から「次へ」で先頭へ、先頭から「前へ」で末尾へ移動します。
+
+循環を有効にしても、Detailを開いた利用元Collectionのfilter条件と順序は変更しません。未取得のMediaが存在する場合もclient上で読み込み済みの範囲をCollection全体の境界として扱わず、必要に応じてConnectionを追加取得して実際の先頭・末尾を解決します。
+
+Collectionが1件だけの場合は、同じMedia自身への前後移動Actionを成立させません。
+
+変更は選択時に即時反映します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+### Media Detailの詳細情報初期表示
+
+Media Detailを開いたときの詳細情報領域の初期状態はUser accountに紐づくPreferenceとして保持し、device / browser間で同期します。Responsive領域ごとの利用可能な表示領域が異なるため、WideとMediumを個別に設定します。
+
+| 対象 | Preference | 初期値 |
+| --- | --- | --- |
+| Wide | 詳細情報を展開して開く | ON |
+| Medium | 詳細情報を展開して開く | OFF |
+| Compact | Preference対象外 | Compact固有のResponsive Behaviorに従う |
+
+このPreferenceはMedia Detailを新しく開いた瞬間の初期状態だけを決定します。Detailを開いた後にUserが詳細情報を展開・折りたたみしても、その操作からPreferenceを自動更新しません。
+
+Wide / Mediumのviewport classificationに応じて対応するPreferenceを解決し、Detail UIには解決後の初期状態を渡します。各表示箇所でPreference値を個別に分岐させません。CompactではこのPreferenceを参照せず、Compact向けのProgressive Disclosureを使用します。
+
+Detailを開いたままviewportが変化した場合は、breakpointを跨ぐたびにPreferenceを再適用してUserの操作状態を強制的にリセットしません。Responsive layoutへ適応しつつ、現在の状態を維持可能な範囲で維持します。CompactではCompact固有のpresentationを優先します。
+
+変更は選択時に即時反映し、次にMedia Detailを開くときの初期状態から使用します。具体的な永続化・GraphQL契約は[User論理データモデル](/user/data-model)、[User物理データモデル](/user/physical-data-model)、[GraphQL API設計](/system/api/graphql)を正本とします。
+
+## 画面の状態・復旧
+
+- **初期表示**: Themeはdevice-local値を反映し、account同期対象の項目は取得したUser Preferences値を選択状態に表示します。
+- **入力・変更**: Themeとaccount同期Preferencesはいずれも明示Saveなしで選択時に反映します。Personal Accent Colorは6桁HEXとして有効な値を保存対象とし、入力途中のDraftを保持します。
+- **保存中**: 最新のUser選択を画面に維持し、同じ項目の連続変更は最後の選択を失わずに保存します。保存要求は順序を維持します。
+- **再試行可能な保存失敗**: 更新の完了を確認できない旨を表示します。変更済みの値を保持し、再試行Actionで保留中の最新変更を再送します。失敗時に保存済み値へ巻き戻しません。
+- **変更を継続できない保存失敗**: 再読み込みによる状態確認を案内し、その画面でのPreferencesとしての追加変更・保存要求を受け付けません。Personal Accent Colorの入力欄では編集中のDraft文字列を引き続き編集できますが、その値をPreferencesの選択値へ反映せず、保存Queueにも送信しません。既に保持している選択値・保存失敗状態も自動的に巻き戻しません。自動再試行で強行しません。
+- **取得失敗**: User Preferencesを表示できない場合、取得できないことと再読み込みによる復旧を伝えます。取得前に任意の保存値を確定値として扱いません。
+
+## Navigation・ResponsiveとAccessibility
+
+Settings全体のSection間Navigationは[User Settings](/screens/user-settings)に従います。表示領域にかかわらず全設定の現在値を確認・変更でき、入力中の変更・保存失敗・再試行の導線が維持されます。Theme切替だけで現在のContext・Navigation先・入力値を失わせません。Light / Dark双方でsemantic colorとfocus indicatorを維持します。具体的な設定行の配置とResponsive UIは[環境設定UI設計](/screens/user-settings-preferences-ui-design)に従います。
+
+## 関連する未提供機能
+
+
+
+- User accountを介したAppearance preferenceのdevice間同期
+- Community / Personal contextごとのTheme
+- Communityごとのbrand theme
+- Theme全体の配色をUserが任意色へ変更するcustom theme（Personal / Community Context Accentは対象外）
+- font family、font size、density等の追加Appearance preference
+- Theme変更によってProduct Capabilityやauthorizationを変えること
+
+将来User preferenceを追加する場合も、account同期が必要かdevice-localであるべきかを設定ごとに判断し、Preferences全体を一律に同じ永続化scopeへ固定しません。 
