@@ -1010,6 +1010,8 @@ extend type Mutation {
 }
 ```
 
+編集開始時の完全な状態を一貫して取得するため、`mediaTagEditState(mediaId: ID!, scope: ScopeInput!): MediaTagEditState!` を提供します。`MediaTagEditState` は `mediaId: ID!`、`scope: ScopeType!`、`tagIds: [ID!]!`、`stateToken: String!` を返し、Tag IDsとTokenは同一の認可済みDB Transactionで取得します。独立したGraphQLフィールドを別々に取得して同一snapshotとみなしてはいけません。Tag名の表示はscopeのTag catalogから引き、保存の正本はTag ID集合です。
+
 `Media.tagStateToken(scope: ScopeInput!): String!` をMedia型に設け、現在ScopeのTag relationに対するTokenを取得します。`Media.tags(scope:)` と同じ認可境界を適用し、Clientは一致するScopeのTokenとTag ID集合を編集開始時に取得します。複数ページにまたがるTag relationを部分取得しただけで完全なDesired Stateを構成してはいけません。
 
 現在のTag ID集合に対して発行した`expectedStateToken`はMedia IDおよびScopeに結びつき、Tag名変更のようなTag Entity属性の変更はToken対象外です。更新Transaction内で現在状態とTokenを比較し、不一致時は`CONFLICT`でそのMediaの変更全体を拒否します。初期Tokenは対象Mediaの`tags(scope:)`取得結果と一貫して取得できる必要があり、実装では同一Snapshotから読み取れる仕組みを提供します。Tokenを持たないClientによる無条件の最終集合更新は許可しません。
