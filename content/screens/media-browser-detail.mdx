@@ -294,13 +294,13 @@ Application Shell上のDialog / ModalはfeatureごとにHeaderとのz-index競�
 
 ### Media Browser一覧実装と未達契約の区別（2026-10-26）
 
-[Web PR #174](https://github.com/hazuki3417/memoria-web/pull/174) の現行実装はGroup選択後、既存の `addMediaToGroup(input: {groupId, mediaIds})` を**選択Groupごとに呼び出します**。各GroupのMedia item resultは返りますが、選択Group集合全体の事前検証・Media単位のGroup集合原子性は保証できません。加えて現在のDialogは失敗Mediaを識別する結果状態・失敗Mediaのみの再試行を実装していません。これは本書の「Group集合を共通preconditionとして扱い、Media単位でGroup集合を一つの適用単位とする」契約（上記「bulk分類」節）と**不一致**です。仕様の緩和は合意していないため、実装を正として本文を変更しません。動作確認・マージ判定前に[API Issue #115](https://github.com/hazuki3417/memoria-api/issues/115)でBackendのGroup集合契約を、[Web Issue #70](https://github.com/hazuki3417/memoria-web/issues/70)で結果表示・再試行UIの契約を解消してください。
+[Web PR #174](https://github.com/hazuki3417/memoria-web/pull/174) は [API PR #114](https://github.com/hazuki3417/memoria-api/pull/114) の新規 `addMediaToGroups` Mutationに接続済み（両PRとも未merge）。選択Group集合の共通preconditionと1 Media×Group集合の原子性はBackendで扱う。既にすべて所属済みのMediaは `ALREADY_APPLIED` として重複登録せず、追加が必要なMediaは `SUCCEEDED` とする。Webでは失敗Media・理由・成功/既適用/失敗件数を表示し、失敗したMediaだけ同じGroup集合へ再試行する実装を追加した。結果不明の通信障害時には成功扱いにせず、所属状態の確認を促す。Group分類の完全な実環境・競合・Responsive/Visual/Behavioral Regressionは引き続き未検証であり、[API Issue #115](https://github.com/hazuki3417/memoria-api/issues/115) と [Web Issue #70](https://github.com/hazuki3417/memoria-web/issues/70) で追跡する。
 
 MediaタイルクリックからDetailを開く動作は今回のPRの対象外としてユーザーが明示承認していますが、Initial Release全体のDetail要件を削除する判断ではありません。共有・削除の実操作も設計上のCapabilityとして存続し、現行のAPI未提供・画面無効化は暫定的な実装状態です。
 
 ### 選択モードのGroup追加・Media削除後のFeedback
 
-選択モードの「Groupに追加」「Mediaを削除」は確認Dialogの確定後に処理結果をNotificationで伝えます。実APIの成功時のみ成功Notificationを表示し、失敗時はエラーを通知して失敗した処理を成功扱いしません。Visual Prototype単体ではAPIへ接続せず、Dialog確定時に実データを変更しないことを情報Notificationで明示します。実データ画面ではGroup追加を既存Mutationへ接続し、共有・削除は未接続のため無効化しています。キャンセルではNotificationを表示しません。
+選択モードの「Groupに追加」「Mediaを削除」は確認Dialogの確定後に処理結果をNotificationで伝えます。実APIの成功時のみ成功Notificationを表示し、失敗時はエラーを通知して失敗した処理を成功扱いしません。Visual Prototype単体ではAPIへ接続せず、Dialog確定時に実データを変更しないことを情報Notificationで明示します。実データ画面ではGroup追加を複数Group対応の `addMediaToGroups` Mutationへ接続し、共有・削除は未接続のため無効化しています。キャンセルではNotificationを表示しません。
 
 
 ### 選択モードの追加先・共有先の選択数
