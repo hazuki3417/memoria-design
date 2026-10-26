@@ -6,7 +6,7 @@
 
 一覧画面の画像タイルと、選択後にdialogで開く詳細画面は、同じImage Variant群を共用します。
 
-Initial ReleaseのVariant配信はCloudFrontを使わず、APIがMedia閲覧を認可して発行する15分有効のS3互換SigV4 Presigned GET URLを使用します。配信EndpointはBrowserから到達可能かつ認証付きGETに対応している必要があります。署名URLはsecretとして扱い、log / traceへ記録しません。thumbnailやpreviewは画面上の利用場面であり、独立した保存resourceにはしません。
+Initial ReleaseのVariant配信はCloudFrontを使わず、APIがMedia閲覧を認可して発行する15分有効のS3互換SigV4 Presigned GET URLを使用します。配信EndpointはBrowserから到達可能かつ認証付きGETに対応している必要があります。署名URLはsecretとして扱い、log / traceへ記録しません。 Browser一覧は15分の期限より短い12分間隔でQueryを再取得し、background tabから復帰した際にも経過時間を確認して更新します。再取得は先頭ページから行い、以前のページに含まれる失効済みURLを保持しません。thumbnailやpreviewは画面上の利用場面であり、独立した保存resourceにはしません。
 
 ## Responsive image
 
