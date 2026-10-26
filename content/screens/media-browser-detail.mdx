@@ -129,6 +129,17 @@ bulk操作はUI上では一つの意図として開始できますが、domain�
 
 Group bulk classificationでは1回のActionで1つ以上の既存Groupを選択し、選択MediaをそれらのGroupへまとめて追加できます。Selection toolbarのGroup分類ActionからDialogを開き、対象Media件数と、同一scopeの既存Groupを名前で検索して複数選択できるinputを提示します。Dialogは今回追加するGroup集合の指定だけを責務とし、選択Mediaが既に所属しているGroupやMedia間のmixed membership stateは表示しません。初期選択は空とし、選択済みGroupを外す操作は今回の追加対象から外すだけで、既存relationの除外を意味しません。確定Actionは追加として表現し、各Mediaですでに存在するMedia × Group relationはno-opとして重複作成しません。Groupからのbulk除外はInitial Releaseでは提供せず、Media Detailで現在のdirect Group所属を確認してMedia単位で解除します。Groupの新規作成とbulk分類を一つのdomain operationへ結合しません。Tagの編集はBrowser上のbulk Actionとして直接提供せず、Media Update画面へ引き継いで行います。
 
+### 複数Groupを同時指定できる理由（2026-10-26再確認）
+
+**決定: Initial Releaseでも、明示選択した複数Mediaを1回の操作で複数の既存Groupへ追加できる仕様を維持する。** 追加先を1 Groupに限定しない。
+
+- 主な操作は「Mediaを選択してGroupへ追加する」であり、複数Groupを同時指定する利用が多数派であると確認されたわけではない。
+- 一方、複数Groupへの同時追加が不要だと断定できる根拠もない。追加先を1 Groupに制限すると、複数Groupへ同じMedia集合を分類したいUserにダイアログ操作や再選択を繰り返させる。
+- 複数同時指定を維持すれば、そのユースケースでは操作回数を減らせる。1 Groupだけを追加したいUserも同じUIで1件のみ選択できる。
+- 単一Groupへ限定する主な利点として挙がったのは実装・Transaction・失敗処理の簡素化であり、今回の検討ではUser側の具体的なメリットは確認されなかった。実装の都合だけを理由にUserのCapabilityを制限しない。
+
+したがって、Group集合を一括指定できる既存Product contract、Group集合のprecondition、Media単位の適用原子性を変更しない。BackendとFrontendの不足は仕様削減で回避せず、[API Issue #115](https://github.com/hazuki3417/memoria-api/issues/115) と [Web Issue #70](https://github.com/hazuki3417/memoria-web/issues/70) で解消する。利用頻度についての根拠が得られた場合は改めて評価できるが、現時点で不要と仮定しない。
+
 Group bulk classificationの実行時は、選択したGroup集合をAction全体で共有するpreconditionとして再検証します。選択Groupの不存在、scope不整合、分類先として利用する権限の喪失等によりGroup集合が成立しない場合はAction全体を失敗させ、どのMediaにも変更を適用しません。残ったGroupだけへ暗黙に縮退して処理を続行しません。
 
 Group集合が有効な場合はMediaごとに現在状態とauthorizationを再検証し、Mediaの不存在、利用不能、分類権限の喪失等はそのMediaだけの失敗として扱います。他の有効なMediaへの追加は成功として維持し、Media間では部分成功を許容します。一方、1 Mediaに対する選択Group集合の追加は一つの適用単位として扱い、成功したMediaについて選択Groupの一部だけが追加された状態をProduct contractとして作りません。
