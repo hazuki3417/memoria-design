@@ -109,7 +109,7 @@ Backendは現在集合を取得し、Tokenによる競合検出後に差分を�
 - retry可能な失敗では失敗対象だけを再試行できる
 - 認可喪失やMedia利用不能等、同じ入力の再送では成立しない場合は単純retryを提示しない
 
-未登録Tagの作成とMediaへの付与はdomain上別の結果です。Tag作成に成功してrelation追加に失敗した場合、そのMediaのTag変更を成功として表示しません。
+未登録Tagの作成とMediaへの付与は1 Media・1 Scopeの保存Transactionに含め、relation適用に失敗した場合はTag作成もrollbackします。Frontendは既存TagのIDと未登録Tag名を含む期待状態を送信します。独立したTag作成Mutationは使用しません。
 
 ## 状態
 
