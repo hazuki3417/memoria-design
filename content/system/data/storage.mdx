@@ -2,7 +2,7 @@
 
 ## 概要
 
-> 実装状況: S3互換storageによるImage保存は存在しますが、Media共通path、幅別Variant、CloudFrontによる非公開配信には差分があります。
+> 実装状況: S3互換storageによるImage保存は存在しますが、Media共通path、幅別Variant、Private Variantの署名URL配信には差分があります。
 
 DBはMediaの属性・管理主体・公開関係、Object Storageは原本と派生fileを保持します。
 
@@ -29,7 +29,11 @@ downloads/{downloadRequestId}.zip
 
 ## Private配信
 
-S3 bucketはprivateとし、public access blockと保存時暗号化を適用します。CloudFrontを利用する場合はOrigin Access Controlを通じて配信します。**Initial Releaseの表示用VariantはMedia単位のCloudFront Signed URL方式を採用します（2026-10-26合意）。** APIが現在のPersonal / Communityの閲覧権限を検証した後、公開済み `image_variants.storage_key` に対応する各Variantへ15分有効の署名付きURLを発行します。`srcset` / `sizes` で同じMediaの複数幅を扱い、Signed Cookieは初期実装には使用しません。CloudFrontのprivate key / key pair識別子 / 配信domainはServer-only設定とし、IaC側で非公開OriginへのOAC・Trusted Key Group・署名鍵配布を整備します。署名URLをログ・traceへ記録せず、権限喪失後に新しいURLを発行しません。未失効の発行済みURLは期限までアクセス可能という既存の残存riskを維持します。Original downloadは別認可です。署名情報をlogへ出力しません。Original用の署名期限は5分、Variant用は15分を初期値とし、権限喪失後の再発行を拒否します。発行済み署名の有効期間中の利用は残存riskとして扱います。
+S3 bucketはprivateとし、public access blockと保存時暗号化を適用します。**Initial Releaseの表示用VariantはS3互換Object StorageのSigV4 Presigned GET URLを採用し、CloudFrontは配信経路から除外します（2026-10-26変更合意）。** APIが現在のPersonal / Communityの閲覧権限を検証してから、公開済み `image_variants.storage_key` に対し15分有効の署名付きURLを発行します。Clientは署名URLをそのまま `srcset` / `sizes` で使用し、bucket名やkeyを組み立てません。Original downloadは別の認可・5分期限です。
+
+S3アクセスはServer-sideの内部Endpointと、BrowserからHTTPSで到達可能な配信Endpointを分離します。署名はBrowserからリクエストする実際の配信Host・pathを対象とし、内部Hostを署名してからURLだけ置換しません。配信EndpointはPrivate ObjectへのSigV4検証付きGETをサポートする必要があり、bucket公開を前提にしません。Public Endpointの未設定・署名鍵の欠落時は無署名URLへfallbackしないで失敗させます。開発時のlocalhost HTTPは明示的な開発環境だけ許容し、本番はHTTPS必須とします。
+
+APIの署名付きURL・署名情報をlog / traceへ記録しません。権限喪失後は新しいURLを発行しませんが、発行済みURLは15分間まで有効となる残存riskを許容します。
 
 Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。upload時にsize、MIME type、実dataを検査します。詳細は[Media処理と派生物](/media/processing)と[CommunityとMediaの公開](/media/community-access)を参照してください。
 
