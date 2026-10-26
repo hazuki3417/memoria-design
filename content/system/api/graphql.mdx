@@ -910,6 +910,9 @@ relation解除は指定relationだけを削除し、0 parents / 0 childrenを許
 
 Group IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Group IDとMedia IDのULID形式からscopeを推測しません。複数Media分類は各Mediaを再認可して部分成功を許容します。query結果全件を暗黙対象にするInputは提供しません。
 
+**Media Browser複数Group一括追加（2026-10-26合意）**: UIは複数Mediaと複数既存Groupの集合を一つのUser操作として指定できる。**全Group集合の存在・同一scope・権限はAction共通のprecondition**であり、集合の一部が無効ならMediaの更新を一件も確定しない。各MediaではそのGroup集合への追加を不可分として適用し、Media間の部分成功のみ許容する。これは既存の `addMediaToGroup(groupId, mediaIds)` の複数回呼び出しによっては保証できない。必要な実行可能SDL / Mutationの形と既存consumer互換性は[API Issue #115](https://github.com/hazuki3417/memoria-api/issues/115)で設計・実装し、確定前にこの記載を既存Schemaの実装済み機能と誤認しない。単一DB Transaction＋Media別SAVEPOINTを第一候補とするが、ロック・分離レベル・競合時の振る舞いは実装詳細であり別途確定する。[画面設計](/screens/media-browser-detail)を参照。
+
+
 ## Tag
 
 ### 型とQuery
