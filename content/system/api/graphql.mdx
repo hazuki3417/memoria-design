@@ -982,7 +982,31 @@ Personal TagはUser本人が管理します。CommunityではAdministrator / Mem
 
 Tag IDから分類先scopeを確定し、各Mediaがそのscopeで閲覧・分類可能かを検証します。Tag IDとMedia IDのULID形式からscopeを推測しません。Media Browserの複数Tag filterはAND条件です。OR切替や複雑な検索式はInitial Releaseへ追加しません。複数Media分類は部分成功を許容し、query結果全件を暗黙対象にしません。
 
-Media Upload / Media Updateで複数MediaのTag Draftを保存する場合も、画面専用の巨大な「最終Tag集合保存」Mutationを追加せず、Tag作成と既存Tag分類のCommandをWebの名前付きOperation / orchestrationから組み合わせます。各Mutationは独立したtransactionであり、Webは成功済みCommandを失敗した後続Commandのためにrollback済みとみなしません。部分失敗時は成立済み状態を再取得してDraftとの差分を再評価し、失敗対象だけをUserが修正・再試行できるようにします。
+Media Update / Uploadで保存済みMediaのTag Draftを反映するときは、Tag付与・解除Commandの逐次編成ではなく、**1 Media・1 Scopeの期待するTag ID集合（Desired State）**を `updateMediaTags` に渡します。Backendが現在集合との差分を計算し、認可・競合・30件上限・同一Scope所属を検証したうえで、1 Mediaの全追加・全解除を**1つのTransaction**でcommit / rollbackします。Frontendから既存Tag集合の上書きCommand列を渡す方式は使用しません。
+
+```graphql
+input UpdateMediaTagsInput {
+  mediaId: ID!
+  scope: ScopeInput!
+  expectedStateToken: String!
+  tagIds: [ID!]!
+}
+
+type UpdateMediaTagsPayload {
+  mediaId: ID!
+  stateToken: String!
+}
+
+extend type Mutation {
+  updateMediaTags(input: UpdateMediaTagsInput!): UpdateMediaTagsPayload!
+}
+```
+
+現在のTag ID集合に対して発行した`expectedStateToken`はMedia IDおよびScopeに結びつき、Tag名変更のようなTag Entity属性の変更はToken対象外です。更新Transaction内で現在状態とTokenを比較し、不一致時は`CONFLICT`でそのMediaの変更全体を拒否します。初期Tokenは対象Mediaの`tags(scope:)`取得結果と一貫して取得できる必要があり、実装では同一Snapshotから読み取れる仕組みを提供します。Tokenを持たないClientによる無条件の最終集合更新は許可しません。
+
+複数MediaはFrontendで各MediaのMutationを順次または制限付き並列に実行し、全Mediaを1つのTransactionへ統合しません。成功済みMediaは維持し、失敗Mediaだけを最新のServer状態・Tokenと照合して再編集・再試行します。新規Tag名は`createMediaTag`で先にTag Entityを作成または同一Scopeの既存Tagを解決し、そのIDを期待集合に含めます。Tag作成とMedia分類更新は別Transactionであり、Tag作成成功だけで分類成功とは表示しません。
+
+従来の`addMediaTag` / `removeMediaTag` は既存Consumerの互換性確認まで公開契約を維持しますが、Media Updateの保存経路では使用しません。互換APIの廃止判断は別途行います。
 
 ## Community削除
 
