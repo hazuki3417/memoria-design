@@ -143,6 +143,14 @@ Tagは階層やrelationを持たないため、Group BrowserのようなGroup-ce
 
 Tagの発見方法、sort、検索、pagination等の具体的な一覧contractは利用規模とAPI contractに合わせて決定します。
 
+## Media単位のTag集合更新
+
+Media Update / Uploadで保存済みMediaのTagを編集する場合、Frontendは対象Mediaと現在Scopeに対する**期待する最終Tag ID集合**を指定します。Backendは現在のrelationとの差分を計算し、1 Media・1 ScopeのTag追加・解除を単一Transactionでatomicに更新します。Tag本体の新規作成は別操作であり、作成成功だけでrelation保存成功とは扱いません。
+
+更新には既存Tag集合に紐づく`expectedStateToken`を必須とし、保存中に他のUser等がrelationを変更した場合は`CONFLICT`として対象Mediaの更新全体を拒否します。Tag Entityの名称変更はこのTokenへ含めません。保存直前の認可、Mediaの可視性、Scope一致、30件上限を検証します。異なるScopeのTagを混入させません。
+
+複数Mediaは各Mediaの独立Transactionとして実行し、成功したMediaはrollbackせず、失敗したMediaだけ最新状態を取得して再編集・再試行します。Bulk編集の「追加」「除去」は各MediaのDraft集合への操作であり、意図しないTag全置換を行いません。
+
 ## States / Concurrency
 
 Tag作成・rename・削除・Media relation変更では、実行時に現在scope、Membership / role、TagとMediaの存在、重複等を再検証します。
