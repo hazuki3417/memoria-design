@@ -58,7 +58,7 @@ Personal ContextのAccent Colorは、Personalを他のApplication Contextから�
 
 UserはColor Pickerから任意の `#RRGGBB` 値へ変更できます。Personal ContextはUserごとに1つのため、Community Accentのようなランダム初期生成や重複回避は行いません。
 
-色を選択した時点で明示的なSave操作を要求せず、即時保存・即時反映します。保存失敗時は最後に確認できている保存済み色へ戻し、再試行可能なFeedbackを提示します。
+色を選択した時点で明示的なSave操作を要求せず、即時保存・即時反映します。保存失敗時もUserが選択した色と未保存の変更内容を保持し、保存が完了していない可能性をFeedbackで伝え、手動の再試行を提供します。自動的に最後の保存済み色へ戻したり、失敗した変更を破棄したりしません。再試行時は保持した最新の変更値を保存し、成功後はその値を保存済み状態として扱います。複数のPreference変更がある場合も、失敗した変更を保持し、新しい変更を失わないようにします。
 
 Personal AccentはLight / Darkで同じ保存済み値をSourceとして扱い、Theme preferenceとは独立して扱います。UIへ適用するResolved ColorはThemeごとのAccessibilityと視認性を保つため[Design SystemのColor System](/design-system#color-system)に従って解決し、shadeやforeground等まで同一であることは要求しません。色だけにContext識別を依存しません。
 
