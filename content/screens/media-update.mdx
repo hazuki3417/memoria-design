@@ -88,6 +88,14 @@ Media単位の編集では対象Mediaの現在Tagを確認し、そのMediaだ�
 
 同じTagに対して共通編集とMedia単位編集が競合する場合、保存前の最終編集状態から各Mediaへ適用する差分を明確に導出し、Userの意図しない二重適用を行いません。
 
+## 保存時のDesired StateとTransaction境界
+
+Frontendは選択Mediaごとに現在ScopeのTag ID集合をDraftとして管理し、保存時にはそのMediaの期待する**最終集合**と`expectedStateToken`を`updateMediaTags`へ送信します。共通Tag操作は選択MediaそれぞれのDraftへ追加・解除を適用するだけで、他のTag relationを意図せず消去しません。
+
+Backendは現在集合を取得し、Tokenによる競合検出後に差分を計算して、**1 Media・1 Scopeにつき1 Transaction**で全変更をatomicに適用します。複数Mediaを同一Transactionへまとめず、成功済みMediaは保持します。
+
+`CONFLICT`時はそのMediaだけ保存を拒否し、最新のServer集合とTokenを再取得してUserに差分を確認させます。失敗済みの古いTokenで無条件再送しません。Tag新規作成は別操作として先に解決し、作成済みTagを保持したままMedia relationの失敗を扱います。
+
 ## 保存
 
 保存Actionを実行した時点で、対象Mediaごとに現在scope、Mediaの存在・可視性、Membership / role、Tag relation等を再検証します。
