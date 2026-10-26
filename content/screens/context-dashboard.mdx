@@ -36,9 +36,20 @@ Personalと各CommunityのDashboardは、現在のContextの最近のMediaを把
 - Media件数等の統計、および最近の活動履歴はInitial Releaseに含めず、後続リリースで必要性・API負荷・Privacyを検討します。
 - 統計・活動履歴の取得APIをDashboardの初回実装の前提としません。
 
-## 後続の詳細設計
+## GraphQL取得契約（Initial Release）
 
-- 必要なGraphQL Operationと既存Media Browserとの取得契約の整合。
+- Personalでは`ScopeInput { type: PERSONAL }`、Communityでは`ScopeInput { type: COMMUNITY, communityId }`を使用し、Context間で取得した内容を混在させません。Community IDはURL/APIの安定識別子です。
+- 最近のMediaは`mediaList(scope, first: 32)`で取得し、API側の最近順の並びを維持します。Thumbnailは`image.variants { url width }`からMedia Browserと同じ選択規則（幅320px以上の最小Variant、なければ最大幅）を適用します。取得上限は32件です。
+- 最近のGroupは`mediaGroups(scope, sort: CREATED_AT_DESC, first: 6)`で取得します。同じQueryの各Groupに`media(first: 4)`をネストし、Group Browserの`GroupPreviewGrid`を再利用します。Groupごとの追加QueryによるN+1取得を行いません。
+- MediaとGroupのLoading、通信失敗、正常な0件は別状態とし、失敗時には各Sectionで再試行可能にします。Communityにアクセスできなくなった場合、前のContextの内容を代用せず権限エラーとして扱います。
+- 画像Variantの署名URL（15分有効）を考慮し、12分ごと、および長時間非表示だったタブへの復帰時に双方のQueryを再取得します。既存の署名URLを永続保存しません。
+- Dashboard固有のGraphQL Queryは`memoria-web/src/infrastructure/graphql/operations/dashboard.graphql`へ置き、`codegen.ts`に基づく型付きHookを利用します。`mediaList`の実行可能なBackend実装はMedia Browser PR #174と関連Backendブランチに依存するため、統合後の実API結合検証が必要です。
+
+## 後続の検証事項
+
+- 最新順・安定順をAPIと照合（同時刻データのtie-breakerを含む）。
+- Group previewで画像が未生成・取得失敗の場合の状態と、Media Browserと共通のThumbnail表現。`media(first: 4)`の`pageInfo.hasNextPage`を用いて4件を超えるGroupのcontinuation cueを維持します。
+- 実APIでのPersonal / Community権限、署名URL更新、Compact / Medium / Wideでの回帰確認。
 
 関連: [Application Information Architecture](/system/application-information-architecture)、[Personal Media](/screens/personal-media)、[Media Browser / Detail](/screens/media-browser-detail)、[Frontend UI Development](/system/frontend-ui-development)。
 
