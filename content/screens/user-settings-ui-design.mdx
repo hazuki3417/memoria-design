@@ -1,0 +1,35 @@
+# User Settings：共通UI設計
+
+## 概要・適用範囲
+
+`/settings/profile`、`/settings/account`、`/settings/preferences`、`/settings/usage` に共通するSettings内Navigationとコンテンツの配置を定義します。Sectionの目的、URL、操作可能条件は[User Settings](/screens/user-settings)を正本とし、各ページ固有のUIは対応するUI Designに従います。
+
+## UI構成・情報の優先順位
+
+- **Wide**: Application Shellの主領域内で、左にSettings専用の縦Navigation、右に選択中Sectionの内容を配置します。Navigationと本文は横並びとし、本文は残りの利用可能な幅に収めます。
+- **Compact**: 縦Navigationを単一のSection選択Controlへ置き換え、上に「設定」の補助Label、その下に選択Control、さらに下に選択中Sectionの内容を縦に配置します。
+- 選択可能なSectionと表示順は常に「プロフィール → アカウント → 環境設定 → 利用状況」とします。本文の見出しはSection固有とし、共通Navigationで本文の内容を置き換えません。
+- Settingsは認証後の共通Application Shell内に表示し、各Section自身が独立したShellを重ねません。
+
+## 選択状態とInteraction
+
+- WideのNavigationはSection名とアイコンを並べ、現在Sectionを選択状態として視覚的に区別します。現在位置を色だけに依存して伝えず、Labelと選択状態を併用します。
+- Compactは選択中SectionをSelectの値として表示し、Section変更で対応URLへ移動します。
+- Section変更後、BrowserのBack / Forward、reload、direct linkのいずれもURLのSectionが選択状態と本文を決めます。実装固有のpreview切替をProductionのURL状態より優先しません。
+- Section選択は削除や設定更新などの業務Actionではありません。該当Sectionのコンテンツ内の操作を勝手に実行しません。
+
+## Responsive・入力方式
+
+Compactでは同じSectionへの到達能力を維持したまま表示方式をSelectへ切り替えます。Wideで利用できるSectionをCompactで非表示にしません。Keyboardでは各Navigation ItemまたはSelectへFocusして移動・選択でき、Touchでも操作対象を識別できます。Compact / Wideの切替時もURLが選択Sectionの正本です。
+
+## 設計判断・制約
+
+Page固有のForm、Feedback、Usage、Account削除導線は共通Navigationに混在させず、本文側の責務とします。画面ごとの情報密度を共通Navigationに合わせて簡略化しません。数値幅・BreakpointそのものはVisual Reviewで固定された独立Contractではないため、本書では固定しません。
+
+## 関連仕様
+
+- [User Settings](/screens/user-settings)
+- [設定：プロフィールUI設計](/screens/user-settings-profile-ui-design)
+- [設定：環境設定UI設計](/screens/user-settings-preferences-ui-design)
+- [設定：アカウントUI設計](/screens/user-settings-account-ui-design)
+- [Usage UI設計](/screens/usage-ui-design)
