@@ -35,19 +35,19 @@ Userは提示された自身のdataへの影響を確認し、account削除Flow�
 
 ### 影響確認可能
 
-削除の不可逆性とUser管理Media件数を確認し、Flowを継続できます。このStep内にはFlowを終了するActionを設けず、離脱はApplication Navigationで行います。
+削除の不可逆性とUser管理Media件数を確認し、Flowを継続できます。このStepからも、全Step共通の「削除手続きを中止して設定に戻る」を選べます。削除は実行せず、必要な確認を経て設定画面へ戻ります。
 
 ### 影響情報取得失敗
 
 削除判断に必要なUser管理Media件数等を確認できない場合は削除Flowを継続させません。
 
-[Feedback Pattern](/design-system/patterns/feedback)に従って問題を提示し、再試行できるようにします。Flowからの離脱は通常状態と同様にApplication Navigationで行います。
+[Feedback Pattern](/design-system/patterns/feedback)に従って問題を提示し、再試行できるようにします。取得失敗時も全Step共通の中止Actionから安全に離脱できます。
 
 ## Navigation
 
-ACTIVE Userが[User Settings](/screens/user-settings)の「アカウント」から「アカウントを削除する」を選択した場合に到達します。Step 1ではBackやCancelをFlow Navigationとして追加せず、別画面へ移動する場合はApp ShellのApplication Navigationを使用します。
+ACTIVE Userが[User Settings](/screens/user-settings)の「アカウント」から「アカウントを削除する」を選択した場合に到達します。Step 1には「戻る」を設けず、全Step共通の「削除手続きを中止して設定に戻る」を設けます。中止先は `/settings/account` です。
 
-継続時の遷移は[Account Deletion Flow](/screens/account-deletion-flow)に従います。中止時は削除開始前のApplication利用へ戻れるようにしますが、具体的な遷移先はApplication Navigationと合わせて定義します。
+継続時の遷移は[Account Deletion Flow](/screens/account-deletion-flow)に従います。中止時の確認条件と遷移先は[Account Deletion Flow](/screens/account-deletion-flow)のFlow Navigationを正本とします。
 
 ## 制約
 
@@ -61,11 +61,11 @@ ACTIVE Userが[User Settings](/screens/user-settings)の「アカウント」か
 
 User Profileと同じApp Shell・単一カラム・カードを基本としないページ構成を用います。画面見出しは「アカウント削除」、説明は「アカウントを削除した場合の影響と、削除前に必要な対応を確認します。」とします。
 
-「個人データへの影響」セクションでは、見出しに対応するUser管理Mediaの件数を最初に提示し、その下に独立した「注意事項」セクションを設け、復元できないことを伝える持続的な警告Alertを配置します。見出しと対象情報の視覚的なつながりを優先し、警告は対象情報への補足として提示します。警告タイトルは「削除したデータは復元できません」、本文は「アカウントと、あなたが管理するMediaが削除されます。」とします。件数は実際に取得した値を使用し、試作では24件を例示します。0件の場合は「削除対象のMediaはありません」と表示します。Communityの個別判断はこの画面では求めず、「Communityへの影響は、次の画面以降で確認します。」と案内します。
+「個人データへの影響」セクションでは、見出しに対応するUser管理Mediaの件数を最初に提示し、その下に独立した「注意事項」セクションを設け、復元できないことを伝える持続的な警告Alertを配置します。見出しと対象情報の視覚的なつながりを優先し、警告は対象情報への補足として提示します。警告タイトルは「削除したデータは復元できません」、本文は「アカウントとあなたが管理するMediaが削除されます。」とします。件数は実際に取得した値を使用し、試作では24件を例示します。0件の場合は「削除されるMediaはありません」と表示します。Communityの個別判断はこの画面では求めず、「Communityに参加している場合は、次のステップで各Communityへの対応と影響を確認します。」と案内します。
 
 このStep内のActionは「次へ」と、全Step共通の「削除手続きを中止して設定に戻る」です。「次へ」では最後のAdministratorであるCommunityの有無を確認し、必要な場合だけCommunity対応画面へ進みます。対象Communityがない場合は不要な中間画面をskipして最終確認へ進みます。最初のStepには「戻る」を設けず、共通の中止Actionは設定画面への明示的な離脱として扱います。Flowからの離脱とStep間の後退を区別します。この段階では削除を実行しないため、主Actionを「削除」とは表記しません。Communityに関する後続段階が不要な場合はFlow仕様に従ってskipします。
 
-必要な影響情報を取得できない場合は「個人データへの影響」セクション内のMedia件数の代わりにページ内Blocking Errorとして、タイトル「削除の影響を確認できませんでした」、本文「Mediaの件数を取得できませんでした。もう一度お試しください。」を表示します。「次へ」を表示せず、「再試行」と共通の中止Actionを提示します。「再試行」中は情報アイコン付きのLoading案内を同じ位置に表示し、重複操作を防ぎ、取得成功時は通常状態、再失敗時はエラー状態に戻します。理由が特定できない実装上の失敗に対しては、確認できていない原因を断定しません。
+必要な影響情報を取得できない場合は「個人データへの影響」セクション内のMedia件数の代わりにページ内Blocking Errorとして、タイトル「削除されるMediaを確認できませんでした」、本文「削除されるMediaの件数を確認できませんでした。再試行してください。」を表示します。「次へ」を表示せず、「再試行」と共通の中止Actionを提示します。「再試行」中は情報アイコン付きのLoading案内を同じ位置に表示し、重複操作を防ぎ、取得成功時は通常状態、再失敗時はエラー状態に戻します。理由が特定できない実装上の失敗に対しては、確認できていない原因を断定しません。
 
 ## Responsive対応
 
