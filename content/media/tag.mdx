@@ -180,3 +180,10 @@ TagにはGroup間relation相当の階層を導入しません。GroupとTagは�
 - filter結果全件を暗黙対象にするquery-based bulk Tag操作や、複数Tagを同時に複数Mediaへ適用する高度なmatrix操作
 
 自動Tag付け、AI分類、Custody transfer時のTag移行はInitial Release対象外です。
+
+
+## Initial ReleaseにおけるTag書き込み境界（2026-10-26合意）
+
+Initial Releaseに独立したTag管理機能はなく、既存Tagのrename / deleteユースケースを提供しません。将来のTag管理I/Fは未定義とし、先行してcreateMediaTag / renameMediaTag / deleteMediaTagを公開しません。またaddMediaTag / removeMediaTagも廃止し、Media UpdateではupdateMediaTagsのみを公開します。本節は将来のTag管理Lifecycleの一般論よりInitial ReleaseのAPI公開範囲について優先します。
+
+Frontendは1 Media・1 ScopeのTag期待集合（既存TagはIDと名前、新規Tagは名前）を送ります。Backendが同Scopeの既存Tagを名称完全一致で再利用し、未存在ならTagを作成し、relationの追加・解除まで単一Transactionでatomicに適用します。保存失敗時は新規Tagの作成もrollbackします。Tagが期待集合から消えてもTag本体は削除しません。
