@@ -1,0 +1,104 @@
+# 非同期・並行・並列処理と技術選定
+
+## このノートの位置づけ
+
+非同期処理を必要とする場面で、言語の機能、プロセス内のWorker、永続Job Queue、Redis Streamsなどを選ぶための一般的な技術判断の整理です。特定のMedia仕様や採用済みアーキテクチャを変更する文書ではありません。Memoria固有の確定設計は[Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)と[非同期Media処理](/system/api/asynchronous-processing)を参照してください。
+
+中心となる考え方は、**「非同期処理が必要」という表現から直接技術を選ばず、どの待機を分離し、何を保証し、どの性能を改善したいかを先に決める**ことです。
+
+## 非同期・並行・並列は別の観点
+
+| 概念 | 着目点 | 例 |
+| --- | --- | --- |
+| 非同期（Asynchronous） | 開始した処理の完了を、呼び出し元がその場で待つ必要があるか | Upload受付後に画像変換の完了を待たず応答する |
+| 並行（Concurrent） | 複数の仕事が同じ時間帯に進行できるか | 複数のHTTP requestを並行して扱う |
+| 並列（Parallel） | 複数の実行資源上で物理的に同時実行されるか | 複数のCPU coreで画像変換を実行する |
+
+非同期であれば必ず並行・並列というわけではなく、同期的な関数でも複数のthreadやprocessから並行・並列実行できます。非同期と並行は関連しますが包含関係として固定しません。分散処理（別process・別host）も独立した観点です。
+
+「複数の要求を同時に処理したい」は並行性や並列性の要求であり、それ自体は非同期化の要求ではありません。
+
+## 非同期化とパフォーマンスを混同しない
+
+非同期化によって、**呼び出し元が完了を待たなくてよくなる**場合があります。これは利用者が体感する受付応答時間の短縮につながりますが、処理自体の実行時間やシステム全体の処理能力が向上した証拠にはなりません。
+
+たとえば10秒の画像変換をバックグラウンドへ切り離し、受付を100msで返せても、画像を利用可能になるまでには10秒以上かかる可能性があります。Queue待機と配送の時間が加われば完了はむしろ遅くなります。受付成功と業務処理成功は別の状態として定義します。
+
+性能を議論するときは、最低限次を区別します。
+
+- 受付応答時間：呼び出し元にいつ応答を返せるか
+- End-to-End完了時間：利用者が必要とする結果をいつ利用できるか（Queue待機を含む）
+- Throughput：単位時間に完了する仕事の量
+- リソース効率・飽和：CPU、memory、thread、connection、I/O待機など
+- 負荷時の安定性：待ち行列の増加、backpressure、timeout、失敗率
+
+非同期I/Oは待機中の資源占有を減らしてthroughputを改善する場合があります。独立した仕事の並行・並列実行も完了時間を短縮し得ます。ただし、**非同期という性質そのものと、並行・並列化による性能上の効果は分けて説明する**必要があります。
+
+性能が目的なら、先に対象指標と実測上のボトルネックを特定し、query改善、algorithm、cache、並列化、非同期I/O、Worker分離などから手段を選びます。
+
+## 処理のライフサイクルから要求を決める
+
+方式を選ぶ前に次の問いに答えます。
+
+1. 呼び出し元は**何の完了**まで待つ必要があるか。受付と業務結果を分離してよいか。
+2. 呼び出し元またはprocessが終了した後も処理を継続すべきか。未完了Jobの喪失を許容できるか。
+3. 障害後にどの単位で再試行するか。重複実行時の副作用をどう安全に扱うか。
+4. 単一processで足りるか。別process・別hostへの分離や独立scaleが必要か。
+5. 順序、遅延、throughput、処理量の急増にどの程度の保証が必要か。
+6. 未処理・処理中・失敗・完了を誰が管理するか。永続状態の正本は何か。
+7. DB更新、Object Storage、配送基盤をまたぐ部分失敗をどう復旧するか。
+
+**「非同期処理が欲しい」は実装手段の希望であって、それだけでは技術選定の要求として不十分**です。
+
+## 代表的な方式と選定の目安
+
+| 方式 | 向く要求 | 主な制約・負担 |
+| --- | --- | --- |
+| 言語の非同期I/O・task / goroutine | 完了待機の解放、I/O待機を活用する並行処理 | process停止をまたぐJob永続化は自動ではない |
+| Process内Queue / Worker Pool | 同一processで同時実行数を制御する | process crash時の喪失、他hostへの分配 |
+| PostgreSQLなどのDB Job Queue | 永続Job、既存DB transactionとの連動、小〜中規模の複数Worker | polling、claim/lease、DB負荷、retry管理を設計する |
+| Redis Streams / Consumer Group | 別processのConsumerへの分配、Pending追跡、再配送、Worker水平scale | Redis運用、ack/claim/reclaim、重複、副作用の冪等化、永続業務状態との整合性が必要 |
+| 専用Message Broker / Managed Queue | 配送・隔離・運用特性をサービスの機能として利用したい | 製品ごとの配送保証、コスト、運用、制約を評価する |
+
+Redis Streamsを使う理由は「非同期にしたい」だけでは足りません。特に**永続性が必要になった時点で直ちにRedis Streamsと決めず、既存DBのJob QueueやManaged Queueも比較**します。
+
+Workerの水平scaleは、Consumerを増やせることだけでは成立しません。CPU、memory、DB、Storage、networkなど共通資源がボトルネックになり得ます。負荷試験でWorker数と完了throughput、queue待機時間を比較して実証します。
+
+## Redis Streamsの保証と追加設計
+
+Consumer Group、Pending Entries List、`XREADGROUP`、`XACK`、`XCLAIM` / `XAUTOCLAIM`などは、配送と未ACKメッセージの引き継ぎを支えます。ただしRedis Streams単体では、業務操作のExactly-Once実行、DBとRedisのatomic commit、外部Storageへの副作用の整合性を保証しません。
+
+堅牢なJob処理では、必要に応じて次を設計します。
+
+- At-Least-Onceを前提とした冪等性と重複抑止
+- ACK前後のcrash、timeout、再試行上限、回復不能失敗の扱い
+- Pending messageのreclaim、長時間処理中のownership、安全な停止
+- 処理状態の永続化、滞留の監視、Redis data loss時の復旧
+- DBとQueue間のdual write対策（たとえばTransactional Outbox）
+- Object Storageや別systemとの部分失敗の補償、孤立dataの回収
+- Queue容量・保持期間、Consumer停止時のbackpressureと運用負担
+
+これらは一律にすべての用途で必要とは限りません。**必要な保証を要求から特定し、そこに見合う複雑さだけを採用する**ことが基準です。
+
+## MemoriaのMedia Uploadから学べること
+
+Memoriaの設計では、APIはOriginal保存とDB transactionのcommitまでをUpload受付の同期成功点とし、Variant生成完了を待たず `PROCESSING` を返します。Outbox PublisherがRedis Streamsへ配送し、Consumer GroupのWorkerがPipelineを処理します。
+
+この構成では役割が分かれます。
+
+- APIは複数のHTTP requestを並行して扱える。ただし同時に物理的な並列実行が常に起きるとは限らない。
+- Upload受付とVariant生成は非同期に分離される。
+- 複数Workerは複数Jobを分配処理できる。Worker内のdecode、resize、encodeは、必ずしも非同期実装である必要はない。
+- PostgreSQLはMediaとProcessing Jobの業務状態の正本、Redisは配送と一時的な実行ownershipを担当する。
+
+最初の関心が「Workerを増やしてscaleしたい」であっても、設計を具体化すると配送失敗、重複、競合、cleanupなど、性能とは別の信頼性要求が現れます。この複雑さを理解したうえで、別のシステムではより単純な方式を選ぶことも合理的です。
+
+Memoriaにおける具体的な確定事項と数値は[Media登録・非同期処理アーキテクチャ](/media/upload-processing-architecture)、[非同期Media処理](/system/api/asynchronous-processing)、[Transactional Outbox](/system/api/transactional-outbox)を参照してください。この技術ノートを仕様の別正本として扱いません。
+
+## 技術選定の要点
+
+- 「なぜ処理の完了を待たなくてよいのか」を明確にする。
+- 「複数の要求を処理する」と「非同期化する」を同一視しない。
+- 受付応答時間だけでなく、業務完了時間・throughput・資源効率を測定する。
+- process内非同期、並行・並列処理、永続Job Queue、分散配送を別々の要求として評価する。
+- Redis Streamsで何ができるかだけでなく、**採用しないとどの要求が満たせないのか**を説明できるようにする。

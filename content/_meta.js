@@ -24,6 +24,8 @@ export default {
   "commit-message": "コミットメッセージ",
   "versioning": "バージョニング",
   "ai-development": "AI支援開発",
+  "-- Technical Notes": {"type":"separator","title":"技術ノート"},
+  "technical-notes": "技術ノート",
   "-- Documentation": {"type":"separator","title":"ドキュメント"},
   "documentation-policy": "ドキュメント管理",
   "design-document-templates": "設計書テンプレート",
