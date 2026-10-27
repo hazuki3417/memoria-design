@@ -15,6 +15,9 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 - Group Browser等のPreview fixtureおよび疑似Media生成は、実際のFeature Component内に埋め込まずStory / Mock Data境界から明示的に渡す。GraphQLとの接続は生成Apollo Hookに委ね、Storybook IntegrationではApolloのGraphQL OperationをMockedProviderでMockする。表示用のServer State Snapshotを独立したReact Stateへ複製しない。追加取得のカーソルとページ結合はApollo Query結果を正本とし、追加取得のLoading / Error / RetryのみをUI状態として扱う。
 - Mutation後の整合性は関連Queryのrefetchを基本とし、正当性とTestを確認してからcache.modify等を採用する。通信結果不明時は無条件にMutationを再送しない。
 - ApolloProviderと認証境界は一箇所で構成し、Client Componentが機密Access Tokenを受け取らない通信経路を用意する。全Consumerが生成Hookを通じて共有Cacheを参照する。
+- Backend由来の設定値・情報は、各Featureで独立したReact Stateや自前のContextへ複製せず、Apollo CacheのQuery購読を通じて共有する。取得済み情報のみを利用する箇所では、生成Query Hookの `fetchPolicy: "cache-only"` 等、ネットワーク問い合わせを行わない参照方式を選べる。単なるQuery Hookの転送を目的とする独自Hookは作らず、共通の取得条件・値の正規化・Loading / Error等の責務がある場合だけ専用Hookを検討する。
+- Cache参照専用のConsumerを設ける場合でも、初回表示・直接アクセス・再読み込み時に必要な情報を取得してCacheへ格納する責務を別途保証する。`cache-only` の未取得値を永続的に存在する前提で扱わない。Backendを永続データの最終的な正本とし、Apollo Cacheは共有するFrontend側の表現として扱う。
+- 期待した更新が表示に反映されない場合、Mutation / refetch後のCache更新、同一Apollo Clientでの参照、Query購読、React側の値の保持・導出を順に調査する。原因を特定し、必要がある場合に限ってfetchPolicyやCache更新戦略を変更する。全Queryを機械的に`cache-only`へ統一しない。
 - 移行は段階的に行い、既存の表示・動作・Interaction・Responsive Behaviorを維持する。新旧通信方式の混在中は更新漏れを確認し、最終的にCustomEventと業務Server Actionの利用箇所を全て撤去する。移行途中を完了扱いにしない。
 
 ## React / TypeScript Coding Convention
