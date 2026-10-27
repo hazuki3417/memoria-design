@@ -125,7 +125,7 @@ Context AccentはCommunityのbranding / domain identityではなく、Userごと
 
 Userが設定・保存するContext Accentのraw valueと、UIで利用するEffective Accentの表現は分離します。任意の `#RRGGBB` を直接すべてのComponent stateへ適用することを前提とせず、Mantineが提供するColor / Theme機構を利用して、必要なpalette、shade、variant、foreground等へ解決します。
 
-Color resolutionの具体的なAPI、palette生成方法、shade選択、contrast補償等は、利用するMantine versionの標準機能を確認した上でFrontend実装契約として決定します。Memoria独自のColor resolutionを追加する場合は、Mantineでは満たせないDesign Contractが明確な場合に限定します。
+Initial ReleaseではContext AccentのためにMantine Theme全体を動的に変更する機構や共通palette生成Engineを導入しません。現在Accentを利用する少数のComponentごとに、Mantine既存のColor / Theme機構と既存のSelected・Focus表現を活用し、必要な境界・foregroundの補償を局所的に行います。Accentのraw値は変更せず、Colorだけで選択状態を伝えません。将来、複数Componentで共通の解決責務が必要になった場合に共通化を再検討します。2026-10-27にユーザーと合意した判断です。
 
 Light / Dark Themeでは同じ保存済みContext AccentをSourceとして扱いますが、Accessibilityと各Theme上での視認性を保つため、UIへ適用されるshadeやforeground等のResolved Colorまで同一であることは要求しません。
 
