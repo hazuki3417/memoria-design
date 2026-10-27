@@ -239,3 +239,19 @@ interface ProcessingMonitor {
 2. **Coordinator**: Scope単位の連続失敗カウンタ（3 cycle）、Batchの100件分割、複数Tabの集約なし。
 3. **データ整合**: READY後Variant再取得のAPI効率と、reprocess時のrevisionの必要性。
 4. **既存UIとの境界**: 各Featureでの手動再開UI配置とBrowserの12分URL更新で追加ページを失う現行挙動の改善範囲。**Visual Prototypeを変更して確定しない。**
+
+
+### 最終レビュー結果：採用する実装契約（2026-10-27合意）
+
+この節は上記「提案」「未承認」と記載された項目のうち、直前の最終レビューで提示した**6つの推奨案**に対する承認を反映する。衝突する古い提案ラベルより本節を優先する。未確認の既存実装を実装済みとは扱わない。
+
+1. **一括取得上限**: `mediaProcessingStates(scope, mediaIds)` は最大**100 Media ID/Request**。入力上限超過・重複IDは `VALIDATION`、空配列は空結果。入力順1対1の応答、`FOUND`時のみ `processingStatus` 必須、不可視・削除済み・不存在は `UNAVAILABLE`。Scope自体が認可されない場合はQuery全体の権限エラーとし、存在有無は漏洩しない。
+2. **通信失敗の単位**: **Scope × Polling cycle**ごとに失敗回数を持つ。同一cycle内のBatchいずれかが通信失敗すれば当該Scopeのcycleを1回失敗として数え、全Batch成功時にカウンタを0へ戻す。成功したBatchの結果は利用できるが失敗Batchは確定成功としない。3cycle連続失敗でそのScopeの自動監視を止め、明示的な手動再開でカウンタ初期化・即時照会を行う。他Scopeの監視は継続する。認証・認可エラーは通信失敗回数に混ぜず既存の認証/権限処理へ委譲する。
+3. **Batch配分**: Scope単位に最大100件ずつ分割し、監視中の全対象を毎cycle取りこぼさず巡回する。重複MediaはScope内で排除し、同時cycleの競合送信はしない。**複数ブラウザタブ間のCoordinator共有は初期実装では行わない**。各タブは自身が表示されている間だけ監視し、再表示で最新状態を取得する。
+4. **READYとVariant**: Pollingの軽量QueryはVariantや署名付きURLを返さない。READY確定時、対象Mediaだけを既存の権限付きGraphQL経路で再取得し、最新VariantをCacheへ反映する。Variant再取得失敗・画像読み込み失敗はProcessing失敗と混同せずそれぞれ手動再試行とする。複数READYの取得が増えた場合のGraphQL alias/Batch化は実装段階で評価し、現行契約だけで負荷制限を満たせないなら追加APIは別途合意を得る。**新たなmediaByIds APIを無条件に要求しない**。
+5. **既存URL更新との分離**: 15分有効の署名付きVariant URLに対する更新はProcessing Pollingとは独立に維持する。現行の12分先頭ページ再取得による追加取得済みページの消失は既存Behaviorを確認し、**最終実装では表示・選択中のConnectionを壊さない**方式を別途設計・検証する。Processingの10秒TickにURL更新を組み込まない。
+6. **再処理の扱い**: Initial Releaseの通常Userフローではterminal READY/FAILEDを監視対象から外す。運用reprocessによる終端状態からの再遷移は既存の通常Userフロー外とし、現在のJob状態/状態算出を追加検証する。revision/versionフィールドの新設は**自動確定しない**。必要性が立証された時点で契約変更を改めてレビューする。
+
+**確定済みの共通規則**: Polling **10秒**、通信**3cycle連続失敗で停止・手動再開**、Document非表示で停止し復帰時は即時確認。ただし障害停止中は可視復帰だけで再開しない。
+
+**Visual Prototypeと未確定事項**: 手動再開UIの具体配置・文言・Responsive表現は今回変更しない。既存Visual/Behavior contractを維持すること。実装開始時には既存Screen/PRとの衝突、GraphQL `media(id)` のScope認可・Variantの取得効率、運用reprocessの状態遷移、12分URL更新の具体的なページ保持手法をSource of Truthで再検証する。
