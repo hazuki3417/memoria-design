@@ -82,3 +82,53 @@ Video Variantの形式・生成条件は動画ユースケースの具体化後�
 容量把握にはOriginalの`media.file_size`とVariantの`size_bytes`を使用できます。ただし課金、料金表、Billing Usageは要求として確定していないため構築しません。
 
 詳細は[非同期Media処理](/system/api/asynchronous-processing)、[Transactional Outbox](/system/api/transactional-outbox)、[Mediaストレージ](/system/data/storage)、[Media表示と配信](/system/web/media-delivery)を参照してください。
+
+
+## Processing状態同期の横断設計案（Issue #339）
+
+> 設計レビュー中。合意済み原則と提案値を区別する。実装・API契約の変更は未着手。
+
+### 合意済みの原則
+
+- Media Upload・Media Browser・Media Detailなど、非同期画像Processing状態を表示する各Featureで**共通の集約Polling**を利用する。MediaごとのPolling timerを作らない。
+- BackendをProcessing状態の正本として、**Media単位**で結果を同期する。Apollo Cacheを共有し、Contextや独立StoreへBackend状態を複製しない。
+- Media UpdateのTag保存・HTTP Upload転送進捗は今回の監視対象外。UI表現（Badge、Loader、Thumbnail）は画面別に維持する。
+- SSE/WebSocketは今回導入しない。将来の通知要件が具体化した際に再検討する。
+- PROCESSING / READY / FAILEDを区別する。FAILEDでもMedia登録は維持し、User向け手動reprocessを新設しない。
+
+### API契約案（人間の最終承認待ち）
+
+現状は `media(id)` とRelay Connection `mediaList` で状態・Variantを取得できる。一括状態照会は未提供。新しいGraphQL Queryで `scope` と重複除去した `mediaIds` を受け取り、各Media IDの `PROCESSING/READY/FAILED` を軽量に返す案とする。結果は必ず現在のScopeで認可し、削除・不存在・アクセス不能をProcessing失敗へ偽装しない。応答Schema、不可視項目の扱い、件数上限は要合意。監視Queryは署名付きVariant URLを発行せず、READY検知時に対象Mediaの既存Queryを認可付きで再取得する。READYでもVariant取得・画像読込の成否は別に扱う。
+
+### Client Coordinator案
+
+- Consumerは `(Scope, Media ID)` を登録・解除し、重複登録を集約する。参照がなくなった対象を監視から外す。Scope変更・User変更で古い応答を適用しない。
+- Processing対象ゼロ件では通信しない。Scope別・上限付きBatchで同時に照会し、前Tickと重複送信しない。Timerは共有し、通信数をMedia件数へ直接比例させない。上限を超える場合のBatchの分割・公平性は負荷試験で決定する。
+- Browserは取得済みRelay ConnectionのProcessing対象だけを登録し、処理完了時に対象MediaのApollo正規化Cacheへ反映。Connection全体を定期refetchせず、追加読み込み済み項目・Tag filter・Selection・Scrollを保つ。
+- UploadはHTTP 201 ReceiptのMedia IDをfile行と関連付けて登録し、結果不明な送信を推測でProcessingへ移さない。READY/FAILEDをfile行へ反映する。
+- DetailはDialog表示中・対象MediaがPROCESSINGのときだけ登録。既存Detail個別Pollingの停止・再開・3回失敗ルールと統合時の振る舞いを明示して整合させる。
+- Processing監視は署名付きVariant URLの更新と別責務。Browserの現行12分URL再取得が追加読込済みページを失う挙動は別途回帰検討する。Apollo Cacheの `__typename/id` 正規化とQuery field整合も実装前に検証する。
+
+### 監視ライフサイクル案
+
+| 条件 | 動作 |
+| --- | --- |
+| PROCESSINGを登録 | 初回確認して共有Pollingを開始 |
+| READY | 対象Media詳細・Variant再取得が成功したら表示を更新し、Processing監視から解除 |
+| FAILED | 対象Mediaだけ終端失敗を反映し監視解除、登録Mediaは残す |
+| 監視対象0件・Document非表示 | 定期監視を止める |
+| 可視復帰 | 現在登録されているMediaを直ちに再確認 |
+| Scope/User変更 | 旧登録と古いQuery応答を無効化 |
+| 通信障害 | Backend状態は推測で変えず、再試行可能なエラーとして扱う |
+| 認可喪失・削除 | FAILEDに変換せず、アクセス不能を別状態として処理 |
+| Variant取得・画像読込失敗 | READYと画像表示失敗を分離し、既存の明示再試行方針と整合させる |
+
+**未承認の推奨値**: 10秒間隔、連続通信失敗3回で停止し手動再開、可視復帰時は即時確認。停止中も最後に確認したProcessing状態を成功へ推測変更しない。Batch件数上限、バックオフ、複数Tab集約、再試行UIは未決定。
+
+### 実装前の検証・残判断
+
+- BackendのWorker完了DB確定、Processing状態算出、Variant公開順序を検証。
+- APIのBatch権限、混在Scope、不存在/削除、重複/大量IDs、欠損結果のテスト。
+- Webで複数Consumerの重複排除、Scope切替、古い応答、可視復帰、通信障害と再試行をテスト。
+- BrowserのRelay追加ページ・選択・Filter・Scroll、Upload Receipt紐付け、Detail Dialog/画像ローディングのVisual/Behavior regressionを確認。
+- **要合意**: Batch QueryのSchema/認可エラー契約、Polling間隔、3回連続失敗停止の共通化、Batch上限と複数Tab、画面別再試行UI。
