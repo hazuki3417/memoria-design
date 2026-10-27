@@ -267,6 +267,10 @@ Compact / Medium / Wideは、**設計・Visual Review・テストにおいて表
 
 共通viewport classificationを前提としながら、各Componentの内部配置はCSS Grid / Flexbox等で利用可能なスペースに連続的に適応させて構いません。Viewport分類だけで十分でない構造的な切替えは、対象のUIに必要な条件として個別に検討します。十分な表示領域があるのに分類だけを理由として構成を制限したり、狭い領域であることだけを理由に主要Taskに必要なCapabilityを削除したりしません。UI/UX上の実質的な変更には別途合意を要します。
 
+**レスポンシブの見た目の切替えはCSS優先**とします。Mantine Responsive Props、CSS Media Query、Container Query、Grid、Flexbox等で表現できる配置・サイズ・表示スタイルの変更には、原則としてJavaScriptによるViewport判定を利用しません。Componentツリーや操作・状態の振る舞いを実際に切り替える必要がある場合のみ、共通Viewport判定Hookの利用を検討します。Componentツリーが不変であっても、JavaScriptの判定結果でinline styleやclassNameを変更すると、初回判定前後に誤ったレイアウトが見える可能性があります。
+
+**初回表示で誤ったレスポンシブレイアウトが一瞬表示されることは許容しません。** JavaScriptによる構造・振る舞いの切替えが必要な場合、判定未確定時にCompact / Medium / Wideのいずれかを正解として仮表示しない設計とします。判定前に表示する内容は対象Featureの要件に沿って個別に定義し、Hydration整合性と表示品質を確認します。全画面に共通Loadingを強制しません。
+
 **Breakpointの決定方法**として、全Screenのレイアウト成立幅を先に数値で定義することは要求しません。Mantine標準Breakpointを基準に共通分類を検討し、各画面のStorybookでCompact / Medium / Wideの表示・操作を実際にReviewして段階的に最適化します。共通する不都合が明らかになれば分類の境界自体も再評価します。既存実装の境界や3領域の幅が均等になることは採用理由としません。
 
 現時点ではMantine標準の **sm / xl**（Compact: 768px未満、Medium: 768px以上1408px未満、Wide: 1408px以上）を**第一候補として検討中であり、境界値は未確定**です。候補を採用済みの製品仕様として扱わず、最終決定は別途行います。実装・検証計画は [memoria-web Issue #58](https://github.com/hazuki3417/memoria-web/issues/58) で管理します。
