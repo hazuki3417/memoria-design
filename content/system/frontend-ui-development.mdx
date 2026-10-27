@@ -261,6 +261,18 @@ breakpointはMantineの標準設定を基本とし、製品上の必要性が確
 
 FrontendのResponsive判定基盤は、Compact / Medium / Wideの3領域を識別可能であることを前提とします。個々のScreen / Componentが常に3分岐を実装する必要はありません。MediumとWideのBehaviorが同一であれば `Compact / Medium+Wide` のように統合して構いませんが、共通基盤自体をCompact / 非Compact等の二値に限定し、MediumとWideを必要なconsumerでも区別できない構造にはしません。Screen固有のad-hoc media queryを増やすのではなく、共通のviewport classificationから各consumerが必要な粒度を選択します。
 
+### Viewport分類とレイアウト適応の関係（2026-10-27 合意）
+
+Compact / Medium / Wideは、**設計・Visual Review・テストにおいて表示領域を比較するための共通分類**を主な目的とします。分類境界を各Screen / Componentのレイアウト切替点として一律に強制しません。同じMediumでも利用できる幅には大きな差があるため、Medium全体へ一つの固定的なpresentationを割り当てることを要件としません。
+
+共通viewport classificationを前提としながら、各Componentの内部配置はCSS Grid / Flexbox等で利用可能なスペースに連続的に適応させて構いません。Viewport分類だけで十分でない構造的な切替えは、対象のUIに必要な条件として個別に検討します。十分な表示領域があるのに分類だけを理由として構成を制限したり、狭い領域であることだけを理由に主要Taskに必要なCapabilityを削除したりしません。UI/UX上の実質的な変更には別途合意を要します。
+
+**Breakpointの決定方法**として、全Screenのレイアウト成立幅を先に数値で定義することは要求しません。Mantine標準Breakpointを基準に共通分類を検討し、各画面のStorybookでCompact / Medium / Wideの表示・操作を実際にReviewして段階的に最適化します。共通する不都合が明らかになれば分類の境界自体も再評価します。既存実装の境界や3領域の幅が均等になることは採用理由としません。
+
+現時点ではMantine標準の **sm / xl**（Compact: 768px未満、Medium: 768px以上1408px未満、Wide: 1408px以上）を**第一候補として検討中であり、境界値は未確定**です。候補を採用済みの製品仕様として扱わず、最終決定は別途行います。実装・検証計画は [memoria-web Issue #58](https://github.com/hazuki3417/memoria-web/issues/58) で管理します。
+
+Responsiveの検証は、代表的な3領域のVisual Reviewに加え、必要な境界値とInteractionの確認を組み合わせます。VRT / Interaction Test / E2EとHuman Visual Reviewの責務を区別し、すべてのStoryに機械的に同じ幅のテストを課さず、Visual Regression Baselineを人間のReviewなしに更新しません。
+
 viewportとinput modalityは独立した設計軸として扱います。pointer、touch、keyboardの利用を想定し、重要な操作をhoverだけに依存させません。touchでも十分に操作可能な対象を確保し、keyboardで主要操作へ到達・実行でき、focusを視認できるようにします。高精度なpointerを前提とする細かすぎる操作を必須にしません。
 
 Screen SpecificationではCompact / Medium / Wideや各input modalityについて機械的に同じ記述を繰り返しません。表示領域や入力方式によってInformation、Action、Navigation等の表現・優先順位が変化する場合に、その差と維持すべきCapabilityをResponsive Behaviorとして記載します。
