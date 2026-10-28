@@ -40,6 +40,13 @@ Web実装の `applicationChrome.tsx` は `authenticated`、`pre-registration`、
 - Community作成への入口は一覧のスクロール位置や検索条件によらず到達可能とし、作成操作の条件は[Community作成](/screens/community-creation)に従う。
 - 一覧表示の容量は[読み込み系の上限](/system/cross-cutting/limits/read)のCommunity参加数と整合させる。候補が多い場合にも検索と選択を利用でき、一覧の長さによって基本操作が隠れない。
 
+## Context Switcherの取得・切り替え失敗
+
+- Community候補の初回取得に失敗しても現在のContextとPersonalへの移動手段を維持する。取得できないことをCommunity未参加と見なさず、候補領域で再試行できるようにする。
+- 一度取得した候補の再取得失敗では、表示済み候補と利用者が指定した検索条件を不必要に破棄しない。候補の情報が古い可能性と取得失敗を区別できるようにする。
+- Context切り替え中は重複した切り替えを防ぎ、完了前に選択先を現在Contextとして確定表示しない。遷移先を利用できない場合は成立していない切り替えを成功扱いせず、元の利用可能なContextへ戻れるようにする。
+- 現在のCommunityのMembership失効・対象消失によって画面の継続ができない場合は、候補一覧の取得失敗とは区別し、共通エラー画面とPersonalへの移動手段を提供する。認可されないCommunityの保護情報を表示しない。
+
 ## 利用範囲を切り替えた際の遷移規則
 
 利用範囲を切り替える際は、現在のDestinationが選択先contextにも存在する場合、その対応画面へ遷移します。Initial ReleaseではDashboard、Media Browser、Groups Browserを共通Destinationとします。例えばPersonalの`/media`からCommunityへ切り替えると、選択先Communityの`/communities/[communityId]/media`へ移動します。対応画面がない場合は選択先contextのDashboardへ遷移します。遷移先URLとcontextの対応は[Application Information Architecture](/system/application-information-architecture)を正本とします。
