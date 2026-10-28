@@ -74,7 +74,7 @@ Application Navigationは[Application Information Architecture](/system/applicat
 - ACTIVE UserだけがCommunityを作成できます。未登録・DELETING Userは作成できません。
 - Community名は必須です。
 - Community名は前後空白を除去した結果が空文字になる値を許可しません。
-- 同一作成者が作成したCommunity間では同名を許可しません。別の作成者によるCommunityとの同名は許可します。重複時は作成を成立させず、名前の修正を促します。作成者はAdministrator権限とは別の識別情報として扱います。
+- Communityの正式名称は作成者やAdministratorにかかわらず重複を許容します。Communityの識別には一意なCommunity IDを使用し、名称の一意制約や作成者IDによる重複検証を要求しません。
 - Community名の最大長は入力・Security設計で決定します。
 - Initial Releaseでは作成時に説明、Community画像、公開Profile、公開設定等を入力しません。
 - 作成したUserを最初のMembershipおよびAdministratorとしてCommunity作成と同じTransactionで登録します。
