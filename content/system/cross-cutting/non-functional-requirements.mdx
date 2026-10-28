@@ -25,11 +25,8 @@
 | --- | --- | --- | --- |
 | 通常のGraphQL Query | p95 500 ms以下、p99 1,000 ms以下 | request metric、trace、k6 | 目標超過が継続、同時利用者増加 |
 | 通常のMutation | p95 1,000 ms以下、p99 2,000 ms以下 | request metric、trace、k6 | DB競合や外部I/O待ちが増加 |
-| Media一覧 | 1 page 30件、最大100件 | schema、境界値test、一覧計測 | 一覧の転送量・DB負荷・操作性が悪化 |
 | 初回画面表示 | p75 2.5秒以下 | 実browser、Performance API、主要画面の計測 | 画像一覧や初回navigationが継続して遅い |
-| 画像Original | 1 file最大128 MiB | APIのfile size検証、境界値test | 実際の撮影機器や利用者要求に合わない |
 | 画像Variant生成 | 20 MiB以下の画像はp95 30秒以内 | Job作成から完了までのmetric | backlog増加、画像形式や画素数の変化 |
-| 同時upload | Userあたり3 requestまで | Webの並列制御、API metric | 回線やEC2の帯域・CPUが不足 |
 | API rate limit | Userあたり60 request/分、burst 20 | gatewayまたはAPIのmetric | 正常操作の誤検知、不正利用、負荷増加 |
 | Outbox配送 | commit後p95 10秒以内 | oldest unpublished event age | Redis停止、Publisher滞留 |
 | 非同期処理のretry | Processing Jobは最大3 attempts・5分idle reclaim。Outboxは1秒〜5分backoffでtransient failureを継続retry | Job・Outboxのattemptと状態 | 一時障害が長い、恒久失敗が埋もれる |
@@ -65,16 +62,14 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 ### Pagination
 
-- Relay Connectionを使用する一覧の既定値は`first: 30`、最大値は100とします。
-- `first`または`last`に0以下や101以上を指定した場合はvalidation errorとします。
-- 上限を超える一覧を一度に返さず、cursorを使用して次のpageを取得します。
-- cursorの内部形式へClientを依存させず、並び順が安定する条件をschemaとqueryに定義します。
+- 一覧取得の既定件数・最大件数・上限超過時の振る舞いは[読み込み系の上限](./limits/read)を正本とします。
+- Cursorによる継続取得と安定した並び順の要件は、読み込み系の上限と各API契約に従います。
 
 ## Media容量と形式
 
 ### 画像
 
-- Originalの上限は1 file 128 MiBとします。
+- Originalのファイルサイズ上限は[書き込み系の上限](./limits/write)を正本とします。
 - Originalの最大画素数は100 megapixels（100,000,000 pixels）とし、width / heightはそれぞれ32,768 pixels以下とします。decode前に可能な範囲でdimensionを確認し、総pixel数と各辺上限を独立して適用します。
 - extensionやClient申告MIME / HTTP Content-Typeを形式判定の正本にせず、Server側で実fileのsignature / containerを解析し、許可形式として識別でき、かつdecode可能であることを受理条件とします。
 - Image VariantはOriginalのアスペクト比を維持し、320、640、960、1280、1920 pxを候補とするWebPを生成します。
@@ -85,21 +80,21 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 
 動画はMediaの対象に含めますが、初回Releaseへの採否、最大size、再生時間、対応container、codec、配信形式、変換時間は[動画処理の詳細設計](https://github.com/hazuki3417/memoria-design/issues/20)で決定します。
 
-動画条件が未確定の段階で画像用の128 MiB上限や30秒の変換目標を動画へ流用しません。動画機能を公開する前に、対象形式、size上限、処理timeout、retry、再生に必要な受け入れ条件を明示します。
+動画条件が未確定の段階で画像Originalのサイズ上限や30秒の変換目標を動画へ流用しません。動画機能を公開する前に、対象形式、size上限、処理timeout、retry、再生に必要な受け入れ条件を明示します。
 
 ### 総容量と使用量
 
 - 初期の設計目安はOriginal総容量500 GiBです。Variant、backup、temporary fileは別に集計します。
 - Originalは`media.file_size`、Variantは`size_bytes`を正本として合計します。
 - UserまたはCommunity別の利用量を算出できる構造を維持しますが、課金、料金表、専用Billing tableは導入しません。
-- Userごと・Communityごとのhard quotaは初回Release要求で必要性が確定するまで導入しません。
+- User・Communityなど適用Scopeごとの保存容量Quotaは[書き込み系の上限](./limits/write)を正本とします。初期運用全体の容量目安とは区別します。
 - Object Storageの使用量、Variant生成による増加率、backup容量を月次で確認します。
 - 使用量が設計目安の70%へ達した場合、上限、費用、保持方針、必要なquotaを再評価します。
 
 ## Upload、timeout、retry
 
 - 基本単位は1 Media = 1 request = 1 Processing Jobです。
-- 複数fileの選択は許可し、Webの同時upload数はUserあたり3 requestまでとします。
+- 複数ファイルの選択・同時転送の上限は[書き込み系の上限](./limits/write)を正本とします。
 - API側のupload timeoutは120秒を初期値とし、回線事情に応じて接続timeoutと全体timeoutを区別します。
 - 中断したuploadのbyte単位再開、multipart再開、直接uploadは初期機能に含めません。失敗したMedia単位で再送します。
 - 操作の再送には同じIdempotency Keyを使用し、MediaやProcessing Jobを重複作成しません。
@@ -157,7 +152,7 @@ p95、p99は、それぞれ測定対象の95%、99%が目標以内であるこ�
 - Secret、token、署名付きURL、file本体、不要な個人情報をrepository、Client bundle、log、traceへ出力しません。
 - SQL injection、GraphQLの過大query、file偽装、不正なContent-Type、権限外resource参照はvalidationとtestで検出します。
 - GraphQL operationはUserあたり60 request/分、瞬間的なburst 20を初期値とします。
-- uploadはUserあたり10件/分を初期値とし、並列upload 3件の制約と併用します。
+- uploadはUserあたり10件/分を初期値とし、[書き込み系の上限](./limits/write)に定義する同時転送制約と併用します。
 - rate limit超過時は429または対応するGraphQL errorを返し、利用者へretry可能性を示します。
 - 不正・違法なMedia利用への対応では、User ID、Media ID、操作種別、時刻、必要なrequest識別子など最小限の技術情報を使用します。法的判断、著作権者の認定、専任の通報審査体制はSystemが自動で担いません。
 
@@ -241,9 +236,9 @@ backupやS3 versioningには、削除後のdataが保持期間の間だけ残る
 | 検証対象 | 方法 | 受け入れ基準 |
 | --- | --- | --- |
 | API応答時間 | 代表Query・Mutationのk6 scenarioとtrace | 同時利用10人で定義したp95・p99を満たす |
-| Pagination | schema・resolverの境界値test | 既定30件、最大100件、0以下と101以上を拒否 |
-| 画像size・画素数 | 127 MiB、128 MiB、129 MiB、100 MP、各辺32,768px境界のtest | 上限以内を受け付け、超過・未許可形式・decode不能を拒否 |
-| Upload | 複数file、接続断、timeout、再送のintegration test | 同時3件以下、Media単位でretry、重複recordなし |
+| Pagination | schema・resolverの境界値test | [読み込み系の上限](./limits/read)に定義した既定値・最大値・入力超過時の振る舞いを満たす |
+| 画像size・画素数 | [書き込み系の上限](./limits/write)に定義する原本サイズ境界、100 MP、各辺32,768px境界のtest | 上限以内を受け付け、超過・未許可形式・decode不能を拒否 |
+| Upload | 複数file、接続断、timeout、再送のintegration test | [書き込み系の上限](./limits/write)に定義した同時転送上限、Media単位でretry、重複recordなし |
 | 非同期処理 | Redis停止・data loss、Publisher停止、Worker再起動、fresh duplicate、`XAUTOCLAIM` reclaim | data欠落なし、fresh duplicateでPipelineを再実行せず、reclaim / fenced recoveryだけが`PROCESSING` Jobを再実行し、Job並行実行なし |
 | 認可 | User、Community Member、Administrator、未認証者のtest | 閲覧・Original download・管理権限を分離 |
 | Secret保護 | Client bundle、log、trace、IaC outputの検査 | Secret、署名付きURL、tokenを出力しない |
