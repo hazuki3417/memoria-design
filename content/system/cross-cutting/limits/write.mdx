@@ -29,12 +29,12 @@ Community作成数は所有・作成したCommunityを対象とし、参加数�
 | Media Upload原本サイズ | 128 MiB / ファイル | 利用者がアップロードできる原本のサイズ |
 | Media Tag状態更新 | 更新後30 Tag | 1 Media × Scope、既存契約 |
 | Media一括Tag変更 | 100 Media / 操作 | 一括変更操作が提供される場合に適用。現時点での提供は意味しない |
-| 1 GroupへのMedia一括分類（追加・削除） | 100 Media / 操作 | 1回で対象にできるMedia数 |
-| 複数GroupへのMedia分類 | 100 Media、10 Group、組み合わせ最大1,000 | 1回に指定できる対象と組み合わせ数 |
-| Group作成/更新 | 1 Group / 操作 | 1回で扱うGroup数 |
+| 1 GroupへのMedia一括分類（追加・削除） | 100 Media / 1回の要求 | 1回の要求で対象にできるMedia数 |
+| 複数GroupへのMedia分類 | 100 Media、10 Group、組み合わせ最大1,000 / 1回の要求 | 1回の要求で指定できる対象と組み合わせ数 |
+| Group作成/更新 | 1 Group / 1回の要求 | 1回の要求で扱うGroup数 |
 | Group親子関係編集 | 最終状態で親・子各10件 | 変更後も直接の親・子の各上限を超えない |
-| Community作成 | 1 Community / 操作 | 1回で作成するCommunity数 |
-| Communityメンバーの追加・除外・役割変更 | 1人 / 操作 | 未提供の操作がある場合は、提供を決定した時点で適用 |
+| Community作成 | 1 Community / 1回の要求 | 1回の要求で作成するCommunity数 |
+| Communityメンバーの追加・除外・役割変更 | 1人 / 1回の要求 | 未提供の操作がある場合は、提供を決定した時点で適用 |
 
 
 ## 書き込み系マトリクス
@@ -52,15 +52,15 @@ Community作成数は所有・作成したCommunityを対象とし、参加数�
 | LIM-009 | Group保持件数 | 保持 / Scope | 最大1,000 Group |
 | LIM-010 | Group直接親・子 | 構造 / Group | それぞれ最大10 |
 | LIM-011 | Group階層深さ | 構造 / Scope | 最大20 |
-| LIM-012 | 1 GroupへのMedia分類 | 処理 / 操作 | 最大100 Media |
-| LIM-013 | 複数GroupへのMedia分類 | 処理 / 操作 | 最大100 Media、10 Group、積最大1,000 |
-| LIM-014 | Group作成・更新 | 処理 / 操作 | 1 Group |
-| LIM-015 | Group親子関係の編集 | 処理 / 操作 | 変更後の直接親・子はそれぞれ最大10 |
+| LIM-012 | 1 GroupへのMedia分類 | 処理 / 1回の要求 | 最大100 Media |
+| LIM-013 | 複数GroupへのMedia分類 | 処理 / 1回の要求 | 最大100 Media、10 Group、積最大1,000 |
+| LIM-014 | Group作成・更新 | 処理 / 1回の要求 | 1 Group |
+| LIM-015 | Group親子関係の編集 | 処理 / 1回の要求 | 変更後の直接親・子はそれぞれ最大10。変更内容の入力件数上限は未決定 |
 | LIM-016 | Community作成数 | 保持 / User | 最大100 |
 | LIM-017 | Community参加数 | 保持 / User | 最大100 |
 | LIM-018 | Community参加者数 | 保持 / Community | 最大30（管理者含む） |
 | LIM-019 | Community管理者数 | 保持 / Community | 最大3 |
-| LIM-020 | Community作成・メンバー操作 | 処理 / 操作 | 各1件・1人 |
+| LIM-020 | Community作成・メンバー操作 | 処理 / 1回の要求 | 各1件・1人 |
 
 ## 上限到達時に保証する振る舞い
 
