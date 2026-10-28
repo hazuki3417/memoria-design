@@ -678,6 +678,19 @@ Loading、Error、Empty、Processing等はScreen Specification上の意味を保
 
 Empty、Error等もProduct上意味が異なる場合は区別します。主要なUI StateはStorybook等から自然に再現できるComponent contractとし、Story / Test専用PropsをProduction APIへ追加しません。
 
+#### 非同期表示を持つComponentの状態・Layout Contract
+
+Loading / Ready / Error等を一つの情報表示領域のVariationとして提供する場合は、取得元の都合ではなく、**利用者にとって一体として認識されるComponentの意味的な単位**で表示状態を設計します。複数のAPIやContextから情報が得られること、ある値だけ先に確定することを理由に、同じ情報領域の一部だけを無条件にReady表示へ切り替えません。部分表示がProduct / UX上必要な場合に限り、その独立した意味と状態境界を明示します。
+
+- **状態の所有と受け渡し（必須）**: Feature / Composition側で非同期取得結果をComponent固有の表示Stateへ解釈し、描画ComponentにはGraphQLの生の`loading` / `error`や取得経路を伝播させません。同じ表示Stateを参照すべきTrigger・Panel等は整合する状態を共有します。
+- **有効なProps Contract（必須）**: 排他的な状態によって必要な表示情報が異なる場合は、必要に応じて判別可能Unionを用い、Readyでのみ必要な情報をLoading / Errorでも必須にしません。Stateと無関係な固定値・ダミー値を要求したり、未取得データを空文字で偽装したりしません。小規模な単一Booleanで意味が十分に表せる場合は過剰なUnionを要求しません。
+- **Layoutの一貫性（必須）**: Loading Variationを設ける場合、Readyとの共通の配置・Spacing・Alignment・Responsive Behaviorを維持します。Skeletonを別の独立した画面構造として複製せず、可能な限り同じLayout / Elementを使って表示を切り替えます。LibraryのSkeleton wrapperや共通Layout抽出等、実際に寸法・DOM・Accessibilityのcontractを保てる手段を選びます。未知のテキスト長等、必然的に変化する寸法まで完全一致を強制しません。
+- **取得済み情報とError（必須）**: Refresh時に有効な情報がある場合は、既存のQuery UI State方針に従い原則維持します。初回Loadingと取得失敗を混同せず、Errorでは無期限にSkeletonを表示しません。Error時の情報・操作・復旧導線は対象のScreen / Component contractに従います。
+- **検証（必須）**: Storybook / Visual Review等でLoading・Ready・Errorのうち実際に提供する状態を比較し、表示領域の位置・寸法・間隔、Layout Shift、Compact等のResponsive Behavior、読み上げや操作の継続性を確認します。静的な型・Lint検証だけでVisual / Behavioral Regressionの確認を済ませません。
+
+この規則は**Skeletonの一律採用を意味しません**。Skeletonを採用する対象やComponent Loading Variationの標準化についての未決定事項は[Issue #277](https://github.com/hazuki3417/memoria-design/issues/277)で継続して扱い、既存の[Loading / Pending State 共通方針](/system/frontend-ui-development#loading--pending-state-共通方針)を維持します。
+
+
 ### Responsive Behavior
 
 Responsive BehaviorはScreen Specification / Design SystemをSource of Truthとします。Spacing、Layout、Visibility等のvisual differenceはCSS / Mantine responsive APIを優先し、BehaviorやComposition自体が変化する場合だけ `useMediaQuery` 等によるJavaScript判定を使用します。
