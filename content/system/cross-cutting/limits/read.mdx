@@ -8,16 +8,16 @@
 
 | 確認する種類 | 対象と確認事項 |
 | --- | --- |
-| 一覧・接続 | 初期取得件数、最大ページサイズ、Cursor、終端、追加取得 |
-| 単一・ネスト取得 | 詳細の関連情報、ネストの深さ、接続ごとのページング、同時に返す総量 |
-| 検索・絞り込み | 検索文字列の長さ、フィルタ条件数・ID数、条件超過時の振る舞い |
-| API利用上の制約 | 利用者に適用されるアクセス頻度・同時取得・取得可能な情報量などの制約と超過時の応答 |
+| 一覧・検索結果 | 初期表示件数、1回の追加取得件数、終端、継続取得 |
+| 詳細と関連情報 | 詳細対象数、関連情報の表示範囲、関連一覧の追加取得 |
+| 検索・絞り込み | 検索語の長さ、絞り込み条件の指定数、条件超過時の振る舞い |
+| 利用上の制約 | 利用者に適用されるアクセス頻度・同時取得・取得可能な情報量などの制約と超過時の応答 |
 | 一覧の状態 | 正常0件、次ページあり、終端、追加取得中、追加取得失敗 |
-| 制約による拒否 | ページサイズ超過、検索条件過多、選択・保持の上限到達、Rate limit超過 |
+| 制約による拒否 | 1回の取得件数超過、検索条件過多、選択・保持の上限到達、アクセス頻度の制限 |
 | 障害との区別 | Timeout、通信障害、認可失敗、取得失敗を上限到達と区別できるか |
 | UIの表現 | 操作の無効化、説明、再試行、表示済みデータ・選択・スクロールの維持、Accessibility |
 
-DBの取得方法、SQLの最適化、Cache、N+1対策などの実装方法はこの設計の対象に含めない。実装の改善方法と切り離し、アプリケーション仕様を実装都合から逆算しない。
+内部の取得方式や最適化方法には依存せず、利用者に保証する制約と振る舞いを定義する。
 
 上限の種類と利用者へ保証する振る舞いを区別する。APIエラーの詳細と個別の画面表示は、それぞれのAPI契約・画面設計・Design Systemに従う。
 
@@ -26,15 +26,15 @@ DBの取得方法、SQLの最適化、Cache、N+1対策などの実装方法は�
 
 | ID | 対象・操作 | 種別・適用単位 | 設計値 |
 | --- | --- | --- | --- |
-| LIM-021 | `mediaGroups`・`mediaGroupRelationCandidates`によるGroup一覧・関係候補一覧 | 各Connectionの1ページ（`first` / `last`） | 省略時30件、指定可能な最大100件 |
-| LIM-022 | `mediaTags`によるScope内Tag一覧・名前検索結果 | 1ページ（`first` / `last`） | 省略時30件、指定可能な最大100件 |
-| LIM-023 | `mediaList`によるScope内Media一覧・Tag絞り込み結果 | 1ページ（`first` / `last`） | 省略時30件、指定可能な最大100件 |
-| LIM-024 | `mediaList`・`mediaGroups`・`mediaTags`・`mediaGroupRelationCandidates`による通常一覧・検索結果 | 同一Scope・検索・絞り込み・並び順でページをまたいで取得する累計件数 | アプリ独自の累計件数上限なし。次ページが存在する限り継続取得可能 |
-| LIM-025 | `mediaGroups`・`mediaTags`・`mediaGroupRelationCandidates`の名前検索（`search`） | 各検索条件の文字列 | 1検索語あたり最大255文字 |
-| LIM-026 | `mediaList`の`filter.tagIds`によるMedia絞り込み | 1回の一覧取得に指定するTag ID数 | 最大30 ID。指定したすべてのTagに一致するMediaを取得 |
-| LIM-027 | IDを指定したMedia・Group・Communityの詳細取得（`media`・`mediaGroup`・`community`） | 各詳細取得の対象ID | 1回の詳細取得につき対象1件 |
-| LIM-028 | `Media.groups`・`Media.tags`・`MediaGroup.parents`・`children`・`media`・`aggregateMedia` | 各関連Connectionの1ページ（`first` / `last`） | 省略時30件、指定可能な最大100件 |
-| LIM-029 | 認証Userが参加するCommunityの一覧（`myCommunities`） | 認証Userの有効なMembershipに対応するCommunity集合 | 最大100件。対象のCommunity全件を閲覧可能 |
-| LIM-030 | 指定Communityの参加メンバー一覧（`communityMembers` / `Community.members`） | 対象Communityの有効なMembership集合（管理者を含む） | 最大30人。対象の参加者全員を閲覧可能 |
+| LIM-021 | Group一覧・Groupの親子関係を編集する際の候補一覧 | 各一覧で1回に取得するGroup数 | 既定30件、最大100件 |
+| LIM-022 | Personal・CommunityそれぞれのTag一覧とTag名による検索結果 | 各一覧で1回に取得するTag数 | 既定30件、最大100件 |
+| LIM-023 | Personal・CommunityそれぞれのMedia一覧とTagによる絞り込み結果 | 各一覧で1回に取得するMedia数 | 既定30件、最大100件 |
+| LIM-024 | Media一覧・Group一覧・Tag一覧・Group関係編集の候補一覧およびそれぞれの検索・絞り込み結果 | 同じ対象範囲・検索・絞り込み・並び順のまま複数回に分けて取得する累計件数 | 累計件数の上限なし。未取得の結果がある限り追加取得できる |
+| LIM-025 | Group・Tagの名前検索、Group親子関係編集時の候補検索 | 1つの検索欄に入力する検索文字列 | 最大255文字 |
+| LIM-026 | Media一覧のTagによる絞り込み | 1つのMedia一覧に同時指定するTag数 | 最大30 Tag。指定したすべてのTagに一致するMediaを表示 |
+| LIM-027 | Media・Group・Communityの個別詳細表示 | 1回の詳細表示で指定する対象 | 1件 |
+| LIM-028 | Mediaに紐づくGroup・Tag一覧、Groupの親・子Group一覧、Groupに直接属するMedia一覧、子孫Groupを含めたMedia一覧 | それぞれの関連一覧で1回に取得する件数 | 既定30件、最大100件 |
+| LIM-029 | 利用者本人が参加するCommunity一覧 | 本人が参加中のCommunity全体 | 最大100件。参加中のCommunityすべてを閲覧できる |
+| LIM-030 | Communityの参加者一覧 | 1つのCommunityに所属する参加者全体（管理者を含む） | 最大30人。参加者全員を閲覧できる |
 
-LIM-024は、一覧の総登録数や1ページの上限ではなく、同一条件で複数ページを取得した際の累計上限を定める。Community・メンバー一覧の取得可能集合はLIM-029・LIM-030で定める。通常一覧では次ページがある場合に追加取得でき、終端は正常状態として扱う。指定件数が上限を超えた場合は要求を拒否し、追加取得失敗時は表示済みデータを維持して再試行できるようにする。具体的な画面状態は[Collection Discovery](/design-system/patterns/collection-discovery)および対象の画面設計を正本とする。Query depth・complexityやRate limitなど外部API保護の境界は[入力検証](/system/api/validation)で扱い、利用者の操作上限と混同しない。
+LIM-024は、一覧の総登録数や1ページの上限ではなく、同一条件で複数ページを取得した際の累計上限を定める。Community・メンバー一覧の取得可能集合はLIM-029・LIM-030で定める。通常一覧では次ページがある場合に追加取得でき、終端は正常状態として扱う。指定件数が上限を超えた場合は要求を拒否し、追加取得失敗時は表示済みデータを維持して再試行できるようにする。具体的な画面状態は[Collection Discovery](/design-system/patterns/collection-discovery)および対象の画面設計を正本とする。外部からのアクセス頻度などの保護制約は[入力検証](/system/api/validation)で扱い、一覧や検索の取得上限と区別する。
