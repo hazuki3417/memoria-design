@@ -35,7 +35,7 @@ Web実装の `applicationChrome.tsx` は `authenticated`、`pre-registration`、
 ## Context Switcherの一覧・検索
 
 - Personalへの切り替えは常に一覧の上部から利用できるようにする。現在のContextがCommunityなら、そのCommunityを独立した選択状態として上部に配置し、参加中のその他のCommunityは名前順に表示する。現在のContextがPersonalならPersonalに選択状態を示し、参加Communityを名前順に表示する。同一Communityを複数箇所へ重複表示しない。
-- Community検索は参加中のCommunity名を対象とし、大文字・小文字を区別しない部分一致とする。検索中の一致候補は名前順で一つの一覧に表示し、現在のCommunityが一致した場合は選択状態を維持する。検索を解除すると未検索時の表示へ戻る。
+- Community検索は取得済みの参加Community全件を対象としてフロントエンド内で実行し、検索入力ごとにバックエンドへ問い合わせない。大文字・小文字を区別しない部分一致とし、検索中の一致候補は名前順で一つの一覧に表示する。現在のCommunityが一致した場合は選択状態を維持し、検索を解除すると未検索時の表示へ戻る。検索対象となる一覧の再取得は検索入力とは独立させる。
 - Communityを未参加の場合、検索結果が0件の場合、取得中・取得失敗の場合を別の状態として扱う。取得失敗時には再試行を提供し、Personalへの切り替えを妨げない。再取得失敗によって表示済み候補を不必要に消さない。
 - Community作成への入口は一覧のスクロール位置や検索条件によらず到達可能とし、作成操作の条件は[Community作成](/screens/community-creation)に従う。
 - 一覧表示の容量は[読み込み系の上限](/system/cross-cutting/limits/read)のCommunity参加数と整合させる。候補が多い場合にも検索と選択を利用でき、一覧の長さによって基本操作が隠れない。
