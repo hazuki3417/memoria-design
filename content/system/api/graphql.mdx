@@ -334,6 +334,7 @@ type CommunityMembership {
 
 type CommunityUserSettings {
   accentColor: String!
+  alias: String
 }
 
 type CommunityMembershipEdge {
@@ -392,7 +393,8 @@ type UpdateCommunityPayload {
 
 input UpdateCommunitySettingsInput {
   communityId: ID!
-  accentColor: String!
+  accentColor: String
+  alias: String
 }
 
 type UpdateCommunitySettingsPayload {
@@ -410,9 +412,9 @@ extend type Mutation {
 
 `updateCommunity` は現在のAdministratorだけが実行します。Initial Releaseで更新可能なCommunity fieldはnameだけです。Community説明や画像を先行して契約へ追加しません。
 
-`updateCommunitySettings` はCommunity本体ではなく、現在User本人のUser × Community settingを更新します。有効なMembershipを持つ全Memberが自身のAccentを変更でき、Administrator権限は要求しません。`accentColor` は `#RRGGBB` を受理します。Community作成時およびInvitation参加成立時はMembershipと同じtransaction境界で初期Accentを生成・保存し、Membershipだけ成立してsettingが欠落する状態を作りません。初期生成では同一Userが現在所属する他CommunityのAccentとの完全一致を避けます。具体的な生成範囲・乱数方式・再試行上限はImplementation Detailとして別途確定します。
+`updateCommunitySettings` はCommunity本体ではなく、現在User本人のUser × Community settingを部分更新します。有効なMembershipを持つ全Memberが自身のAccentと個人向けCommunity別名を変更でき、Administrator権限は要求しません。Inputでは `accentColor` / `alias` の少なくとも一方を明示し、省略したfieldの保存値は維持します。`accentColor` は指定時に `#RRGGBB` を受理し、明示的な `null` は `VALIDATION` とします。`alias` は未設定なら `null` を返し、入力の前後空白を除去してUnicodeコードポイント単位で最大100文字とします。空文字・空白のみ、および明示的な `null` は別名解除を意味します。別名の重複は拒否しません。更新は入力のfieldだけを原子的に変更し、成功時は保存済みの `CommunityUserSettings` を返します。Community作成時およびInvitation参加成立時はMembershipと同じtransaction境界で初期Accentを生成・保存し、Membershipだけ成立してsettingが欠落する状態を作りません。初期生成では同一Userが現在所属する他CommunityのAccentとの完全一致を避けます。具体的な生成範囲・乱数方式・再試行上限はImplementation Detailとして別途確定します。
 
-User × Community settingはMembership lifecycleに従属します。退会・除外時にsettingも削除し、同じCommunityへ再参加した場合は過去値を復元せず新しいAccentを生成します。既存Membershipを維持している間はCommunity集合の変化だけを理由に再生成しません。Accentの連続即時保存はUser Preferencesと同様にWeb側でrequestを直列化・coalesceし、APIへClient sequenceを追加しません。
+User × Community settingはMembership lifecycleに従属します。退会・除外時にsettingも削除し、同じCommunityへ再参加した場合は過去の別名を復元せず新しいAccentを生成します。新規Membershipの別名は未設定（`null`）とします。既存Membershipを維持している間はCommunity集合の変化だけを理由に再生成しません。Accentの連続即時保存はUser Preferencesと同様にWeb側でrequestを直列化・coalesceし、APIへClient sequenceを追加しません。
 
 ### Membership role・退会・除外
 
@@ -1142,7 +1144,7 @@ Auth0再認証成功だけでは削除operationを開始しません。BFF callb
 | `community` / `Community.members` | Member / Admin | Community内部情報取得 |
 | `createCommunity` | ACTIVE User | Community + admin Membership作成 |
 | `updateCommunity` | Admin | Community名更新 |
-| `Community.mySettings` / `updateCommunitySettings` | Member / Admin本人 | User × Community Accent取得・更新 |
+| `Community.mySettings` / `updateCommunitySettings` | Member / Admin本人 | User × Community Accent・個人向け別名の取得・部分更新 |
 | `changeCommunityMemberRole` | Admin | role変更。最後のadmin保護 |
 | `removeCommunityMember` | Admin | Membershipと関連共有・分類cleanup |
 | `leaveCommunity` | Member / Admin | 自身のMembershipと関連cleanup |
