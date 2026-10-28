@@ -4,12 +4,12 @@
 
 ## 一覧取得の上限（登録上限とは独立）
 
-- Group一覧: default 30、maximum 100 / page（現行）
-- Tag一覧: default 30、maximum 100 / page（現行）
+- Group一覧: default 30、maximum 100 / page
+- Tag一覧: default 30、maximum 100 / page
 
-## 読み込み上限と表示のレビュー対象
+## 読み込み上限と表示
 
-読み込み処理では、利用者が一度に取得できる件数、追加取得できる条件、検索・詳細表示の範囲、制約を超えた場合の振る舞いを確認する。具体的な設計値と個別画面の表示仕様は、既存の[入力検証](/system/api/validation)、[非機能要件](/system/cross-cutting/non-functional-requirements)、[Collection Discovery](/design-system/patterns/collection-discovery)および各画面の仕様と照合して決定する。
+読み込み処理では、利用者が一度に取得できる件数、追加取得できる条件、検索・詳細表示の範囲、制約を超えた場合の振る舞いを定める。個別画面の表示仕様は、[入力検証](/system/api/validation)、[非機能要件](/system/cross-cutting/non-functional-requirements)、[Collection Discovery](/design-system/patterns/collection-discovery)および各画面の仕様に従う。
 
 | 確認する種類 | 対象と確認事項 |
 | --- | --- |
@@ -22,9 +22,9 @@
 | 障害との区別 | Timeout、通信障害、認可失敗、取得失敗を上限到達と区別できるか |
 | UIの表現 | 操作の無効化、説明、再試行、表示済みデータ・選択・スクロールの維持、Accessibility |
 
-DBの取得方法、SQLの最適化、Cache、N+1対策などの実装方法はこの設計の対象に含めない。必要な改善は対応する実装Issueで扱い、アプリケーション仕様を実装都合から逆算しない。
+DBの取得方法、SQLの最適化、Cache、N+1対策などの実装方法はこの設計の対象に含めない。実装の改善方法と切り離し、アプリケーション仕様を実装都合から逆算しない。
 
-この表は**レビュー観点の定義**であり、未決定の上限値・新しいAPIエラー種別・画面表示を一律に決めるものではない。上限の種類と利用者へ保証する振る舞いを分離して確認し、Domain・API・画面・Design Systemの各正本で必要な仕様を決める。
+上限の種類と利用者へ保証する振る舞いを区別する。APIエラーの詳細と個別の画面表示は、それぞれのAPI契約・画面設計・Design Systemに従う。
 
 
 ## 読み込み系マトリクス
