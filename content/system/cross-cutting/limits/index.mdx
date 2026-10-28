@@ -1,6 +1,6 @@
 # 上限管理ポリシー
 
-WebとAPIの保持・書き込み・読み込みの制約を共通の考え方で管理します。各設計値は[書き込み系マトリクス](./write)と[読み込み系マトリクス](./read)に分けます。上限到達時の画面表現は[Collection Discovery](/design-system/patterns/collection-discovery)などのDesign Systemと画面設計が正本であり、この文書で重複定義しません。
+WebとAPIを通じてアプリケーションが保証する保持・書き込み・読み込みの制約を共通の考え方で管理します。内部の取得方式や最適化方法は個別の実装課題として扱い、仕様値を実装都合で決めません。各設計値は[書き込み系マトリクス](./write)と[読み込み系マトリクス](./read)に分けます。上限到達時の画面表現は[Collection Discovery](/design-system/patterns/collection-discovery)などのDesign Systemと画面設計が正本であり、この文書で重複定義しません。
 
 - 対象: memoria-web、およびmemoria-api（GraphQL/HTTP）
 - 対象外: worker / outbox publisherの処理バッチ・同時実行
@@ -24,7 +24,7 @@ WebとAPIの保持・書き込み・読み込みの制約を共通の考え方�
 
 ### 1. Source of Truthとレビュー対象の固定
 1. [Context map](/context)に従って対象の設計・Schema・実装・テストの最新状態を確認する。
-2. 対象はフロントとBackend API、API service/repositoryおよび契約・DB制約。worker、outbox publisherの処理単位と実行制限は除外する。
+2. 対象はWebとAPIを通じて利用者に保証する制約・状態・操作。実装の最適化方式やworker、outbox publisherの処理単位と実行制限は対象外とする。
 3. GraphQLのQuery・Mutation・ネストしたConnection、HTTPの読み書きendpoint、入力Schema、フロント呼び出し元を列挙する。ページングと容量/サイズ制限も区別して確認する。
 
 ### 2. 制約を分類する
@@ -36,7 +36,7 @@ WebとAPIの保持・書き込み・読み込みの制約を共通の考え方�
 - 1操作を複数HTTP requestに分割する場合はUI操作上限とAPI単位上限を分ける。
 - 一括処理は積（Media数×Group数など）、タイムアウト、メモリ・SQLパラメータ数、部分成功契約を確認する。
 - 保持上限は並列要求で超過しないトランザクション・ロックの有無を確認する。
-- 読み込みでは、APIの返却ページ件数とDB・Service側が読み込む候補総数、ネストした関連の取得総量を別々に確認する。
+- 読み込みでは、利用者が取得できるページ件数、検索・関連情報の範囲、次ページの有無、ネストした取得によって外部に返る情報量を確認する。内部のDB取得量・最適化は別の実装課題として管理する。
 - 上限到達時の状態、正常な一覧終端、追加取得失敗、通信障害、Rate limitによる制限を区別し、既存Design System・Screen Specificationとの整合性を確認する。
 
 ### 4. 検証する
