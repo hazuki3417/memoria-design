@@ -247,6 +247,8 @@ Memoriaの画面設計、AIによるUI生成、Visual Reviewでは次の原則�
 
 ## Responsive Design
 
+レスポンシブを伴う画面・Componentの設計または変更を開始する前に、本節の共通方針と対象の画面仕様・UI設計・既存実装を確認する。端末名（desktop・mobile等）を説明上の例として用いる場合も、設計上の判定条件はViewportと利用可能な表示領域・入力方式で記述する。個別設計では、維持すべきCapability、Compact / Medium / Wideでの成立条件、構造的な切り替えが必要な理由を整理してから表示方式や境界を提案する。共通方針を参照せずに画面幅や切り替え方式を先に確定しない。変更後は共通方針と既存のVisual / Behavior / Responsive仕様との整合性を確認する。
+
 MemoriaのResponsive Designでは、表示領域や入力環境が変わっても主要なUser Goalを達成できることを最優先とします。端末間でCapabilityやpresentationを機械的に同一にすること自体を目的とせず、それぞれの利用環境でTaskを達成しやすいUIへ適応させます。
 
 主要Taskの成立に必要なCapabilityは表示領域や入力方式が変わっても維持します。一方、高度・補助的なCapabilityは、その環境での有用性、操作性、代替手段、主対象の表示領域への影響を評価し、presentationの変更、入力方式に適した代替、または省略を選択できます。Responsive Designはdesktop向けUIを単純に縮小したり、desktopの全Controlを狭い画面へ移植したりする作業とは扱いません。
