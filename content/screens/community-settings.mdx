@@ -21,6 +21,16 @@ Community Preferencesでは、利用者個人向けのCommunity別名とAccent C
 - 別名同士、および別名と他Communityの正式名称の重複を許可します。名称が重複しても自動変更や別名の再設定を強制しません。別名はCommunityの一意な識別子として扱いません。
 - Context Switcherでは個人向け別名が設定されていれば別名のみを表示し、正式名称は表示しません。別名未設定時は正式名称を表示します。表示名の重複は許容します。
 
+## Community別名の入力・保存
+
+- 別名は任意入力のテキストです。前後の空白を除去した値を保存対象とし、除去後の長さは最大100文字とします。途中の空白、日本語、絵文字を許容します。文字列の大文字・小文字や他Communityとの同名を理由に拒否しません。
+- 入力を空欄、または前後空白を除去して空欄になる値として保存した場合は、別名の設定を解除します。別名が未設定の状態ではContext Switcherに正式名称を表示します。解除専用のActionを必須としません。
+- テキスト入力欄には可視Labelと任意項目であること、空欄保存で解除できることを理解できる説明を付けます。文字数超過は対象Fieldのエラーとし、保存を成立させません。入力途中のエラー提示は[Form Control](/design-system/patterns/form-control)に従います。
+- 別名は入力中に即時保存せず、明示的な「保存」操作で確定します。保存対象の値が確認済みの保存値と変わらない場合は重複保存を要求しません。保存中は同じ保存操作を重複送信させず、結果が確定するまで未保存の入力を保存済みの表示名として扱いません。
+- 保存成功後に本人のCommunity別名として確定し、Context Switcher・Header等の当該Communityの表示名へ反映します。保存成立を確認した場合のFeedbackは[Feedback](/design-system/patterns/feedback)に従います。
+- 保存に失敗した場合は入力した内容を維持し、原因と再試行手段を提示します。保存済みの別名とContext Switcherの表示名は変更しません。通信断などで結果を確認できない場合は失敗と断定せず結果不明として扱い、保存状態の再確認を優先します。
+- 別名の入力変更中に画面から離れる操作の扱いは[Editable Form](/design-system/patterns/editable-form)に従います。別名とAccent Colorの保存方式は独立とし、別名の保存・解除によってAccent Colorを変更しません。
+
 ## Accent Color
 
 Accent Colorは現在のCommunityを他のApplication Contextから視覚的に識別するための補助的なpresentation設定です。
@@ -90,7 +100,7 @@ Membershipが失効した場合はCommunity Preferencesを継続利用させず�
 
 ## Responsive対応
 
-Compact / Medium / Wideのすべてで、現在色の確認とAccent Color変更Capabilityを維持します。
+Compact / Medium / Wideのすべてで、Community別名の入力・保存・解除と現在色の確認・Accent Color変更Capabilityを維持します。
 
 Color Pickerの具体presentation、popover / inline等の配置、寸法はUI具体化とVisual Reviewで決定します。keyboard操作、focus、touch操作を維持し、色だけで現在値や操作状態を伝えません。
 
