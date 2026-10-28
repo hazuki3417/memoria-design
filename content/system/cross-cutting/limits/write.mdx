@@ -1,0 +1,72 @@
+# 書き込み系の上限
+
+保持件数・容量・操作単位・並列処理・構造制約の採用済み仕様を管理します。共通の分類・レビュー手順は[上限管理ポリシー](./index)に従います。
+
+## 保持上限
+
+| 対象 | 採用値 | 適用スコープ |
+| --- | --- | --- |
+| Media件数 | アプリ独自の件数上限なし | Scope |
+| Media Original容量 | 5,000,000,000 bytes | アップロード対象Scope |
+| Tagカタログ件数 | アプリ独自の件数上限なし | Scope |
+| Group件数 | 1,000件 | Personal / Communityの各Scope |
+| Community作成数 | 100件 | Userが作成したCommunity |
+| Community参加数 | 100件 | Userが参加中のCommunity |
+| Community参加者数 | 30人 | Community |
+| Community管理者数 | 3人 | Community |
+| Mediaに紐づくTag数 | 30件 | Media × Scopeの更新後状態 |
+| Groupの直接親数・直接子数 | それぞれ10件 | Group |
+| Group階層深さ | 最大20 | ScopeのGroup DAG |
+
+Community作成数は所有・作成したCommunityを対象とし、参加数とは独立に計測する。削除済みの扱い（論理削除・所有概念）は未決定であり、実装前に設計判断を確定する。参加者数には管理者を含む。Communityへの参加経路と作成者の初期参加も上限強制の対象とする。
+
+## 1操作・1 API入力の処理件数上限
+
+| 操作 | 暫定採用値 | 備考 |
+| --- | --- | --- |
+| Media Upload UI操作 | 100ファイル | UIの候補保持上限。APIは1 Original / HTTP request |
+| Media Upload同時転送 | 3リクエスト | フロントの標準concurrency |
+| Media Upload原本サイズ | 128 MiB / ファイル | APIはmultipart本体に追加オーバーヘッド許容量あり |
+| Media Tag状態更新 | 更新後30 Tag | 1 Media × Scope、既存契約 |
+| Media一括Tag変更 | 100 Media / 操作 | **将来の一括操作がある場合の上限**。既存1 Media単位APIに無理に適用しない |
+| 1 GroupへのMedia一括分類（追加・削除） | 100 Media IDs / API request | 新規API上限 |
+| 複数GroupへのMedia分類 | 100 Media IDs、10 Group IDs、積は最大1,000 | 両リストと積をAPIで検証 |
+| Group作成/更新 | 1 Group / request | 既存契約 |
+| Group親子関係編集 | 最終状態で親・子各10件 | 既存構造契約。差分入力件数制約の必要性は実装レビュー対象 |
+| Community作成 | 1 Community / request | 既存契約 |
+| Communityメンバーの追加・除外・役割変更 | 1人 / request | 既存API単位。追加/招待機能が未実装の場合は将来の適用値 |
+
+
+## 書き込み系マトリクス
+
+| ID | 対象・操作 | 種別・適用単位 | 設計値 |
+| --- | --- | --- | --- |
+| LIM-001 | Media保持件数 | 保持 / Scope | 件数Quotaなし |
+| LIM-002 | Media Original保存容量 | 容量 / Scope | 5,000,000,000 bytes |
+| LIM-003 | Media Uploadファイル候補 | 処理 / UI操作 | 100ファイル |
+| LIM-004 | Media Uploadリクエスト | 処理 / HTTP request | 1ファイル、128 MiBまで |
+| LIM-005 | Media Upload並列転送 | 並列 / UI操作 | 3リクエスト |
+| LIM-006 | Tagカタログ保持件数 | 保持 / Scope | 件数Quotaなし |
+| LIM-007 | Media Tag状態更新 | 構造・処理 / Media×Scope | 更新後30 Tag |
+| LIM-008 | Media一括Tag変更 | 処理 / 操作 | 最大100 Media |
+| LIM-009 | Group保持件数 | 保持 / Scope | 最大1,000 Group |
+| LIM-010 | Group直接親・子 | 構造 / Group | それぞれ最大10 |
+| LIM-011 | Group階層深さ | 構造 / Scope | 最大20 |
+| LIM-012 | 1 GroupへのMedia分類 | 処理 / API request | 最大100 Media |
+| LIM-013 | 複数GroupへのMedia分類 | 処理 / API request | 最大100 Media、10 Group、積最大1,000 |
+| LIM-014 | Group作成・更新 | 処理 / API request | 1 Group |
+| LIM-015 | Group関係編集の入力 | 処理 / API request | 最終状態は親・子各10、差分入力の追加制限は要評価 |
+| LIM-016 | Community作成数 | 保持 / User | 最大100 |
+| LIM-017 | Community参加数 | 保持 / User | 最大100 |
+| LIM-018 | Community参加者数 | 保持 / Community | 最大30（管理者含む） |
+| LIM-019 | Community管理者数 | 保持 / Community | 最大3 |
+| LIM-020 | Community作成・メンバー操作 | 処理 / API request | 各1件・1人 |
+
+## API / UI 実装上の要求
+
+- 上限超過時は明確なValidation error（GraphQLでは既存エラー体系を尊重）を返し、対象の上限と適用単位をUIで説明できるようにする。
+- 保持上限の判定は、同時リクエストでも上限を超えないようにトランザクション内で行う。
+- Bulk上限は認可・DB変更開始前にチェックし、過大な入力で大きな配列・ループ・DB負荷が発生しないようにする。
+- 既存のMedia Uploadのファイル単位の部分失敗、Group分類のMedia単位の結果などは変更しない。
+- 境界値テスト（最大値、その+1、複数リクエスト競合、UI/API一致）を追加する。
+
