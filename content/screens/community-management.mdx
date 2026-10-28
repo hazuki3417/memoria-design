@@ -58,7 +58,7 @@ MemberにはCommunity削除のActionを表示しません。
 
 AdministratorはCommunity名を変更できます。
 
-nameは必須で、前後の空白を除去して空文字・空白だけの値を拒否します。異なるCommunity間で同名を許可します。
+nameは必須で、前後の空白を除去して空文字・空白だけの値を拒否します。同一作成者が作成した他Communityとの同名は許可しません。別の作成者によるCommunityとの同名は許可します。名称変更時も作成時と同じ制約を適用し、重複時は変更を成立させず修正可能なエラーを表示します。作成者の識別は現在のAdministrator権限やMembershipに依存させません。
 
 名称変更後も既存Invitationは有効性を維持し、Invitationから表示する名称は最新値になります。
 
