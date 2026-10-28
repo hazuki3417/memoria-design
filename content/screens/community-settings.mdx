@@ -12,7 +12,13 @@ Community自体へ影響する設定は[Community Settings](/screens/community-m
 
 各Memberが、他のMemberやCommunity自体へ影響させず、自分にとってのCommunity利用体験を調整できるようにします。
 
-Initial Releaseでは必要性が確認されている **Accent Color** だけを扱い、将来の設定項目を空のplaceholderとして先行表示しません。
+Community Preferencesでは、利用者個人向けのCommunity別名とAccent Colorを扱います。両者は独立した設定であり、別名は文字による識別、Accent Colorは視覚的な補助に利用します。
+
+## Community別名
+
+- 有効なMembershipを持つUserは、各Communityに自分専用の別名を設定・変更・解除できます。他のMemberが見るCommunity名、Community自体の正式名称、認可や招待情報は変更しません。
+- 別名はUser × Communityに紐づく個人設定とし、Communityを区別するための文字情報として利用します。Accent Colorに識別責務を転用しません。
+- Context Switcherでは正式名称と個人向け別名を区別して認識できるようにします。別名未設定時や同名Communityが並ぶ場合の具体的な表示方法はContext Switcherの画面設計で定めます。
 
 ## Accent Color
 
@@ -75,7 +81,7 @@ Membershipが失効した場合はCommunity Preferencesを継続利用させず�
 
 ## 制約
 
-- Initial ReleaseのCommunity PreferencesはAccent Colorだけを扱います。
+- Community PreferencesはCommunity別名とAccent Colorを扱います。
 - Accent変更は他Userの表示へ影響しません。
 - Accent変更によってauthorization、Community data、Media data等のDomain behaviorを変更しません。
 - Community自体の名称、Invitation、削除等はCommunity Settingsを正本とします。
