@@ -31,6 +31,15 @@ Community Preferencesでは、利用者個人向けのCommunity別名とAccent C
 - 保存に失敗した場合は入力した内容を維持し、原因と再試行手段を提示します。保存済みの別名とContext Switcherの表示名は変更しません。通信断などで結果を確認できない場合は失敗と断定せず結果不明として扱い、保存状態の再確認を優先します。
 - 別名の入力変更中に画面から離れる操作の扱いは[Editable Form](/design-system/patterns/editable-form)に従います。別名とAccent Colorの保存方式は独立とし、別名の保存・解除によってAccent Colorを変更しません。
 
+## Community別名の状態とデータ整合性
+
+- 別名の初期表示には、本人と対象Communityの組に対して最後に保存が確認された値を利用する。未設定と空文字の表示上の意味は同じであり、別名がない場合に正式名称へフォールバックする。
+- 編集中の入力と保存済みの別名は別の状態として扱う。保存内容の差分判定には前後空白を除去した保存対象値を使用し、未保存変更だけでHeaderやContext Switcherの表示名を更新しない。
+- 他のCommunityの別名編集やAccent Color変更によって、対象Communityの未保存Draftや保存結果を上書きしない。
+- 成功した別名更新と解除は、次にContext Switcherを開くまで待たずに同じUserのCommunity表示へ反映する。バックエンドで確定していない更新を成功と見なさない。
+- Communityから離脱・除外された場合は本人用別名をMembershipに従属して削除し、再参加時に以前の別名を自動復元しない。正式名称の変更は本人が保存した別名を上書きしない。
+- 入力値が未保存のまま離脱するケースは、共通の[Editable Form](/design-system/patterns/editable-form)の評価原則に従う。具体的な離脱時の確認方法は、Visual Reviewと画面全体の編集操作との整合性を確認して決定する。
+
 ## Accent Color
 
 Accent Colorは現在のCommunityを他のApplication Contextから視覚的に識別するための補助的なpresentation設定です。
