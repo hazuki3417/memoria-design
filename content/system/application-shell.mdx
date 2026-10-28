@@ -44,6 +44,16 @@ Web実装の `applicationChrome.tsx` は `authenticated`、`pre-registration`、
 
 - 各Communityの表示名は本人の別名が設定されていれば別名のみ、未設定なら正式名称とする。検索もこの表示名のみを対象とする。別名はUser × Communityの個人設定であり、他の参加者が見る正式名称を変更しない。別名未設定時や同一の表示名が複数並ぶことを許容し、名前の重複だけを理由に候補をまとめたり選択不能にしたりしない。Communityの選択先は安定したCommunity IDで判定する。識別子は表示せず、アクセント色だけを同名候補の識別根拠にしない。
 
+## Context Switcherのデータ同期契約
+
+- Application Shellの参加Community一覧を、Context Switcherの候補および現在Contextの表示名・Accentを解決する共通の参照元とする。Community IDを候補のidentityに使い、再取得で並び順が変わっても別Communityへ選択状態を移さない。
+- Backendから取得するのは所属CommunityのID、正式名称、本人向けの別名とAccent Colorである。WebのApplication Shell機能層で表示名を解決し、取得済みデータから検索・日本語ロケール順の単一キーソートを行って表示Componentへ渡す。検索欄への入力でAPIリクエストを発生させない。
+- 初期取得成功前は未取得と空一覧を区別する。再取得中は既存候補と検索入力を維持する。取得失敗時は以前の成功済み候補を保持したまま再試行可能な状態を伝える。失敗した更新結果を成功済みとして反映しない。
+- SwitcherのOpen操作を受けた機能層が最新一覧の取得を要求する。取得中の同一要求があれば重複開始しない。画面描画や検索文字変更では再取得しない。Closeによって成功済み候補を破棄せず、次回Openで再検証する。
+- Community作成・参加・離脱・除外・削除・正式名称変更、および本人のCommunity別名・Accent Colorの保存成功後は、既存の参加Community一覧の参照元を更新または無効化・再取得し、同じデータを参照するHeader・Switcherに反映する。別名の入力途中や保存失敗では共有表示名を更新しない。
+- 複数MutationやOpen時の再取得が重なる場合は、古い取得結果が確認済みの新しい保存結果を上書きしないようにする。具体的なApollo Clientのキャッシュ更新、無効化、リクエスト順制御はWeb実装で決める。別名とAccent Colorの部分更新で省略fieldの保存値を変更しない。
+- Membership失効などで現在のContextが無効になった場合は、古い候補一覧を認可の根拠にせず、Application IAの安全な遷移とError表示の契約に従う。
+
 ## Context Switcherの取得・切り替え失敗
 
 - Community候補の初回取得に失敗しても現在のContextとPersonalへの移動手段を維持する。取得できないことをCommunity未参加と見なさず、候補領域で再試行できるようにする。
