@@ -1,0 +1,150 @@
+# 登録・処理上限ポリシー
+
+- 対象: memoria-web および memoria-api（GraphQL/HTTP）
+- 対象外: worker / outbox publisher の処理バッチ・同時実行
+
+## 原則
+
+1. **保持上限**（Scope / User / Community に蓄積できる件数）、**操作/APIの処理件数上限**、**同時実行上限**、**一覧取得のページサイズ**を混同しない。
+2. ビジネス上の理由がない保持件数上限は原則設けない。ただし容量Quota、既存の構造上限、Community関連の暫定上限を例外とする。「無制限」はアプリ独自の件数Quotaを設けない意味であり、物理的な無限容量を保証しない。
+3. UIは事前に防止・案内する。APIはUIを迂回した呼び出しも含めて境界を検証する。複数件の入力上限違反は**変更開始前**に拒否する。
+4. 上限値は定数化し、フロントとAPIで定義を同期する（フロント値だけをセキュリティ・負荷制御の根拠にしない）。
+5. 既存の部分成功契約がある操作は維持する。入力上限違反を部分成功として扱わず、既存の個別対象エラーと区別する。
+6. 未実装の一括APIを、この文書のみを根拠に新設しない。将来追加時に該当する上限を使用する。
+
+## 保持上限
+
+| 対象 | 暫定採用値 | 適用スコープ | 現状 |
+| --- | --- | --- | --- |
+| Media件数 | アプリ独自の件数上限なし | Scope | 件数上限未確認 |
+| Media Original容量 | 5,000,000,000 bytes | アップロード対象Scope | API実装済み |
+| Tagカタログ件数 | アプリ独自の件数上限なし | Scope | 件数上限未確認 |
+| Group件数 | 1,000件 | Personal / Communityの各Scope | API実装済み |
+| Community作成数 | 100件 | Userが作成したCommunity | 新規決定・未実装 |
+| Community参加数 | 100件 | Userが参加中のCommunity | 新規決定・未実装 |
+| Community参加者数 | 30人 | Community | UI表示・制御あり、API経路の強制は要検証 |
+| Community管理者数 | 3人 | Community | API実装済み |
+| Mediaに紐づくTag数 | 30件 | Media × Scopeの更新後状態 | API実装済み |
+| Groupの直接親数・直接子数 | それぞれ10件 | Group | API実装済み |
+| Group階層深さ | 最大20 | ScopeのGroup DAG | API実装済み |
+
+Community作成数は所有・作成したCommunityを対象とし、参加数とは独立に計測する。削除済みの扱い（論理削除・所有概念）は実装に合わせて明示的に定義すること。参加者数には管理者を含む。Communityへの参加経路と作成者の初期参加も上限強制の対象とする。
+
+## 1操作 / 1 API入力の処理件数上限
+
+| 操作 | 暫定採用値 | 備考 |
+| --- | --- | --- |
+| Media Upload UI操作 | 100ファイル | UIの候補保持上限。APIは1 Original / HTTP request |
+| Media Upload同時転送 | 3リクエスト | フロントの標準concurrency |
+| Media Upload原本サイズ | 128 MiB / ファイル | APIはmultipart本体に追加オーバーヘッド許容量あり |
+| Media Tag状態更新 | 更新後30 Tag | 1 Media × Scope、既存契約 |
+| Media一括Tag変更 | 100 Media / 操作 | **将来の一括操作がある場合の上限**。既存1 Media単位APIに無理に適用しない |
+| 1 GroupへのMedia一括分類（追加・削除） | 100 Media IDs / API request | 新規API上限 |
+| 複数GroupへのMedia分類 | 100 Media IDs、10 Group IDs、積は最大1,000 | 両リストと積をAPIで検証 |
+| Group作成/更新 | 1 Group / request | 既存契約 |
+| Group親子関係編集 | 最終状態で親・子各10件 | 既存構造契約。差分入力件数制約の必要性は実装レビュー対象 |
+| Community作成 | 1 Community / request | 既存契約 |
+| Communityメンバーの追加・除外・役割変更 | 1人 / request | 既存API単位。追加/招待機能が未実装の場合は将来の適用値 |
+
+## 一覧取得の上限（登録上限とは独立）
+
+- Group一覧: default 30、maximum 100 / page（現行）
+- Tag一覧: default 30、maximum 100 / page（現行）
+- 他の一覧取得はAPI契約ごとに現行値を棚卸しし、上限の追加変更は別途レビューする。
+
+## API / UI 実装上の要求
+
+- 上限超過時は明確なValidation error（GraphQLでは既存エラー体系を尊重）を返し、対象の上限と適用単位をUIで説明できるようにする。
+- 保持上限の判定は、同時リクエストでも上限を超えないようにトランザクション内で行う。
+- Bulk上限は認可・DB変更開始前にチェックし、過大な入力で大きな配列・ループ・DB負荷が発生しないようにする。
+- 既存のMedia Uploadのファイル単位の部分失敗、Group分類のMedia単位の結果などは変更しない。
+- 境界値テスト（最大値、その+1、複数リクエスト競合、UI/API一致）を追加する。
+- 既存の表示・操作・Responsive Behaviorは仕様変更に合意しない限り維持する。
+
+## 現時点の実装差分（未完了項目）
+
+1. Community作成数・参加数100件の定義／API強制／UI案内。
+2. Community参加者数30人をすべての加入経路でAPI強制しているかの検証と必要な補強。
+3. Group分類入力の100 Media、10 Group、積1,000のAPI強制とUI整合。
+4. Media一括Tag操作が実在するかの棚卸し。存在または新設する場合のみ100 Media上限を適用。
+5. Group関係の差分入力件数、その他Mutationの一括件数、各一覧取得ページサイズの棚卸し。
+6. リミット値の共有方法、エラーメッセージ、境界・同時実行テスト。
+
+## 既存実装の参照
+
+- memoria-api: `internal/service/mediaupload/http_handler.go`、`internal/service/mediaupload/service.go`
+- memoria-api: `internal/service/mediagroup/classification.go`、`internal/domain/media_group_graph.go`、`internal/infrastructure/postgres/media_group_repository_write.go`
+- memoria-api: `internal/service/mediatag/update_state.go`
+- memoria-api: `internal/infrastructure/postgres/community_repository.go`
+- memoria-web: `src/features/media-upload/MediaUpload.tsx`、`src/features/media-upload/uploadMedia.ts`、`src/features/community-settings/CommunityMembersContent.tsx`
+
+
+## 上限管理マトリクス
+
+この表は設計値と実装保証を切り分けた追跡台帳である。ステータスは `確認済` / `部分確認` / `未実装` / `未検証` / `該当なし` を使用する。「該当なし」は理由が明白な場合だけ使用し、情報がない場合に使わない。実装済みの断定には現行コード上の強制箇所、テスト済みの断定にはテスト根拠が必要。現時点の評価は2026-10-28時点のレビューで確認できた範囲に限る。
+
+| ID | 対象・操作 | 種別・Scope | 設計値 | Frontend | API | テスト | 追跡 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| LIM-001 | Media保持件数 | 保持 / Scope | 件数Quotaなし | 未検証 | 未検証 | 未検証 | #120 |
+| LIM-002 | Media Original保存容量 | 容量 / Scope | 5,000,000,000 bytes | 未検証 | 確認済 | 未検証 | #120 |
+| LIM-003 | Media Uploadファイル候補 | 処理 / UI操作 | 100ファイル | 確認済 | 該当なし（単一ファイルAPI） | 未検証 | #120 |
+| LIM-004 | Media Uploadリクエスト | 処理 / HTTP request | 1ファイル、128 MiBまで | 確認済 | 確認済 | 未検証 | #120 |
+| LIM-005 | Media Upload並列転送 | 並列 / UI操作 | 3リクエスト | 確認済 | 該当なし（UI側の制御） | 未検証 | #120 |
+| LIM-006 | Tagカタログ保持件数 | 保持 / Scope | 件数Quotaなし | 未検証 | 未検証 | 未検証 | #120 |
+| LIM-007 | Media Tag状態更新 | 構造・処理 / Media×Scope | 更新後30 Tag | 未検証 | 確認済 | 未検証 | #120 |
+| LIM-008 | Media一括Tag変更 | 処理 / 操作 | 最大100 Media | 未検証 | 未検証（操作の存在を要確認） | 未検証 | #120 |
+| LIM-009 | Group保持件数 | 保持 / Scope | 最大1,000 Group | 未検証 | 確認済 | 未検証 | #120 |
+| LIM-010 | Group直接親・子 | 構造 / Group | それぞれ最大10 | 未検証 | 確認済 | 未検証 | #120 |
+| LIM-011 | Group階層深さ | 構造 / Scope | 最大20 | 未検証 | 確認済 | 未検証 | #120 |
+| LIM-012 | 1 GroupへのMedia分類 | 処理 / API request | 最大100 Media | 未検証 | 未実装（上限チェック） | 未検証 | #120 |
+| LIM-013 | 複数GroupへのMedia分類 | 処理 / API request | 最大100 Media、10 Group、積最大1,000 | 未検証 | 未実装（上限チェック） | 未検証 | #120 |
+| LIM-014 | Group作成・更新 | 処理 / API request | 1 Group | 未検証 | 確認済（単位） | 未検証 | #120 |
+| LIM-015 | Group関係編集の入力 | 処理 / API request | 最終状態は親・子各10、差分入力の追加制限は要評価 | 未検証 | 部分確認 | 未検証 | #120 |
+| LIM-016 | Community作成数 | 保持 / User | 最大100 | 未検証 | 未実装 | 未検証 | #120 |
+| LIM-017 | Community参加数 | 保持 / User | 最大100 | 未検証 | 未実装 | 未検証 | #120 |
+| LIM-018 | Community参加者数 | 保持 / Community | 最大30（管理者含む） | 確認済（表示） | 未検証 | 未検証 | #120 |
+| LIM-019 | Community管理者数 | 保持 / Community | 最大3 | 確認済（表示・操作） | 確認済 | 未検証 | #120 |
+| LIM-020 | Community作成・メンバー操作 | 処理 / API request | 各1件・1人 | 未検証 | 部分確認（既存操作単位） | 未検証 | #120 |
+| LIM-021 | Group一覧ページング | 取得 / API request | 既定30、最大100 | 未検証 | 確認済 | 未検証 | #120 |
+| LIM-022 | Tag一覧ページング | 取得 / API request | 既定30、最大100 | 未検証 | 確認済 | 未検証 | #120 |
+
+このマトリクスは現在把握した制約の初版であり、全Mutationを網羅したことを保証するものではない。新しい登録・一括操作・一覧取得を発見した場合は行を追加する。テスト済みへの変更は実際のテスト実行結果を確認してから行う。
+
+## 再現可能な上限レビュー手順
+
+### 起動条件
+- 登録・作成・更新・一括操作・一覧APIの新設や変更
+- 上限値、スコープ、Quota、データモデル、認可経路の変更
+- 定期的な実装棚卸し（リリース前など、実施時期は開発計画に従う）
+
+### 1. Source of Truthとレビュー対象の固定
+1. `memoria-web`、`memoria-api`、設計資料の **最新の対象ブランチとcommit SHA** を確認し、レビュー結果に記録する。既存表は参考であり、現在のコードの代わりにしない。
+2. 対象はフロントとBackend API、API service/repositoryおよび契約・DB制約。worker、outbox publisherの処理単位と実行制限は除外する。
+3. GraphQL Mutation、HTTPの書き込みendpoint、入力Schema、フロント呼び出し元を網羅的に列挙する。ページングと容量/サイズ制限も区別して確認する。
+
+### 2. 制約を分類する
+各操作に対して、保持（総数）、1リクエスト/1操作（処理数）、並列、サイズ/容量、構造、一覧ページサイズを個別に確認。適用Scope、計数対象、削除済みの扱い、重複ID、空配列、ユニーク件数と入力配列長のどちらを制限するかを明記する。無制限は「明示的に設計決定した」場合にのみ記載し、実装未確認と混同しない。
+
+### 3. Frontend/API/永続化を照合する
+- UIで選択・追加できる件数、送信前のValidation、無効化、超過メッセージを確認する。
+- API schema、Resolver、Service、Repository、DB制約を追い、**UIを迂回しても**上限を強制する場所を特定する。
+- 1操作を複数HTTP requestに分割する場合はUI操作上限とAPI単位上限を分ける。
+- 一括処理は積（Media数×Group数など）、タイムアウト、メモリ・SQLパラメータ数、部分成功契約を確認する。
+- 保持上限は並列要求で超過しないトランザクション・ロックの有無を確認する。
+
+### 4. 検証する
+- 最大値の直前・最大値・最大値+1、0件・重複・無効ID・異なるScopeを検証する。
+- API直接呼び出し・フロント操作の両方を検証する。
+- 同時リクエストによるQuota/件数超過の防止を検証する。
+- 上限違反時のエラー形式と、入力検証で変更が一切起きないことを検証する。
+- 既存の部分成功・UI表示・操作・Responsive Behaviorの回帰を確認する。
+- 未実行のテストは「未検証」と記し、推測で合格にしない。
+
+### 5. 証跡と未解決事項を反映する
+- マトリクスに設計値、対象経路、Frontend/APIの制御箇所、テストファイルと実行結果、commit SHA、Issueを追記する。
+- 設計と実装の差異・仕様の曖昧さはIssueで管理し、優先度と対応範囲を明記する。
+- 上限の新設・変更、既存挙動の変更はユーザー合意後に設計正本へ反映する。
+- GitHub変更後は最新状態を再読み取りし、反映を確認する。PR merge / release / 本番操作は別途承認を得る。
+
+### レビュー完了条件
+対象操作の棚卸しが完了し、各行の制約種別・適用Scope・設計値・Front/API実装状況・テスト状況・証跡が埋まっていること。未実装・未検証は明示的にIssueに紐づき、**未解決がある場合は「レビュー完了・実装未完了」** として扱う。未確認の項目を「問題なし」と結論付けない。
