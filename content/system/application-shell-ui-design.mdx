@@ -41,6 +41,20 @@
 - 初回取得中、参加Communityなし、検索結果なし、一覧取得失敗、再取得失敗、切り替え中・切り替え失敗を区別する。失敗時は必要な案内と再試行を提供し、表示済み候補・検索条件・現在のContextを不必要に失わない。
 - キーボード・タッチ・支援技術で検索と候補選択ができ、選択UIの開閉時に適切なFocus移動・復帰を提供する。モバイルではソフトウェアキーボード表示中にも検索欄と候補を操作可能にする。具体的な寸法と装飾はVisual Reviewで判断する。
 
+### Context Switcherの表示領域とスクロール
+
+- PCのPopoverはHeaderのContext切り替え入口に対応して表示し、幅を確保しながらViewportの左右端・下端からはみ出さない。Viewport高さが不足する場合は候補一覧領域を縮め、検索・Personal・現在のCommunity・作成入口・閉じる手段への到達を優先する。
+- モバイルのDialogは検索と候補の閲覧に必要な表示面積を確保し、利用可能なViewport高さを超えない。ソフトウェアキーボード表示中も検索欄・候補選択・閉じる手段へ到達できる。
+- いずれの表示方式も検索欄、Personal、現在のCommunity、作成入口を候補一覧のスクロールから独立させる。候補一覧が少ない場合は不要な空白を増やさず、多い場合のみ一覧部分がスクロールする。候補部分をスクロールしても選択中のContextの識別と作成操作を失わない。
+- PopoverとDialogは同じ情報・選択状態・並び順を扱う。開いた際のFocus、Escape、外側操作、閉じた際のFocus復帰は[Overlay Pattern](/design-system/patterns/overlay-temporary-surface)に従う。検索への自動Focusはモバイルのソフトウェアキーボードの影響も踏まえて設計する。
+
+### Context Switcherの失敗・復旧表示
+
+- 初回一覧取得失敗は候補領域内に持続的なエラーと再試行を提示する。失敗を「参加Communityなし」と表示せず、Personalへの切り替えと閉じる操作を維持する。
+- 取得済み候補がある状態で再取得に失敗した場合、既知の候補と検索条件を表示したまま候補領域にエラー・再試行を提示する。取得失敗だけを理由に現在ContextのHeader表示や選択状態を変更しない。
+- 切り替え処理中は選択先への重複操作を防止し、進行中であることを示す。切り替えが成立しない場合は選択先を現在Contextとして確定表示せず、元の利用可能なContextを維持する。結果の通知は[Feedback Pattern](/design-system/patterns/feedback)に従い、再選択できるようにする。
+- Membership喪失等によって現在の画面を継続利用できない場合は、Switcherの一時的な取得エラーだけで完結させず、[Application Information Architecture](/system/application-information-architecture)に従い共通エラーと安全な移動先を提示する。
+
 ### 利用範囲切替とAccount Menu
 
 - Context Switcherは現在のPersonal / Community名を表示し、選択中の利用範囲にはチェックを示します。幅が狭い場合は既存の省略表示・最大幅・折り返し方針を維持し、切替操作に到達できるようにします。
