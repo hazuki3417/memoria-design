@@ -33,20 +33,20 @@
 ### Context Switcherの選択UI
 
 - ヘッダーの現在Context名と選択入口は維持し、開いた選択UIにCommunity名検索を提供する。
-- PCではヘッダーに対応したPopoverとして表示し、モバイルではDialogとして表示する。表示方式が変わっても検索・Personal・Community選択・Community作成・閉じる操作を維持する。
+- Viewportと利用可能な表示領域に応じて、Headerの切り替え入口に紐づくPopoverと、選択操作へ表示領域を割り当てるDialogを切り替える。端末種別では判定しない。Popoverは十分な表示領域がある場合、DialogはPopoverでは主要操作の表示・到達性を確保しづらい場合に用いる。表示方式が変わっても検索・Personal・Community選択・Community作成・閉じる操作を維持する。
 - 選択UIは検索欄、Personal、現在のCommunity（Community利用中のみ）、その他のCommunity一覧、Community作成の順に構成する。検索欄、Personal、現在のCommunity、作成入口を一覧のスクロールに巻き込まず、候補一覧部分が利用可能な高さの範囲でスクロールする。
 - 未検索時はその他の参加Communityを名前順に並べ、現在のCommunityを重複させない。現在のContextがPersonalなら独立した現在Community領域を作らない。
 - 検索中はCommunity候補を単一の名前順一覧で表示する。現在選択中のCommunityが一致した場合は、その候補に選択状態を表示する。検索文字列の解除で未検索時の構成へ戻す。PersonalとCommunity作成は検索中も利用できる。
 - 現在選択中のContextはチェックとアクセシブルな選択状態で示し、Accent色だけには依存しない。長いCommunity名でも候補選択と名前の識別を妨げない。
 - 初回取得中、参加Communityなし、検索結果なし、一覧取得失敗、再取得失敗、切り替え中・切り替え失敗を区別する。失敗時は必要な案内と再試行を提供し、表示済み候補・検索条件・現在のContextを不必要に失わない。
-- キーボード・タッチ・支援技術で検索と候補選択ができ、選択UIの開閉時に適切なFocus移動・復帰を提供する。モバイルではソフトウェアキーボード表示中にも検索欄と候補を操作可能にする。具体的な寸法と装飾はVisual Reviewで判断する。
+- キーボード・タッチ・支援技術で検索と候補選択ができ、選択UIの開閉時に適切なFocus移動・復帰を提供する。ソフトウェアキーボードが表示された場合にも検索欄と候補を操作可能にする。具体的な寸法と装飾はVisual Reviewで判断する。
 
 ### Context Switcherの表示領域とスクロール
 
-- PCのPopoverはHeaderのContext切り替え入口に対応して表示し、幅を確保しながらViewportの左右端・下端からはみ出さない。Viewport高さが不足する場合は候補一覧領域を縮め、検索・Personal・現在のCommunity・作成入口・閉じる手段への到達を優先する。
-- モバイルのDialogは検索と候補の閲覧に必要な表示面積を確保し、利用可能なViewport高さを超えない。ソフトウェアキーボード表示中も検索欄・候補選択・閉じる手段へ到達できる。
+- PopoverはHeaderのContext切り替え入口に対応して表示し、幅360pxを基準としつつ、Viewportの利用可能幅を超えない。Viewportの左右端・下端からはみ出さない。Viewport高さが不足する場合は候補一覧領域を縮め、検索・Personal・現在のCommunity・作成入口・閉じる手段への到達を優先する。
+- Dialogは検索と候補の閲覧に必要な表示面積を確保し、利用可能なViewport幅・高さを超えない。ソフトウェアキーボード表示中も検索欄・候補選択・閉じる手段へ到達できる。
 - いずれの表示方式も検索欄、Personal、現在のCommunity、作成入口を候補一覧のスクロールから独立させる。候補一覧が少ない場合は不要な空白を増やさず、多い場合のみ一覧部分がスクロールする。候補部分をスクロールしても選択中のContextの識別と作成操作を失わない。
-- PopoverとDialogは同じ情報・選択状態・並び順を扱う。開いた際のFocus、Escape、外側操作、閉じた際のFocus復帰は[Overlay Pattern](/design-system/patterns/overlay-temporary-surface)に従う。検索への自動Focusはモバイルのソフトウェアキーボードの影響も踏まえて設計する。
+- PopoverとDialogは同じ情報・選択状態・並び順を扱う。開いた際のFocus、Escape、外側操作、閉じた際のFocus復帰は[Overlay Pattern](/design-system/patterns/overlay-temporary-surface)に従う。検索への自動Focusは入力方式とソフトウェアキーボードの影響も踏まえて設計する。
 
 ### Context Switcherの失敗・復旧表示
 
@@ -60,6 +60,12 @@
 - Context Switcherは現在のPersonal / Community名を表示し、選択中の利用範囲にはチェックを示します。幅が狭い場合は既存の省略表示・最大幅・折り返し方針を維持し、切替操作に到達できるようにします。
 - 利用範囲の選択肢と「Communityを作成」の入口は、現在の利用者条件によって提示範囲が変わります。実際のContext一覧取得、選択後NavigationとCommunity作成処理は呼び出し元が所有します。
 - Account MenuはAvatarと表示名、現在Contextの情報を利用してユーザーを識別し、「設定」「ログアウト」の順序・表示文言と操作導線を維持します。CompactでのTrigger形状、Avatar size、Menuの位置関係は変更前のPrototypeと比較します。実際の設定画面遷移とログアウトはこのUI構成の責務ではありません。
+
+### Context SwitcherのViewport適応
+
+- [Frontend UI設計・開発方針のResponsive Design](/system/frontend-ui-development#responsive-design)に従い、Compact / Medium / Wideの代表領域で利用可能な面積・操作性を検証する。これらの分類をそのままPopover / Dialogの一律な切り替え境界とはしない。
+- Popover / Dialogの切り替えは、Context選択に必要な領域と操作の到達性から判断し、特定の端末種別や入力方式に結び付けない。表示方式の境界値はVisual Reviewで必要性を確認して定める。
+- 幅・高さの連続的な適応はCSSによる表現を優先し、Component構造や操作を切り替える場合のみ共通Viewport判定の利用を検討する。初回表示で誤った構成が一瞬現れないようにする。
 
 ## 表示状態と表現
 
