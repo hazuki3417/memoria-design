@@ -30,11 +30,13 @@
 | LIM-022 | Personal・CommunityそれぞれのTag一覧とTag名による検索結果 | 各一覧で1回に取得するTag数 | 既定30件、最大100件 |
 | LIM-023 | Personal・CommunityそれぞれのMedia一覧とTagによる絞り込み結果 | 各一覧で1回に取得するMedia数 | 既定30件、最大100件 |
 | LIM-024 | Media一覧・Group一覧・Tag一覧・Group関係編集の候補一覧およびそれぞれの検索・絞り込み結果 | 同じ対象範囲・検索・絞り込み・並び順のまま複数回に分けて取得する累計件数 | 累計件数の上限なし。未取得の結果がある限り追加取得できる |
-| LIM-025 | Group・Tagの名前検索、Group親子関係編集時の候補検索 | 1つの検索欄に入力する検索文字列 | 最大255文字 |
+| LIM-025 | Group・Tagの名前検索、Group親子関係編集時の候補検索 | 1つの検索欄に入力する検索文字列のUTF-8バイトサイズ | 最大255バイト |
 | LIM-026 | Media一覧のTagによる絞り込み | 1つのMedia一覧に同時指定するTag数 | 最大30 Tag。指定したすべてのTagに一致するMediaを表示 |
 | LIM-027 | Media・Group・Communityの個別詳細表示 | 1回の詳細表示で指定する対象 | 1件 |
 | LIM-028 | Mediaに紐づくGroup・Tag一覧、Groupの親・子Group一覧、Groupに直接属するMedia一覧、子孫Groupを含めたMedia一覧 | それぞれの関連一覧で1回に取得する件数 | 既定30件、最大100件 |
 | LIM-029 | 利用者本人が参加するCommunity一覧 | 本人が参加中のCommunity全体 | 最大100件。参加中のCommunityすべてを閲覧できる |
 | LIM-030 | Communityの参加者一覧 | 1つのCommunityに所属する参加者全体（管理者を含む） | 最大30人。参加者全員を閲覧できる |
+
+LIM-025は、現段階では複雑なUnicode文字数判定を行わず、UTF-8でエンコードした検索文字列のバイトサイズで判定する。これは厳密な文字数上限を保証するものではない。文字数基準の必要性、Frontend/Backendの計数差異、および入力時の表現は[Issue #344](https://github.com/hazuki3417/memoria-design/issues/344)で継続検討する。
 
 LIM-024は、一覧の総登録数や1ページの上限ではなく、同一条件で複数ページを取得した際の累計上限を定める。Community・メンバー一覧の取得可能集合はLIM-029・LIM-030で定める。通常一覧では次ページがある場合に追加取得でき、終端は正常状態として扱う。指定件数が上限を超えた場合は要求を拒否し、追加取得失敗時は表示済みデータを維持して再試行できるようにする。具体的な画面状態は[Collection Discovery](/design-system/patterns/collection-discovery)および対象の画面設計を正本とする。外部からのアクセス頻度などの保護制約は[入力検証](/system/api/validation)で扱い、一覧や検索の取得上限と区別する。
