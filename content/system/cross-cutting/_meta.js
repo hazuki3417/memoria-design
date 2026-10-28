@@ -4,6 +4,7 @@ export default {
   "authentication-authorization-privacy": "認証・認可・Privacy",
   "transactions-consistency": "Transaction・競合制御",
   "runtime-reliability": "実行時の信頼性",
+  "registration-processing-limits": "登録・処理上限",
   "deletion-lifecycle": "削除・Lifecycle",
   "non-functional-requirements": "非機能要件",
   "observability": "ログ・可観測性",
