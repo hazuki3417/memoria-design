@@ -30,6 +30,17 @@
 - 不可視状態では単に透明にするのではなく、配置領域を維持したまま、操作・Tab移動・支援技術上の対象から外します。HeaderのBrand位置を変えないことと、隠れた操作へFocusしないことを両立します。
 - TriggerはNavigationの開閉操作の入口であり、Context選択や実際のNavigation状態更新の意味を独自には変更しません。
 
+### Context Switcherの選択UI
+
+- ヘッダーの現在Context名と選択入口は維持し、開いた選択UIにCommunity名検索を提供する。
+- PCではヘッダーに対応したPopoverとして表示し、モバイルではDialogとして表示する。表示方式が変わっても検索・Personal・Community選択・Community作成・閉じる操作を維持する。
+- 選択UIは検索欄、Personal、現在のCommunity（Community利用中のみ）、その他のCommunity一覧、Community作成の順に構成する。検索欄、Personal、現在のCommunity、作成入口を一覧のスクロールに巻き込まず、候補一覧部分が利用可能な高さの範囲でスクロールする。
+- 未検索時はその他の参加Communityを名前順に並べ、現在のCommunityを重複させない。現在のContextがPersonalなら独立した現在Community領域を作らない。
+- 検索中はCommunity候補を単一の名前順一覧で表示する。現在選択中のCommunityが一致した場合は、その候補に選択状態を表示する。検索文字列の解除で未検索時の構成へ戻す。PersonalとCommunity作成は検索中も利用できる。
+- 現在選択中のContextはチェックとアクセシブルな選択状態で示し、Accent色だけには依存しない。長いCommunity名でも候補選択と名前の識別を妨げない。
+- 初回取得中、参加Communityなし、検索結果なし、一覧取得失敗、再取得失敗、切り替え中・切り替え失敗を区別する。失敗時は必要な案内と再試行を提供し、表示済み候補・検索条件・現在のContextを不必要に失わない。
+- キーボード・タッチ・支援技術で検索と候補選択ができ、選択UIの開閉時に適切なFocus移動・復帰を提供する。モバイルではソフトウェアキーボード表示中にも検索欄と候補を操作可能にする。具体的な寸法と装飾はVisual Reviewで判断する。
+
 ### 利用範囲切替とAccount Menu
 
 - Context Switcherは現在のPersonal / Community名を表示し、選択中の利用範囲にはチェックを示します。幅が狭い場合は既存の省略表示・最大幅・折り返し方針を維持し、切替操作に到達できるようにします。
