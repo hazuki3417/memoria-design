@@ -40,6 +40,8 @@ Web実装の `applicationChrome.tsx` は `authenticated`、`pre-registration`、
 - Community作成への入口は一覧のスクロール位置や検索条件によらず到達可能とし、作成操作の条件は[Community作成](/screens/community-creation)に従う。
 - 一覧表示の容量は[読み込み系の上限](/system/cross-cutting/limits/read)のCommunity参加数と整合させる。候補が多い場合にも検索と選択を利用でき、一覧の長さによって基本操作が隠れない。
 
+- 各Communityについて、本人が設定したCommunity別名を正式名称と区別して参照できるようにする。別名はUser × Communityの個人設定であり、他の参加者が見る正式名称を変更しない。別名未設定時や同名候補の区別方法は別途画面設計で具体化する。アクセント色だけを同名候補の識別根拠にしない。
+
 ## Context Switcherの取得・切り替え失敗
 
 - Community候補の初回取得に失敗しても現在のContextとPersonalへの移動手段を維持する。取得できないことをCommunity未参加と見なさず、候補領域で再試行できるようにする。
