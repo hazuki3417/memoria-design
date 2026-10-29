@@ -8,9 +8,9 @@
 
 ## PrototypeのライフサイクルとStory命名
 
-Prototypeは画面の探索・構築・Visual Reviewに用いる一時的な中間成果物です。開発途中の操作確認や表示検証は可能ですが、確定仕様を継続的に保証するInteraction / Integration / VRT等のテスト資産はFeatureまたはComponentが所有します。PrototypeのStory名には `Visual` / `Interaction` のような継続テストの用途を示す接頭辞を付けません。画面状態や表示条件を示す `Wide`、`Compact` 等の名称を使用します。
+Prototypeは画面の探索・構築・Visual Reviewに用いる一時的な中間成果物です。開発途中の操作確認や表示検証は可能ですが、確定仕様を継続的に保証するInteraction / Integration / VRT等のテスト資産はFeatureまたはComponentが所有します。PrototypeのStoryはWeb UI上で画面を確認する **`Default` 1件のみ** を原則とします。Prototype上では状態・Viewport・異常系などのStoryを網羅せず、継続的なInteraction / Integration / VRTのカバレッジはFeature / ComponentのStoryやテストが所有します。`Visual` / `Interaction` などの検証用途を示すStory名をPrototypeに作りません。
 
-製品実装への移行時は、Prototypeで確認した状態・操作・Fixture・Responsive Behaviorを棚卸しし、必要なStoryとテストをFeature / Component側へ引き継ぎます。移行後は不要なPrototype Storyと専用実装を整理します。既存のUI・操作を変えず、移行前後のVisual / Behavioral Regressionを確認します。
+製品実装への移行時は、Prototypeで確認した状態・操作・Fixture・Responsive Behaviorを棚卸しし、必要なStoryとテストをFeature / Component側へ引き継ぎます。移行後は不要なPrototype Storyと専用実装を整理します。Feature / Componentと同じModalをPrototype内で再実装せず、対応するFeatureのModal Componentを直接利用します。既存のUI・操作を変えず、移行前後のVisual / Behavioral Regressionを確認します。Story削除の前後で保証されなくなる契約がないか、Feature / Component側の既存テストと照合し、不足分は移管するまでIssueで管理します。
 
 ## 共通原則
 
