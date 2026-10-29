@@ -21,7 +21,7 @@ Prototypeは画面の探索・構築・Visual Reviewに用いる一時的な中�
 
 ## Storybook共通実行環境
 
-- StorybookのGlobal Decoratorは、ApplicationShellを使用しないStoryにもModalのPortal先 `#application-modal-root` を提供します。ApplicationShellを表示するStoryではShell自身がPortal先を所有し、同一IDを重複配置しません。
+- ModalはMantineの標準Portalを利用し、Storybook Global DecoratorやApplicationShellに専用Modal Portal rootを用意しません。Fullscreen Media Detailと上位の編集・確認Modalは、既存のFocus / Escape / 重なり順を検証します。
 - ApplicationShellを必要とするStoryはStorybookの`parameters.applicationShell: true`で明示的に選択します。すべてのStoryへ無条件にShellを適用しません。
 - Storybook共通のApplicationShell fixtureはDecorator側で一元管理し、StoryごとにContext一覧、Header、Navigation、Account MenuなどのShell構成を複製しません。
 - 画面固有の状態・表示・操作はStoryや対象Componentが所有します。ShellのContext切替と画面内容の連動が必要な場合は、単にShellを外すのではなく、そのContractを保つ接続方法を確認してから移行します。
