@@ -11,7 +11,7 @@
 ### ViewerとDialogの構成
 
 - Media DetailはMedia BrowserとGroup Browserの双方から開く共通のフルスクリーンDialogを基本とし、選択中Media、順序付きMedia Collection、Context（Personal / Community）を利用します。呼び出し元の選択中Group、検索条件、スクロール、Pane幅等はDetailの開閉によって初期化しません。
-- 画像を主領域に配置し、Mediaのアスペクト比を保ちながら利用可能な領域へ表示します。ViewerのHeader / Footer、Info Panel、各種編集DialogおよびModalの上下関係は既存Media Browserを回帰比較基準とします。ModalはApplication Shellの `application-modal-root` を使用します。
+- 画像を主領域に配置し、Mediaのアスペクト比を保ちながら利用可能な領域へ表示します。ViewerのHeader / Footer、Info Panel、各種編集DialogおよびModalの上下関係は既存Media Browserを回帰比較基準とします。Fullscreen ViewerはMantine標準Portalで描画し、Application Shell固有のPortal targetを要求しません。透過背景・FullscreenとNested Modalの重なり順はOverlay側の責務として保持します。
 - 選択Mediaの前後移動は利用元Collectionの順序に従い、前後に対象がない方向の操作を提供しません。取得済み範囲外へ移動する場合は[画面仕様](/screens/media-browser-detail)に定める追加取得に従います。移動時はViewportを初期化し、方向を示すtransitionを維持します。
 - Mediaの画像が表示できない場合もViewer全体が消えず、プレビュー失敗の代替表示と操作への到達性を維持します。縦長／横長、画像番号、Compactの配置差分は検証対象です。
 - Media Detailが閉じても呼び出し元に戻れます。削除確認など別のDialogはViewerの上に重ねて扱い、確認をキャンセルした場合はDetailを維持します。Dialogのタイトル、入力内容、Actionが閉じる途中で別の操作へ入れ替わる表示は許容しません。
@@ -88,6 +88,10 @@ Media Detail本体は標準Task Modalの`Body / Divider / Footer`構成に置き
 この合意は**Host / Layout分離という構造の採用**であり、DOM構造や新Component名・props形状・Breakpoint・Compact Panelの最大高さ・Skeletonの具体表示などを確定するものではない。これらは既存のVisual/Behavioral/Responsive contractに照らして詳細設計・検証する。
 
 既存の媒体取得・URL/History・Processing Polling設計は[Media Browser / Detail](/screens/media-browser-detail)、[Media Detailテスト設計](/system/web/media-detail-test-design)およびWebの`docs/media-detail-controller-design.md`（実装設計ブランチ）に従う。既存のMediaDetailViewer/Preview/InfoPanelを比較基準とし、Component化前後でWide / Medium / Compact、Panel開閉、画像の前後移動、Zoom/回転、Nested Modal、Loading/Error、Keyboard/Focus、内部スクロールの回帰を検証する。追加の仕様判断はユーザー合意後に正本へ反映する。
+
+### 標準Portal移行（2026-10-29 合意）
+
+Media Detail用の専用 `#application-modal-root` は廃止し、Mantineの標準Portalへ統一します。専用のrootなしでもFullscreenと透明背景はMantineが提供するModal props / stylesで表現できます。既存の閲覧レイアウト・情報Panel・開閉・Nested Overlay・Focus / Keyboardの契約は不変とし、VRTおよびInteractionによって検証します。固有のPortal targetを再導入する場合は必要な理由と検証結果を明示し、再合意します。
 
 ## 関連仕様・未決事項
 
