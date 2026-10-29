@@ -85,6 +85,10 @@ Actionは固定座標ではなく、Action対象との関係が理解できる�
 
 Navigation、Flow離脱、補助Action等で意味が異なる場合は必要に応じて別Groupとして空間的に分離します。これはPrimaryを画面右端へ固定する規則ではなく、Group自体のalignmentはTaskとContainerに応じて決定します。同じPattern内では順序を理由なく変更しません。
 
+### 標準Task ModalのFooter配置
+
+標準Task ModalのFooterでは、2つのActionをCancel（Secondary）→確定（PrimaryまたはPrimary + Danger）の順にEnd側へまとめます。FormとAction AreaのDivider有無、ヘッダー閉じるActionの非表示、Group編集のStart / Center / Endの3領域例外（Compactでも1行）は[Overlay / Temporary Surface](/design-system/patterns/overlay-temporary-surface)の「Memoria標準Modalの構成とFooter」を正本とします。
+
 ## Responsive Behavior
 
 Compact等でAction Groupを縦方向へStackする場合、Primary Actionを原則先頭、Secondaryをその後に配置します。Responsive後もHierarchy、主要Taskへの到達性、十分な操作対象を維持します。
