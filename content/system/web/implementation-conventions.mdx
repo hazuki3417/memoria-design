@@ -301,6 +301,8 @@ src/features/media-browser/
 
 Feature内部は、Frontendで役割や変更理由を理解しやすい**責務・機能のまとまり**を起点に配置します。独立したまとまりが複数ある場合は `profile/`、`preferences/` 等、その意味を示すdirectoryへ分割し、各まとまりに属するComponent・Hook・Pure Logic・Type・Story・Testを近接配置します。Domainの厳密な境界やURL・Screenの階層を機械的にdirectoryへ写すのではなく、実際に一緒に変更・検証する単位で判断します。一つの明確な責務に収まる小規模Featureではflat構成を許容します。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のcode種別だけによる分類を標準化しません。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。Feature内部の分割で別の独立した利用目的や複数Feature間の依存を隠さず、外部から再利用される責務が明確な場合は独立FeatureとPublic APIを検討します。
 
+Application Shellはアプリケーション全体のNavigationとContext切替を所有するFeatureとして `src/features/application-shell/` に配置します。Feature内に技術種別だけの `components/` directoryを設けず、`ApplicationShell/`、`ApplicationHeader/` 等の独立した責務ごとにFeature直下へ近接配置します。Productionの接続は実際に利用される `ApplicationShellContainer` が所有し、利用箇所のない別Composition実装を保守目的で重複させません。配置整理では既存のUI、状態、Interaction、Responsive BehaviorとStorybook / Prototypeのcontractを維持します。
+
 Feature rootの `index.ts` はArchitecture BoundaryとしてPublic APIを定義します。外部consumerはFeature rootからimportし、内部Fileへdeep importしません。Public APIは実際に必要なsymbolだけをexplicit exportし、`export *` で内部実装を公開しません。Feature内部では `index.ts` を経由せずrelative importを使用します。
 
 ```ts
