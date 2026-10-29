@@ -50,6 +50,18 @@ CloseとCancelがUserにとって同じ結果を意味する場合、複数の�
 
 明示的Cancel Actionが必要なDialogでは、同じ意味のclose Actionを機械的に追加しません。Cancelが不要な軽量Dialogではclose Actionを利用できます。
 
+### Memoria標準Modalの構成とFooter（2026-10-29 合意）
+
+標準的な作成・編集・共有・削除確認等のTask Modalでは、**Title / Content（必要ならForm） / Footerの操作領域**を一貫した構造で提示します。Media DetailのフルスクリーンViewerのような固有Interaction Surfaceは本節の機械的な適用対象外とし、固有のScreen Contractを優先します。
+
+- **ヘッダーの閉じる（×）Actionは一律表示しません。** 終了はFooterの「キャンセル」等の明示的Actionで提供します。Escape / backdrop click可否や操作中のDismiss制限は本PatternのDismiss Behaviorと対象Screen Contractに従い、×非表示だけを理由に一律変更しません。
+- **Formが存在する場合、Form ContentとFooterのAction Areaの間に視覚的なDividerを設けます。** Text input、Select、MultiSelect等の入力・選択操作を含みます。入力Formのない単純なConfirmation Modalでは原則Dividerを設けません。Form内部には不要な重複境界を追加しません。
+- **Footer Action Areaを統一します。** 標準的な2つのActionはCancel → Primary / Confirmの順で右端側にまとめます。Danger確認でも同じ配置関係を保ち、Danger semanticを明確にします。Button label、状態（disabled / loading）、操作結果、非同期時の制御は対象Taskに属し、統一Layoutのために削りません。
+- **Group編集の3 Actionは固有の採用例です。** Start=削除、Center=キャンセル、End=保存とし、Compact / Medium / Wideの全領域で**横1行の3領域配置**を維持します。Compactで文言を省略せず、Overlap・横Overflow・押下領域不足・中央配置の崩れがないことを検証します。物理的に成立しない場合は黙って別Layoutへ変更せず、再設計を合意します。
+- 一貫したDividerとFooterの領域・Spacingは共通UIによって提供し、Taskごとに独立したButton配置や重複したDividerを作りません。具体的なReact Compound APIとActionPanelのpropsは`memoria-web`の実装をSource of Truthとします。
+
+これらは**標準Task Modalに対する採用済み設計**です。以下の一般的なClose / Cancelの判断原則は、他のOverlay種別や固有のSurfaceについて引き続き有効です。Modal全体を一律に同じDismiss可否やFooter数へ強制するものではありません。
+
 ### Dialogのライフサイクルと状態保持
 
 Dialogの開閉では、Animation、Focus、Keyboard、Overlay、Responsive Behavior等の共通Interaction Contractを維持し、開閉方法の違いによる意図しない表示・操作の差異を生じさせません。Visual PrototypeとWeb本体にも同じContractを適用します。
