@@ -89,7 +89,7 @@ Storybookはテスト実行環境であると同時に、人が画面・部品�
 - **Storyの主目的**は `visual`（人間が表示・状態を目視確認）または `interaction`（操作・振る舞いを検証）の用途タグで識別する。各Storyの主目的を判断し、原則いずれかを選ぶ。`play`の存在だけで機械的に `interaction` と判定しない。表示状態を再現するために `play` を利用するVisual Storyもあり得る。
 - **ブラウザ上の視認性**のため、継続的な検証を所有するFeature / ComponentのStoryでは、Storyごとの `name` に `Visual · …` / `Interaction · …` の接頭辞を使用する。原則として既存の意味のあるStory名を残す。用途タグだけにサイドバー上の表示・グルーピング機能を期待しない。
 - **Storyの表示名にテストマトリクスのケースID（例: `UI-06`、`SS-02`）を含めない。** `name` は人が理解できる状態・操作・期待する振る舞いを簡潔に表す。仕様とのTraceabilityはStory定義付近のコメント、テスト設計・Coverage対応表などCanvas外の情報で保持し、表示名をケースID一覧の代わりにしない。
-- **Design Prototypesは例外**とし、Story名に `Visual` / `Interaction` の用途接頭辞を付けない。Prototypeは開発途中の中間成果物であり、継続テスト資産のownerではない。探索中の表示・操作確認は可能だが、継続的なInteraction / Integration / VRTの保証はFeature / Componentへ移行する。Prototypeからの移行時は既存の状態・操作・Responsive Contractを継承し、不要なPrototype Storyを整理する。
+- **Design Prototypesは例外**とし、Storyは原則として画面のVisual Reviewと設計検討に利用する **`Default` 1件のみ** とする。Prototype側で状態・エラー・Viewportごとの網羅Storyを維持せず、`Visual` / `Interaction` の用途接頭辞や継続的なVRT用タグを追加しない。継続的なInteraction / Integration / VRTの保証はFeature / Componentが所有する。同じModalをPrototypeとFeatureで重複撮影せず、PrototypeはFeatureのModalを再利用する。Prototypeを縮小する際は、従来の検証契約・Responsive・操作をFeature / ComponentのStory、Unit / E2E等に照合し、未移管の保証をIssueで管理する。
 - **VRT撮影対象**は主目的と独立した `vrt` タグで選択する。Visual Storyのすべてを自動撮影しない。Interaction Storyでも撮影価値と安定化条件を満たせば対象にできる。
 - 同一ファイル内のStory間で用途が混在する場合、用途タグはStory単位で指定する。Meta共通タグは対象Storyが同じ用途であることを確認できるときだけ使用し、誤継承を避ける。
 - Story IDや従来のリンクを将来も必ず不変に保つことは今回の要件としない。ただし `name` の変更によりStory ID、テスト参照、VRT Baselineに影響し得るため、実装時に参照先の更新・テスト影響を確認する。
