@@ -62,6 +62,33 @@ ViewerのWide / Medium / Compactでの操作Capabilityと表示領域の使い�
 
 UIのDraft、Viewerの選択、画像操作、情報Sectionの展開、共有・分類の実Mutationは独立した責務として整理できます。ただし、`detailValues`、`setDetail`、`onClose` 等の実装API名やHook所有関係をDesignの永続的なインターフェース仕様にはしません。React内部責務を分離する際も、上記の見た目、Action、状態、Responsiveを失わせないことが前提です。
 
+## Fullscreen Viewer HostとResponsive Layoutの責務分離（2026-10-29、A案合意）
+
+### 採用方針
+
+Media Detail本体は標準Task Modalの`Body / Divider / Footer`構成に置き換えず、画像閲覧を主目的とする**専用Fullscreen Viewer**を維持する。内部では**Fullscreen Viewer Host**（Overlayの表示・Portal・Focus・Dismiss）と**Responsive Layout**（PreviewとInfo Panelの配置・領域配分）を独立した責務として設計する。共通Modalのために既存の画像操作、情報、状態、表示領域、Layoutを簡略化しない。編集・共有・削除確認は共通Task ModalをViewerより上位に表示する。
+
+### ViewportごとのLayout Contract
+
+- **Wide / Medium**: Viewerを主領域とし、Info Panelは開いている場合に右側へ並べる。既存のPanel幅340px、開閉アニメーション0.3秒、境界線、画像のアスペクト比維持、Header / Footerの操作位置を回帰比較基準とする。Panelを閉じたときは画像領域が残り幅を利用できる。
+- **Compact**: Previewの下へInfo Panelを縦方向に展開する。画像閲覧・前後移動・終了・情報確認を維持し、Panelの内部スクロールと操作可能性を保つ。既存のBottom領域、開閉状態および詳細操作の優先順位を維持する。Panelの高さ制約・スクロール所有の詳細は実装前にViewportとlong contentで検証する。
+- すべてのサイズで選択Mediaの切替えによって**Fullscreen Hostを不必要に再生成しない**。URLで選択されたMedia Identityと、Preview/InfoPanelの個別表示状態を整合させる。Zoom・回転・前後移動アニメーションの既存仕様とFocus / Scroll Contractを維持する。
+
+### 非同期表示と操作の責務
+
+- **Controller**: URL / History、選択Media ID、ID順序Snapshot、詳細取得、署名URL、画像・Processing状態、PollingとRetryを所有する。Viewer HostやLayoutがGraphQL・Routerを直接操作する形にはしない。
+- **Viewer Host**: 一つのFullscreen Overlayに責任を持ち、Modal Portal、Focus、Escape / close、Overlay上への編集・確認Modalの重なり順を保証する。
+- **Responsive Layout**: PreviewとInfo Panelの位置・領域を決める。Mediaの取得成功/失敗等のビジネス状態を推測せず、Controller/Presenterから渡されたViewModelを各表示領域へ配置する。
+- **Preview**: 初回詳細取得中、Processing、画像読込中、表示可能、処理失敗、画像取得/Decode失敗、Polling停止、対象不在等を独立したPreview状態として描画する。画像取得失敗は手動再試行のみ。詳細未取得時に一覧サムネイルを「詳細画像の取得成功」と誤認させない。
+- **Info Panel**: 初回詳細取得中はSkeleton等で未確定情報を示し、PreviewがLoading中でも独立して取得済み情報を表示する。Group / Tag / Communityの「未設定」「未共有」は**0件が確定した場合のみ**使用し、Loading / ErrorをEmptyと混同しない。既存のMetadata / Groups / Tags / Community / Deleteの配置と個別の閲覧・編集Actionを保持する。
+- 前後移動時は選択IDに属するPreview/Infoの内容を一致させ、前のMediaの古い情報やErrorを次のMediaの情報として残さない。Previewだけの失敗で利用可能なInfo/編集Actionを不必要に失わせず、詳細の必須情報が失敗した場合は未確認のActionを有効化しない。
+
+### 未確定事項と実装Gate
+
+この合意は**Host / Layout分離という構造の採用**であり、DOM構造や新Component名・props形状・Breakpoint・Compact Panelの最大高さ・Skeletonの具体表示などを確定するものではない。これらは既存のVisual/Behavioral/Responsive contractに照らして詳細設計・検証する。
+
+既存の媒体取得・URL/History・Processing Polling設計は[Media Browser / Detail](/screens/media-browser-detail)、[Media Detailテスト設計](/system/web/media-detail-test-design)およびWebの`docs/media-detail-controller-design.md`（実装設計ブランチ）に従う。既存のMediaDetailViewer/Preview/InfoPanelを比較基準とし、Component化前後でWide / Medium / Compact、Panel開閉、画像の前後移動、Zoom/回転、Nested Modal、Loading/Error、Keyboard/Focus、内部スクロールの回帰を検証する。追加の仕様判断はユーザー合意後に正本へ反映する。
+
 ## 関連仕様・未決事項
 
 - [Media Browser / Detail画面仕様](/screens/media-browser-detail) — 表示対象、操作結果・状態、権限、Responsiveの保証と未決事項。
