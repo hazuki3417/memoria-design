@@ -120,6 +120,7 @@ VRTの目的は安定したStorybook表示の意図しないVisual / Layout / Re
 - テスト実行時間に硬い上限は設けず、実測して非現実的な場合に最適化を検討する。過剰な専用管理基盤や速度だけを目的とした複雑な構成を導入しない。
 - 撮影と比較にはPlaywright Testの標準Screenshot比較を基本利用する。費用を伴う外部Visual Testingサービスは採用せず、Vitest Browser ModeへVRTの責務を統合しない。
 - Baseline生成と通常比較を区別し、固定されたOS / Browser / Font等の同一環境を使い、Human Visual Reviewで意図した差分を確認・承認してからGitへ反映する。自動承認・自動mergeはしない。
+- 既存のBaseline PNG 120枚は元のGit Blobを維持して `tests/vrt/baselines/` に復元し、撮影名・共通撮影契約を継承する。通常比較120件のPassで再利用性を確認済み。候補生成も120件成功したが、Issueコメント起動Workflowがデフォルトブランチ上の旧Artifactパスを使ったため、候補PR生成フローは未完了。
 
 実装前にStorybook IndexからPlaywrightテスト収集前へ対象を受け渡す方法、ゼロ件・不正IDの検出、固定3幅の適用確認、グループ単位の選択実行、差分Artifact、Baseline安全更新、CI実行環境を設計し、少数のStoryでPoCする。既存構成は移行対象の参考情報であり、新構成の制約としない。
 
