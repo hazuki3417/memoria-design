@@ -275,7 +275,7 @@ Compact / Medium / Wideは、**設計・Visual Review・テストにおいて表
 
 **Breakpointの決定方法**として、全Screenのレイアウト成立幅を先に数値で定義することは要求しません。Mantine標準Breakpointを基準に共通分類を検討し、各画面のStorybookでCompact / Medium / Wideの表示・操作を実際にReviewして段階的に最適化します。共通する不都合が明らかになれば分類の境界自体も再評価します。既存実装の境界や3領域の幅が均等になることは採用理由としません。
 
-現時点ではMantine標準の **sm / xl**（Compact: 768px未満、Medium: 768px以上1408px未満、Wide: 1408px以上）を**第一候補として検討中であり、境界値は未確定**です。候補を採用済みの製品仕様として扱わず、最終決定は別途行います。実装・検証計画は [memoria-web Issue #58](https://github.com/hazuki3417/memoria-web/issues/58) で管理します。
+**2026-10-29 正式採用**: Memoriaの共通Viewport分類は、Mantine標準Breakpointの **sm / xl** を境界値とし、**Compact: 768px未満、Medium: 768px以上1408px未満、Wide: 1408px以上**とします。この値は設計・Visual Review・テストで使用する共通分類であり、各Screen / Componentのレイアウト切替点を一律に強制しません。利用可能な領域やContentの必要幅に応じたCSSの連続的な適応・個別の構造的切替えは引き続き許容します。共通分類を変更する場合は影響を確認し別途合意します。実装・検証計画は [memoria-web Issue #58](https://github.com/hazuki3417/memoria-web/issues/58) で管理します。
 
 Responsiveの検証は、代表的な3領域のVisual Reviewに加え、必要な境界値とInteractionの確認を組み合わせます。VRT / Interaction Test / E2EとHuman Visual Reviewの責務を区別し、すべてのStoryに機械的に同じ幅のテストを課さず、Visual Regression Baselineを人間のReviewなしに更新しません。
 
