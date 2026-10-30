@@ -115,6 +115,7 @@ VRTの目的は安定したStorybook表示の意図しないVisual / Layout / Re
 - 対象は `Components` / `Features` を基本分類とし、機能・責務ごとにグルーピングする。対象増加時は理解しやすい責務境界で下位分類を設ける。分類目的だけでComponentやStoryファイルを分割しない。
 - 分類は既存Storybook Meta `title`、Story ID等のメタデータからの自動導出を第一候補とする。例外の明示管理は必要な場合だけ検討する。安定した判定キーや例外仕様はPoC後に決定する。
 - グループは対象選択と結果整理の単位であり、単一の巨大なPlaywrightテストとして実行しない。**Story × 必要なViewportを独立したPlaywright Testとして登録**し、失敗位置と診断情報を明示できるようにする。
+- **単一の静的Spec**のトップレベルでStorybook Indexの準備を待って対象Storyを取得し、Story × Viewportの各 `test()` を登録する。専用RunnerによるSpec動的生成は行わない。
 - **すべての `vrt` 対象StoryをCompact / Medium / Wideの固定3幅で撮影する**（2026-10-30更新合意）。StoryごとのViewport選択機能は導入しない。選択基準の策定・保守による複雑化を避ける。
 - テスト実行時間に硬い上限は設けず、実測して非現実的な場合に最適化を検討する。過剰な専用管理基盤や速度だけを目的とした複雑な構成を導入しない。
 - 撮影と比較にはPlaywright Testの標準Screenshot比較を基本利用する。費用を伴う外部Visual Testingサービスは採用せず、Vitest Browser ModeへVRTの責務を統合しない。
