@@ -239,17 +239,17 @@ Feature数の多さ自体をArchitecture問題とはみなしません。探索�
 
 ### Componentの責務境界と実装・Story・Testの配置
 
-Componentを作成・分割するかどうかは、独立した表示・操作、状態の所有、変更理由、再利用する意味的な契約、検証価値をもとに判断します。**Componentを作成したという理由だけで、同名Directory・Story・Testを一式必須としません。** 初期PrototypeのComponent構成は仮の実装境界であり、Visual Reviewとテスト設計の結果を踏まえて責務を見直せます。
+Componentを作成・分割するかどうかは、独立した表示・操作、状態の所有、変更理由、再利用する意味的な契約、検証価値をもとに判断します。**各export対象React Componentは専用の同名Directoryを必須とします。** Story・Testは検証価値に応じて追加し、Componentの作成と一対一の必須セットにはしません。 初期PrototypeのComponent構成は仮の実装境界であり、Visual Reviewとテスト設計の結果を踏まえて責務を見直せます。
 
 画面の意味・振る舞い・採用した具体的なUI/UX設計判断と理由は `memoria-design` のScreen Specification、必要な画面固有の関連Design、Design Systemを正本とします。**Storybookの画面／Component設計MDX（`*.design.mdx` 等）は新規作成しません。** 設計書をComponent実装のDirectoryへ複製せず、必要な場合は実装・Storyから正本を参照します。
 
-- **Componentの実装**: `<ComponentName>.tsx` を実際の責務のowner付近に配置します。小規模・privateでownerから独立しないComponentは、そのownerのファイルまたはFeature内に置けます。独立したComponent群やPublic APIが必要な場合に限り、`<ComponentName>/` Directoryでまとめることを選べます。
+- **Componentの実装**: exportするReact Componentは、責務のowner付近に `<ComponentName>/<ComponentName>.tsx` の専用Directoryを設け、同Directoryの `index.ts` から明示的に公開します。Feature内部だけで利用するexport Componentにも適用します。exportしない小規模なprivate Componentは親Componentと同じファイルに置けます。Story・Testは必要な場合のみ同Directoryへ近接配置します。既存実装は変更対象から段階的に移行し、無関係なComponentの一括移動は要求しません。
 - **Container / 接続CompositionのStory**: アプリケーションのロジック・状態・Router・GraphQL等の外部依存を組み立ててUIへ接続するContainer Componentは、Storyを作成しません。Storyを成立させるためのRouter/API依存注入やProduction API追加は行わず、接続の正しさと主要なユーザーフローはIntegration / E2Eで検証します。Containerが利用する独立したUI Componentの表示・操作はそれぞれStorybook / Interaction / VRTで、Pure Logic・HookはUnit / Hook Testで検証します。この原則はApplication Shellに限定しません。
 - **Story**: UIの重要な表示状態・操作・Responsiveを独立して確認する価値がある境界へ `<ComponentName>.stories.tsx` 等を近接配置します。共通UI ComponentのStory同時整備に関する方針は[Frontend UI設計・開発方針](/system/frontend-ui-development#ui-quality-gate)に従います。すべてのComponentに1対1のStoryを強制せず、画面単位のStoryや複数Componentを構成したStoryも利用できます。
 - **Test**: [Frontendテスト戦略](/system/web/frontend-testing)と対象のテスト設計に従い、Unit / Component / Integration / E2E、VRT / Accessibility等から必要な検証を選びます。対象LogicのTestはowner付近へ配置し、画面横断のE2E等は対象環境の実行単位に従います。Component単位のTestファイルやStoryとの1対1対応を要求しません。
 - **Hook / Pure Logic / Type**: 独立した責務・変更理由のあるものだけ分離し、適切なownerの近くへ配置します。StorybookやTestだけのためにProductionの公開API・専用Layerを増やしません。
 
-Component Directoryを選択した場合でも、それ自体はPublic API公開を意味しません。公開する境界では `index.ts` により明示的なexportを管理します。既存のComponent Directoryやexportを、設計MDX廃止だけを理由に移動・変更しません。
+Component Directoryを設けても、それ自体はFeature外へのPublic API公開を意味しません。公開する境界では `index.ts` により明示的なexportを管理します。既存のComponent Directoryやexportを、設計MDX廃止だけを理由に移動・変更しません。
 
 ### Custom Hookのファイル責務と再export
 
@@ -267,11 +267,11 @@ UI Libraryが要求する型との整合性は判断材料ですが、Libraryの
 
 ### Component DirectoryのPublic APIと型の配置
 
-Component Directoryには原則として`index.ts`を配置し、外部に公開するComponent・Props・関連型だけを**explicit named export**します。`index.ts`はそのComponentの公開入口であり、Directory内のすべてのsymbolを公開するものではありません。Component間で利用する場合は所有Componentの`index.ts`からimportし、`ComponentName/ComponentName`のような実装ファイルへのdeep importを避けます。Feature外部からのimportは引き続きFeature rootの`index.ts`を経由し、Component Directoryの入口をFeatureのPublic API境界の代替としません。
+Component Directoryには必ず`index.ts`を配置し、外部に公開するComponent・Props・関連型だけを**explicit named export**します。`index.ts`はそのComponentの公開入口であり、Directory内のすべてのsymbolを公開するものではありません。Component間で利用する場合は所有Componentの`index.ts`からimportし、`ComponentName/ComponentName`のような実装ファイルへのdeep importを避けます。Feature外部からのimportは引き続きFeature rootの`index.ts`を経由し、Component Directoryの入口をFeatureのPublic API境界の代替としません。
 
 型は利用者数やファイル名ではなく**責務の所有者**に配置します。Propsと小規模なComponent固有型は通常`ComponentName.tsx`に定義し、実装と分離する実質的な必要がある場合のみ同Directoryの`types.ts`へ移します。`types.ts`は必須ファイルではありません。どちらに定義しても外部consumerは`index.ts`から公開型をimportします。Feature全体の契約はFeature owner、複数Featureにまたがる契約は適切な上位の所有境界で定義し、単に共有されるという理由でComponentの型を上位へ移動しません。
 
-独立したComponent Directoryを選択する場合の例です。StoryとTestは検証上必要な場合に追加し、設計MDXは作成しません。
+Component Directoryの標準構成例です。StoryとTestは検証上必要な場合に追加し、設計MDXは作成しません。
 
 ```text
 ApplicationNavigationContent/
@@ -295,13 +295,15 @@ import type { ApplicationNavigationItem } from "../ApplicationNavigationContent"
 
 Storybookの分類名（`title`）はComponent名や責務が分かる識別子を基本とし、利用者向けの日本語の操作文言（例：「Communityへ共有」「Groups編集」）をComponentの代替名にしません。Story名は実際に表示される意味のあるパターンを表し、Dialog / Modalでは単に`Opened`と`Closed`を列挙せず、表示されたDialogの内容・Context・状態の差異をStoryにします。閉じた状態は、閉じる動作そのものが検証対象である場合にInteraction Test等で確認します。
 
-例えば `src/features/media-browser/` では、小さな非公開ComponentをFeature直下へ配置することも、独立した責務のMediaTileをDirectoryへ分けることもできます。
+例えば `src/features/media-browser/` では、exportしない小さなprivate Componentはownerのファイル内に置けますが、export ComponentはMediaTileと同様に専用Directoryへ配置します。
 
 ```text
 src/features/media-browser/
 ├── index.ts
-├── MediaBrowser.tsx
-├── MediaBrowser.stories.tsx
+├── MediaBrowser/
+│   ├── index.ts
+│   ├── MediaBrowser.tsx
+│   └── MediaBrowser.stories.tsx
 ├── filterMedia.ts
 ├── filterMedia.test.ts
 └── MediaTile/
