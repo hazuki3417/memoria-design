@@ -243,11 +243,11 @@ Feature数の多さ自体をArchitecture問題とはみなしません。探索�
 
 ### Componentの責務境界と実装・Story・Testの配置
 
-Componentを作成・分割するかどうかは、独立した表示・操作、状態の所有、変更理由、再利用する意味的な契約、検証価値をもとに判断します。**各export対象React Componentは専用の同名Directoryを必須とします。** Story・Testは検証価値に応じて追加し、Componentの作成と一対一の必須セットにはしません。 初期PrototypeのComponent構成は仮の実装境界であり、Visual Reviewとテスト設計の結果を踏まえて責務を見直せます。
+Componentを作成・分割するかどうかは、独立した表示・操作、状態の所有、変更理由、再利用する意味的な契約、検証価値をもとに判断します。**名前を持つReact Componentは公開・非公開を問わず専用の同名Directoryを必須とします。** Story・Testは検証価値に応じて追加し、Componentの作成と一対一の必須セットにはしません。 初期PrototypeのComponent構成は仮の実装境界であり、Visual Reviewとテスト設計の結果を踏まえて責務を見直せます。
 
 画面の意味・振る舞い・採用した具体的なUI/UX設計判断と理由は `memoria-design` のScreen Specification、必要な画面固有の関連Design、Design Systemを正本とします。**Storybookの画面／Component設計MDX（`*.design.mdx` 等）は新規作成しません。** 設計書をComponent実装のDirectoryへ複製せず、必要な場合は実装・Storyから正本を参照します。
 
-- **Componentの実装**: exportするReact Componentは、責務のowner付近に `<ComponentName>/<ComponentName>.tsx` の専用Directoryを設け、同Directoryの `index.ts` から明示的に公開します。Feature内部だけで利用するexport Componentにも適用します。exportしない小規模なprivate Componentは親Componentと同じファイルに置けます。Story・Testは必要な場合のみ同Directoryへ近接配置します。既存実装は変更対象から段階的に移行し、無関係なComponentの一括移動は要求しません。
+- **Componentの実装**: React Componentは、exportの有無や利用者数にかかわらず、責務のowner付近に `<ComponentName>/<ComponentName>.tsx` の専用Directoryを設けます。Component Directoryには `index.ts` を必ず配置し、必要なsymbolだけを明示的にexportします。非公開のComponentはFeatureのPublic APIに含めません。Story・Testは必要な場合のみ同Directoryへ近接配置します。既存実装は変更対象から段階的に移行し、無関係なComponentの一括移動は要求しません。
 - **Container / 接続CompositionのStory**: アプリケーションのロジック・状態・Router・GraphQL等の外部依存を組み立ててUIへ接続するContainer Componentは、Storyを作成しません。Storyを成立させるためのRouter/API依存注入やProduction API追加は行わず、接続の正しさと主要なユーザーフローはIntegration / E2Eで検証します。Containerが利用する独立したUI Componentの表示・操作はそれぞれStorybook / Interaction / VRTで、Pure Logic・HookはUnit / Hook Testで検証します。この原則はApplication Shellに限定しません。
 - **Story**: UIの重要な表示状態・操作・Responsiveを独立して確認する価値がある境界へ `<ComponentName>.stories.tsx` 等を近接配置します。共通UI ComponentのStory同時整備に関する方針は[Frontend UI設計・開発方針](/system/frontend-ui-development#ui-quality-gate)に従います。すべてのComponentに1対1のStoryを強制せず、画面単位のStoryや複数Componentを構成したStoryも利用できます。
 - **Test**: [Frontendテスト戦略](/system/web/frontend-testing)と対象のテスト設計に従い、Unit / Component / Integration / E2E、VRT / Accessibility等から必要な検証を選びます。対象LogicのTestはowner付近へ配置し、画面横断のE2E等は対象環境の実行単位に従います。Component単位のTestファイルやStoryとの1対1対応を要求しません。
@@ -299,7 +299,7 @@ import type { ApplicationNavigationItem } from "../ApplicationNavigationContent"
 
 Storybookの分類名（`title`）はComponent名や責務が分かる識別子を基本とし、利用者向けの日本語の操作文言（例：「Communityへ共有」「Groups編集」）をComponentの代替名にしません。Story名は実際に表示される意味のあるパターンを表し、Dialog / Modalでは単に`Opened`と`Closed`を列挙せず、表示されたDialogの内容・Context・状態の差異をStoryにします。閉じた状態は、閉じる動作そのものが検証対象である場合にInteraction Test等で確認します。
 
-例えば `src/features/media-browser/` では、exportしない小さなprivate Componentはownerのファイル内に置けますが、export ComponentはMediaTileと同様に専用Directoryへ配置します。
+例えば `src/features/media-browser/` では、Componentを公開・非公開にかかわらず専用Directoryへ配置します。
 
 ```text
 src/features/media-browser/
@@ -316,7 +316,7 @@ src/features/media-browser/
     └── MediaTile.stories.tsx  # 必要な場合
 ```
 
-Feature内部は、Frontendで役割や変更理由を理解しやすい**責務・機能のまとまり**を起点に配置します。独立したまとまりが複数ある場合は `profile/`、`preferences/` 等、その意味を示すdirectoryへ分割し、各まとまりに属するComponent・Hook・Pure Logic・Type・Story・Testを近接配置します。Domainの厳密な境界やURL・Screenの階層を機械的にdirectoryへ写すのではなく、実際に一緒に変更・検証する単位で判断します。一つの明確な責務に収まる小規模Featureではflat構成を許容します。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のcode種別だけによる分類を標準化しません。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。Feature内部の分割で別の独立した利用目的や複数Feature間の依存を隠さず、外部から再利用される責務が明確な場合は独立FeatureとPublic APIを検討します。
+Feature内部は、Frontendで役割や変更理由を理解しやすい**責務・機能のまとまり**を起点に配置します。独立したまとまりが複数ある場合は `profile/`、`preferences/` 等、その意味を示すdirectoryへ分割し、各まとまりに属するComponent・Hook・Pure Logic・Type・Story・Testを近接配置します。Domainの厳密な境界やURL・Screenの階層を機械的にdirectoryへ写すのではなく、実際に一緒に変更・検証する単位で判断します。一つの明確な責務に収まる小規模Featureではflat構成を許容します。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のcode種別だけによる分類を標準化しません。Props、型、定数、Pure LogicはownerのFileへ置いて構いませんが、React Componentは専用Directoryへ配置します。Feature内部の分割で別の独立した利用目的や複数Feature間の依存を隠さず、外部から再利用される責務が明確な場合は独立FeatureとPublic APIを検討します。
 
 Application Shellはアプリケーション全体のNavigationとContext切替を所有するFeatureとして `src/features/application-shell/` に配置します。Feature内に技術種別だけの `components/` directoryを設けず、`ApplicationShell/`、`ApplicationHeader/` 等の独立した責務ごとにFeature直下へ近接配置します。Productionの接続は実際に利用される `ApplicationShellContainer` が所有し、利用箇所のない別Composition実装を保守目的で重複させません。配置整理では既存のUI、状態、Interaction、Responsive BehaviorとStorybook / Prototypeのcontractを維持します。
 
