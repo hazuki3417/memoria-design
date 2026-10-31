@@ -84,7 +84,7 @@ export function ActionButton({ label, ...buttonProps }: ActionButtonProps) {
 ### ExportするComponentのファイル境界
 
 - **必須**: 1つの実装ファイルからexportするReact Componentは原則1つとし、ファイル名はそのComponent名に対応させる（1ファイル1export Component）。Feature内部だけで利用するnamed exportも対象とする。
-- **許容**: exportしない小規模なprivate Componentは、責務を共有する親Componentと同じファイルに置いてよい。独立した変更・検証の境界が成立する場合は分離を検討する。
+- **配置**: exportしないprivate Componentにも専用Directoryを設ける。再利用の有無、Componentの行数、Story・Testの有無を例外理由としない。
 - **対象外**: Props・Type・定数・Pure Functionのexportや、公開入口である`index.ts`の複数re-exportはこのComponent数の制約に含めない。FrameworkやLibraryの明示的な制約がある場合は理由を確認して例外を判断する。
 - **目的と検証**: export Componentの責務・参照先・ファイル名を1対1で発見できるようにする。変更対象のexport宣言とimportを確認し、分割時はvisual / behavioral / responsive contractを維持する。既存の無関係なコードを一括変更しない。
 
@@ -253,7 +253,7 @@ Componentを作成・分割するかどうかは、独立した表示・操作�
 - **Test**: [Frontendテスト戦略](/system/web/frontend-testing)と対象のテスト設計に従い、Unit / Component / Integration / E2E、VRT / Accessibility等から必要な検証を選びます。対象LogicのTestはowner付近へ配置し、画面横断のE2E等は対象環境の実行単位に従います。Component単位のTestファイルやStoryとの1対1対応を要求しません。
 - **Hook / Pure Logic / Type**: 独立した責務・変更理由のあるものだけ分離し、適切なownerの近くへ配置します。StorybookやTestだけのためにProductionの公開API・専用Layerを増やしません。
 
-Component Directoryを設けても、それ自体はFeature外へのPublic API公開を意味しません。公開する境界では `index.ts` により明示的なexportを管理します。既存のComponent Directoryやexportを、設計MDX廃止だけを理由に移動・変更しません。
+Component Directoryを設けても、それ自体はFeature外へのPublic API公開を意味しません。公開する境界では `index.ts` により明示的なexportを管理します。既存のComponent Directoryやexportを、設計MDX廃止だけを理由に移動・変更しません。新しいDirectory規約への既存実装の移行は対象Featureから段階的に行い、動作・表示を維持します。
 
 ### Custom Hookのファイル責務と再export
 
