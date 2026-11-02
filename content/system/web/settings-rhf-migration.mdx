@@ -424,6 +424,20 @@ GraphQLの正本`content/system/api/graphql.mdx`「Settings Mutationの型付き
 
 **判断待ち**：共通Failure型の境界、Violation Enumの粒度、同時更新のRevision / Precondition、Unknown Outcomeの再送・照会契約、API/Web移行方式。これらはWebの単独実装で補完しない。
 
+## 2026-11-02 合意：API I/F直接改修とWeb移行
+
+APIのError ContractをHybrid Modelへ更新する際、**互換用の新Mutation / Queryは定義しない**。現行I/Fを直接改修し、FrontendのGraphQL Operation / Fragment / Codegen / Application Adapter / Form Consumerを新しいResult契約へ追従させる。
+
+- 既存`updateUserProfile`、`updateUserPreferences`、`updateCommunitySettings`は同じMutation FieldのResult型を直接変更する。`renameCommunity`と既存API設計正本の`updateCommunity`の名称衝突は、並列公開せず単一Fieldの置換を基本候補として扱い、Operation名の最終判断を実装前に確認する。
+- 現在の接続層で行っている失敗Notificationの発火は、新Resultへ更新する際にForm Ownerへ移管する。成功値のみ保存基準へ反映し、Field Validationは`InputViolation.inputPath`をRHF FieldへMappingする。
+- 既存のQueryは原則変更しない。GraphQL Execution Error・認証/認可・部分Dataの取り扱いを統一する必要がある場合、既存QueryのConsumerを改修する。Error処理を目的とする新Queryは作らない。
+- APIとWebを整合した変更単位で移行する。Backend Schema変更だけを先に配備して既存Web Consumerを壊さない。旧I/Fと新I/Fを並列提供するcompatibility期間は設けない。Deploy / Releaseは別途承認を必要とする。
+- 適用対象はSettingsに限定しない。Media、Group、Tag、Community Membership、削除、Bulk等の現在のError表現をAuditし、各Operationの実際の業務Failureだけを型付きResultにする。UI/UX、既存ConsumerのCapability、Partial Successの意味を消さない。
+
+共通Validation型は同じ意味の`InputViolation`と`InputValidationFailure`のみ共有し、Fieldに帰属しないErrorを根拠なく単一Fieldへ付与しない。Validation Codeは安定した汎用カテゴリのGraphQL Enumを採用し、個別DomainのReasonは必要なOperationで別に定義する。Enumの候補値とCross-field/Form-level Pathの表現はAPIのDomain監査後に確定する。
+
+**未確定**：Operation名（特にCommunity名変更）の最終整合、Violation Codeの具体値、Cross-field表現、同時編集Precondition、Unknown Outcome回復、自動保存UX。これらの未合意事項はWeb側で補完しない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
