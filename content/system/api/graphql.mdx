@@ -516,6 +516,80 @@ Keyだけで別端末のLost Updateを防ぐことはできず、Revisionだけ�
 4. Unknown Outcome時、再取得後に自動再送するか、ユーザーによる確認後に再送するか。
 5. Community名のOperation名を既存設計の`updateCommunity`に統一するか（旧`renameCommunity`との並存は禁止）。
 
+### Personal Preferences / Community Accentの並行更新・自動保存UX設計（2026-11-02、実装判断待ち）
+
+Hybrid Error Model、既存Query / Mutationの直接改修方針、および前節のCross-field / OCC / Unknown Outcome案を、2種類の自動保存へ具体化した設計案。**ここでのRevision選択・競合回復・色のRollbackはまだ個別合意前であり、実行可能SDL / Repositoryは未変更**。
+
+#### 実装上の確認事項
+
+- 現行`memoria-api`の`updateUserPreferences`は指定Fieldのみ更新し確定した`UserPreferences`を返す。User Preferencesの公開モデルにRevisionはない。`User × Community Settings`もAccentとAliasを一つの設定行で管理し、`updateCommunitySettings`は指定FieldだけをUPDATEし両Fieldの確定値を返す。こちらもRevisionはない。
+- 現行WebのPreferences Queueは400ms Debounce、Patch結合、直列実行、失敗Patchの復帰を行うが、`onSaved`は送信Snapshotを受け取らず、RHFの確定済みField / Dirtyの解消も保証しない。
+- 現行Community Accentは選択直後にApollo Cacheへプレビューを反映し、失敗時に保存済み色へ戻す。Aliasは同じ`updateCommunitySettings`を独立に送信するため、2操作を同時に処理した場合の同一Aggregate Revision/Cacheの整合を設計する必要がある。
+
+#### 推奨する整合性モデル
+
+**第一候補：Aggregate Revision + Field-aware 3-way Merge + Atomic CAS**。
+
+- `UserPreferences.revision`と`CommunitySettings.revision`を既存Queryで参照できる形に追加し、対応する既存Mutation Inputへ`expectedRevision: String!`を付与する案を採る。GraphQL上はOpaque String。Community Settingsは**User × Community**単位であり、Community本体のRevisionと混同しない。
+- BackendはTransaction内で同一Aggregateの現在Revisionと期待Revisionを比較し、一致時のみPatchをatomicに確定させて確定値＋新Revisionを返す。不一致なら書き込まず型付き`StateConflictFailure`を返す。認証／権限／存在秘匿はExecution Errorを維持する。
+- Webは`base`（送信Snapshotを構築した時点の確定値）、`desired`（最新のユーザー意図）、`serverCurrent`（再取得した確定値）をField単位で比較する。同Fieldが他Clientによって変更されたかは`serverCurrent[field] !== base[field]`で判定する（正規化済み値）。別Fieldのみ変更されている場合は現在Revisionを使った**必要FieldだけのPatch**を自動再構成できる。
+- 同じFieldが他Clientで変更され、なお`desired[field] !== serverCurrent[field]`なら**真の競合**としてQueueを停止し、ユーザーの選択を保ったまま現在値との比較・採用操作を提供する。同じ確定値へ収束している場合は、現在値として受理できるが「どの要求で書き込まれたか」を断定しない。
+- 同じAggregate内のAliasとAccentも共有Revisionで直列化する。別Fieldへの変更を安全に再適用するときも、参照したRevisionでCASを行う。競合再試行は無制限に繰り返さず、さらに競合すれば手動判断へ移す。
+- **制約と代替案**：Aggregate Revisionは別Field編集でもConflictが発生し、追加Refetchが必要。Field単位Revisionは競合頻度を下げるがSchema/DB/Codegenを複雑化する。採用前にField数・競合頻度・既存のUIと照合する。Revision導入の必要性と粒度は明示合意を得る。
+
+#### PreferencesのQueue契約
+
+`confirmed`、`editing draft`、`pending patch`、`in-flight snapshot`、`save status`を区別し、RHFは表示用Draftの唯一のOwner、Queueは通信順序・結果のOwnerとする。別のRHF Formを「保存済み値」管理に導入しない。
+
+1. 有効な入力変更のみPatch化し、400ms DebounceでPendingへ結合する。未完成HEX入力は表示用Draftとして保持し、完全なHEXになるまで送信しない。
+2. FlushではPatch・Base Revision・送信前確定値をSnapshotとして固定。in-flight中の追加編集は次Pendingへ蓄積し、古い応答で上書きしない。
+3. Successでは**送信したFieldと確定レスポンス**を照合し、Confirmed BaselineとRevisionを進める。Fieldが送信後に再編集されていなければRHFの未保存・Dirtyを解消する。再編集されていればRHF Draftを保持し、次のPatchを処理する。レスポンスの全Fieldを無条件`reset`しない。
+4. Conflictでは新規送信を止めて既存QueryをRefetchし、3-way Mergeを行う。別Fieldへの安全な変更だけ再送、同Field競合はユーザーの確認があるまで送らない。新しい入力と元の入力内容を破棄しない。
+5. Operationが拒否されたことが確定したValidationは、該当Field / Formに持続表示する。Unknown Outcomeは送信済みPatchの状態を`unconfirmed`に保持し、再取得の結果に応じて復旧。単純な通信Errorを確実な未保存に変換しない。
+6. Unmount時は、単に`flush()`を呼ぶだけで保存結果の管理責務を失わないよう、Pending / in-flightの寿命とナビゲーション境界を定義する。画面外継続が必要ならQueue Ownerを画面Componentより長命な場所に配置し、結果未確定の状態も観測可能とする。
+
+#### Community Accentの表示・Rollback案
+
+**推奨：共有の確定状態と一時プレビューを分離し、失敗時もユーザーが選択した色のDraftは保持する。**
+
+- `confirmedAccent`：Backendで保存確定した色。Apolloの共有Server Stateに反映する。
+- `previewAccent`：ユーザーの最新選択（未確定）。画面やContextの見た目へ即時反映できるが、Apolloの確定済みServer値と同一視しない。Preview Ownerが生存中の一時的Overlayとして管理する。
+- `accentDraft`：ColorInputに入力中の文字列。不完全HEXは保持し、Mutationへ送らず、プレビューの変更も有効な値のときだけ行う。
+- **Confirmed Success**：Backendが確定した色＋RevisionをBaselineに反映。より新しい選択がなければOverlayを解除。Aliasの確定状態を上書きしない。
+- **Validation / 明確な保存失敗**：共有表示のAccentを最後に確定した色へ戻す一方、ColorInputの**最後の選択値を保持**し、Form近傍に理由・再試行／変更破棄を表示する。ユーザー意図を丸ごと消さない。
+- **Unknown Outcome**：Overlayを確定値として扱わない。共有表示は直近の確定色へ戻す案を基本とし、選択Draftは`保存結果を確認できません`とともに保持、既存Queryで現在値を確認する。自動で同じMutationを再送しない。
+- **Conflict**：別端末の確定色とユーザーの選択を並べ、現在色を採用／自分の色で更新（新Revision CAS）の明示操作を提供する候補。Aliasが同時に変更された場合は、その確定Aliasを維持してAccentだけをPatchする。
+- Communityの切替後に旧CommunityのOverlay・in-flight結果が新Communityへ漏れないことを保証する。Shellへの見た目反映を行う場合はOverlayの所有範囲・終了条件を設計する。
+
+#### 自動保存StatusのUX案
+
+| Condition | Presentation | 備考 |
+| --- | --- | --- |
+| 入力中・Pending | 控えめな「保存待ち」 | 絶えず表示切替して騒がしくしない |
+| In-flight | 控えめな「保存中」 | 複数Patchをまとめて表示 |
+| PendingもIn-flightもないConfirmed | 「保存済み」を一時表示後、必要なら非表示 | 最後の成功が確定している場合のみ |
+| Retryable / Validation | 消えないForm AlertまたはField Error | ユーザーの修正／再試行が必要 |
+| Unknown Outcome | 消えないForm Alert：「保存結果を確認できませんでした」 | 状態確認を先に促す |
+| Conflict | Form Alert + 比較・選択導線 | 一律のToastで済ませない |
+
+Statusはフォーム単位とし、すべてのSetting Rowに常時ラベルを置かない。スクリーンリーダーへの保存中/保存済み通知は重複読み上げを抑え、エラーでは`role="alert"`等を適切に使い、Focusを不必要に奪わない。表示位置・一時保持時間・Compact / Medium / WideはStoryで確定する。
+
+#### API / Webのテスト条件
+
+- Atomic CAS：同Revisionでの2Client更新では1つが確定、他方がConflict。異なるFieldの変更ではRefetch後の再適用が安全であること。
+- AccentとAlias：同じUser × Community Settings Revisionを共有し、片方の更新結果で他方を巻き戻さない。Alias解除`null`とHEXの正規化もテストする。
+- Queue：Debounce、in-flight追加変更、送信SnapshotごとのSuccess、Dirty解消、Conflict停止、RefetchとField Merge、Unknown Outcomeでの送信停止。
+- UI：未完成HEXを維持、プレビューと確定色を区別、失敗後に選択Draftを保持、Statusが誤って「保存済み」にならない、Context切替で旧状態を混入させない。
+- Refetch ErrorはMutation Successと別に扱い、GraphQL Result UnionとExecution / Transport Errorを混同しない。
+
+#### 合意が必要な選択肢
+
+1. Aggregate Revision + Field-aware 3-way Mergeを両Settingsに採用するか。特に別Field競合時の自動再適用を許容するか。
+2. Community Accentで**共有確定色へ見た目を戻しつつ、ColorInputのユーザー選択Draftを保持する**UXを採用するか。Preview OverlayのShell適用範囲も確認する。
+3. Statusの「保存待ち／保存中／保存済み」の配置・保持時間と、Conflict解決UIの詳細。
+4. Unknown OutcomeでのRefetch後の自動再送可否、画面離脱中のQueue寿命と失敗通知方法。
+5. CAS用Revisionが増える条件（実質同値Patchを含むか）、Conflict再試行回数、同時更新の負荷・UIコスト。
+
 ### 複数GraphQL Field ErrorのWeb表示
 
 GraphQLは`data`と`errors`が同時に返る場合があるため、Operation全体のエラーを1件に潰して判断しない。
