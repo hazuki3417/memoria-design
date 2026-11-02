@@ -847,6 +847,16 @@ type PageHeaderProps = {
 3. **UI-Timing**：Savingの300ms表示遅延、Savedの2秒表示、長時間Savingの2秒後読み上げを採用するか（Storyで調整できるPresentation設定）。
 4. **適用範囲**：自動／明示保存に共通Feedbackを使うが、Header Status表示は利用Consumerが選び、既存手動保存のボタンLoading・成功Notificationを維持する（原則は既に合意）。
 
+## 2026-11-02 共通Save Feedback Presentationの実装着手
+
+- **実装Branch**：`memoria-web/feat/save-feedback-presentation`（`refactor/settings-rhf-profile`を起点に作成）。既存リファクタリングへの影響を抑えるため、最初の実装単位は`PageHeader`の任意Slotと`SaveStatus`の純粋なPresentation Component、状態Storyに限定する。
+- **Component実装**：`src/components/PageHeader/PageHeader.tsx`へ任意`trailing`を追加し、未指定時は既存のDOM / Typography / Spacingをそのまま返す。`PageHeader.module.css`でStatus用の固定幅Slotを予約する。狭いViewport（暫定30rem以下）ではタイトル行とSlotを常時二段にする。Breakpoint値はVRTで確認する。
+- **SaveStatus実装**：`src/components/SaveStatus/SaveStatus.tsx`は`idle/pending/saving/saved/attention`の短い表現のみを持ち、`idle`では`visibility:hidden`によりSlotを消さない。GraphQL、RHF、Apollo、Retryに依存しない。`announce`は明示的に指定するまでLive Regionを有効にしない。
+- **Story**：`src/components/SaveStatus/SaveStatus.stories.tsx`に各Status、Idle、短いStatusと詳細`FeedbackAlert`の組み合わせを追加。`PageHeader.Default`の既存Storyと比較する。
+- **UI-A方針**：Header右は短い状態、理由と復旧操作が必要なErrorはForm上部の持続Alertとする。この分離により通常のHeaderの伸縮を抑える。Error出現で設定項目が下へ移動することは許容する。Field ErrorはField近傍。実フォームへの組み込みは保存状態ControllerのResult契約と併せて行い、既存の明示保存Notificationを無断で除去しない。
+- **未検証**：GitHub上へCodeをCommitした段階では、Typecheck、Biome、Storybook Interaction、VRT、Next.js Buildの成功を保証しない。各Gateを確認し、必要なら修正するまで完了扱いにしない。
+- **残設計**：Saving/Savedの表示TimerとLive Announcement、実FormへのSaveStatus接続、Session Queue、GraphQL Hybrid Result改修は今回のPresentation PR相当の変更に含めず、別段階で実装する。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
