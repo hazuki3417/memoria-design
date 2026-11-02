@@ -877,6 +877,17 @@ type PageHeaderProps = {
 - `saved`表示保持時間、通信断とUnknown Outcomeの判定、Session内Queue Controller、Accent PreviewおよびCommunity Settingsへの接続、BackendのHybrid Error Resultは**未実装**。現状のQueueが全てのTransport Errorを`retryable`扱いする旧仕様を保持している点は、合意済みUnknown契約との未解決差分として扱う。
 - **Gate**：GitHub上のCode/Story/Test追加は確認したが、Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js Buildの実行結果が確認できていないため完了判定しない。既存ConsumerのLayoutとBehaviorを比較して検証すること。
 
+### 2026-11-02 実装追補：SaveStatus Badgeのピル形状とCommunity Accent接続
+
+`memoria-web/feat/save-feedback-presentation`の次の実装を反映した。
+
+- **Badgeデザイン**：`SaveStatus`のMantine `Badge`を`radius="xl"`に変更し、タイトル横の丸みの強いピル形状とする。ページ右端のUsage操作Inputとの区別と、Slotの幅予約・左揃えは維持する。
+- **Community Accentへの接続**：`CommunityPreferencesContent`は任意の`saveStatus`を`PageHeader.titleAccessory`へ渡す。`ConnectedCommunityPreferences`がAccent Mutationの`saving`、成功`saved`、拒否`attention`、選択直後`pending`を表示へ接続。Community Aliasの手動保存ボタン・Notificationは維持する。
+- **Draft保持の修正**：Accent Mutation失敗時は共有Cache/Shellを最後に確認済みの色へ戻す既存経路を保持する一方、ColorInputへの`restoreOnAccentChange`強制Resetを停止し、`preserveDraftOnAccentChange`で入力Draftを保護する。未完成HEXについては`onDraftValidityChange`を通知し、未保存入力が残る間に`saved` Badgeへ戻さない。Errorが未解決の場合は`attention`を優先する。
+- **回帰シナリオ**：従来の「保存失敗時はColorInputも確定色にResetする」Storyを、合意済みの「保存失敗でもDraftを保持」に更新。Community Accentの`saved`と`attention`のStoryを追加。Unit/Storyはまだ実行未確認であり、Story追加だけでは回帰防止が完了したとはしない。
+- **重要な未実装事項**：現在のCommunity Accent Previewは既存Apollo Cache書込を利用しているため、合意した`Confirmed`と`Preview Overlay`の厳密分離は未実装。Session内長命Controller、Unknown OutcomeのServer再照会・明示再保存、遅延応答・Context切替時の競合、Status表示Timerも未完了。既存通信Errorの一律失敗扱いは合意したHybrid Errorと未整合。これらの残課題を解決するまではUX移行完了とはしない。
+- **Gate**：Typecheck、Biome、Unit、Storybook Interaction、VRT、Buildと、Personal/Community両方のWide/Medium/CompactでHeader/Badge/Usageの位置と保存動作の回帰を確認する。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
