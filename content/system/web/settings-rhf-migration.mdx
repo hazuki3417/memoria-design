@@ -45,6 +45,13 @@
 - Community Aliasの空文字 `null` 化はApplicationへ渡す正規化値であり、Zodの責務とする。SchemaにGraphQL依存を導入しない。
 - 本変更では既存のMutation・保存Queue・Rollback・UI・Storybook Contractを変更しない。Settings以外への横断的Mapper / 共通Schemaの導入は対象外。
 
+## 2026-11-02 合意：Mapperの型I/F契約
+
+- **フォーム専用Mapper**は、入力を対象Schemaの `z.output<typeof schema>`（または `z.infer`）、出力をGraphQL Codegen生成Input型として明示する。フォームの未検証InputをMapperへ直接渡さない。型契約に加えて近接Unit Testで変換結果を保証する。
+- **複数ユースケースで共有されるMapper**は、フォームSchemaではなく共有Application Model / Patch型を入力とする。現実に必要になるまで専用Application Modelを増やさない。
+- Personal Preferencesの `userPreferencesGraphqlAdapter.ts` は、RHFのInputに加えて入力イベント由来のPartial Patchと取得結果を扱う境界である。入力契約 `UserPreferencesPatch`、出力契約 `UpdateUserPreferencesInput` を維持する。Zodの `preferencesSchema` には表示用 `accentDraft` が含まれるが、これをAPI Mapperへ流出させない。
+- 既存のMapperは新ルールへの適合が確認できれば機械的に書き換えず、Mapperが必要なフォームで初めて型契約を追加する。
+
 ## 現行の責務と移行境界
 
 | 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
