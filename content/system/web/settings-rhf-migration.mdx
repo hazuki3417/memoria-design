@@ -985,3 +985,7 @@ Personal PreferencesとCommunity Accentの両方に、Saving表示300ms遅延、
 Personal Accent ColorはCommunity Accentと同様、入力後の有効なColor Draftを即座にApplication Shell（Header等）とPersonal設定のナビゲーションの見た目へ反映する。サーバーの確定値やApollo CacheはMutationの成功が確認されるまで書き換えない。保存中はPreviewを継続する。Validation/Execution ErrorまたはUnknown Outcome時、Shellの見た目は最後に確認できた色に戻し、入力DraftはSessionに保持して明示的な再試行・破棄を可能にする。不完全なColor Input文字列をShell Previewへ渡さない。通常のClient-side画面遷移では既存Session Ownerを共有し、Previewと保存結果の一貫性を保つ。
 
 実装：`memoria-web/feature/graphql-hybrid-results` の `personalAccentPreview.ts`、`ApplicationShellContainer.tsx` およびPersonal Settingsの接続Component。Communityと同じvisual contractを維持するが、保存済み値の参照元はPersonal Preferences Sessionとする。
+
+### 2026-11-02 Personal / Community共通機能の一貫性・回帰防止（確定）
+
+PersonalとCommunityで共通する設定機能は、入力中Preview、保存Queue、Pending/Saving/Saved、Validation/Execution/Unknown Outcome、失敗時の確定表示復元とDraft保持、手動再試行・破棄、画面遷移・再訪時の状態復元、アクセシビリティとResponsive Behaviorを比較対象として扱う。実装前に両Consumerのvisual/behavior contractを確認し、一方だけに存在する機能差を暗黙に許容しない。共通責務は適切なComponent/Controller境界で再利用するが、既存consumer固有のCapabilityを削除・簡略化しない。意図的な差異は理由と期待される挙動を設計に明記し、合意なく変更しない。テストは両Consumerの成功だけでなく、対応する状態遷移とVisual/Interactionを照合する。今回のPersonal Accent Preview漏れを回帰防止の具体例とする。
