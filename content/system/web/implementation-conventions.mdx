@@ -652,6 +652,10 @@ Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValid
 - Mapperを抽出した場合、その実装に対応する `*.test.ts` を近接配置し、値の対応、Enum変換、Optional / Nullable / Partial Patchでの省略・保持など、当該Mapperの契約を検証します。
 - ZodによるClient Validationは利用者支援であり、最終的なValidationと認可はBackendが保証します。
 
+- **Mapperの型I/F契約**：特定フォーム専用のMapperでは、入力を `z.output<typeof formSchema>`（同義の `z.infer` 可）、出力を対象OperationのCodegen生成Input型で明示します。Zodの入力途中の値（`z.input`）ではなく検証済みOutputを受け取ることを基本とします。Mappingの正確性は型整合性に加え、近接配置したUnit Testで保証します。
+- **複数ユースケースで共有するMapper**：入力を特定フォームSchemaに結びつけず、実際に共有されるApplication ModelまたはPatch型としてよいものとします。共有要件が生じる前に独立型や追加Layerを作りません。フォーム専用Draft（未完成入力など）を共有Mapperの入力契約へ含めません。
+
+
 
 
 認証はNext.jsがHttpOnly Session Cookieを保持し、必要なAccess TokenをAPI呼び出しへ渡すBFF寄りの構成を基本とします。TokenをBrowserの公開State、URL、Logへ露出しません。具体的な認証設定は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)とUser設計に従います。
