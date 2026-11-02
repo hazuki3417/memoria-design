@@ -850,12 +850,99 @@ type PageHeaderProps = {
 ## 2026-11-02 共通Save Feedback Presentationの実装着手
 
 - **実装Branch**：`memoria-web/feat/save-feedback-presentation`（`refactor/settings-rhf-profile`を起点に作成）。既存リファクタリングへの影響を抑えるため、最初の実装単位は`PageHeader`の任意Slotと`SaveStatus`の純粋なPresentation Component、状態Storyに限定する。
-- **Component実装**：`src/components/PageHeader/PageHeader.tsx`へ任意`trailing`を追加し、未指定時は既存のDOM / Typography / Spacingをそのまま返す。`PageHeader.module.css`でStatus用の固定幅Slotを予約する。狭いViewport（暫定30rem以下）ではタイトル行とSlotを常時二段にする。Breakpoint値はVRTで確認する。
-- **SaveStatus実装**：`src/components/SaveStatus/SaveStatus.tsx`は`idle/pending/saving/saved/attention`の短い表現のみを持ち、`idle`では`visibility:hidden`によりSlotを消さない。GraphQL、RHF、Apollo、Retryに依存しない。`announce`は明示的に指定するまでLive Regionを有効にしない。
+- **Component実装（2026-11-02 更新）**：任意`titleAccessory` Slotをタイトルに隣接させ、**タイトル＋Status Badgeを左揃えのまとまり**として扱う。旧`trailing`右端配置・固定二段案は撤回。未指定Consumerは既存のDOM / Typography / Spacingを保つ。`PageHeader.module.css`でBadge領域を7rem予約し、`idle`でも位置を維持する。狭い画面ではタイトルとBadgeのまとまりだけが折り返し可能（状態による幅の変化で折り返しが変わらないこと）。
+- **SaveStatus実装（Badge形式）**：`src/components/SaveStatus/SaveStatus.tsx`は`idle/pending/saving/saved/attention`の短い表現のみを持ち、`idle`では`visibility:hidden`によりSlotを消さない。GraphQL、RHF、Apollo、Retryに依存しない。`announce`は明示的に指定するまでLive Regionを有効にしない。
 - **Story**：`src/components/SaveStatus/SaveStatus.stories.tsx`に各Status、Idle、短いStatusと詳細`FeedbackAlert`の組み合わせを追加。`PageHeader.Default`の既存Storyと比較する。
-- **UI-A方針**：Header右は短い状態、理由と復旧操作が必要なErrorはForm上部の持続Alertとする。この分離により通常のHeaderの伸縮を抑える。Error出現で設定項目が下へ移動することは許容する。Field ErrorはField近傍。実フォームへの組み込みは保存状態ControllerのResult契約と併せて行い、既存の明示保存Notificationを無断で除去しない。
+- **UI-A方針（位置更新）**：タイトル横Badgeは短い状態、理由と復旧操作が必要なErrorはForm上部の持続Alertとする。この分離により通常のHeaderの伸縮を抑える。Error出現で設定項目が下へ移動することは許容する。Field ErrorはField近傍。実フォームへの組み込みは保存状態ControllerのResult契約と併せて行い、既存の明示保存Notificationを無断で除去しない。
 - **未検証**：GitHub上へCodeをCommitした段階では、Typecheck、Biome、Storybook Interaction、VRT、Next.js Buildの成功を保証しない。各Gateを確認し、必要なら修正するまで完了扱いにしない。
 - **残設計**：Saving/Savedの表示TimerとLive Announcement、実FormへのSaveStatus接続、Session Queue、GraphQL Hybrid Result改修は今回のPresentation PR相当の変更に含めず、別段階で実装する。
+
+### 2026-11-02 合意：Usageの画面操作とTitle Statusの配置境界
+
+- **Title左側**：タイトルと小さなStatus Badgeを同じグループとして左揃えする。Badgeの表示・非表示はその右隣の固定幅領域で行い、タイトル自体の開始位置・説明文・後続Containerを状態変化でずらさない。
+- **画面右端**：Usageの`SettingsUsage`は既に外側の`Group justify="space-between"`で`PageHeader`と`SegmentedControl`を左右に配置している。**このInput、操作、Responsive Behaviorを維持する**。Statusのために右側Inputの位置を奪わない。
+- **APIの責務分離**：`PageHeader.titleAccessory?: ReactNode`はタイトルに付随する表示を受ける任意Slot。`actions`をページヘッダーへ強制せず、必要なFeatureは外側で既存どおりCompositionできる。現在のConsumerへSaveStatusを一律表示しない。
+- **Responsive**：Badge自身は短い文字＋Iconの固定幅内で表示し、タイトル・Badgeのセットの折返しを許容する。Usage外側のGroupが折り返す場合も、UsageのSegmentedControlは保持し、画面操作をBadgeと同じSlotに入れない。テキストが長い場合は重なり・Clip・Horizontal OverflowがないことをVRTで確認する。
+- **既存実装変更**：`memoria-web/feat/save-feedback-presentation`の`PageHeader`の`trailing`→`titleAccessory`、`SaveStatus`のBadge化、関連Storyの修正。Usageの本体Codeは変更しない。
+- **検証Gate**：`PageHeader.Default`、Status状態別Story、`SettingsUsage`のPersonal / Community Story、Compact / Medium / Wideで表示・操作・レイアウトを比較する。変更コードをGitHubで確認した時点では型・Lint・VRT完了を意味しない。
+
+### 2026-11-02 実装追補：Personal PreferencesのSaveStatus接続
+
+`memoria-web/feat/save-feedback-presentation`にて、**共通Presentation層から最初のConsumerへの接続**を追加した。
+
+- `preferencesSaveQueue.ts`は従来の400ms Debounce、Field Patch Coalesce、1 in-flightの直列保存、RetryでのPatch保持を維持し、追加の任意Callbackで`pending/saving/saved/attention`を通知する。データ保存・送信順をStatus UIの都合で変更しない。
+- `usePreferencesSave.ts`は通知を`SaveStatusState`へ射影し、Unmount後のReact State更新を抑制する。ControllerをSession Scopeへ移す**後続作業は未実装**。現時点のCleanup時FlushはSession内の長命Queue契約を満たしたとみなさない。
+- `useUserPreferences.ts`はRHF Draftおよび保存Actionと独立に`saveStatus`を公開する。`SettingsPreferences.tsx`は実保存Callback`onSave`がある場合のみ`PageHeader.titleAccessory`へBadgeを表示。Story/Prototypeで保存Callbackがないときは従来のHeader DOMを保つ。既存Field配置とLabelは維持する。
+- `preferencesSaveQueue.test.ts`に、Pending → Saving → Saved、保存中の追加Patch、Error → AttentionのTestを追加。`SettingsPreferences.stories.tsx`に、入力変更後のPendingとSavedを確認するInteraction Storyを追加。
+- `saved`表示保持時間、通信断とUnknown Outcomeの判定、Session内Queue Controller、Accent PreviewおよびCommunity Settingsへの接続、BackendのHybrid Error Resultは**未実装**。現状のQueueが全てのTransport Errorを`retryable`扱いする旧仕様を保持している点は、合意済みUnknown契約との未解決差分として扱う。
+- **Gate**：GitHub上のCode/Story/Test追加は確認したが、Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js Buildの実行結果が確認できていないため完了判定しない。既存ConsumerのLayoutとBehaviorを比較して検証すること。
+
+### 2026-11-02 実装追補：SaveStatus Badgeのピル形状とCommunity Accent接続
+
+`memoria-web/feat/save-feedback-presentation`の次の実装を反映した。
+
+- **Badgeデザイン**：`SaveStatus`のMantine `Badge`を`radius="xl"`に変更し、タイトル横の丸みの強いピル形状とする。ページ右端のUsage操作Inputとの区別と、Slotの幅予約・左揃えは維持する。
+- **Community Accentへの接続**：`CommunityPreferencesContent`は任意の`saveStatus`を`PageHeader.titleAccessory`へ渡す。`ConnectedCommunityPreferences`がAccent Mutationの`saving`、成功`saved`、拒否`attention`、選択直後`pending`を表示へ接続。Community Aliasの手動保存ボタン・Notificationは維持する。
+- **Draft保持の修正**：Accent Mutation失敗時は共有Cache/Shellを最後に確認済みの色へ戻す既存経路を保持する一方、ColorInputへの`restoreOnAccentChange`強制Resetを停止し、`preserveDraftOnAccentChange`で入力Draftを保護する。未完成HEXについては`onDraftValidityChange`を通知し、未保存入力が残る間に`saved` Badgeへ戻さない。Errorが未解決の場合は`attention`を優先する。
+- **回帰シナリオ**：従来の「保存失敗時はColorInputも確定色にResetする」Storyを、合意済みの「保存失敗でもDraftを保持」に更新。Community Accentの`saved`と`attention`のStoryを追加。Unit/Storyはまだ実行未確認であり、Story追加だけでは回帰防止が完了したとはしない。
+- **重要な未実装事項**：現在のCommunity Accent Previewは既存Apollo Cache書込を利用しているため、合意した`Confirmed`と`Preview Overlay`の厳密分離は未実装。Session内長命Controller、Unknown OutcomeのServer再照会・明示再保存、遅延応答・Context切替時の競合、Status表示Timerも未完了。既存通信Errorの一律失敗扱いは合意したHybrid Errorと未整合。これらの残課題を解決するまではUX移行完了とはしない。
+- **Gate**：Typecheck、Biome、Unit、Storybook Interaction、VRT、Buildと、Personal/Community両方のWide/Medium/CompactでHeader/Badge/Usageの位置と保存動作の回帰を確認する。
+
+### 2026-11-02 追加実装：Community保存Errorの配置
+
+- `CommunityPreferencesContent`に任意`saveFeedback` Slotを追加し、`PageHeader`直後・各設定Fieldの前へ表示する。タイトル横の`SaveStatus`は短い`attention` Badgeのままとし、詳細ErrorをBadgeへ詰め込まない。
+- `ConnectedCommunityPreferences`のError AlertをHeaderより上からこのSlotへ移す。Error文言は「Shellを確定色へ戻したが入力した色は保持」と実際の振る舞いを示す。これにより通常時のPageHeaderの高さ・位置を変えず、Errorが発生した場合のみ後続Formを押し下げる。
+- `CommunityPreferencesContent.stories.tsx`にBadge+詳細AlertのStoryを追加。既存Consumerに`saveFeedback`が渡されない場合は従来のForm DOMを維持する。
+- **未完了**：Errorの手動Retry / Draft破棄Actionを提供するController API、Unknown Outcomeの別文言と再照会、Preview Overlay分離、Session長命Queue、実行Gate。Error Alertの追加だけで合意済みRecovery UIを満たしたと判断しない。
+
+### 2026-11-02 実装追補：Community Accent Confirmed / Preview表示の分離
+
+`memoria-web/feat/save-feedback-presentation`において、合意済みの**Preview表示は現在CommunityのShell全体、Apollo CacheはConfirmed値の参照元**という責務境界の初期実装を追加した。
+
+- `src/features/application-shell/CommunityAccentPreviewContext.tsx`：認証Application Shellで保持するPreview専用Provider。Previewは`{ communityId, color, owner }`で管理し、Apolloの`Community.mySettings.accentColor`へはPreviewを書き込まない。ProviderはShellの寿命に紐付くためBrowser終了後の復元を保証しない。
+- `src/features/application-shell/ApplicationShellContainer/ApplicationShellContainer.tsx`：現在選択中CommunityとSwitcherで、確認済みApollo値に対象IDが一致する一時Previewだけ重ねた表示値を利用。Personalや別Communityの色を変更しない。UsageのHeaderやPageHeader Title BadgeのLayoutは無変更。
+- `src/features/community-settings/ConnectedCommunityPreferences/ConnectedCommunityPreferences.tsx`：ColorInputの有効HEX選択時はPreview Providerを更新し、**Apollo Cacheへは書き込まない**。MutationのSuccessで取得したConfirmed色だけを既存Cache Fragmentへ保存する。保存失敗/UnmountでPreviewを解除し、ColorInput Draftを維持する。Aliasは既存のField-aware Cache Mergeを継続する。
+- **遅延応答保護**：Previewに発行順の`owner`を割り当て、成功・失敗・UnmountのCleanupは自分が登録したPreviewだけ解除する。遅延Mutationの応答が新しいContext/選択のPreviewを消すことを防止する。
+- `src/features/application-shell/communityAccentPreview.ts`と`communityAccentPreview.test.ts`：表示値のProjectionと所有者限定CleanupのPure Helper、およびCommunity境界・旧Cleanup・新Preview保持を確認するUnit Testを追加。
+- **まだ未完了**：現状`ConnectedCommunityPreferences`の保存QueueはComponent内の`desired/inFlight`管理であり、画面遷移後の同一認証Sessionで状態を復元するController契約は未実装。Unknown Outcome照会・手動再保存、明示Retry/破棄、同一CommunityでのLate ResponseがConfirmedを巻き戻さない厳密制御、API Hybrid Resultの移行は別作業。ProviderはPreview表示のOwnerでありSession Save Queueの代替ではない。
+- **Gate**：Unit / Typecheck / Biome / Storybook Interaction / Wide-Medium-Compact VRT / Next Buildの実行成功は未確認。既存Shell・Switcher・Settings・AliasのVisual / Behavioral Regressionを通すまで完了としない。
+
+### 2026-11-02 実装追補：Community Accent Session保存Controller・Unknown Recovery
+
+`memoria-web/feat/save-feedback-presentation`にて、Community Accentの保存Ownerを画面ComponentからAuthenticated Application Shell内のSession Controllerへ移した。
+
+- **Session Controller**：`src/features/community-settings/communityAccentSaveController.ts`。Community IDで独立した`confirmed / draft / pending / in-flight / failure / observedMatches`を保持し、`subscribe/getSnapshot`でViewだけを接続する。画面から離れてもPending MutationとSnapshotは保持され、同じCommunityへ戻るとDraft/Badge/Alertが復元される。ブラウザーReload後の永続化は保証しない。
+- **Owner**：既存`CommunityAccentPreviewProvider`をShell内のController Ownerとしても利用し、`useCommunityAccentSave(communityId)`は`useSyncExternalStore`で該当IDだけを購読。UnmountしてもControllerはDisposeされず、Shell側PreviewはMutation確定・Error・明示破棄に応じて解除する。
+- **Queue**：Valid HEXだけを最新希望値として保存する。同一Communityの送信は直列、進行中の後続変更をCoalesce、遅い旧ResponseでDraftを上書きしない。Confirmed Mutation ResultだけがApollo Cacheを更新する。背景Queryの古い値はControllerの最初のHydration以外に採用せず、過去の値でConfirmedを巻き戻さない。
+- **Unknown Outcome**：通信不明または未確認Responseは`unknown`とし、自動再送を停止。UIの`現在の状態を確認`で既存`CommunityMySettingsDocument`を`network-only`照会する。照会が成功し一致した場合だけ`確認完了`を表示し、当該Mutation成功を証明したとは扱わない。不一致時は照会成功後の明示`もう一度保存`だけ許可する。照会が失敗した場合には再送不可。照会・再送とは独立に`変更を破棄`を提供するが、旧Mutationの遅延Commitを否定するものではない。
+- **Rejected**：Draft保持・Preview解除・手動`もう一度保存`または`変更を破棄`。`CommunityPreferencesContent`では`onAccentDraftChange`により未完成HEXを含むRHF DraftをControllerへ保存する。明示破棄時はInputをConfirmedへ戻し、同居Alias FormをRemountしない。
+- **API/Clientの未整合**：今回の`isUnknownAccentOutcome`は現在のApollo Client Errorを使った暫定分類であり、合意済みTyped Domain Result/Error SchemaのAPI実装・生成Typeへの接続は未完了。なおSession内Queueを保持してもLate MutationのGlobal LWW順序保証は成立しない。
+- **テスト追加**：ControllerのUnmount後Snapshot、Community分離、Incomplete Draft非送信、Old in-flight + New Draft、Unknownの照会前再送禁止、Query一致の手動確認完了、Rejectedの明示再送、Discard、Stale QueryのConfirmed巻戻し防止を対象とするUnit Testを追加。
+- **Personal Preferences**：MutationのConfirmed結果と後続Refetchを分離する変更を`usePersonalSettingsActions.ts`へ追加。Refetch失敗がConfirmed Mutationを失敗/Unknownへ変換しない。
+- **実行Gate**：GitHubへのCode・Test追加は確認できるが、Typecheck / Biome / Unit / Storybook / VRT / Next Buildの成功は未確認。BranchのGitHub Actions Runがなく、Merge/Release可能と判断しない。Session Queue実装の残り：Personal Preferencesの長命化、UI Timing・A11y、Typed Hybrid ErrorのBackend/Client対応、Alias/Accent競合と実機VRT。
+
+### 2026-11-02 実装追補：Personal PreferencesのSession Queue / Unknown Recovery
+
+`memoria-web/feat/save-feedback-presentation`にて、Personal PreferencesにもAuthenticated Application Shell寿命のSession Controllerと回復UIを導入した。
+
+- **Session Owner**：`personalPreferencesSession.ts`と`PersonalPreferencesSessionContext.tsx`を追加し、`ApplicationShellContainer`がProviderを保持する。Preferences画面のUnmount/RemountではControllerを破棄せず、`confirmed / draftPatch / accentDraft / saveStatus / failure / inspection`を保持する。ブラウザーReload後の永続化は対象外。
+- **RHF**：`usePreferencesSave` / `useUserPreferences`は本番Application Shell内ではSession Controller、Providerを持たないStorybook/Prototypeでは従来のLocal Queueを利用。Hookの呼出順は変えず、再訪時にSession Draft（Incomplete ColorInput含む）をRHF Defaultへ反映。背景Query更新時は最新のSession Draft PatchとColorInput Draftを保護する。明示`変更を破棄`ではRevisionによりForm値をConfirmedへResetする。
+- **Queue**：既存400ms Debounce/Field Patch結合/直列実行は維持。`preferencesSaveQueue`に失敗時のPause、`getPending / clearPending`、`flush({ manual })`を追加。Error後の新規編集もPendingへ結合するが**自動再送しない**。Unmount処理の自動FlushはPauseを解除せず、明示的な`再保存`だけ再送を開始する。
+- **Unknown**：通信不明・未確認Responseは`unknown`として扱い、既存`CurrentUser` QueryのRefetchが成功するまで手動再保存も停止。一致なら`確認完了`で現在値を確認済みとして採用（旧Mutation成功の証明ではない）。不一致なら最新Patchを手動再送。Query失敗時は未確定状態を維持する。Blockedは明示再送・破棄導線を表示せず、画面更新等の復旧を案内する。
+- **Mutationと再取得の確定境界**：`usePersonalSettingsActions`ではPreferences MutationのConfirmed Responseが成立したら成功とし、その後の`CurrentUserDocument`のRefetchを非同期・非Fatalとして扱う。Refetch失敗で既に成功したMutationを失敗扱いしない。更新したFieldのConfirmed値はServer QueryがEchoするまで直近の古い再取得値で巻き戻さない。
+- **UI**：`SettingsPreferences`に`unknown`の説明、Server状態確認、確認完了、手動再保存、変更破棄を追加。共通`PageHeader.titleAccessory`と`SaveStatus` Badgeは維持。Provider未接続のStoryでは操作不能な破棄Actionを表示しない。
+- **テスト**：`personalPreferencesSession.test.ts`（画面購読解除後のSave、Incomplete Draft、Unknownの照会前自動/手動再送禁止、Query一致の確認完了、Explicit Discard、Stale Refetch防止）、Queue Pause/Manual Flush、`SettingsPreferences.stories.tsx`のSPA復帰時Draft/Badge保持Storyを追加した。**実行結果は未確認**。
+- **Community Preview Scope追補**：Preview Providerは1件の値ではなく`Community ID → {color, owner}`のMapへ修正。別Communityの編集中Previewと古いCleanupが衝突せず、ShellとSwitcherには現在選択中CommunityのOverlayだけを表示する。
+- **未完了 / Gate**：現APIのApollo Errorに対する分類は暫定。GraphQL Typed Domain Result/Extensions SchemaとGenerated Hook更新、Manual Profile/Aliasなど他Consumerの結果分類統一、Saved/SavingのTimingとa11y、Late Mutation/LWW外部更新、Alias/Accent競合、Typecheck/Biome/Unit/Storybook/VRT/Buildの実行検証は残る。PRは作成・Mergeしていない。現状は**機能コード反映済み・品質Gate未完了**でありRelease可能と判定しない。
+
+### 2026-11-02 Session Queue通信Ownerの実装上の補強
+
+- Personal Preferences / Community AccentのAuto Save Mutationは、画面Unmount後にも通信とCallbackが継続できるよう**Apollo Client本体の`client.mutate`**で送信する。画面の`useMutation` Hookの寿命へ依存しない。Manual Profile / Community Aliasの既存Hookによる保存経路は今回変更しない。
+- Session内のCommunity Accent Previewは**Community ID別Map**で保持し、現在選択中Communityの値だけをShell / SwitcherへOverlayする。別Communityへの移動や古いMutationのCleanupでも、他CommunityのPreviewを消さない。
+- Personal/Communityとも、UnknownのServer確認中にユーザーがDraftを変更した場合、古い確認結果を適用しない。Personal ColorInputのRaw Draft変更も照会結果の一致判定を無効化する。
+- Preferences QueueのFailure後Pause中に新たなField変更を受け取った場合、変更を捨てずPendingへCoalesceする。ただしQuery確認と明示的な手動Retry前には自動送信しない。
+- **未検証のGate**：この変更群はGitHubのコード・設計書・Issue反映は確認できるが、ローカルのNode環境とRepo全体の依存関係で実行したTypecheck/Unit/Storybook/VRT/Build結果を確認できていない。CIが走っていない状態で機能完了・Visual Contract維持を断定しない。
+- **残る設計判断**：Saving表示遅延 / Saved消灯時間 / A11y Live Regionの秒数は未確定。Storyと実機で検証して合意後に適用する。API Typed Domain Resultの移行とAlias/Accentの並行更新、Late Mutation順序保証は別Gate。
 
 ## 実装単位とテストGate
 
@@ -879,3 +966,26 @@ type PageHeaderProps = {
 - UI、文言、操作、Accessibility、Responsive、Storybookの既存契約が維持される。
 - Preview / Production両Contextの画面状態が意図せず変わらない。
 - 対象の変更はSettings Featureに限定され、必要なGitHub Actionsの結果が成功する。
+
+### 2026-11-02 SaveStatus Timing候補の検証用実装（未適用）
+
+`memoria-web/feat/save-feedback-presentation` の `SaveStatus` に、`timing?: { savingDelayMs?, savedDurationMs?, savingAnnouncementMs? }` を**任意**で追加した。各値を省略した既存Consumerは従来どおり即時描画・保存成功遷移だけの読み上げ（`announce`が明示された場合）を維持する。
+
+- Saving遅延中は前回の`saved`表示を維持せず`idle`表示（レイアウト予約は残る）とする。Timerは状態変更・Unmountで解除される。
+- Saved消灯は表示専用の`idle`遷移であり、Controllerの保存確定値を変更しない。新しい状態が来た場合は消灯Timerをキャンセルする。
+- 長時間Savingの読み上げは`announce`かつ`savingAnnouncementMs`指定時のみ。Failureの読み上げは既存の持続Alertへ委譲する。
+- `TimedPresentationCandidate` Storyに**検証用候補値**300ms / 2000ms / 2000msを設定。値はまだUX合意されておらず、本番のSettings Consumerへは渡さない。Story/VRTで評価後に秒数と適用範囲を合意する。
+
+### 2026-11-02 SaveStatus Timingの本番適用合意
+
+Personal PreferencesとCommunity Accentの両方に、Saving表示300ms遅延、Saved確定後2秒表示、Saving継続2秒後の一度のみPolite通知、最後の保存確定時の成功通知を適用することでユーザー合意済み。`SaveStatus`のPresentation専用`timing`と`announce`を両Settings Consumerから明示する。Error通知は持続Alertの責務、Status側では重複読み上げしない。`PageHeader.titleAccessory`、ピル形状、固定幅予約およびUsage右側Inputの既存契約は維持する。
+
+### 2026-11-02 Personal Accentの即時Visual Preview（合意済み）
+
+Personal Accent ColorはCommunity Accentと同様、入力後の有効なColor Draftを即座にApplication Shell（Header等）とPersonal設定のナビゲーションの見た目へ反映する。サーバーの確定値やApollo CacheはMutationの成功が確認されるまで書き換えない。保存中はPreviewを継続する。Validation/Execution ErrorまたはUnknown Outcome時、Shellの見た目は最後に確認できた色に戻し、入力DraftはSessionに保持して明示的な再試行・破棄を可能にする。不完全なColor Input文字列をShell Previewへ渡さない。通常のClient-side画面遷移では既存Session Ownerを共有し、Previewと保存結果の一貫性を保つ。
+
+実装：`memoria-web/feature/graphql-hybrid-results` の `personalAccentPreview.ts`、`ApplicationShellContainer.tsx` およびPersonal Settingsの接続Component。Communityと同じvisual contractを維持するが、保存済み値の参照元はPersonal Preferences Sessionとする。
+
+### 2026-11-02 Personal / Community共通機能の一貫性・回帰防止（確定）
+
+PersonalとCommunityで共通する設定機能は、入力中Preview、保存Queue、Pending/Saving/Saved、Validation/Execution/Unknown Outcome、失敗時の確定表示復元とDraft保持、手動再試行・破棄、画面遷移・再訪時の状態復元、アクセシビリティとResponsive Behaviorを比較対象として扱う。実装前に両Consumerのvisual/behavior contractを確認し、一方だけに存在する機能差を暗黙に許容しない。共通責務は適切なComponent/Controller境界で再利用するが、既存consumer固有のCapabilityを削除・簡略化しない。意図的な差異は理由と期待される挙動を設計に明記し、合意なく変更しない。テストは両Consumerの成功だけでなく、対応する状態遷移とVisual/Interactionを照合する。今回のPersonal Accent Preview漏れを回帰防止の具体例とする。
