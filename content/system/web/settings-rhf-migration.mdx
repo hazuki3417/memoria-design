@@ -483,13 +483,13 @@ Pending「保存待ち」、In-flight「保存中」、全て確定「保存済�
 4. Statusの表示位置・保持時間・読み上げ条件。
 5. Operation別のValidation ScopeとCodeの最終SDL、および重要Domain操作に適用する競合制御の境界。
 
-## 2026-11-02 詳細案：自動保存の回復・画面離脱・Accent Preview（最終UX判断待ち）
+## 2026-11-02 合意：自動保存の回復・画面離脱・Accent Preview（確定）
 
-この節は合意済みの**LWW・Field単位Patch・Hybrid Error・既存I/F直接改修**を前提とする。従前のRevision/CAS/3-way Merge案より優先する。下記の数値・継続範囲・Preview表示は**推奨する具体案**であり、明示合意まで確定契約とみなさない。
+この節は合意済みの**LWW・Field単位Patch・Hybrid Error・既存I/F直接改修**を前提とする。従前のRevision/CAS/3-way Merge案より優先する。**2026-11-02合意**：現在CommunityのShell全体へPreview、保存失敗時は見た目を確定色へ戻してDraft保持、通常のClient-side画面遷移後もSession内Queue継続、Unknown Outcomeでは状態確認後に手動再保存。次の状態遷移と責務はこの合意を実装に引き渡す確定契約とする。Browser終了時のWarningとStatus表示位置・時間は別途未確定。
 
 ### Shared Save Controllerの境界
 
-**推奨**：QueueはSettings Form Componentに閉じ込めず、認証Session内の長命なClient Controllerとして保持する。ただし全Formへ巨大な汎用State Machineを強制せず、共通の保存順序・Snapshot管理だけを抽出し、Formは表示とDraftのOwnerのままとする。
+**確定**：QueueはSettings Form Componentに閉じ込めず、認証Session内の長命なClient Controllerとして保持する。ただし全Formへ巨大な汎用State Machineを強制せず、共通の保存順序・Snapshot管理だけを抽出し、Formは表示とDraftのOwnerのままとする。
 
 - Personal Preferences Queue Key：ログインUser（当人のAccount同期Preferences）。Community Settings Queue Key：ログインUserとCommunity IDの組み合わせ。Contextを切り替えてもQueue間のSnapshot・応答・Errorを混在させない。
 - 保存する情報：`pendingPatch`（最新版のField値）、`inFlightSnapshot`（送信したField/値）、`confirmedFields`（Mutationから得た確定値）、`lastStatus`（pending/saving/confirmed/rejected/unknown/blocked）、必要なError情報。ControllerはDraftそのもののForm Ownerにはならない。
@@ -511,7 +511,7 @@ Pending「保存待ち」、In-flight「保存中」、全て確定「保存済�
 | 認証切れ・権限不足 | Blocked、Queueを停止 | 認証・権限確認。無条件Retry禁止 |
 | Mutation成功後のRefetch失敗 | Confirmed、RefreshのみError | 保存成功を取り消さず、Refresh Errorを別扱い |
 
-**Unknownの復旧推奨**：新規Saveを一旦停止し、既存Queryを`network-only`等で再取得する（CacheをServer照会結果の代用にしない）。現在値が希望値に一致すれば**現在状態の一致**としてUIを回復可能。ただし当該Requestの実行成功と断定しない。値が異なる場合は最新DraftとServer値を提示し、ユーザーが改めて保存する導線を提供する。新たな保存操作に進む前に、遅れて届く旧Requestの書き込みが後勝ちになる可能性があるため、旧Requestがまだ実行され得る場合は**単純Refetchだけで完全な順序保証はできない**。厳密に保証するならRequest CancelのServer保証、Operation識別・結果照会、Keyによる再実行の排除等が必要。一般Settingsへこれらを標準導入するかは費用対UXで判断し、保証できないことを保証済みとして実装しない。
+**Unknownの復旧（合意済み）**：新規Saveを一旦停止し、既存Queryを`network-only`等で再取得する（CacheをServer照会結果の代用にしない）。現在値が希望値に一致すれば**現在状態の一致**としてUIを回復可能。ただし当該Requestの実行成功と断定しない。値が異なる場合は最新DraftとServer値を提示し、ユーザーが明示的に再保存する導線を提供する。**Unknownから自動再送は行わない。**新たな保存操作に進む前に、遅れて届く旧Requestの書き込みが後勝ちになる可能性があるため、旧Requestがまだ実行され得る場合は**単純Refetchだけで完全な順序保証はできない**。厳密に保証するならRequest CancelのServer保証、Operation識別・結果照会、Keyによる再実行の排除等が必要。一般Settingsへこれらを標準導入するかは費用対UXで判断し、保証できないことを保証済みとして実装しない。
 
 **Retryable/Unknownを分ける基準**：Requestが確実に送信されていない等、保存不成立が識別できる場合のみRetryable。送信後のTimeout等はUnknown。LWWという性質だけで`retryable`に分類しない。自動再送・無制限Retryは導入しないことを基本候補とする。ユーザーによる再保存でも**後続Draftより古いSnapshotを再送しない**。
 
@@ -531,10 +531,10 @@ Pending「保存待ち」、In-flight「保存中」、全て確定「保存済�
 ### Community Accent：Preview / Draft / Confirmedの区別
 
 - **Confirmed**：Serverが確定した`accentColor`。Apollo正規化Cacheはこの値の参照元とする。
-- **Preview Overlay**：有効HEXが入力された時点で即時表示できる一時色。**推奨適用範囲は現在選択中のCommunity Context Shell**（SwitcherのAccent表示を含むかは視覚仕様で明示）と設定画面。別Communityや永続Server Cacheには反映しない。
+- **Preview Overlay**：有効HEXが入力された時点で即時表示できる一時色。**適用範囲は現在選択中のCommunity Context Shell全体**（Switcherの当該ContextのAccent表示を含む）と設定画面。別Communityや永続Server Cacheには反映しない。
 - **Draft**：RHFが所有するColorInputの文字列。未完成HEXも保持。未完成値は保存しない、Previewは最後の有効色のまま。
 - **成功**：Mutation Resultの確定色をCacheへ反映。保存確定した選択と今のDraftが同じならOverlay解除。より新しいDraftがあればそのOverlay維持。
-- **確実な失敗 / Unknown**：推奨はOverlayを解除してShellの表示を最後の確定色へ戻し、ColorInputには最後のユーザー選択を保持すること。Form近傍に持続するFeedback Alertと「再試行」または「変更を破棄」。Unknownでは「未保存」と断定しない。破棄でのみDraftを確定色へ同期する。
+- **確実な失敗 / Unknown（確定）**：Overlayを解除してShellの表示を最後の確定色へ戻し、ColorInputには最後のユーザー選択を保持すること。Form近傍に持続するFeedback Alertと「再試行」または「変更を破棄」。Unknownでは「未保存」と断定しない。破棄でのみDraftを確定色へ同期する。
 - **Context切替**：旧ContextのOverlay解除。旧Contextへ戻る場合は未保存Draft・FailureをControllerに保持するかどうかを別途決める。旧Contextの遅延結果を新Contextの表示へ適用しない。
 - AccentとAliasのPartial PatchはFieldごとの保存確定を区別し、片方の保存成功がもう片方のPreviewや未完了Draftを上書きしない。
 
@@ -553,14 +553,45 @@ SettingsのPage Header付近にフォーム単位の小さなStatusを置く。�
 7. Pendingが残っているのに「保存済み」を表示しない。スクリーンリーダーへ保存中を過剰に読み上げない。
 8. Browser終了時の送信完了を保証していないことを前提に、警告/復元の選択結果と一致するBehaviorを検証する。
 
-### 最終合意が必要な項目
+### 2026-11-02 UXの合意と残課題
 
-- Q1：Preview Overlayは現在CommunityのShell全体まで反映するか、設定画面に限定するか（推奨：現在ContextのShell＋設定画面）。
-- Q2：失敗時、Shellを確定色に戻しつつColorInputのDraftを保持するか（推奨：保持＋再試行／破棄）。
-- Q3：Client-sideの画面離脱後もSession ScopeのQueueを維持し、戻ったときFailureを表示するか（推奨：維持）。
-- Q4：UnknownのRefetch不一致時の手動再送、値一致時の表示、旧Requestが遅れて確定するリスクをどの水準まで保証するか。
-- Q5：Browser終了/Reload時に未保存警告を出すか、永続Queueを設けない前提で通常終了を許すか。
-- Q6：Form Statusの正確な表示位置・保持時間・読み上げ規則。
+- **Q1確定**：有効なAccent Previewは**現在選択中のCommunityのShell全体**と設定画面に適用。現在ContextのSwitcher表示も連動し、別CommunityやApolloの確定Server値にPreviewを混入させない。
+- **Q2確定**：保存失敗・UnknownでPreviewを解除し、Shellは最後に確認された確定色を表示。**ColorInput Draftは失わず**、確実な失敗では再試行／変更破棄、Unknownでは状態確認→手動再保存／破棄を提示。
+- **Q3確定**：通常のClient-side画面遷移とCommunity切替後も認証Session内のKey付きQueueを継続。PendingをFlushし、in-flight・Failureを保存。再訪時に購読し直してDraftとStatusを復元。Logout・Account切替後に他Userへ引き継がない。
+- **Q4確定**：Unknownでは自動再送しない。既存Queryで**Serverへ問い合わせて**現在値を確認し、ユーザーが**明示的な再保存操作**をしたときだけ最新Draftを新しい操作として送信。Server値がDraftと一致した場合は「現在の設定は希望値と一致」と表示できるが、旧Mutationの確定を証明したとは扱わない。旧Mutationが遅延確定する競合リスクはLWWの範囲で説明し、強い順序保証を偽装しない。
+- **残課題 Q5**：Browser終了・Reload時のWarning、永続Queueの要否。今回のSession Queue合意だけでBrowser終了後の保存は保証しない。
+- **残課題 Q6**：Statusの具体的な位置・保存済み表示保持時間・Accessible Announcementの更新頻度。Pending/Saving/Confirmed/Failureの意味・フォーム単位の表示・過剰通知回避は既に合意済み。
+
+### 実装できる状態遷移・操作の確定契約
+
+| State | Save Controller | Shell / Form | User Action |
+| --- | --- | --- | --- |
+| `confirmed` | Pending/In-flightなし。確定値を保持 | Previewは解除。Statusは保存済み（表示時間は後続仕様） | 通常編集 |
+| `pending` | 最新の有効PatchをCoalesce | 有効AccentはShell Preview。Formは最新Draft | 入力継続可能 |
+| `saving` | 送信Snapshot固定、続きはPendingへ | Previewは最新選択のまま。「保存中」 | 入力継続可能 |
+| `confirmed-with-more-pending` | 成功SnapshotのみBaseline更新、次を送信 | 新しいPreview/Draftを古いSuccessで戻さない | 不要 |
+| `rejected` | 自動再送停止。未保存Snapshot / 最新Draftを保護 | Shellは確定色へ。入力は保持。Field/Form Error | 修正、明示Retry、破棄 |
+| `unknown` | 新規送信停止。未確定Snapshotと後続Draftを区別 | Shellは直近の**確認済み**色へ。入力は保持。未確定Alert | Server状態確認→手動再保存／破棄 |
+| `blocked` | 認証/認可解消まで送信停止 | Shellは確定色。Draft保持。回復手順を表示 | 認証/権限を確認 |
+| `unmounted` | 認証Session Queueは停止・破棄しない | 旧画面は描画しない。旧Community Overlayは解除 | 再訪時に再購読 |
+
+- **色復元の根拠**：Confirmed AccentはMutation Successまたは確実に取得できた最新Queryを正本とする。Response未確認のMutation値やApolloへの楽観的なPreview書込をConfirmedとして扱わない。Confirmed値のRefresh更新は未保存Draftを消さない。
+- **Preview解除とDraft破棄は別操作**：Failure/Unknown時の解除はShellの見た目だけに作用する。Draftの破棄をユーザーが選んだときに初めてColorInputを現在Confirmedへ同期し、当該未保存Patchを解消する。
+- **Queue / Form ownership**：Session ControllerはPending/In-flight、再訪に必要な最新入力Snapshot、ErrorとConfirmed値を保持する。画面表示中のRHFがDraftの唯一の編集Ownerで、再Mount時はControllerから復元する。画面外でReact Stateを更新しない。
+- **結果未確定からの手動復旧**：Query照会失敗時はUnknownを保持して再取得を案内。照会成功後も自動再送を開始しない。再保存が選ばれた時点で**旧Snapshotではなく最新Draft**を使用し、同一Session Queueで順序を管理する。遅延旧MutationをServer側で排除する保証は今回設けない。
+- **コンテキスト境界**：Previewは現在のCommunityだけに描画。別Communityへ切替えても旧ContextのPending/In-flightは旧Keyで継続するが、Shell表示を横断しない。旧Communityへ戻った際の未保存Draft・エラー状態は復元し、保存失敗時のPreview自動復帰は行わない。
+- **Feedback**：自動保存成功Notificationは出さない。Rejected/Unknown/Blockedは修正操作・状態確認・Retry導線のある持続的なField/Form Alert。エラー発生時にFocusを奪わない。全Patchが確定するまで「保存済み」を表示しない。
+
+### 回帰テスト：確定Gate
+
+1. Previewが現在CommunityのShell、Switcherの当該Context表示、設定画面へ適用される一方、他Community・確定Apollo Stateへ混入しない。
+2. 保存失敗時にShellが確定色へ戻り、完全/不完全HEXのColorInput Draftと再試行対象が保持され、破棄を選ぶまで消えない。
+3. Unknownで旧Snapshotを自動再送せず、Query一致/不一致/失敗のいずれも手動再保存のみが送信を再開する。
+4. 通常画面遷移後もQueueが処理継続し、失敗時に保存して再訪で表示。旧画面へUnmount後のReact State更新がない。
+5. Community / Accountを切替えた後、旧KeyのResponse・Preview・Draftが新Contextに適用されない。
+6. AccentとAliasの同時PatchでField Ownershipを維持し、別Fieldの成功が後続Draftを壊さない。
+7. Success後Refetch失敗はConfirmedを取り消さず、Pending中に「保存済み」を表示しない。
+
 
 ## 実装単位とテストGate
 
