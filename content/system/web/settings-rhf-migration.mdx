@@ -483,6 +483,85 @@ Pending「保存待ち」、In-flight「保存中」、全て確定「保存済�
 4. Statusの表示位置・保持時間・読み上げ条件。
 5. Operation別のValidation ScopeとCodeの最終SDL、および重要Domain操作に適用する競合制御の境界。
 
+## 2026-11-02 詳細案：自動保存の回復・画面離脱・Accent Preview（最終UX判断待ち）
+
+この節は合意済みの**LWW・Field単位Patch・Hybrid Error・既存I/F直接改修**を前提とする。従前のRevision/CAS/3-way Merge案より優先する。下記の数値・継続範囲・Preview表示は**推奨する具体案**であり、明示合意まで確定契約とみなさない。
+
+### Shared Save Controllerの境界
+
+**推奨**：QueueはSettings Form Componentに閉じ込めず、認証Session内の長命なClient Controllerとして保持する。ただし全Formへ巨大な汎用State Machineを強制せず、共通の保存順序・Snapshot管理だけを抽出し、Formは表示とDraftのOwnerのままとする。
+
+- Personal Preferences Queue Key：ログインUser（当人のAccount同期Preferences）。Community Settings Queue Key：ログインUserとCommunity IDの組み合わせ。Contextを切り替えてもQueue間のSnapshot・応答・Errorを混在させない。
+- 保存する情報：`pendingPatch`（最新版のField値）、`inFlightSnapshot`（送信したField/値）、`confirmedFields`（Mutationから得た確定値）、`lastStatus`（pending/saving/confirmed/rejected/unknown/blocked）、必要なError情報。ControllerはDraftそのもののForm Ownerにはならない。
+- 同一QueueのMutationは**1 in-flight**。Pendingは400ms DebounceでCoalesceし、同Fieldの後続編集が先行Patchより優先する。Response到着と確定順の混同を避け、先行ResultのフルObjectを無条件に共有Cacheへwriteしない。
+- Community AccentとAliasは同一`updateCommunitySettings`を使用するが、AccentはAuto-save、AliasはManual Save。共通のField-aware Patch Commit / Cache Mergeを使い、**Aliasの成功応答で最新Accent Draft/Previewを巻き戻さない**。ただし保存トリガーやFeedbackは統合しない。
+- 同じUser/Communityへ戻ったとき、Controllerが未完了のSaveとFailureを保持していれば画面側がStatusを再購読し、編集Draftを安全に再構築できるようにする。戻った際の編集内容とサーバー再取得値の採用はPending/Unknownを優先保護する。
+- ログアウト・別アカウントログイン・明示的なContext破棄時はControllerを別Identityの操作へ流用しない。未完了Requestが後から返っても旧Identity/Contextにのみ紐づける。
+
+### Unknown OutcomeとRetryの状態遷移
+
+| Event | Controllerの状態 | 画面での動作 |
+| --- | --- | --- |
+| 有効な変更 | Pending（最新FieldをCoalesce） | Draft更新、控えめな「保存待ち」 |
+| Flush | In-flight（Snapshotを固定） | 「保存中」。後続編集は別Pendingへ |
+| `*Success` | Snapshot分のConfirmedのみ確定、後続Pendingを継続 | 古いResultでDraftを消さない。全て終了なら「保存済み」 |
+| `InputValidationFailure` / 明確な業務拒否 | Rejected、当該FieldのDraft維持 | Field / Form Error。再編集で更新 |
+| 確実に未実行と判定可能な一時失敗 | Retryable、Patchを保持 | 再試行可能なForm Alert。ユーザー起点Retryを基本 |
+| Timeout / Network断 / Response未確認 | Unknown、未確定Snapshot保持、Queueを停止 | 「保存結果を確認できません」。既存QueryのRefreshで現在状態確認 |
+| 認証切れ・権限不足 | Blocked、Queueを停止 | 認証・権限確認。無条件Retry禁止 |
+| Mutation成功後のRefetch失敗 | Confirmed、RefreshのみError | 保存成功を取り消さず、Refresh Errorを別扱い |
+
+**Unknownの復旧推奨**：新規Saveを一旦停止し、既存Queryを`network-only`等で再取得する（CacheをServer照会結果の代用にしない）。現在値が希望値に一致すれば**現在状態の一致**としてUIを回復可能。ただし当該Requestの実行成功と断定しない。値が異なる場合は最新DraftとServer値を提示し、ユーザーが改めて保存する導線を提供する。新たな保存操作に進む前に、遅れて届く旧Requestの書き込みが後勝ちになる可能性があるため、旧Requestがまだ実行され得る場合は**単純Refetchだけで完全な順序保証はできない**。厳密に保証するならRequest CancelのServer保証、Operation識別・結果照会、Keyによる再実行の排除等が必要。一般Settingsへこれらを標準導入するかは費用対UXで判断し、保証できないことを保証済みとして実装しない。
+
+**Retryable/Unknownを分ける基準**：Requestが確実に送信されていない等、保存不成立が識別できる場合のみRetryable。送信後のTimeout等はUnknown。LWWという性質だけで`retryable`に分類しない。自動再送・無制限Retryは導入しないことを基本候補とする。ユーザーによる再保存でも**後続Draftより古いSnapshotを再送しない**。
+
+### 画面離脱・Browser終了時の契約案
+
+| 境界 | 推奨動作 |
+| --- | --- |
+| Settings内Tab移動 / Client-side Route変更 | 長命ControllerがPendingをFlushして処理継続。Form unmount後もControllerが結果とFailureを管理 |
+| 同User/同Communityへ戻る | ControllerのPending/Unknown/Failureを画面へ再接続。Server値より新しい未保存編集を保護 |
+| Community切替 | 旧CommunityのControllerは旧Keyで処理継続、新Communityへ影響させない。旧Overlayは解除 |
+| Logout / Account切替 | 他IdentityへQueueを引き継がない。必要なら未保存の有無を案内。秘密情報を永続保存しない |
+| Tab終了 / Reload / Browser終了 | JavaScriptの非同期送信完了を保証できない。未送信・未確定があればBeforeUnload等の警告の是非を検討。Queueを安全に永続化する要件は別途判断 |
+| 保存結果が画面外で失敗 | Controllerへ持続的にFailureを保持し、Settingsへ戻ったときForm Alertで表示。Session内の全画面通知は乱発しない |
+
+`usePreferencesSave`の現行Cleanupにある`controller.flush()`だけでは、Unmount後のResult観測、Error追跡、Controller寿命を保証しない。長命Controller化する場合はMountごとにListenerをSubscribe/Unsubscribeし、React unmounted stateを更新しない。SingletonのUser/Context ScopeとCache Fragmentの責務を明示する。
+
+### Community Accent：Preview / Draft / Confirmedの区別
+
+- **Confirmed**：Serverが確定した`accentColor`。Apollo正規化Cacheはこの値の参照元とする。
+- **Preview Overlay**：有効HEXが入力された時点で即時表示できる一時色。**推奨適用範囲は現在選択中のCommunity Context Shell**（SwitcherのAccent表示を含むかは視覚仕様で明示）と設定画面。別Communityや永続Server Cacheには反映しない。
+- **Draft**：RHFが所有するColorInputの文字列。未完成HEXも保持。未完成値は保存しない、Previewは最後の有効色のまま。
+- **成功**：Mutation Resultの確定色をCacheへ反映。保存確定した選択と今のDraftが同じならOverlay解除。より新しいDraftがあればそのOverlay維持。
+- **確実な失敗 / Unknown**：推奨はOverlayを解除してShellの表示を最後の確定色へ戻し、ColorInputには最後のユーザー選択を保持すること。Form近傍に持続するFeedback Alertと「再試行」または「変更を破棄」。Unknownでは「未保存」と断定しない。破棄でのみDraftを確定色へ同期する。
+- **Context切替**：旧ContextのOverlay解除。旧Contextへ戻る場合は未保存Draft・FailureをControllerに保持するかどうかを別途決める。旧Contextの遅延結果を新Contextの表示へ適用しない。
+- AccentとAliasのPartial PatchはFieldごとの保存確定を区別し、片方の保存成功がもう片方のPreviewや未完了Draftを上書きしない。
+
+### StatusのPresentation案
+
+SettingsのPage Header付近にフォーム単位の小さなStatusを置く。値は「保存待ち」「保存中」「保存済み」「保存結果を確認できません」等。PendingとSavingの頻繁な切り替わりを読み上げないよう、`role="status"`を更新制限し、成功Notificationは省略する。保存済みは**全Pending/In-flightがなく、全対象Fieldの確定が確認できたときのみ**表示し、短時間で非表示とする案。エラーはForm Alert/Field Errorとして残し、Statusと重複しない。Compact/Medium/Wideで位置とFocus/AnnouncementをStoryで検証する。
+
+### 検証シナリオ
+
+1. A→B→Cの色連続変更中にAが成功し、CのDraft/Overlayが巻き戻らない。
+2. Accent in-flight中にAliasを保存しても、両方のPartial PatchとCacheの最新Fieldが残る。
+3. 画面Unmount後、保存成功/失敗がControllerに残り、再訪時に正しいStatus/再試行導線を表示する。
+4. Community ID/Account切替後、旧Requestは新Contextへ影響しない。
+5. Timeout後のRefetchが一致/不一致/失敗/遅延した各場合に、成功・未保存を誤断定しない。
+6. 最後の確定色への見た目復帰時に、ColorInputの未完成/未保存Draftを保持する。
+7. Pendingが残っているのに「保存済み」を表示しない。スクリーンリーダーへ保存中を過剰に読み上げない。
+8. Browser終了時の送信完了を保証していないことを前提に、警告/復元の選択結果と一致するBehaviorを検証する。
+
+### 最終合意が必要な項目
+
+- Q1：Preview Overlayは現在CommunityのShell全体まで反映するか、設定画面に限定するか（推奨：現在ContextのShell＋設定画面）。
+- Q2：失敗時、Shellを確定色に戻しつつColorInputのDraftを保持するか（推奨：保持＋再試行／破棄）。
+- Q3：Client-sideの画面離脱後もSession ScopeのQueueを維持し、戻ったときFailureを表示するか（推奨：維持）。
+- Q4：UnknownのRefetch不一致時の手動再送、値一致時の表示、旧Requestが遅れて確定するリスクをどの水準まで保証するか。
+- Q5：Browser終了/Reload時に未保存警告を出すか、永続Queueを設けない前提で通常終了を許すか。
+- Q6：Form Statusの正確な表示位置・保持時間・読み上げ規則。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
