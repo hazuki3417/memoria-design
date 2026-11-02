@@ -121,6 +121,12 @@
 - 保存中の連続選択は最後の選択値を処理する。Mutation失敗時は共有CacheとInputを最後の保存色へ戻す。Alias更新時のAccent保持、Accent更新時のAlias保持を保証する。
 - `isPreview`時は保存もContext更新も行わず、既存のプレビュー表示とStoryの挙動を維持する。
 
+## テストファイルの配置（追加合意）
+
+実装の主たる責務をテストの単位とし、Storyと同様に各実装ファイルの近傍でbasenameを対応させる。Schema Unit Testは`profileSchema.test.ts`、`communityAliasSchema.test.ts`、`communityNameSchema.test.ts`、`preferencesSchema.test.ts`、`communityAccentSchema.test.ts`とする。互いに独立したSchemaのUnit Testを`settingsFormSchemas.test.ts`のような画面単位の大きなテストファイルへまとめない。
+
+横断的な検証が必要なら、個別Unit Testの寄せ集めではなく、具体的な連携BehaviorやContractを検証するテストとして対象と配置を明確化する。テスト内容・期待値は分割によって削除・簡略化しない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
