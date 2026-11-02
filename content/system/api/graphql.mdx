@@ -135,35 +135,97 @@ Initial ReleaseではUpload可能なMediaはImageだけですが、Media model�
 
 ## Error契約
 
-Transport / Application errorは `errors[].extensions.code` をClientとの分類契約として使用します。
+### Hybrid Error Model（2026-11-02合意）
 
-| code | 意味 | 代表例 |
+GraphQLにおける失敗を**業務結果・実行/Request Error・通信上の未確定状態**に区分する。これはGraphQL仕様がUnionを強制するという意味ではなく、Memoriaの型安全な公開契約とForm UXのために採用する設計方針である。既存の「Transport / Application Errorはすべて`errors[].extensions.code`で表現する」という規則を、この節の境界に置き換える。
+
+| 区分 | 公開位置 | 意味 |
 | --- | --- | --- |
-| `UNAUTHENTICATED` | 有効な認証主体を確定できない | token失効、不正token |
-| `USER_REGISTRATION_REQUIRED` | 認証済みだがMemoria User未登録 | 通常Product操作 |
-| `USER_DELETING` | UserがDELETINGで新規操作不可 | Login後の通常操作 |
-| `FORBIDDEN` | 現在主体が閲覧可能なresourceに対して、許可されない操作を要求した | MemberによるCommunity設定変更、閲覧可能なMediaの権限外Original download |
-| `NOT_FOUND` | 対象が存在しない、または現在主体に閲覧権限がなく存在を秘匿する | 自身が閲覧可能だったresourceの消失、Community外Userによる非公開Community参照 |
-| `VALIDATION` | Inputが契約上の制約を満たさない | 空のname、pagination引数不正 |
-| `CONFLICT` | 現在状態と要求が競合する | 重複登録、最後のadmin降格、DAG循環 |
-| `RATE_LIMITED` | rate limitに達した | Invitation token確認 |
-| `INTERNAL` | Clientへ詳細を公開しない内部障害 | DB / Storage等の予期しない障害 |
+| 期待される業務上の失敗 | Mutationの型付きResult（必要な操作ではUnion） | 入力検証、修正可能な業務制約、競合など、正常に評価した結果として操作が成立しなかった |
+| Request / Execution Error | GraphQL `errors[]`（必要な`extensions.code`） | 不正なGraphQL文書/変数型、認証・認可、リソースの存在秘匿、Resolver/依存障害など、Operationが正常に完了しない |
+| Transport / Unknown Outcome | HTTP/Network状態およびClient管理 | Responseを受け取れない等、Mutationが確定したかどうかをClientが断定できない |
 
-**閲覧可否に基づく公開エラー**: 存在しない対象と、現在主体に閲覧権限のない非公開対象は、どちらも`NOT_FOUND`とし、存在の違いを公開しない。現在主体が閲覧可能な対象に対する管理・Original download等の権限外操作は`FORBIDDEN`とする。認証主体を確定できない場合は`UNAUTHENTICATED`を優先する。認可は操作時点で再評価し、Webは追加の存在確認やコードの独自変換を行わない。
+**境界原則**：
 
-**GraphQL Transport**: 上記は`errors[].extensions.code`の分類契約であり、GraphQL OperationのHTTP Statusを各コードの数値（403／404等）と同一にする契約ではない。GraphQL実行後のApplication Errorと、HTTP層で処理が拒否されるTransport Errorを区別する。HTTP StatusとGraphQL response bodyはAPI実装契約の検証項目とする。複数Field Errorの共通表示方針は後述の節に従い、画面ごとの必須／補助Field分類は画面詳細設計で定義する。
+- 期待される業務失敗はSchemaで表現する。すべてのMutationをUnion化するのではなく、そのCommandで定義すべきFailure分岐があるときだけ型付きResultを設ける。成功だけを持つMutationは通常のPayloadを使用できる。
+- Success Resultは操作の**確定した永続化結果**を返す。業務的なFailure ResultはそのCommandが書き込まれず拒否されたことを意味する。Bulkの部分成功は各Item Resultの契約を優先する。
+- 認証・認可・対象の存在秘匿・内部障害を通常の業務Resultへ混在させない。GraphQLの`errors[].path`はResponse上の失敗位置であり、Input FieldのPathではない。
+- Input Coercion / GraphQL型不整合はResolver実行前のRequest Errorであり、Domain Validation Resultではない。
+- GraphQL `data`と`errors`の同時返却、nullableのError伝播を許容するが、単一Mutationの成功PayloadとExecution Errorが混在した際の保存確定判定はOperationごとに定義する。応答がないことは保存失敗の証明ではない。
+- APIはUIのNotification種別・文言配置を返さない。Error Codeは安定した機械判定識別子とし、国際化・表示文言・表示位置はClientの責務とする。
 
-field単位で修正可能なvalidation detailはGraphQL errorの `extensions` に安全なfield識別子を含められますが、DB constraint名や内部実装情報は公開しません。
+### 型付きMutation ResultのSchema規則
 
-Bulk Mutationで一部Mediaだけが成立しないことはMutation全体のGraphQL errorにせず、Payload内のitem resultで表現します。認証失敗やMutation自体を実行できない障害は通常のGraphQL errorとします。
+```graphql
+type UpdateUserProfileSuccess {
+  profile: UserProfile!
+}
 
-### 実装引き渡し: API ErrorHandlerの差分（2026-09-30）
+type InputViolation {
+  inputPath: [String!]!
+  code: String!
+}
 
-`memoria-api/develop/graph/handler.go`の現行実装では、`UnauthorizedError`を`UNAUTHORIZED`へ変換し、User Serviceの`ErrUnauthenticated`、`ErrValidation`、`ErrConflict`をそれぞれ`UNAUTHENTICATED`、`VALIDATION`、`CONFLICT`へ変換している。設計正本の`FORBIDDEN`／`NOT_FOUND`／`INTERNAL`等の統一変換は未確認であり、実装済みとは扱わない。
+type InputValidationFailure {
+  violations: [InputViolation!]!
+}
 
-- API実装時は、既存`UNAUTHORIZED`／`BAD_REQUEST`等の定数・呼び出し箇所との互換性を棚卸しし、設計正本の公開コードに合わせる。公開Messageは内部例外の本文をそのまま渡さず、安全な固定文面へ変換する。
-- 非公開リソースへの閲覧不可と不存在は同じ`NOT_FOUND`として公開する。閲覧可能なリソースへの操作権限不足は`FORBIDDEN`とする。認証失敗を存在秘匿404へ変換しない。
-- ErrorHandlerの単体テストに加え、GraphQL経由で`errors[].extensions.code`、公開Message、HTTP Status、内部情報非露出を検証する。複数Field ErrorやBulk item resultの契約を混同しない。
+type DomainRuleFailure {
+  code: String!
+}
+
+type StateConflictFailure {
+  code: String!
+}
+
+union UpdateUserProfileResult =
+    UpdateUserProfileSuccess
+  | InputValidationFailure
+  | DomainRuleFailure
+  | StateConflictFailure
+
+extend type Mutation {
+  updateUserProfile(input: UpdateUserProfileInput!): UpdateUserProfileResult!
+}
+```
+
+上記SDLは**型と意味の設計例であり、現時点の実行可能Schemaや全Mutationの確定SDLではない**。例示したFailure型を一律に追加せず、各操作で現実に発生し得る業務Failureのみを列挙する。具体的な公開名・Code/Enum・各MutationのResult構成は後続のOperation別設計で確定する。必要があれば共有可能なFailure型を使うが、共通化のために独立したBusiness Ruleを曖昧にしない。
+
+- Input Validationは1件以上のViolationで修正対象を示す。`inputPath`はMutation Input Object内のパス（例：`["nickname"]`）であり、複数入力にまたがりFieldへ帰属しないErrorはForm LevelのFailureとして定義する。内部DB名・非公開resource情報を露出しない。
+- `code`はMachine-readableなReasonを意味し、Messageの一致検査に依存しない。ClientはCodegenにより`__typename`を判別し、必要なField ResultをType Safeに処理する。
+- State Conflictは競合元や現在状態の開示が認可上安全な場合だけ詳細を返す。最新状態の再取得・再入力・再送などの回復手段はCommand単位の契約で定める。
+- Bulk Mutationの部分成功は従来どおりPayload内のItem Resultとし、個別FailureをMutation全体のExecution Errorへ変換しない。
+
+### GraphQL Request / Execution Errorの公開規則
+
+`errors[].extensions.code`は、GraphQL Request / Executionの失敗をClientが安全に識別するために使用する。Domain Failureをすべてこの層へ戻さない。
+
+| code | 意味 | 主な扱い |
+| --- | --- | --- |
+| `UNAUTHENTICATED` | 認証主体を確定できない | 再認証・Session確認 |
+| `USER_REGISTRATION_REQUIRED` | 認証済みだがProduct登録前 | 登録導線 |
+| `USER_DELETING` | Userが通常操作を実行できない状態 | 操作継続不可 |
+| `FORBIDDEN` | 閲覧可能な対象に対する操作権限がない | 操作停止・権限確認 |
+| `NOT_FOUND` | 対象不存在、または権限のない対象の存在秘匿 | 対象確認。存在有無を漏らさない |
+| `RATE_LIMITED` | Rate Limit | 制限中の案内。Retry可能時刻等は明示契約がある場合のみ |
+| `INTERNAL` | 安全な内部障害分類 | 技術詳細を隠蔽し、結果確認が必要なMutationではUnknown Outcomeを考慮 |
+
+**公開コードの最終確定はAPI実装引き渡しで行う。** `INTERNAL`と現行`INTERNAL_SERVER_ERROR`、現行`UNAUTHORIZED`等の不一致を整理し、Schema設計・Presenter・Integration Testを一致させる。旧来の`VALIDATION`・`CONFLICT`は業務Resultへの移行対象だが、GraphQL Request Coercion等に由来するRequest ErrorとDomain Validationを混同しない。Reasonが業務失敗であると確認できる場合にだけResultへ写像する。既存公開Error Codeは明示的な移行計画なしに削除しない。
+
+**閲覧可否に基づく公開エラー**：存在しない対象と現在主体が閲覧権限を持たない非公開対象は、どちらも`NOT_FOUND`として扱い、存在差を公開しない。現在主体が閲覧可能な対象への権限外操作は`FORBIDDEN`、認証主体を確定できない場合は`UNAUTHENTICATED`を優先する。
+
+**Transport**：GraphQL ResponseのHTTP Statusは`extensions.code`をHTTPの403・404等へ機械的に変換する契約ではない。Request Parse/Validation、Execution、HTTP Failureを分けて設計・試験する。Network Timeoutや通信断はError Codeが返ったものとみなさず、ClientのUnknown Outcomeで管理する。
+
+**結果未確定と再送**：Unknown Outcomeはサーバーから`UNKNOWN_OUTCOME`が返るケースもあり得るが、一般にはClient側の知識状態である。再送してよいかはCommandの冪等性、監査・Event等の副作用、Idempotency Key / Version / 事後照会の契約で判断する。設定値のSet操作でも、最終値が等しいことだけで再送の全副作用が安全とは限らない。Mutationの確定Successと後続Refetch失敗は独立したResultとして扱う。
+
+### 実装への引き渡しと現行実装との差分（2026-11-02）
+
+現在の`memoria-api/develop/graph/handler.go`は`UNAUTHENTICATED`／`VALIDATION`／`CONFLICT`／`FORBIDDEN`／`NOT_FOUND`／`UNKNOWN_OUTCOME`／`INTERNAL_SERVER_ERROR`などを`errors[].extensions.code`へ返しており、ここで確定したHybrid Modelとはまだ一致しない。特にDomain Validation / ConflictのResult型、Field Pathの帰属、API公表Codeの正規化は未実装である。
+
+- APIの設計正本を変更した後、実行可能`schemas/graphql/*.graphql`、gqlgen、Error Presenter、Domain Error分類、GraphQL Integration Testを同じContractへ移行する。
+- WebはGraphQL CodegenによるMutation Resultの型付き分岐と、Execution Error / Transport Errorの個別処理を持つ。既存の`Promise<boolean>`やConnection層の通知発火はFeature Form OwnerのFeedback契約へ置き換える。
+- 既存Media Group / Bulkの部分成功・Reason表現、Account・Community削除などの冪等性と認可契約は影響分析してから移行する。既存UI / Behaviorを変更する箇所は個別にテストし、黙って簡略化しない。
+- 既存の画面/UIが`errors[].extensions.code`だけを参照している間は移行期の互換性を明記し、一括置換で意図しないError表示を生まない。
 
 ### 複数GraphQL Field ErrorのWeb表示
 
