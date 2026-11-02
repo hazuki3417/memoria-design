@@ -966,3 +966,12 @@ type PageHeaderProps = {
 - UI、文言、操作、Accessibility、Responsive、Storybookの既存契約が維持される。
 - Preview / Production両Contextの画面状態が意図せず変わらない。
 - 対象の変更はSettings Featureに限定され、必要なGitHub Actionsの結果が成功する。
+
+### 2026-11-02 SaveStatus Timing候補の検証用実装（未適用）
+
+`memoria-web/feat/save-feedback-presentation` の `SaveStatus` に、`timing?: { savingDelayMs?, savedDurationMs?, savingAnnouncementMs? }` を**任意**で追加した。各値を省略した既存Consumerは従来どおり即時描画・保存成功遷移だけの読み上げ（`announce`が明示された場合）を維持する。
+
+- Saving遅延中は前回の`saved`表示を維持せず`idle`表示（レイアウト予約は残る）とする。Timerは状態変更・Unmountで解除される。
+- Saved消灯は表示専用の`idle`遷移であり、Controllerの保存確定値を変更しない。新しい状態が来た場合は消灯Timerをキャンセルする。
+- 長時間Savingの読み上げは`announce`かつ`savingAnnouncementMs`指定時のみ。Failureの読み上げは既存の持続Alertへ委譲する。
+- `TimedPresentationCandidate` Storyに**検証用候補値**300ms / 2000ms / 2000msを設定。値はまだUX合意されておらず、本番のSettings Consumerへは渡さない。Story/VRTで評価後に秒数と適用範囲を合意する。
