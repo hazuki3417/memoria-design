@@ -1,0 +1,129 @@
+# Personal / Community Settings：React Hook Form移行詳細設計
+
+> 状態：実装前詳細設計。2026-11-02に合意済みの原則と、実装前に確認する提案を区別する。対象コードは`memoria-web/develop`（2026-11-02時点）。
+>
+> 本文はPersonal / Community ContextのSettingsのみを対象とする。Media Detail、Account Registration等の他Featureへの展開は含まない。
+
+## 目的・正本
+
+- `content/system/web/implementation-conventions.mdx` のState Ownership・Form規約をSettingsへ適用する。
+- FormのDraft / Dirty / Field ValidationをReact Hook Form（RHF）で一元管理し、Apollo ClientをGraphQL Server Stateの共有表現とする。
+- 保存順序、Debounce、Mutation、Cache更新、Rollback、Retryなどの既存振る舞いとUI / Responsive / Storybook Contractを維持する。
+- 新しいSettings UIや汎用Form Frameworkの構築ではなく、既存実装の責務抽出として進める。
+
+### 合意済み
+
+1. 各フォームを独立したRHF Formとして管理する（Page全体・複数Contextで単一のFormを共有しない）。
+2. 既存Queue、Mutation、Rollbackを維持し、入力値管理の責務のみRHFへ移す。
+3. 移行順序：Personal Profile → Community Alias → Community Name → Personal Preferences → Community Accent。
+4. 変更前後のVisual / Behavioral / Responsive Contractを維持する。既存のCapabilityを共通化のために削除しない。
+
+## 現行の責務と移行境界
+
+| 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
+| --- | --- | --- | --- | --- |
+| Personal Profile | `SettingsProfile` の `name`/`saved` | `SettingsProfile`→`usePersonalSettingsActions` | nicknameのDraft、基準値、Dirty、必須Validation | 保存ボタン、通知、retryable / blocked、Apollo Mutation・refetch |
+| Community Alias | `CommunityAliasControl` の `draft` | `ConnectedCommunityPreferences` の `onSave` | Alias Draft、Dirty、100 Unicode code point上限 | 空欄解除、成功通知、失敗時Draft保持、Cache更新・best-effort refetch |
+| Community Name | `useCommunityNameSettings` の `name`/`draft` | `useCommunitySettingsActions.onSaveName` | name Draft、基準値、Dirty、必須Validation | Admin制約、保存ボタン/通知、Mutation、MyCommunities refetch |
+| Personal Preferences | `useUserPreferences` の `preferences`/`accentDraft` | `usePreferencesSave`→`createPreferencesSaveQueue`→Apollo Mutation | 編集中Field、ColorInputの未完成入力、Field更新とPatch作成 | 400ms Debounce、Patch結合、直列化、失敗後の値保持・retry、画面離脱時Flush、blocked |
+| Community Accent | `CommunityPreferencesContent` の `draft` + `ConnectedCommunityPreferences` の `accent` | 接続側 `flush`/Apollo Cache | HEX Draftのみ | Preview、valid HEXだけ即時Context反映、最新選択の直列保存、失敗時最後の保存色へ復元 |
+
+実装上の既存Component API・表示文言・ARIA・Props・Storyの契約は原則維持する。Field Componentに`control`、`UseFormReturn`等のRHF型を漏らさず、Form所有者で`Controller` / `useController`を使用して`value` / `onChange` / `error`等の既存Propsへ射影する。既存表示Component自身がフォーム所有者なら、その内部にRHFを持ってよい。機械的なComponent増加は行わない。
+
+## 共通実装ルール
+
+### 初期値と同期
+
+- `useForm<FormValues>({ defaultValues: ... })` に初期Server Snapshotまたは既存Story Fixtureを渡す。RHFの`defaultValues`は通常の再Renderだけでは自動更新されないため、同期が必要な場合はフォーム単位で明示する。
+- Dirtyの意味は現行契約が優先。現行がTrim/正規化後に比較するFieldでは、RHFの生の`isDirty`をそのまま保存可否に転用しない。`getValues`・`useWatch`で値を取得し、Pure Functionで正規化した値を保存基準値と比較して導出する。
+- 保存成功時は確認済みServer Response / 保存対象の値を基準に`reset`を検討する。ただし、保存中の新しいユーザー入力を上書きしない。入力が凍結される明示保存フォームと、操作が継続する自動保存フォームとで同期方法を分ける。
+- Apolloの`cache-and-network`再取得のたびにDraftを無条件`reset`しない。現在の同期挙動に変更が生じる場面は「未決定事項」に記す。
+- Field ValidationとServer保存失敗は別物。RHFの`errors`は入力制約を中心とし、`retryable`/`blocked`/保存中・通知は現行のInteraction Stateと表示契約を維持する。
+- React Hook FormはApollo Cache、Mutation実行順序、Queue、Context AccentのAuthorityを所有しない。
+- `mode`・Validation表示時機・`onBlur`等は既存UIのError表示時機を回帰条件として選択する。初回表示で空欄エラーが出るStoryなどを消さない。
+
+### TextInputの接続
+
+- `Controller`でMantineのControlled Inputへ`field.value`/`field.onChange`を橋渡しする。可能なら`field.ref`/`field.onBlur`も接続し、Focus / Accessibilityを維持する。
+- Trim、空欄許容、Unicode code point等のドメイン判断はPure Functionで行う。必要に応じて`rules.validate`へ渡すが、Serverからの制約強化を推測で追加しない。
+- Save前のGuardは入力Validity、正規化後Dirty、権限、保存中/blockedから導出する。重複したBoolean Stateを増やさない。
+
+## フォーム別詳細
+
+### Phase 1：Personal Profile
+
+**対象**：`src/features/settings/profile/SettingsProfile/SettingsProfile.tsx`。接続APIは`SaveProfile = (nickname: string) => Promise<void>`を維持。
+
+- `useForm<{ nickname: string }>`。既存`initialNickname`、`initialSaveState`、`blockedMessage`をそのまま受け取る。
+- 現行Storyの`initialSaveState === saving / retryable-error`で初期Draft末尾に「新」を付ける振る舞いを維持。
+- `normalized = nickname.trim()`、`invalid = normalized.length === 0`、`dirty = normalized !== savedBaseline`とする。RHFの`formState.isDirty`だけではTrim同値判定を代替できない。
+- 保存中/blockedは既存どおり入力不可。保存成功時に`onSave(normalized)`の解決後、基準値を更新し`reset({ nickname: normalized })`する。
+- 失敗時はDraftを保持し、`retryable-error`または`blocked`を表示する。保存成功通知、文言、Buttonの`更新/再試行/更新中`、disabled条件は変更しない。
+- 回帰：Trimだけの変更は保存可にしない、空白のみの入力、成功・失敗・blocked・Story初期状態。
+
+### Phase 2：Community Alias
+
+**対象**：`src/features/community-settings/CommunityAliasControl/CommunityAliasControl.tsx`。接続`onSave(alias: string | null)`を維持。
+
+- `useForm<{ alias: string }>`。`savedAlias ?? ""`を初期値とし、入力中はstringで管理する。APIへ渡す時だけ`trim()`後の空文字を`null`へ変換する。
+- `Array.from(normalized).length > 100`を既存どおりの無効条件とし、UTF-16 lengthに置き換えない。
+- 保存可否は`normalized !== (savedAlias ?? "")`、`!saving`、`!invalid`。成功時にDraftを解放・次の表示をServer値へ同期するが、Mutation成功前にDraftを消さない。
+- 保存失敗ではDraftとエラー表示を保持し、後続入力時にエラーを消す。既存の成功通知・入力のdisabled・Alias解除契約を保持。
+- `savedAlias`更新時の`reset`と入力中Draft保護は、現在の`draft ?? savedAlias`の振る舞いを比較して実装する。保存結果を未確認のうちに新しい値を保存済み扱いにしない。
+
+### Phase 3：Community Name
+
+**対象**：`src/features/community-settings/useCommunityNameSettings.ts`と`CommunityNameSection`、Consumerの`CommunitySettings`。
+
+- `useForm<{ name: string }>`を既存のForm state ownerに置く。現在の`draft` / `setDraft` / `invalid` / `dirty` / `savingName` / `saveName`として公開される意味的Propsを基本的に維持する。下位SectionへRHF固有APIを渡さない。
+- `normalized = name.trim()`、`invalid = !normalized`、`dirty = normalized !== savedName`。Admin以外は入力不可、保存ボタン非表示を維持。
+- `onSaveName(updated)`の戻り値trueだけを成功として保存済み基準値を進める。falseでは保存済み扱いしない。Mock/PreviewでCallbackがない場合の既存成功表示は保持する。
+- 現行`useEffect([communityName])`はServer側名の変化でDraftまで上書きする。RHF移行で`reset`するときの同一挙動と、編集中の値を保護する改善案のどちらにするかは仕様変更の可能性があるため、実装前に明示確認する。
+- `onSaveName`がrejectした場合の既存`finally`経路など、未処理例外を含む既存挙動を先にテストで可視化し、仕様変更を無断導入しない。
+
+### Phase 4：Personal Preferences
+
+**対象**：`useUserPreferences`、`SettingsPreferences`。既存`usePreferencesSave`・`preferencesSaveQueue`・`usePersonalSettingsActions.savePreferences`は維持。
+
+- RHFは`UserPreferences`に相当する入力Fieldsを所有し、特にColorInputの未完成HEX入力は表示専用のDraftとしてForm内で所有する。`useState(preferences)` / `useState(accentDraft)`は撤去する。必要なFieldの追加構造は実装時に型名を決定する。
+- Date Format、File Size、Thumbnail、Navigation Wrap、初期情報表示の選択イベントで、RHFのField値を更新し、同じ有効値の単一Field Patchを既存Queueへ`enqueue`する。全値を送る`handleSubmit`や`watch`→`useEffect`での保存トリガーへ置き換えない（初期同期や`reset`で意図しない保存を起こさないため）。
+- ColorInputは不完全HEXを表示保持し、有効な`/^#[0-9a-fA-F]{6}$/`に達した場合だけ`personalAccentColor`のUppercase Patchを送る。既存の`changeAccentDraft`相当の契約を維持する。
+- 既存400ms Debounce、Patch結合、in-flight中の追加変更、失敗値と後続値の結合、`retry`、unmount`flush`、`blocked`を変更しない。
+- 保存成功Responseで新しいDraftを上書きしない。自動保存中に入力したFieldを保護する。Dirtyの基準値をどう扱うかはRHF内の表示要件の有無を踏まえ、保存済み値を別の可変RHFフォームとして二重所有しない。
+- Mantine `useMantineColorScheme`のTheme選択はRHFへ移さない（現行の管理主体と保存方式を維持）。
+- 既存`createPreferencesSaveQueue`のUnit Testを回帰基準とし、RHF接続の追加テストで「入力→Patchが一度だけEnqueueされる」「初期化/Reset時にはEnqueueされない」「無効HEXはEnqueueされない」を検証する。
+
+### Phase 5：Community Accent
+
+**対象**：`CommunityPreferencesContent`、接続側`ConnectedCommunityPreferences`の境界。Aliasとは別フォーム。
+
+- `CommunityPreferencesContent`のColorInput Draftを`useForm<{ accentDraft: string }>`で所有する。`setAccent`の既存PropsとPreview契約は維持し、HEX正規表現を満たす入力だけ接続側へ通知する。
+- 接続側の`saved`、`desired`、`inFlight`、`active`、`flush`、Apollo `readFragment/writeFragment`は保存状態のControllerとして維持する。RHFへ移管しない。
+- `accent` Propsが保存成功・Rollback・外部Server更新によって変化した時の`reset`は、現行`useEffect([accent])`のDraft同期契約と整合させる。ただし未完成のHEX入力を無関係なRenderで破棄しない。
+- 保存中の連続選択は最後の選択値を処理する。Mutation失敗時は共有CacheとInputを最後の保存色へ戻す。Alias更新時のAccent保持、Accent更新時のAlias保持を保証する。
+- `isPreview`時は保存もContext更新も行わず、既存のプレビュー表示とStoryの挙動を維持する。
+
+## 実装単位とテストGate
+
+1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
+2. 次にそのPhaseのフォーム入力StateだけRHFへ移し、保存ControllerとGenerated Hookには不要な変更を加えない。
+3. Phaseごとのコミットは単一目的に限定する。手動コミットには現在のユーザー指示に従って`[skip ci]`を付ける。ユーザーがCI起動を指定したコミットのみ外す。この一時的な実行指定は恒久的な設計規約ではない。
+4. Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js BuildをPR上で確認する。少なくともCompact / Medium / Wideで既存Storyと画面レイアウトを比較する。
+5. 未解決の仕様変更は実装側で決めず、合意を得てから変更する。PR作成・マージは別途明示的承認が必要。
+
+## 未決定・実装前の合意事項
+
+以下は実装詳細としての推奨であり、上記4点の合意済み原則から勝手に仕様変更を導かない。
+
+1. **サーバー再取得中の未保存Draft**：Community Nameは現状、`communityName` Props変更時にDraftを上書きする。既存どおり上書きするか、Dirty中は保護するか。後者はUX改善だがBehavior変更のため別途合意が必要。Personal Profile / Aliasでも外部変更への同期条件を明示する。
+2. **保存中にContext / IDが変化した場合**：新しいContextの初期値が旧フォームのDraftへ混入しないよう、Form instanceのscopeと初期化条件を整理する。現状と異なる強制Reset / 再送ルールは無断追加しない。
+3. **Personal Preferencesの「保存済み基準値」とRHF Dirtyの扱い**：現在、PreferencesのDirtyをユーザーへ表示していない。RHF DirtyをUI・保存条件として新規導入せず、入力Fieldの変更イベントからPatchを生成する方式を第一候補とする。
+4. **既存実装の不整合・潜在不具合の扱い**：Community Name保存reject時の表示や、保存中の外部再取得等の既存問題はRHF移行に混ぜて黙って修正しない。回帰と改善を分けて合意する。
+
+## 実装後の完了条件
+
+- 5フォームの編集中Stateがそれぞれ独立したRHFに管理され、同一意味のDraftをReact local stateへ二重保持していない。
+- 既存Queue / Mutation / Cache / Retry / RollbackのBehaviorが維持される。
+- UI、文言、操作、Accessibility、Responsive、Storybookの既存契約が維持される。
+- Preview / Production両Contextの画面状態が意図せず変わらない。
+- 対象の変更はSettings Featureに限定され、必要なGitHub Actionsの結果が成功する。
