@@ -438,6 +438,41 @@ APIのError ContractをHybrid Modelへ更新する際、**互換用の新Mutatio
 
 **未確定**：Operation名（特にCommunity名変更）の最終整合、Violation Codeの具体値、Cross-field表現、同時編集Precondition、Unknown Outcome回復、自動保存UX。これらの未合意事項はWeb側で補完しない。
 
+## 2026-11-02 詳細設計：複数Field検証・同時編集・結果未確定（判断待ち）
+
+正本：`content/system/api/graphql.mdx` の「Cross-field Validation・同時更新・Unknown Outcome：詳細設計案」。本章は既に合意したHybrid Model、既存Operationの直接改修、Form Feedback UXから導出した**後続の設計案**であり、OCC導入範囲や自動再送を確定したものではない。
+
+### Field / Field Group / Form Error
+
+- APIの`InputViolation`を`scope: FIELD | FIELD_GROUP | FORM`、`inputPaths`、機械可読な`code`へ改める候補とする。従来の単一`inputPath`とは差し替えであり、両形式を並存させない。
+- FIELDは既知のFieldのError、FIELD_GROUPは関連項目を示しつつField群近傍またはForm Alert、FORMはForm Alertへ対応させる。Field GroupのすべてのInputへ同じ文言を重複させない。
+- 未知のPath / Codeは安全なForm AlertにFallbackする。Validationが未操作時に赤くならないUX、Blur・Submit後の提示を維持する。Serverから返る入力拒否は応答後に明示する。
+
+### Concurrent UpdateとForm Draft
+
+- 手動保存・自動保存とも、`Draft`、`送信Snapshot`、`Confirmed Baseline`、必要な`revision`を別の意味として保持。通信中に新しく入力した値は過去のMutation Responseで上書きしない。
+- 同一Client Queueの直列化は別端末のLost Updateを防げない。必要なAggregateではServerのAtomic Precondition（Expected Revision）を採用する候補とするが、全Settingsへ一律に導入しない。
+- OCCを採用した自動保存でConflictが発生した場合、Queueを一旦停止。既存QueryのRefreshで現在値を得て、Fieldごとの差分と未保存Draftを保護し、操作に応じた解決導線を出す。根拠なく旧Patchを再送しない。
+- 同一Aggregateの別Field変更でもRevision Conflictが起こり得るため、より細かいRevision / Patch Merge / Last Write WinsとのUX比較が必要。
+
+### Unknown Outcomeと再送
+
+- TimeoutやResponse未受信は「未保存」と断定しない。現在状態のRefetchと当該Requestの成立証明は区別する。Status文言は`保存結果を確認できませんでした`等、確定していないことを明示する。
+- APIが再送安全性を保証するSet操作であれば再取得後の差分を確認して再送する候補がある。副作用を伴うOperationはIdempotency Keyや操作固有の照会契約を優先し、無条件の自動Retryは禁止。
+- Mutation Success後のRefetch失敗は保存成功として扱い、データ再取得失敗を別に表示する。Userが対処を要するErrorは持続的なForm Alert、背景更新の失敗は非ブロックFeedbackを基本とする。
+
+### Settingsの確認ポイント
+
+| Form | 要確認 |
+| --- | --- |
+| Personal Profile | 保存中のProps再取得、送信Snapshotとの競合、明示保存の結果不明 |
+| Community Name | 別管理者による名称変更とRevision Conflict、Form Alertの導線 |
+| Community Alias | Alias解除(`null`)と同値更新のRevision、Conflict時のDraft |
+| Personal Preferences | Field単位PatchとAggregate Revision、Queue中の後続入力、Refetch・Dirty解消 |
+| Community Accent | 連続選択、即時Preview、Conflict / Unknown時のRollbackと再試行 |
+
+これらはBackendのSchema・TransactionとWebのFeedbackの一体的な契約として確定し、必要なIntegration / Storybook Interactionを追加する。互換用Mutation / Queryの追加は行わない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
