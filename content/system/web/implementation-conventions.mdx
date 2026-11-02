@@ -664,6 +664,22 @@ Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValid
 - Contextが切り替わったら新しいContextの初期値へ切り替え、旧ContextのDraft・保存対象を混在させない。厳密な多端末競合制御が必要になった場合は、Formの共通FrameworkではなくBackendとの更新契約を含めて個別に設計する。
 - 新しい汎用Form State Machine、Cache同期Layer、共通Controllerは作らない。同期・保存のContractは各Featureに近い場所で実装し、未編集・編集中・保存成功・失敗などを対応するInteraction Testで検証する。
 
+### Form Feedback / Validation UX（2026-11-02合意）
+
+FormのFeedbackはHTTP StatusやApollo Cacheの状態から機械的に表示を決めず、**結果の意味、利用者が次に取るべき行動、情報を保持する必要がある時間**に基づき判断する。Result Classification → UX Policy → Presentationの責務を分ける。
+
+- **明示的な単発保存の成功**：原則、成功Notificationを一度表示する。削除・除外等の重要な完了も結果を知らせる。自動保存、検索・絞り込み、プレビュー、結果が直接明白な軽量操作ではNotificationを乱発しない。自動保存は必要な保存中・保存済み状態をフォーム単位の簡潔なInline Statusとして表す。
+- **Field Validation / Server Field Validation**：特定のFieldを修正することで解決する問題は、そのFieldに紐づくErrorとして表示する。Cross-fieldは原因と修正先に応じて関係Field群の近傍またはForm Errorとし、同じ説明を重複させない。
+- **Form全体のValidation / 業務制約 / 保存失敗**：フォーム内で修正や再試行が必要なら、フォームに残るForm Alertとして表示する。通常は入力を失わせず、原因と可能な次の行動を明記する。Toast / Notificationだけに依存しない。
+- **操作不可・認可・認証の失敗**：一時的な通信失敗とは区別し、無意味な再試行を促さない。権限再確認・画面再読み込み・認証遷移など、利用可能な操作を案内する。
+- **結果不明**：通信失敗等で保存の成否が確定しない場合、「未保存」と断定しない。重複実行の影響を考慮し、必要に応じて再取得・状態確認を優先する。
+- **背景の再取得失敗**：表示済みデータを利用し続けられる場合は非ブロックのNotificationまたはStatusとし、初期取得が不可能ならPage Errorにする。
+- **表示の重複を避ける**：同一失敗についてField Error・Form Alert・Notificationで同文を重ねず、必要な持続性と場所を満たす主要な表示先を決める。支援技術への通知、Focus、Errorとの関連付けも含めて設計する。
+- **Validation表示タイミング**：初期表示で未操作のFieldへエラーを示さない。基本はBlur後、Submit時に表示し、表示済みのエラーは入力変更に追従して再検証する。内部の妥当性判定・保存可否と利用者へのエラーメッセージ提示は分離する。
+- **保存状態**：手動保存は保存中・成功・再試行可能な失敗・操作継続不可・結果不明を区別する。自動保存は編集のたびに成功通知せず、未確定の入力・順序・保存結果を保護する。Promise rejectを未処理で放置しない。
+- **自動保存失敗時のRollback**：自動保存という理由だけで一律にRollbackしない。UIへの即時反映と確定値との関係、ユーザーの再試行負担に基づき、入力を保持するか表示値を復元するかをFeatureごとに選択する。選択が確定していないFeatureは既存契約を黙って変更しない。
+- **実装の境界**：GraphQL / Applicationの意味的ErrorをFeatureへ渡し、FeatureのForm Ownerが表示方法を選ぶ。HTTP codeや例外文言をUIで直接解釈しない。すべてのFormへ汎用Result型・共通State Machine・新しいFactoryを先行導入しない。
+
 ### FormのDefault Values（2026-11-02合意）
 
 - RHFの `defaultValues` はForm所有者が入力時点のContext / Server Snapshot / UI要件から決定し、原則その場で直接指定します。Zod SchemaはValidationと正規化の責務に留め、RHFの初期値を生成するためだけに `.default()` / `.prefault()` を追加しません。欠落データに対するParse契約として必要なZodのDefault機能は禁止しません。
