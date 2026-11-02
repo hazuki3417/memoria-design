@@ -416,7 +416,7 @@ mutation SaveProfile($input: UpdateUserProfileInput!) {
 
 1. `memoria-api`：User / Community ServiceでDomain Validationを構造化し、Resolverで対応するFailure Resultへ変換する。認証・認可・存在秘匿・予期しない障害はError Presenterへ残す。gqlgen Union Resolver / generated modelとAPI Integration Testを更新する。
 2. `memoria-web`：GraphQL OperationとCodegenの変更に追従し、Connection LayerでResultを意味情報へMapping。Feature FormがField / Form Error、Success Notification、保存中・未確定Statusを選択する。Apollo Mutation Responseの部分データ・GraphQL Error Policy、Cache更新とRefetch失敗を独立に検証する。
-3. 移行：`renameCommunity`から`updateCommunity`、従来PayloadからResult Unionへの変更はGraphQLのBreaking Change。API/Clientの同時展開または互換期間を明記する。既存ConsumerとMutation依存を列挙し、Codegen / Typecheck / API Contract Test / Interaction / VRT / Buildで検証する。
+3. 移行：`renameCommunity`から`updateCommunity`、従来PayloadからResult Unionへの変更はGraphQLのBreaking Change。互換期間・旧I/F併存・互換レイヤーは設けず、APIとWebの新契約への移行を完了してから切替手順を確認する。既存ConsumerとMutation依存を列挙し、Codegen / Typecheck / API Contract Test / Interaction / VRT / Buildで検証する。
 4. APIのエラー公開Codeの統一（`INTERNAL`等）と、`InputViolationCode`の最小集合はOperationの実際のDomain Validationを棚卸しして確定する。全DomainのFailure分類を一度に推測で確定しない。
 
 #### 最終合意を要する判断
@@ -425,7 +425,7 @@ mutation SaveProfile($input: UpdateUserProfileInput!) {
 - **J2：Violation Code・Input Path**：Enumを採用するか、拡張可能なString Codeを採用するか。推奨は安定した分類はEnum、将来拡張時はClientにFallback、Operation固有Reasonは固有Enum。
 - **J3：同時更新（2026-11-02更新）**：一般SettingsはLWWで確定。重要Domain Operationだけ個別のRevision / Preconditionを検討する。現行の直列Queueは同一Client内の順序を保証する。
 - **J4：Unknown Outcome回復**：操作別に、状態照会・再送・Idempotency Keyの要否を確定する。全MutationへのKey導入は推奨しない。
-- **J5：Migration**：Web/APIの非互換SDL変更の移行期間と対応順。合意なく本番GraphQL契約を切り替えない。
+- **J5：切替**：旧I/Fを維持する移行期間は設けない。新SchemaとWeb Consumerの双方を完成させて検証し、実際の本番切替手順・Releaseのみ別途承認を得る。
 
 ### Cross-field Validation・同時更新・Unknown Outcome：詳細設計案（2026-11-02、選択事項は合意待ち）
 
@@ -1614,3 +1614,7 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 - Cross-field / Form-level Input Violationは`InputViolationScope`（`FIELD` / `FIELD_GROUP` / `FORM`）と`inputPaths: [InputFieldPath!]!`を採用し、旧候補の単一`inputPath`は採用しない。Field Pathは`segments: [String!]!`とする。汎用Violation Codeの最終Enum集合と操作別Validation mappingは引き続き設計対象。
 - 既存`renameCommunity`は`updateCommunity`へ置換し、旧Mutationを併存させない。新たなUser IntentやV2 Operationは追加しない。
 - API作業ブランチ`feature/graphql-hybrid-results`で`community.graphql`のField/Input/Payload名の置換を開始。これは生成前のSchema変更段階であり、Resolver/gqlgen/Webはまだ移行できていない。非互換のAPI/Webは本番へ個別適用しない。
+
+### 2026-11-02 最終再確認：互換期間なし・新I/Fへ完全統一
+
+ユーザー合意：既存のGraphQL I/Fを新しいHybrid Resultの契約へ直接置換し、WebのOperation・生成型・Adapter・画面処理・Testも新I/Fへ統一する。旧I/Fとの互換性を維持する実装、旧新並列Mutation、互換レイヤー、互換期間は**不要であり導入しない**。以前の「互換期間も選択肢」とした記述は撤回する。API/Webの変更は同じ新契約に対して検証する。Release時のデプロイ手順確認は必要だが、互換期間の設計とは別事項。PR merge・Release・本番操作は引き続き個別の許可を要する。
