@@ -593,6 +593,73 @@ SettingsのPage Header付近にフォーム単位の小さなStatusを置く。�
 7. Success後Refetch失敗はConfirmedを取り消さず、Pending中に「保存済み」を表示しない。
 
 
+## 2026-11-02 詳細設計案：Browser終了警告と自動保存Status（UX最終合意待ち）
+
+**状態：実装可能な提案。数値・警告の採否は最終合意前。** 2026-11-02に確定した「現在CommunityのShell全体へのPreview、失敗時の確定色復帰＋Draft保持、Session内長命Queue、Unknownの再照会＋手動再保存」に従う。本節はSession継続とBrowser Process終了を区別し、保存完了を保証できない境界で過剰な保証をしない。
+
+### Browser離脱警告の仕様案
+
+**推奨：通常のSPA遷移では警告しない。Page Lifecycleを終了するNavigation / Reload / Tab Closeの際、Queueに未確定の保存対象がある場合のみ`beforeunload`標準確認を試みる。**
+
+| 境界 | 処理 |
+| --- | --- |
+| Next.js Client-side route変更 / Settings内画面変更 | 警告せず、認証Session QueueにPending / In-flightを残し継続する |
+| Community切替 | 警告せず、旧Community KeyのQueueを継続。旧Preview Overlayのみ解除する |
+| Browser Reload / 外部サイト遷移 / Tab Close | 未確定保存を持つQueueが存在する場合のみ`beforeunload`標準確認を試みる |
+| 完全にConfirmedでPending / In-flight / Failure / Unknownがない | 離脱警告を設置せず通常終了 |
+| Browser Process強制終了 / Mobile OSによる廃棄 / Crash | Event発火もPending Mutation完了も保証しない。Browser終了後のDurable Queueは本案の対象外 |
+| Logout / Account切替 | 別IdentityへQueueを引き継がず、別途認証Flowで未保存状態の案内と明示破棄の必要性を検討する。自動保存済みと偽らない |
+
+- **Warning対象**：1つ以上のSession Queueが`pending`、`saving`、`rejected-with-unsaved-draft`、`unknown`、`blocked-with-unsaved-draft`であるとき。複数Communityをまたいで監視する。未完成HEXはQueueが保存できないため、RHF Draftと確定値の差があり破棄で失われる場合は未保存対象として数える。単なる`saving`表示待ちや終了済み`confirmed`は対象外。
+- **ブラウザーAPI契約**：`beforeunload`の実装はBrowserのユーザー操作要件・表示制限に従い、Eventを登録しても警告が表示されることを保証しない。独自テキストや自動的な通信完了を保証しない。未保存がなくなればListenerを解除し、常時Listenerは登録しない。Pagehide/Visibilityイベントを保存確定の証拠にしない。
+- **注意**：`beforeunload`のCancel/Proceedをアプリケーションが完全には観測できない。警告の後に離脱しない場合の状態はQueueが継続管理する。Client-only保存状態のBrowser終了後復旧は保証しない。
+- **Status / Errorの前提**：保存ができないのに「保存済み」へ進めない。Browser終了時警告はFallbackであり、Primary FeedbackはForm Status / Alert。
+
+### 保存Statusの表示契約案
+
+**推奨配置：Personal Preferences・Community Preferencesの`PageHeader`説明文直下。** PageHeader自体のPropsを安易に拡張するのではなく、必要な位置へ独立`SaveStatus` Presentationを配置する。AliasのManual SaveとAccent Auto-saveは同じCommunity設定画面にあっても保存結果を混同しない。共通にできるのは状態の表示責務であり、QueueやFormのState Machineを無理に共通化しない。
+
+| 状態 | 視覚表示 | 提示条件 / 終了条件 |
+| --- | --- | --- |
+| `pristine` | 何も表示しない | 初期値を閲覧しただけ |
+| `pending` | 「保存待ち」 | Userが有効値を変更し、まだMutation送信前。400ms Debounce中。即時表示でも読み上げなし |
+| `saving` | 「保存中」 | In-flightがありConfirmedでない。短い通信の点滅を抑えるため、**開始から300ms以上続いた場合に表示する案** |
+| `saved` | 「保存済み」 | 全対象QueueのPending/In-flightがなく、最新Draftに有効な未保存変更がなく、Confirmed Successを得た場合。**約2秒表示後に消す案** |
+| `rejected` | Field Error / 持続するForm Alert | 対応する修正・再試行 / 破棄まで保持。`保存済み`より優先 |
+| `unknown` | 持続するForm Alert「保存結果を確認できません」 | Server照会と手動での再保存 / 破棄まで保持 |
+| `blocked` | 持続するForm Alert「設定を変更できません」 | 認証・権限などの問題が解消されるまで保持 |
+| `invalid-draft` | Field Error（表示時機はBlur/SubmitのUX原則） | 未完成HEXでは`保存済み`を表示しない。未操作時にErrorを表示しない |
+
+**表示優先順位**：Blocked / Unknown / Rejected / 入力Error ＞ Pending ＞ Saving ＞ Saved ＞ Pristine。異なるFieldにPendingとIn-flightが並存する場合は「保存中」または「未保存の変更あり」を示し、すべて保存済みと誤認させない。個々の短いMutationごとに「保存済み」を繰り返さず、**最後の変更群の確定**を1回の表示イベントとする。
+
+**Accessibility**：
+- 視覚Statusとスクリーンリーダー向けAnnouncementを分離する。Pending→Saving→Savedの頻繁な切替をすべて`aria-live`で読み上げない。
+- 最小限の候補：Savingが**2秒を超える場合に一度だけ**polite Statusで「保存中」、最後に保存が確定したときのみ「変更を保存しました」を一度読み上げる。初期表示やすべてのField変更で読まない。Errorは持続するAlertとして適切な`role="alert"`等を使い、重複読み上げを防ぐ。
+- FocusをInputから移動させない。Status / Errorと入力のAccessible Descriptionを関連付ける。ColorInputの未完成Draftは入力時に繰り返しErrorを宣言せず、Blur / Submit後の表示原則に従う。
+- Errorを単色の装飾やIconだけで伝えない。Compact / Medium / WideでStatusとErrorが重ならず、横幅が狭い時も折り返す。
+
+### Save Controllerとの実装I/F
+
+- Controllerが`pendingCount / inFlight / unsaved / status / lastConfirmedAt / outcome`などを**導出可能なSnapshot**として購読者へ提供する。これらは概念上の値であり、共通の巨大な型を強制しない。
+- `saved`判定は「最後の通信が成功」ではなく**最新有効DraftとConfirmed値の一致、Pending / In-flightゼロ、未解決Failureがない**ことを要件とする。未完成ColorInputなどが保存対象にならない状態は別途表示を抑止する。
+- UIの表示TimerはPresentation層に閉じ、通信QueueのDebounce Timer・保存状態を変更しない。再Mount時に古いSaved Timerだけを再開して成功Notificationのように繰り返さない。
+- Browser warning用の`hasUnsavedChanges`はSession全Queueと現存Formの未送信/不完全Draftから導出し、React PageのUnmountで未確認の変更を忘れない。異なるIdentityへ持ち越さない。
+
+### テスト / Gate
+
+1. Pending / In-flight / Unknown / Rejected / 不完全HEXではBrowser離脱警告が有効候補になり、Confirmed後には解除されること。通常SPA遷移で警告しないこと。
+2. Browserが警告を表示しない場合も、アプリが保存済みと誤表示しないこと。Tab/Browser終了後の保存完了はIntegration Testでも保証を主張しない。
+3. PendingとIn-flightが混在するときにSavedを表示せず、最終確定後だけ短時間Savedとなること。
+4. 300ms未満のSavingでちらつかないこと、連続編集でSaved表示Timerが適切にCancel/Restartされること。
+5. アクセシビリティ：SavingのAnnouncementが過剰にならず、保存成功は最終確定時に1回、Errorは持続しFocusを奪わないこと。
+6. AccentのShell Preview、別Community・Account切替、Unmount後再訪、Timeout後の手動再保存について合意済みテストも通すこと。
+
+### 今回の詳細設計で追加合意が必要なこと
+
+- **U1**：Browser Reload / Tab Close時、未確定の保存対象に対して標準離脱警告を試みるか（推奨：試みる）。Browser終了後のDurable Queueは追加しない。
+- **U2**：StatusをPage Header説明文直下へ配置し、Saving表示開始300ms、Saved表示約2秒、Saving読み上げ開始2秒という閾値を採用するか。UX実装時にStory / Interactionで調整可能な値として所有する。
+- **U3**：Unknown後に現在値が一致した場合、ユーザーの明示的な「確認完了」操作だけで未確定Statusを閉じられるようにするか。合意済みの「手動再保存のみ」は変更しない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
