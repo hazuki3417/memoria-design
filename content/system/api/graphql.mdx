@@ -1608,3 +1608,9 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 17. **Usage契約（更新）**: `User.usage`はUser Custody Media、`communityUsage`は指定Community Custody Mediaの登録済みOriginalだけを集計する。Initial Releaseでは5 GB（5,000,000,000 bytes）の上限をUser accountごと・各Communityごとに独立適用する。APIは総Original件数、Original使用byte数、effective limit、JPEG / PNG / WebP / HEIC・HEIFのformat別件数・byte数を返す。派生Variantは算入しない。Plan / Quota等の算出モデルは公開せず、使用率・残量・表示単位はWebで導出する。累積byte値は既存 `Int64` scalarを使用し、wire上は10進文字列としてserializeする。
 
 これらは既存domain semanticsを変更せず、Transport contractまたはImplementation Detailを選択する判断です。本ページに記載した契約を実行可能SDLへ引き渡します。上記項目はInitial ReleaseのTransport contractとして確定済みです。専用HTTP upload endpointのroute / multipart形式など、GraphQL外のtransport詳細はSystem-wide detailed designで引き渡します。
+
+### 2026-11-02 Operation別移行の追加合意
+
+- Cross-field / Form-level Input Violationは`InputViolationScope`（`FIELD` / `FIELD_GROUP` / `FORM`）と`inputPaths: [InputFieldPath!]!`を採用し、旧候補の単一`inputPath`は採用しない。Field Pathは`segments: [String!]!`とする。汎用Violation Codeの最終Enum集合と操作別Validation mappingは引き続き設計対象。
+- 既存`renameCommunity`は`updateCommunity`へ置換し、旧Mutationを併存させない。新たなUser IntentやV2 Operationは追加しない。
+- API作業ブランチ`feature/graphql-hybrid-results`で`community.graphql`のField/Input/Payload名の置換を開始。これは生成前のSchema変更段階であり、Resolver/gqlgen/Webはまだ移行できていない。非互換のAPI/Webは本番へ個別適用しない。
