@@ -921,6 +921,20 @@ type PageHeaderProps = {
 - **Personal Preferences**：MutationのConfirmed結果と後続Refetchを分離する変更を`usePersonalSettingsActions.ts`へ追加。Refetch失敗がConfirmed Mutationを失敗/Unknownへ変換しない。
 - **実行Gate**：GitHubへのCode・Test追加は確認できるが、Typecheck / Biome / Unit / Storybook / VRT / Next Buildの成功は未確認。BranchのGitHub Actions Runがなく、Merge/Release可能と判断しない。Session Queue実装の残り：Personal Preferencesの長命化、UI Timing・A11y、Typed Hybrid ErrorのBackend/Client対応、Alias/Accent競合と実機VRT。
 
+### 2026-11-02 実装追補：Personal PreferencesのSession Queue / Unknown Recovery
+
+`memoria-web/feat/save-feedback-presentation`にて、Personal PreferencesにもAuthenticated Application Shell寿命のSession Controllerと回復UIを導入した。
+
+- **Session Owner**：`personalPreferencesSession.ts`と`PersonalPreferencesSessionContext.tsx`を追加し、`ApplicationShellContainer`がProviderを保持する。Preferences画面のUnmount/RemountではControllerを破棄せず、`confirmed / draftPatch / accentDraft / saveStatus / failure / inspection`を保持する。ブラウザーReload後の永続化は対象外。
+- **RHF**：`usePreferencesSave` / `useUserPreferences`は本番Application Shell内ではSession Controller、Providerを持たないStorybook/Prototypeでは従来のLocal Queueを利用。Hookの呼出順は変えず、再訪時にSession Draft（Incomplete ColorInput含む）をRHF Defaultへ反映。背景Query更新時は最新のSession Draft PatchとColorInput Draftを保護する。明示`変更を破棄`ではRevisionによりForm値をConfirmedへResetする。
+- **Queue**：既存400ms Debounce/Field Patch結合/直列実行は維持。`preferencesSaveQueue`に失敗時のPause、`getPending / clearPending`、`flush({ manual })`を追加。Error後の新規編集もPendingへ結合するが**自動再送しない**。Unmount処理の自動FlushはPauseを解除せず、明示的な`再保存`だけ再送を開始する。
+- **Unknown**：通信不明・未確認Responseは`unknown`として扱い、既存`CurrentUser` QueryのRefetchが成功するまで手動再保存も停止。一致なら`確認完了`で現在値を確認済みとして採用（旧Mutation成功の証明ではない）。不一致なら最新Patchを手動再送。Query失敗時は未確定状態を維持する。Blockedは明示再送・破棄導線を表示せず、画面更新等の復旧を案内する。
+- **Mutationと再取得の確定境界**：`usePersonalSettingsActions`ではPreferences MutationのConfirmed Responseが成立したら成功とし、その後の`CurrentUserDocument`のRefetchを非同期・非Fatalとして扱う。Refetch失敗で既に成功したMutationを失敗扱いしない。更新したFieldのConfirmed値はServer QueryがEchoするまで直近の古い再取得値で巻き戻さない。
+- **UI**：`SettingsPreferences`に`unknown`の説明、Server状態確認、確認完了、手動再保存、変更破棄を追加。共通`PageHeader.titleAccessory`と`SaveStatus` Badgeは維持。Provider未接続のStoryでは操作不能な破棄Actionを表示しない。
+- **テスト**：`personalPreferencesSession.test.ts`（画面購読解除後のSave、Incomplete Draft、Unknownの照会前自動/手動再送禁止、Query一致の確認完了、Explicit Discard、Stale Refetch防止）、Queue Pause/Manual Flush、`SettingsPreferences.stories.tsx`のSPA復帰時Draft/Badge保持Storyを追加した。**実行結果は未確認**。
+- **Community Preview Scope追補**：Preview Providerは1件の値ではなく`Community ID → {color, owner}`のMapへ修正。別Communityの編集中Previewと古いCleanupが衝突せず、ShellとSwitcherには現在選択中CommunityのOverlayだけを表示する。
+- **未完了 / Gate**：現APIのApollo Errorに対する分類は暫定。GraphQL Typed Domain Result/Extensions SchemaとGenerated Hook更新、Manual Profile/Aliasなど他Consumerの結果分類統一、Saved/SavingのTimingとa11y、Late Mutation/LWW外部更新、Alias/Accent競合、Typecheck/Biome/Unit/Storybook/VRT/Buildの実行検証は残る。PRは作成・Mergeしていない。現状は**機能コード反映済み・品質Gate未完了**でありRelease可能と判定しない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
