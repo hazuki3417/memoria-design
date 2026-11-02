@@ -322,7 +322,7 @@ type StateConflictFailure {
 | `updateCommunity`（現行`renameCommunity`から移行） | 更新後の`Community` | `InputValidationFailure`、実際のDomain Constraintが判明した場合のみOperation固有Failure | 未認証、権限不足、存在秘匿、実行/通信障害 |
 | `updateCommunitySettings` | 確定済み`CommunitySettings` | `InputValidationFailure`（空Patch、Accent形式、Alias長など） | 未認証、Membership消失・存在秘匿、実行/通信障害 |
 
-**今回の設計案では、存在しないDomain Rule・State ConflictをSettingsの4 Mutationへ架空に追加しない。** 例えばCommunity Administratorであることは認可条件であり、DomainRuleFailureに置き換えない。同時更新のVersionを導入するかどうかを確定後、必要なOperationへ`StateConflictFailure`を追加する。登録・削除・Membership操作・GroupなどのResultを同時に無差別変更せず、全APIのSemantic Auditで適用する。
+**今回の設計案では、存在しないDomain Rule・State ConflictをSettingsの4 Mutationへ架空に追加しない。** 例えばCommunity Administratorであることは認可条件であり、DomainRuleFailureに置き換えない。一般Settingsへは導入せず、重要Domainの要件が確認されたOperationだけに`StateConflictFailure`を追加する。登録・削除・Membership操作・GroupなどのResultを同時に無差別変更せず、全APIのSemantic Auditで適用する。
 
 #### 実行可能なSDL形状のドラフト
 
@@ -423,7 +423,7 @@ mutation SaveProfile($input: UpdateUserProfileInput!) {
 
 - **J1：共通Failure型の共有範囲**：`InputValidationFailure`を各MutationのUnion Memberとして共有するか、Operation固有名のFailure型を用意するか。推奨は意味が同じFailureだけ共有し、Domain Failureは固有型を優先。
 - **J2：Violation Code・Input Path**：Enumを採用するか、拡張可能なString Codeを採用するか。推奨は安定した分類はEnum、将来拡張時はClientにFallback、Operation固有Reasonは固有Enum。
-- **J3：同時更新**：Profile・Community名・Preferences・Accent/aliasでRevision / Preconditionを導入する範囲。現行の直列Queueは同一Client内の順序のみ保証する。
+- **J3：同時更新（2026-11-02更新）**：一般SettingsはLWWで確定。重要Domain Operationだけ個別のRevision / Preconditionを検討する。現行の直列Queueは同一Client内の順序を保証する。
 - **J4：Unknown Outcome回復**：操作別に、状態照会・再送・Idempotency Keyの要否を確定する。全MutationへのKey導入は推奨しない。
 - **J5：Migration**：Web/APIの非互換SDL変更の移行期間と対応順。合意なく本番GraphQL契約を切り替えない。
 
@@ -468,127 +468,51 @@ type InputValidationFailure {
 
 **採用を推奨**するが、このSDL変更はまだ合意済みの個別Schema仕様ではない。
 
-#### 同時更新：Server側Preconditionの責務
+#### 同時更新：一般SettingsはLast Write Wins（2026-11-02合意）
 
-同じClient内でのMutation直列化は別端末・別タブのLost Updateを防止しない。Serverが参照した確定状態と同じRevisionを前提に更新する**Optimistic Concurrency Control（OCC）**を、同時編集で他の確定値を失わせるべきでないAggregateへ導入する設計を推奨する。
+**一般的な表示設定とプロフィール等の通常編集はLast Write Wins（LWW）を基本とする。** 複数端末・複数Userの操作に対し、基本はBackendで**後から確定した書き込みが同一Fieldの最終値となる**。各Fieldの更新はServer Transactionの確定順で解決し、Client時刻やRequest開始順に依存しない。競合専用のRevision・Expected Revision・3-way Merge・Conflict解決UIを標準導入しない。
 
-- ProfileはUser Profile、User PreferencesはUser Preferences、Community名はCommunity、Community Alias / Accentは**User × Community Settings**を独立した更新対象とする。異なるAggregateのRevisionを混用しない。
-- 各更新対象の既存Query / PayloadでOpaqueな`revision`を公開し、既存Mutation Inputに`expectedRevision`を追加する案。RevisionはServerが発行し、Clientは値の内部形式・大小比較へ依存しない。
-- Serverは認証・認可・入力検証後、同一Transactionで`expectedRevision`と現行Revisionを比較し、一致時だけ更新・Revision更新を確定する。未一致なら永続化せず型付き`StateConflictFailure`を返す。Conflict時の現在値を公開してよいかは認可上検証する。
-- *部分更新では未指定Fieldを変更しない*ことを維持する。Aggregate全体のRevisionだと異なるFieldへの独立編集も競合するため、Conflict時は最新Queryと保護されたDraftとの差分を再評価し、ユーザー操作や再送Policyを定義する。差分を見ずに旧Patchを自動再送すると新しい確定値を失う可能性がある。
-- ProfileやCommunity名の同値更新・Normalized Valueの扱い、Alias解除(`null`)時のRevision増分、「実質変更なし」でRevisionを進めるかはDB更新契約に明記する。
-- 自動保存はPatchごとに送信Snapshotと`expectedRevision`を保持。成功レスポンスの確定Revisionへ進め、Queue中の新Draftを維持する。Conflict時はQueueを止めてRefetch、差分評価とFeedbackへ移る。SnapshotとRevisionが不一致のまま再送しない。
+- **Patchが最優先の整合性境界**：`updateUserPreferences`と`updateCommunitySettings`は指定されたFieldだけを更新し、未指定Fieldを絶対に上書きしない。異なるFieldへの同時更新は互いに保持される。単一Mutationで複数Fieldを指定した場合はatomicに確定する。`alias: null`は解除、未指定は維持、`accentColor: null`は不正とする。
+- **同Fieldへの同時更新**：最後にDBへ確定した書き込みを採用する。以前のMutation応答の到着順はServer側の確定順ではないため、Webは古い応答で最新Draftや共有Cacheを無条件上書きしない。外部更新を画面へ反映したい場合は、保存待ち／編集中のFieldと未編集Fieldを区別する。
+- **同一Clientの連続操作**：同じ設定Fieldへの更新はQueueで送信順序を直列化し、Debounce / Coalesceを利用して最新意図を次のMutationへ送る。PreferencesとCommunity Accent/aliasも、同じ対象の共有Cacheを上書きしないよう結果をField単位で統合する。
+- **他端末の操作**：LWWの契約により静かな上書きを許容する。一般Settingsのために衝突通知・選択画面・Revisionを要求しない。Backendの真正な業務エラーはHybrid Error Modelに従い、LWWで握りつぶさない。
+- **例外**：Membership Role、削除、不可逆処理、関係・整合性の重要な変更、二重副作用のあるOperation等は個別のDomain Contractに基づきLock・Precondition・Revision・Idempotencyを選ぶ。一般SettingsのLWWを他Domainへ機械的に適用しない。
+- **既存GraphQL I/Fの直接改修**：一般SettingsのLWW実現のために新Mutation / Queryを作らず、`revision` / `expectedRevision`も標準では追加しない。
 
-**代替案**：単一Fieldを同じ値へ収束させるSettingsの一部ではLast Write Winsとし、すべてのSettingへOCCを導入しない。OCCは不要な競合・再試行の負担を増やすため、実際の編集損失リスクとUIの解決導線をOperationごとに判断する。**一律OCC導入はまだ確定しない。**
+#### Unknown Outcome：LWWと再送安全性は別問題
 
-#### Unknown Outcome：Clientから観測できる事実と復旧の設計
+通信断・Timeoutで応答がないとき、Clientはその更新がServerに届いたかを判断できない。LWWを採用したことだけで「必ず安全に再送できる」とはしない。
 
-通信断・Timeoutは「Mutation未実行」を証明しない。結果未確定は保存失敗、Serverが返す`StateConflictFailure`、一時的なRefetch失敗と区別する。
-
-| 観測結果 | Clientの保存判定 | 復旧候補 |
+| 観測 | 確定事項 | 推奨UX |
 | --- | --- | --- |
-| 型付きSuccessを受信 | Confirmed。応答の値・RevisionをBaselineへ | 必要なら背景Refetchを独立実行 |
-| 型付き業務Failureを受信 | Commandは不成立 | Field / Form Error、Conflictなら差分確認 |
-| Responseを受信できない | Unknown Outcome | 同一対象の既存Queryで現状態を確認。因果関係は推測しない |
-| Mutation成功の後にRefetch失敗 | 保存はConfirmed、Refreshのみ失敗 | 元の保存成功を取り消さずRefreshの再試行 |
-| Queryで現在値が以前と一致 | Request不成立の証明にはならない | 未確定表示を維持し、再送条件を検討 |
-| Queryで送信値と一致 | 現在状態は送信意図と一致。ただし当該Requestの成功証明とは限らない | 後続操作の副作用と整合条件を確認してUIを回復 |
+| Success Payloadを受信 | 当該Requestが確定した | 確定値へBaseline更新。以降のDraftを消さない |
+| 型付きValidation Failureを受信 | 当該Commandは成立していない | Field / Form Error |
+| Response未受信 | 結果は未確定 | Form Alert / Statusで未確定と表示、状態再取得 |
+| Success後のRefetch失敗 | 更新は確定、再取得のみ失敗 | 保存成功のまま、再取得失敗を別に通知 |
+| 現在値が送信値と一致 | **現在の表示設定**は希望値と一致 | 保存状態を確認できる。特定Requestの成功まで断定しない |
+| 現在値が送信値と異なる | 他端末の後続更新などもあり得る | ユーザーの最新Draftを保持し、再送可否を評価 |
 
-**回復の選択肢**：
+- **単純な最終値設定**（Preferences、Community Accent/alias等）：更新の副作用が重複しないことをDomain / Repository Contractで保証できるなら、最新のユーザー意図を再送可能なCommandとして定義できる。ただし自動再送の有無・回数・画面離脱時の扱いはUXの別判断とする。古い未確定Snapshotを、後のユーザー変更より後に送信して上書きしない。
+- **重複副作用を伴うCommand**：`content/system/api/idempotency.mdx`のIdempotency Key / Durable Job / Current State Contractで保証する。LWWはIdempotencyの代替ではない。
+- **Refetch**：現時点のServer値を知るための既存Queryを使う。今回のMutationの因果関係を証明する機構としては扱わない。新しいResult確認用Queryは追加しない。
 
-- **最終値を設定するだけの単純なSetting更新**：再送で副作用が重複しないとAPIが保証するなら、現在Revisionを確認し、まだ適用されていないField Patchのみ再送可能とする。ただし通常のGet後に他端末が更新し得るため、必要ならPreconditionを付ける。
-- **副作用が重複するOperation**：既存`content/system/api/idempotency.mdx`のKey契約（同一Key＋同一Request、24時間保証）をOperationの必要性に応じて採用する。同じ操作をRetryする際に新しいKeyを発行しない。期限外は重複防止を保証しない。
-- **安全な再送も明確な結果照会もできない場合**：Clientが保存完了を断定したり自動再送したりせず、未確定状態と現在データを示す。重複副作用のある操作では再確認の導線が必要。
+#### Personal Preferences / Community Accentの自動保存設計（LWW方針）
 
-Keyだけで別端末のLost Updateを防ぐことはできず、Revisionだけで同一Requestの二重副作用を防げるとも限らない。OCCは*並行変更の整合性*、Idempotency Keyは*同じ論理要求の重複副作用防止*、Refetchは*現在状態の観測*という別の役割を持つ。
+**確定した部分**：Last Write Wins、Field単位Patch、同一Client直列化、確定値と編集中Draftの分離、既存GraphQL Operationの直接変更。**引き続き検討する部分**：失敗時のAccent Previewの表示、保存中の画面離脱、Unknown Outcomeの再送条件、Status表示。
 
-#### 変更対象と検証条件
+- **Personal Preferences**：RHF Draft、Pending / In-flight Patch、確定Baselineを独立させる。400ms DebounceとPatch Coalesceを基本とし、送信Snapshotと対応するSuccessの確定FieldだけBaselineを更新する。Response全体でRHF値をResetしない。未完成HEXを送信しない。確定したFieldだけDirtyを適切に解消する。外部Refetchは未編集Fieldへ反映し、保留中の新Draftを守る。
+- **Community Accent / Alias**：User × Communityごとの`updateCommunitySettings`による指定Fieldの原子的Patchを維持する。Accentのプレビューと保存確定値の分離を推奨し、別FieldのAlias更新成功でAccent Draftを巻き戻さない。同一Clientからの同一Fieldへの連続変更は送信順を制御し、共有Cache更新は確定したFieldだけ反映する。
+- **Accent保存失敗**：共有表示色を最後の確定色へ戻す一方、ユーザーが入力した色のDraftを保持し、再試行または破棄を選べる設計を推奨する。どの場所までPreview Overlayを表示するかはUX判断待ち。未完成HEXは送信しない。
+- **Status**：Pending「保存待ち」、In-flight「保存中」、完全確定「保存済み」（控えめ）、Validation / Retryable / Unknownは原因と次の行動をField Errorまたは持続するForm Alertで示す。一般SettingsにはConflict Alertや3-way Merge操作を追加しない。
+- **Tests**：異なるFieldへの同時Patchで独立性が維持されること、同FieldはBackendの確定順でLWWになること、同一Client内の後続編集が古いResponseで消えないこと、Cacheが関係ないFieldを上書きしないこと、Alias解除、未完成HEX、結果不明、Success後のRefetch失敗を検証する。
 
-- API：既存QueryのRevision Field（採用対象のみ）、既存Mutation InputのPrecondition、同名MutationのSuccess / Failure Union、RepositoryのAtomic Compare-and-Set、Operation単位のError / Idempotency Test。互換用の新Query / Mutationを追加しない。
-- Web：各Formの最新Draft・送信Snapshot・Confirmed Baseline・Revision・Unknown Outcomeを分離し、Result毎にFeedbackを選択。Apollo CacheとServer確定値の帰属を維持する。自動保存QueueはConflict / Unknownで無条件再送を停止する。
-- Test：2Clientの同時更新、異なるFieldのPartial Patch、同値更新、Validation FailureのField / Group / Form、通信断の前後、成功後Refetch失敗、In-flight中の新Draft、同一Idempotency Key Retry、Expired Key、Context切替後の古いResponseを、必要なOperationのUnit / Integration / Interactionで検証する。
+#### 残る判断
 
-#### 追加合意が必要な判断
-
-1. InputViolation Scope + 関連Path群の構造を採用するか。
-2. OCC / Revisionを導入するAggregateの範囲と、Aggregate全体Revisionによる独立Field競合を許容するか。特に自動保存のSettingsは競合解決UXと一体で選ぶ。
-3. Settingsの各更新を再送安全なSet操作として保証する範囲と、監査・Outbox等への副作用の重複を許容するか。
-4. Unknown Outcome時、再取得後に自動再送するか、ユーザーによる確認後に再送するか。
-5. Community名のOperation名を既存設計の`updateCommunity`に統一するか（旧`renameCommunity`との並存は禁止）。
-
-### Personal Preferences / Community Accentの並行更新・自動保存UX設計（2026-11-02、実装判断待ち）
-
-Hybrid Error Model、既存Query / Mutationの直接改修方針、および前節のCross-field / OCC / Unknown Outcome案を、2種類の自動保存へ具体化した設計案。**ここでのRevision選択・競合回復・色のRollbackはまだ個別合意前であり、実行可能SDL / Repositoryは未変更**。
-
-#### 実装上の確認事項
-
-- 現行`memoria-api`の`updateUserPreferences`は指定Fieldのみ更新し確定した`UserPreferences`を返す。User Preferencesの公開モデルにRevisionはない。`User × Community Settings`もAccentとAliasを一つの設定行で管理し、`updateCommunitySettings`は指定FieldだけをUPDATEし両Fieldの確定値を返す。こちらもRevisionはない。
-- 現行WebのPreferences Queueは400ms Debounce、Patch結合、直列実行、失敗Patchの復帰を行うが、`onSaved`は送信Snapshotを受け取らず、RHFの確定済みField / Dirtyの解消も保証しない。
-- 現行Community Accentは選択直後にApollo Cacheへプレビューを反映し、失敗時に保存済み色へ戻す。Aliasは同じ`updateCommunitySettings`を独立に送信するため、2操作を同時に処理した場合の同一Aggregate Revision/Cacheの整合を設計する必要がある。
-
-#### 推奨する整合性モデル
-
-**第一候補：Aggregate Revision + Field-aware 3-way Merge + Atomic CAS**。
-
-- `UserPreferences.revision`と`CommunitySettings.revision`を既存Queryで参照できる形に追加し、対応する既存Mutation Inputへ`expectedRevision: String!`を付与する案を採る。GraphQL上はOpaque String。Community Settingsは**User × Community**単位であり、Community本体のRevisionと混同しない。
-- BackendはTransaction内で同一Aggregateの現在Revisionと期待Revisionを比較し、一致時のみPatchをatomicに確定させて確定値＋新Revisionを返す。不一致なら書き込まず型付き`StateConflictFailure`を返す。認証／権限／存在秘匿はExecution Errorを維持する。
-- Webは`base`（送信Snapshotを構築した時点の確定値）、`desired`（最新のユーザー意図）、`serverCurrent`（再取得した確定値）をField単位で比較する。同Fieldが他Clientによって変更されたかは`serverCurrent[field] !== base[field]`で判定する（正規化済み値）。別Fieldのみ変更されている場合は現在Revisionを使った**必要FieldだけのPatch**を自動再構成できる。
-- 同じFieldが他Clientで変更され、なお`desired[field] !== serverCurrent[field]`なら**真の競合**としてQueueを停止し、ユーザーの選択を保ったまま現在値との比較・採用操作を提供する。同じ確定値へ収束している場合は、現在値として受理できるが「どの要求で書き込まれたか」を断定しない。
-- 同じAggregate内のAliasとAccentも共有Revisionで直列化する。別Fieldへの変更を安全に再適用するときも、参照したRevisionでCASを行う。競合再試行は無制限に繰り返さず、さらに競合すれば手動判断へ移す。
-- **制約と代替案**：Aggregate Revisionは別Field編集でもConflictが発生し、追加Refetchが必要。Field単位Revisionは競合頻度を下げるがSchema/DB/Codegenを複雑化する。採用前にField数・競合頻度・既存のUIと照合する。Revision導入の必要性と粒度は明示合意を得る。
-
-#### PreferencesのQueue契約
-
-`confirmed`、`editing draft`、`pending patch`、`in-flight snapshot`、`save status`を区別し、RHFは表示用Draftの唯一のOwner、Queueは通信順序・結果のOwnerとする。別のRHF Formを「保存済み値」管理に導入しない。
-
-1. 有効な入力変更のみPatch化し、400ms DebounceでPendingへ結合する。未完成HEX入力は表示用Draftとして保持し、完全なHEXになるまで送信しない。
-2. FlushではPatch・Base Revision・送信前確定値をSnapshotとして固定。in-flight中の追加編集は次Pendingへ蓄積し、古い応答で上書きしない。
-3. Successでは**送信したFieldと確定レスポンス**を照合し、Confirmed BaselineとRevisionを進める。Fieldが送信後に再編集されていなければRHFの未保存・Dirtyを解消する。再編集されていればRHF Draftを保持し、次のPatchを処理する。レスポンスの全Fieldを無条件`reset`しない。
-4. Conflictでは新規送信を止めて既存QueryをRefetchし、3-way Mergeを行う。別Fieldへの安全な変更だけ再送、同Field競合はユーザーの確認があるまで送らない。新しい入力と元の入力内容を破棄しない。
-5. Operationが拒否されたことが確定したValidationは、該当Field / Formに持続表示する。Unknown Outcomeは送信済みPatchの状態を`unconfirmed`に保持し、再取得の結果に応じて復旧。単純な通信Errorを確実な未保存に変換しない。
-6. Unmount時は、単に`flush()`を呼ぶだけで保存結果の管理責務を失わないよう、Pending / in-flightの寿命とナビゲーション境界を定義する。画面外継続が必要ならQueue Ownerを画面Componentより長命な場所に配置し、結果未確定の状態も観測可能とする。
-
-#### Community Accentの表示・Rollback案
-
-**推奨：共有の確定状態と一時プレビューを分離し、失敗時もユーザーが選択した色のDraftは保持する。**
-
-- `confirmedAccent`：Backendで保存確定した色。Apolloの共有Server Stateに反映する。
-- `previewAccent`：ユーザーの最新選択（未確定）。画面やContextの見た目へ即時反映できるが、Apolloの確定済みServer値と同一視しない。Preview Ownerが生存中の一時的Overlayとして管理する。
-- `accentDraft`：ColorInputに入力中の文字列。不完全HEXは保持し、Mutationへ送らず、プレビューの変更も有効な値のときだけ行う。
-- **Confirmed Success**：Backendが確定した色＋RevisionをBaselineに反映。より新しい選択がなければOverlayを解除。Aliasの確定状態を上書きしない。
-- **Validation / 明確な保存失敗**：共有表示のAccentを最後に確定した色へ戻す一方、ColorInputの**最後の選択値を保持**し、Form近傍に理由・再試行／変更破棄を表示する。ユーザー意図を丸ごと消さない。
-- **Unknown Outcome**：Overlayを確定値として扱わない。共有表示は直近の確定色へ戻す案を基本とし、選択Draftは`保存結果を確認できません`とともに保持、既存Queryで現在値を確認する。自動で同じMutationを再送しない。
-- **Conflict**：別端末の確定色とユーザーの選択を並べ、現在色を採用／自分の色で更新（新Revision CAS）の明示操作を提供する候補。Aliasが同時に変更された場合は、その確定Aliasを維持してAccentだけをPatchする。
-- Communityの切替後に旧CommunityのOverlay・in-flight結果が新Communityへ漏れないことを保証する。Shellへの見た目反映を行う場合はOverlayの所有範囲・終了条件を設計する。
-
-#### 自動保存StatusのUX案
-
-| Condition | Presentation | 備考 |
-| --- | --- | --- |
-| 入力中・Pending | 控えめな「保存待ち」 | 絶えず表示切替して騒がしくしない |
-| In-flight | 控えめな「保存中」 | 複数Patchをまとめて表示 |
-| PendingもIn-flightもないConfirmed | 「保存済み」を一時表示後、必要なら非表示 | 最後の成功が確定している場合のみ |
-| Retryable / Validation | 消えないForm AlertまたはField Error | ユーザーの修正／再試行が必要 |
-| Unknown Outcome | 消えないForm Alert：「保存結果を確認できませんでした」 | 状態確認を先に促す |
-| Conflict | Form Alert + 比較・選択導線 | 一律のToastで済ませない |
-
-Statusはフォーム単位とし、すべてのSetting Rowに常時ラベルを置かない。スクリーンリーダーへの保存中/保存済み通知は重複読み上げを抑え、エラーでは`role="alert"`等を適切に使い、Focusを不必要に奪わない。表示位置・一時保持時間・Compact / Medium / WideはStoryで確定する。
-
-#### API / Webのテスト条件
-
-- Atomic CAS：同Revisionでの2Client更新では1つが確定、他方がConflict。異なるFieldの変更ではRefetch後の再適用が安全であること。
-- AccentとAlias：同じUser × Community Settings Revisionを共有し、片方の更新結果で他方を巻き戻さない。Alias解除`null`とHEXの正規化もテストする。
-- Queue：Debounce、in-flight追加変更、送信SnapshotごとのSuccess、Dirty解消、Conflict停止、RefetchとField Merge、Unknown Outcomeでの送信停止。
-- UI：未完成HEXを維持、プレビューと確定色を区別、失敗後に選択Draftを保持、Statusが誤って「保存済み」にならない、Context切替で旧状態を混入させない。
-- Refetch ErrorはMutation Successと別に扱い、GraphQL Result UnionとExecution / Transport Errorを混同しない。
-
-#### 合意が必要な選択肢
-
-1. Aggregate Revision + Field-aware 3-way Mergeを両Settingsに採用するか。特に別Field競合時の自動再適用を許容するか。
-2. Community Accentで**共有確定色へ見た目を戻しつつ、ColorInputのユーザー選択Draftを保持する**UXを採用するか。Preview OverlayのShell適用範囲も確認する。
-3. Statusの「保存待ち／保存中／保存済み」の配置・保持時間と、Conflict解決UIの詳細。
-4. Unknown OutcomeでのRefetch後の自動再送可否、画面離脱中のQueue寿命と失敗通知方法。
-5. CAS用Revisionが増える条件（実質同値Patchを含むか）、Conflict再試行回数、同時更新の負荷・UIコスト。
+1. 同一ClientのCommunity AccentとAliasのQueue OwnershipをFeature内で共有する粒度と、確定Cacheの更新方法。
+2. AccentのプレビューをShellへ適用する範囲、保存失敗時の見た目復元と選択Draft保持の詳細。
+3. Unknown Outcome時の状態確認と自動/手動再送条件、保存Queueの画面離脱後の寿命。
+4. 自動保存Statusの位置・表示保持時間・Accessible Announcement。
+5. LWWから除外する重要Domain Operationの判定は各Domainの設計で行い、ここでは一律のRevisionを要求しない。
 
 ### 複数GraphQL Field ErrorのWeb表示
 
