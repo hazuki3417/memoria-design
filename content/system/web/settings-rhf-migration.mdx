@@ -405,6 +405,25 @@ extend type Mutation {
 4. 自動保存の同時編集・Unknown Outcome・Idempotency / Version要件をFeatureごとに確定する。
 5. API Schema正本（`content/system/api/graphql.mdx`）と実装を変更し、Web Error Adapter / Form Feedback / Interaction Testsへ展開する。
 
+## 2026-11-02 Operation別Result SDLとForm Feedbackの接続案（詳細合意待ち）
+
+GraphQLの正本`content/system/api/graphql.mdx`「Settings Mutationの型付きResult：Operation別SDLドラフト」に、`updateUserProfile`／`updateUserPreferences`／`updateCommunity`（現行`renameCommunity`の移行先）／`updateCommunitySettings`の型とFailure候補を定義した。**Hybrid Modelの基本方針は合意済み、Operation別SDLと移行方法は未確定**。
+
+| GraphQL Result | Frontend責務とFeedback |
+| --- | --- |
+| `*Success` | 応答中の正規化済み確定値をBaselineに反映。手動保存は成功Notification、自動保存は控えめな保存済みStatus |
+| `InputValidationFailure` | `inputPath`を既知のRHF Field名へ写像。修正可能なField ErrorをFieldの近くに表示し、不明FieldはForm Alert |
+| `DomainRuleFailure`（適用Operationのみ） | 業務上の失敗原因・次の操作をForm Alertに表示 |
+| `StateConflictFailure`（適用Operationのみ） | 自動再送せず、状態の再取得・差分確認・再操作を案内 |
+| GraphQL Execution Error | 認証・認可・存在秘匿・内部障害を公開`extensions.code`で判別。UIへ生のError Messageをそのまま表示しない |
+| Response未受信・Transport不明 | Unknown Outcome。保存済み/未保存の両方を断定せず、操作の再送安全性が確認できるまで自動リトライしない |
+
+**実装の具体化**：Form OwnerはError種別とUI表示状態を管理し、Connection層はGraphQLのUnion `__typename`・Execution Error・Transport結果を分離する。型付きSuccessだけを確定成功とし、同期対象を送信Snapshotと関連付ける。古いMutation Responseや背景Refetchが追加編集を上書きしない。Field Errorの表示タイミングは既定のBlur / Submitに従い、Server Validation Errorは保存応答を受け取った時点で表示する。
+
+**現行実装との差分**：`useCommunitySettingsActions.onSaveName`の`Promise<boolean>`と接続層Notification、`usePersonalSettingsActions`のPayload前提、`preferencesSaveQueue`の成功Snapshot不足、Community AccentのRollbackは後続実装対象。GraphQL API変更はBreaking Changeとなるため、APIとWebの整合した移行計画を先に確定する。
+
+**判断待ち**：共通Failure型の境界、Violation Enumの粒度、同時更新のRevision / Precondition、Unknown Outcomeの再送・照会契約、API/Web移行方式。これらはWebの単独実装で補完しない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
