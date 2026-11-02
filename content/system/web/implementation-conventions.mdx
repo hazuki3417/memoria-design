@@ -655,6 +655,14 @@ Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValid
 - **Mapperの型I/F契約**：特定フォーム専用のMapperでは、入力を `z.output<typeof formSchema>`（同義の `z.infer` 可）、出力を対象OperationのCodegen生成Input型で明示します。Zodの入力途中の値（`z.input`）ではなく検証済みOutputを受け取ることを基本とします。Mappingの正確性は型整合性に加え、近接配置したUnit Testで保証します。
 - **複数ユースケースで共有するMapper**：入力を特定フォームSchemaに結びつけず、実際に共有されるApplication ModelまたはPatch型としてよいものとします。共有要件が生じる前に独立型や追加Layerを作りません。フォーム専用Draft（未完成入力など）を共有Mapperの入力契約へ含めません。
 
+### FormのDefault Values（2026-11-02合意）
+
+- RHFの `defaultValues` はForm所有者が入力時点のContext / Server Snapshot / UI要件から決定し、原則その場で直接指定します。Zod SchemaはValidationと正規化の責務に留め、RHFの初期値を生成するためだけに `.default()` / `.prefault()` を追加しません。欠落データに対するParse契約として必要なZodのDefault機能は禁止しません。
+- 初期値を複雑な条件で構成する、複数Formで同じ初期化ルールを実際に共有する等の理由が生じた場合にのみ、React非依存のFactory / Pure Functionへ抽出します。小規模なForm向けの汎用Default Values Utilityは先回りして導入しません。
+- Form Inputに `z.input<typeof schema>` を利用して初期値の型を整合させます。RHFの `defaultValues` はPartialを許容するため、全Field指定の静的保証が重要な場合にのみ `satisfies z.input<typeof schema>` 等を検討します。
+- 初期値の定義とServer再取得時のDraft同期（`reset` 等）は別の責務です。Context変更や保存中のDraft保護を含め、既存Featureの同期契約に従います。
+
+
 
 
 
