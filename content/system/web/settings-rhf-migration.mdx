@@ -52,6 +52,10 @@
 - Personal Preferencesの `userPreferencesGraphqlAdapter.ts` は、RHFのInputに加えて入力イベント由来のPartial Patchと取得結果を扱う境界である。入力契約 `UserPreferencesPatch`、出力契約 `UpdateUserPreferencesInput` を維持する。Zodの `preferencesSchema` には表示用 `accentDraft` が含まれるが、これをAPI Mapperへ流出させない。
 - 既存のMapperは新ルールへの適合が確認できれば機械的に書き換えず、Mapperが必要なフォームで初めて型契約を追加する。
 
+## Form defaultValuesの合意（2026-11-02）
+
+各Settings Formの初期値はForm所有者の`defaultValues`に直接記述する。ZodにRHF初期値生成の責務を持たせない。初期値構築が複雑になるか、複数のFormで実際に同じ初期化ロジックが必要になった場合のみPure Functionを検討する。初期値とサーバー再取得時の`reset`は別の契約として扱う。
+
 ## 現行の責務と移行境界
 
 | 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
