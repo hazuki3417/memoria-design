@@ -888,6 +888,13 @@ type PageHeaderProps = {
 - **重要な未実装事項**：現在のCommunity Accent Previewは既存Apollo Cache書込を利用しているため、合意した`Confirmed`と`Preview Overlay`の厳密分離は未実装。Session内長命Controller、Unknown OutcomeのServer再照会・明示再保存、遅延応答・Context切替時の競合、Status表示Timerも未完了。既存通信Errorの一律失敗扱いは合意したHybrid Errorと未整合。これらの残課題を解決するまではUX移行完了とはしない。
 - **Gate**：Typecheck、Biome、Unit、Storybook Interaction、VRT、Buildと、Personal/Community両方のWide/Medium/CompactでHeader/Badge/Usageの位置と保存動作の回帰を確認する。
 
+### 2026-11-02 追加実装：Community保存Errorの配置
+
+- `CommunityPreferencesContent`に任意`saveFeedback` Slotを追加し、`PageHeader`直後・各設定Fieldの前へ表示する。タイトル横の`SaveStatus`は短い`attention` Badgeのままとし、詳細ErrorをBadgeへ詰め込まない。
+- `ConnectedCommunityPreferences`のError AlertをHeaderより上からこのSlotへ移す。Error文言は「Shellを確定色へ戻したが入力した色は保持」と実際の振る舞いを示す。これにより通常時のPageHeaderの高さ・位置を変えず、Errorが発生した場合のみ後続Formを押し下げる。
+- `CommunityPreferencesContent.stories.tsx`にBadge+詳細AlertのStoryを追加。既存Consumerに`saveFeedback`が渡されない場合は従来のForm DOMを維持する。
+- **未完了**：Errorの手動Retry / Draft破棄Actionを提供するController API、Unknown Outcomeの別文言と再照会、Preview Overlay分離、Session長命Queue、実行Gate。Error Alertの追加だけで合意済みRecovery UIを満たしたと判断しない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
