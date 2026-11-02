@@ -979,3 +979,9 @@ type PageHeaderProps = {
 ### 2026-11-02 SaveStatus Timingの本番適用合意
 
 Personal PreferencesとCommunity Accentの両方に、Saving表示300ms遅延、Saved確定後2秒表示、Saving継続2秒後の一度のみPolite通知、最後の保存確定時の成功通知を適用することでユーザー合意済み。`SaveStatus`のPresentation専用`timing`と`announce`を両Settings Consumerから明示する。Error通知は持続Alertの責務、Status側では重複読み上げしない。`PageHeader.titleAccessory`、ピル形状、固定幅予約およびUsage右側Inputの既存契約は維持する。
+
+### 2026-11-02 Personal Accentの即時Visual Preview（合意済み）
+
+Personal Accent ColorはCommunity Accentと同様、入力後の有効なColor Draftを即座にApplication Shell（Header等）とPersonal設定のナビゲーションの見た目へ反映する。サーバーの確定値やApollo CacheはMutationの成功が確認されるまで書き換えない。保存中はPreviewを継続する。Validation/Execution ErrorまたはUnknown Outcome時、Shellの見た目は最後に確認できた色に戻し、入力DraftはSessionに保持して明示的な再試行・破棄を可能にする。不完全なColor Input文字列をShell Previewへ渡さない。通常のClient-side画面遷移では既存Session Ownerを共有し、Previewと保存結果の一貫性を保つ。
+
+実装：`memoria-web/feature/graphql-hybrid-results` の `personalAccentPreview.ts`、`ApplicationShellContainer.tsx` およびPersonal Settingsの接続Component。Communityと同じvisual contractを維持するが、保存済み値の参照元はPersonal Preferences Sessionとする。
