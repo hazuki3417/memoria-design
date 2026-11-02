@@ -327,6 +327,84 @@ Feature固有の保存Actionは、少なくとも成功時の**保存済み確�
 4. Community AccentのRollback方針（確定色へ復元／未保存の選択を保持）と未完成HEXの扱い。
 5. 保存中に手動入力をDisableするか許可するか。既存実装と異なるUXへの変更は明示合意が必要。
 
+## 2026-11-02 設計変更提案：GraphQL Error Modelの再設計（合意待ち）
+
+**提案ステータス：未確定。** 既存Backendの実装互換性や差分最小化を優先せず、GraphQLのSchema表現力・利用者の回復可能性・運用上の信頼性を基準に設計し直す。現行Source of Truthの`content/system/api/graphql.mdx`は「Transport / Application Errorは`errors[].extensions.code`」を採用しているため、次の提案は**既存確定契約の置換候補**であり、合意まで同文書の規範仕様を上書きしない。Web #235、API #128と連携し、確定後にAPI GraphQL設計正本・Schema・Web設計を同期する。
+
+### 選択肢の比較
+
+| 方式 | 利点 | 注意点 |
+| --- | --- | --- |
+| A. 全失敗をGraphQLトップレベル`errors`へ集約 | GraphQL標準Execution Errorを利用可能、既存の`extensions.code`に適合 | 期待される業務的失敗をGraphQL型として表現しにくい。ClientがCode / Field判定に依存する |
+| B. 業務上の失敗をMutation Payloadの型付きResult（Union）に表現、認証・実行失敗はトップレベル`errors` | ResultをSchema・Codegen・Exhaustive Handlingへ明示でき、Operation単位の期待される失敗が自己記述的 | Union分岐・型の増加。初期の契約変更は大きい |
+| C. すべての例外・失敗をUnion Payloadにする | Query時と違いMutationの戻り値は単一の成功／失敗型に統一可能 | 認証・インフラ障害まで通常の業務結果と同一視し、GraphQL Execution Errorと混同する |
+
+**推奨はBのHybrid。** GraphQL Specificationは業務ErrorをUnionにすることを義務付けていないが、予期される・利用者が対処できる業務結果はSchemaの型で表現するメリットが大きい。Protocol・認証・権限制御・実行障害はGraphQLトップレベル`errors`とTransportで扱う。複数更新対象の部分成功は、既存Bulk Item Resultをこの分類と整合させる。全Mutationに機械的にUnionを追加せず、予期される業務失敗のあるCommandへ適用する。
+
+### Resultの意味とSchema例（設計候補）
+
+```graphql
+type UpdateUserProfileSuccess {
+  profile: UserProfile!
+}
+
+type InputViolation {
+  # GraphQL response pathではなく、Mutation Input内のField path
+  inputPath: [String!]!
+  code: String!
+}
+
+type InputValidationFailure {
+  violations: [InputViolation!]!
+}
+
+type DomainRuleFailure {
+  code: String!
+}
+
+type StateConflictFailure {
+  code: String!
+}
+
+union UpdateUserProfileResult =
+    UpdateUserProfileSuccess
+  | InputValidationFailure
+  | DomainRuleFailure
+  | StateConflictFailure
+
+extend type Mutation {
+  updateUserProfile(input: UpdateUserProfileInput!): UpdateUserProfileResult!
+}
+```
+
+例はContract Boundaryの説明用であり、同名のGeneric Error型を全Mutationで共有する確定仕様ではない。`inputPath`は`nickname`等の**Input Modelのpath**であり、GraphQLのExecution Errorの`errors[].path`（失敗したResponse Fieldのpath）と混同しない。Fieldの問題が一意でない場合はForm LevelのDomain Failureとする。Field ErrorのcodeはUI文言ではなく安定した機械判定用識別子であり、MessageはWebのlocale・Form Contextに応じて組み立てる。必要な入力や業務制約のみ、型・コード・対象Pathの粒度をOperation単位で定義する。
+
+成功Resultは保存済みの最終値を返す。成功判定後の別Queryの再取得失敗を保存失敗へ格下げしない。UnionのFailureは**更新が確定していない業務上の拒否**を意味し、Successと同時に発生させない。認証失敗・権限不足・対象秘匿・サーバー障害の扱いはAPI Security Contractに従い、Unauthorized等を一般のUser Error型に混在させない。
+
+### GraphQL Execution ErrorとTransportの契約
+
+- `errors[].extensions.code`はTransport、Authentication、Authorization、Schema/Execution、Infrastructureの識別に用いる。GraphQLの`errors[].path`は失敗したResponse Fieldの位置であり、入力不正Fieldの代用としない。
+- 認証：`UNAUTHENTICATED`、認可：`FORBIDDEN`、不存在と存在秘匿：`NOT_FOUND`という既存Security上の原則を継承する。内部Error・Stack Trace・DB名などの情報は外部へ返さない。
+- `INTERNAL`等の公表Codeについて現行の`INTERNAL_SERVER_ERROR`を含む不一致を整理し、仕様・実装・Testを同じ契約へ揃える。HTTP StatusとGraphQL Error Codeは別概念であり、GraphQL ResponseのError配列／nullableの挙動とApollo `errorPolicy`の組み合わせを検証する。
+- Mutationが応答の途中で失敗した場合、Clientは書き込みの成否を判断できないことがある。**Unknown Outcomeは必ずしもBackendが返すError CodeではなくClientの知識状態**である。接続タイムアウトを`Retryable`と同義にしない。
+- 予期されるField / Domain FailureはUnion等のSchema Resultへ、Authorization等の実行不可はGraphQL Errorへ、Network断・Timeout等の応答未確認はClient Transport Statusへ分ける。ValidationのうちGraphQL Input Coercion / Syntaxの失敗はMutation Resolverに到達せずGraphQL Request Errorとなり、業務Validation Resultとは別に扱う。
+
+### 冪等性・同時編集・回復
+
+- 最終状態を同じ値へ設定するSetting更新は、一般に重複送信しても同じ最終値へ収束するが、監査・イベント・非同期副作用まで自動的に冪等とは限らない。手動保存は重複実行防止と送信Snapshotの特定を前提にし、再送が安全なOperationを明示する。
+- User Preferences / Community Accent等の自動保存は、Queueの直列化と後続編集の保護を保証する。送信Snapshotと確定応答を照合し、後続Draftを消さない。通信断時に「既に保存された」と判断しない。
+- Idempotency Keyは削除・作成・支払い等の重複副作用が問題になるCommandで必須候補とし、全Mutationへ無条件に要求しない。事後状態の再取得は現在値の確認には使えるが、**どのRequestが成功したか**を一般に証明しない。
+- 同時編集で他端末／他操作の更新を失わせない必要がある場合、Version / Preconditionの導入をCommandの性質から検討する。Web側のQueueだけでは複数Client間のLost Updateを防止できない。
+- APIの確定したMutation Responseを保存基準にし、Cache反映・追加Refetchは別の結果とする。GraphQL Data / Errorの部分成功はQueryの独立FieldとBulk Item Contractに従い、単一Form保存のConfirmed判定と混同しない。
+
+### 決定の順番
+
+1. 期待される業務上の失敗に型付きResult（推奨B）を導入するかを合意する。
+2. 成功/Field Validation/Domain Rule/State ConflictのSchema型とOperationごとの分類・Error Codeを決める。保護すべきリソース存在情報をFailureへ漏らさない。
+3. 認証・認可・実行失敗の公開GraphQL Error CodeとError Presenterを整理し、HTTP Status / Nullable / Apolloの検証を指定する。
+4. 自動保存の同時編集・Unknown Outcome・Idempotency / Version要件をFeatureごとに確定する。
+5. API Schema正本（`content/system/api/graphql.mdx`）と実装を変更し、Web Error Adapter / Form Feedback / Interaction Testsへ展開する。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
