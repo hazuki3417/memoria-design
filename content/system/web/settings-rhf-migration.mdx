@@ -935,6 +935,15 @@ type PageHeaderProps = {
 - **Community Preview Scope追補**：Preview Providerは1件の値ではなく`Community ID → {color, owner}`のMapへ修正。別Communityの編集中Previewと古いCleanupが衝突せず、ShellとSwitcherには現在選択中CommunityのOverlayだけを表示する。
 - **未完了 / Gate**：現APIのApollo Errorに対する分類は暫定。GraphQL Typed Domain Result/Extensions SchemaとGenerated Hook更新、Manual Profile/Aliasなど他Consumerの結果分類統一、Saved/SavingのTimingとa11y、Late Mutation/LWW外部更新、Alias/Accent競合、Typecheck/Biome/Unit/Storybook/VRT/Buildの実行検証は残る。PRは作成・Mergeしていない。現状は**機能コード反映済み・品質Gate未完了**でありRelease可能と判定しない。
 
+### 2026-11-02 Session Queue通信Ownerの実装上の補強
+
+- Personal Preferences / Community AccentのAuto Save Mutationは、画面Unmount後にも通信とCallbackが継続できるよう**Apollo Client本体の`client.mutate`**で送信する。画面の`useMutation` Hookの寿命へ依存しない。Manual Profile / Community Aliasの既存Hookによる保存経路は今回変更しない。
+- Session内のCommunity Accent Previewは**Community ID別Map**で保持し、現在選択中Communityの値だけをShell / SwitcherへOverlayする。別Communityへの移動や古いMutationのCleanupでも、他CommunityのPreviewを消さない。
+- Personal/Communityとも、UnknownのServer確認中にユーザーがDraftを変更した場合、古い確認結果を適用しない。Personal ColorInputのRaw Draft変更も照会結果の一致判定を無効化する。
+- Preferences QueueのFailure後Pause中に新たなField変更を受け取った場合、変更を捨てずPendingへCoalesceする。ただしQuery確認と明示的な手動Retry前には自動送信しない。
+- **未検証のGate**：この変更群はGitHubのコード・設計書・Issue反映は確認できるが、ローカルのNode環境とRepo全体の依存関係で実行したTypecheck/Unit/Storybook/VRT/Build結果を確認できていない。CIが走っていない状態で機能完了・Visual Contract維持を断定しない。
+- **残る設計判断**：Saving表示遅延 / Saved消灯時間 / A11y Live Regionの秒数は未確定。Storyと実機で検証して合意後に適用する。API Typed Domain Resultの移行とAlias/Accentの並行更新、Late Mutation順序保証は別Gate。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
