@@ -850,12 +850,21 @@ type PageHeaderProps = {
 ## 2026-11-02 共通Save Feedback Presentationの実装着手
 
 - **実装Branch**：`memoria-web/feat/save-feedback-presentation`（`refactor/settings-rhf-profile`を起点に作成）。既存リファクタリングへの影響を抑えるため、最初の実装単位は`PageHeader`の任意Slotと`SaveStatus`の純粋なPresentation Component、状態Storyに限定する。
-- **Component実装**：`src/components/PageHeader/PageHeader.tsx`へ任意`trailing`を追加し、未指定時は既存のDOM / Typography / Spacingをそのまま返す。`PageHeader.module.css`でStatus用の固定幅Slotを予約する。狭いViewport（暫定30rem以下）ではタイトル行とSlotを常時二段にする。Breakpoint値はVRTで確認する。
-- **SaveStatus実装**：`src/components/SaveStatus/SaveStatus.tsx`は`idle/pending/saving/saved/attention`の短い表現のみを持ち、`idle`では`visibility:hidden`によりSlotを消さない。GraphQL、RHF、Apollo、Retryに依存しない。`announce`は明示的に指定するまでLive Regionを有効にしない。
+- **Component実装（2026-11-02 更新）**：任意`titleAccessory` Slotをタイトルに隣接させ、**タイトル＋Status Badgeを左揃えのまとまり**として扱う。旧`trailing`右端配置・固定二段案は撤回。未指定Consumerは既存のDOM / Typography / Spacingを保つ。`PageHeader.module.css`でBadge領域を7rem予約し、`idle`でも位置を維持する。狭い画面ではタイトルとBadgeのまとまりだけが折り返し可能（状態による幅の変化で折り返しが変わらないこと）。
+- **SaveStatus実装（Badge形式）**：`src/components/SaveStatus/SaveStatus.tsx`は`idle/pending/saving/saved/attention`の短い表現のみを持ち、`idle`では`visibility:hidden`によりSlotを消さない。GraphQL、RHF、Apollo、Retryに依存しない。`announce`は明示的に指定するまでLive Regionを有効にしない。
 - **Story**：`src/components/SaveStatus/SaveStatus.stories.tsx`に各Status、Idle、短いStatusと詳細`FeedbackAlert`の組み合わせを追加。`PageHeader.Default`の既存Storyと比較する。
-- **UI-A方針**：Header右は短い状態、理由と復旧操作が必要なErrorはForm上部の持続Alertとする。この分離により通常のHeaderの伸縮を抑える。Error出現で設定項目が下へ移動することは許容する。Field ErrorはField近傍。実フォームへの組み込みは保存状態ControllerのResult契約と併せて行い、既存の明示保存Notificationを無断で除去しない。
+- **UI-A方針（位置更新）**：タイトル横Badgeは短い状態、理由と復旧操作が必要なErrorはForm上部の持続Alertとする。この分離により通常のHeaderの伸縮を抑える。Error出現で設定項目が下へ移動することは許容する。Field ErrorはField近傍。実フォームへの組み込みは保存状態ControllerのResult契約と併せて行い、既存の明示保存Notificationを無断で除去しない。
 - **未検証**：GitHub上へCodeをCommitした段階では、Typecheck、Biome、Storybook Interaction、VRT、Next.js Buildの成功を保証しない。各Gateを確認し、必要なら修正するまで完了扱いにしない。
 - **残設計**：Saving/Savedの表示TimerとLive Announcement、実FormへのSaveStatus接続、Session Queue、GraphQL Hybrid Result改修は今回のPresentation PR相当の変更に含めず、別段階で実装する。
+
+### 2026-11-02 合意：Usageの画面操作とTitle Statusの配置境界
+
+- **Title左側**：タイトルと小さなStatus Badgeを同じグループとして左揃えする。Badgeの表示・非表示はその右隣の固定幅領域で行い、タイトル自体の開始位置・説明文・後続Containerを状態変化でずらさない。
+- **画面右端**：Usageの`SettingsUsage`は既に外側の`Group justify="space-between"`で`PageHeader`と`SegmentedControl`を左右に配置している。**このInput、操作、Responsive Behaviorを維持する**。Statusのために右側Inputの位置を奪わない。
+- **APIの責務分離**：`PageHeader.titleAccessory?: ReactNode`はタイトルに付随する表示を受ける任意Slot。`actions`をページヘッダーへ強制せず、必要なFeatureは外側で既存どおりCompositionできる。現在のConsumerへSaveStatusを一律表示しない。
+- **Responsive**：Badge自身は短い文字＋Iconの固定幅内で表示し、タイトル・Badgeのセットの折返しを許容する。Usage外側のGroupが折り返す場合も、UsageのSegmentedControlは保持し、画面操作をBadgeと同じSlotに入れない。テキストが長い場合は重なり・Clip・Horizontal OverflowがないことをVRTで確認する。
+- **既存実装変更**：`memoria-web/feat/save-feedback-presentation`の`PageHeader`の`trailing`→`titleAccessory`、`SaveStatus`のBadge化、関連Storyの修正。Usageの本体Codeは変更しない。
+- **検証Gate**：`PageHeader.Default`、Status状態別Story、`SettingsUsage`のPersonal / Community Story、Compact / Medium / Wideで表示・操作・レイアウトを比較する。変更コードをGitHubで確認した時点では型・Lint・VRT完了を意味しない。
 
 ## 実装単位とテストGate
 
