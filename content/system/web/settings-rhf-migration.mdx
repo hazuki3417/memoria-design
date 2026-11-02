@@ -156,6 +156,16 @@
 
 横断的な検証が必要なら、個別Unit Testの寄せ集めではなく、具体的な連携BehaviorやContractを検証するテストとして対象と配置を明確化する。テスト内容・期待値は分割によって削除・簡略化しない。
 
+## 2026-11-02 追加実装：残り4フォームのDraft同期
+
+Web共通のForm Draft同期UXを既存のSettings Formへ具体化する。単純な値の差異を競合UIとして表示せず、ユーザーの編集中の入力を保護する。
+
+- **Personal Profile**：初期NicknameのProps変更時、現在値が保存基準と等しい未編集状態なら`reset`して新しい値を表示する。編集中のDraft、保存失敗による再試行用Draftは保護する。保存中のフォーム操作は従来どおり無効。
+- **Community Alias**：編集開始の履歴を保持する`editing`フラグではなく、直前に受け取った取得値と現在のDraftの差で未編集を判断する。未編集時はProps更新へ追従し、編集中は上書きしない。保存失敗のDraft維持・空欄の`null`化は維持する。
+- **Personal Preferences**：RHFの`reset(..., { keepDirtyValues: true })`で未編集Fieldのみ新しい取得値へ反映する。保存Queue、入力イベント起点のPatch生成、ColorInputの未完成`accentDraft`、Debounce・Retry・Blockedの契約は変更しない。RHFのDirty Flagは編集中の値を保護するための印であり、保存Patchを生成する目的では使わない。
+- **Community Accent**：取得値の変更時、未編集なら同期し、未完成HEX等の編集中Draftは保持する。一方、既存の「保存失敗時に最後の保存色へ戻す」というUX契約は優先し、保存Controllerが`restoreOnAccentChange`を明示して復元する。Contextへの即時色反映・Rollback・直列保存の実装責務は移動しない。
+- Storybook Interactionで各フォームの再取得時同期とDraft保護を検証し、AccentはRollbackによる復元も確認する。実行結果はTypecheck・Storybook・Build・VRTのGateで別途確認すること。リポジトリの更新だけで実行済みとみなさない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
