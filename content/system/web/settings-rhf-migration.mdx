@@ -18,6 +18,13 @@
 3. 移行順序：Personal Profile → Community Alias → Community Name → Personal Preferences → Community Accent。
 4. 変更前後のVisual / Behavioral / Responsive Contractを維持する。既存のCapabilityを共通化のために削除しない。
 
+
+### 2026-11-02 追加合意（実装時の決定）
+
+- サーバー再取得時のCommunity Name未保存Draftは、既存どおり `communityName` Props変更時に上書きする（今回の移行で挙動を変えない）。
+- Context IDが変わる場合、フォームをContextごとに独立させ、新しいContextの初期値で初期化する。保存Controllerの対象IDとDraftが混在しないようContext境界で明示的に識別する。
+- Personal PreferencesはRHFが編集中の入力値を所有するが、保存対象Patchは従来どおり入力イベントで生成する。RHFのDirty Fieldを保存対象抽出へ新たに利用しない。
+
 ## 現行の責務と移行境界
 
 | 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
@@ -111,14 +118,12 @@
 4. Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js BuildをPR上で確認する。少なくともCompact / Medium / Wideで既存Storyと画面レイアウトを比較する。
 5. 未解決の仕様変更は実装側で決めず、合意を得てから変更する。PR作成・マージは別途明示的承認が必要。
 
-## 未決定・実装前の合意事項
+## 確定事項・実装上の注意
 
-以下は実装詳細としての推奨であり、上記4点の合意済み原則から勝手に仕様変更を導かない。
-
-1. **サーバー再取得中の未保存Draft**：Community Nameは現状、`communityName` Props変更時にDraftを上書きする。既存どおり上書きするか、Dirty中は保護するか。後者はUX改善だがBehavior変更のため別途合意が必要。Personal Profile / Aliasでも外部変更への同期条件を明示する。
-2. **保存中にContext / IDが変化した場合**：新しいContextの初期値が旧フォームのDraftへ混入しないよう、Form instanceのscopeと初期化条件を整理する。現状と異なる強制Reset / 再送ルールは無断追加しない。
-3. **Personal Preferencesの「保存済み基準値」とRHF Dirtyの扱い**：現在、PreferencesのDirtyをユーザーへ表示していない。RHF DirtyをUI・保存条件として新規導入せず、入力Fieldの変更イベントからPatchを生成する方式を第一候補とする。
-4. **既存実装の不整合・潜在不具合の扱い**：Community Name保存reject時の表示や、保存中の外部再取得等の既存問題はRHF移行に混ぜて黙って修正しない。回帰と改善を分けて合意する。
+1. **サーバー再取得中の未保存Draft**：Community Nameの `communityName` Props変更時のDraft上書きは既存挙動を維持する。Dirty中保護は今回導入しない。
+2. **Context切り替え時**：Context ID単位でフォームのライフサイクルを分離する。Context ID変更時は該当Contextの入力を初期化し、異なるContextへDraft・保存対象を混入させない。
+3. **Personal Preferences**：RHFをフォーム値の所有者とする。保存Patchは入力イベントから生成し、Dirty Fieldsを保存トリガーにしない。
+4. **既存実装の不整合・潜在不具合の扱い**：Community Name保存reject時の表示など、移行以外の振る舞いは黙って変更しない。必要な改善は別途合意する。
 
 ## 実装後の完了条件
 
