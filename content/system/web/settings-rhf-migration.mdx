@@ -907,6 +907,20 @@ type PageHeaderProps = {
 - **まだ未完了**：現状`ConnectedCommunityPreferences`の保存QueueはComponent内の`desired/inFlight`管理であり、画面遷移後の同一認証Sessionで状態を復元するController契約は未実装。Unknown Outcome照会・手動再保存、明示Retry/破棄、同一CommunityでのLate ResponseがConfirmedを巻き戻さない厳密制御、API Hybrid Resultの移行は別作業。ProviderはPreview表示のOwnerでありSession Save Queueの代替ではない。
 - **Gate**：Unit / Typecheck / Biome / Storybook Interaction / Wide-Medium-Compact VRT / Next Buildの実行成功は未確認。既存Shell・Switcher・Settings・AliasのVisual / Behavioral Regressionを通すまで完了としない。
 
+### 2026-11-02 実装追補：Community Accent Session保存Controller・Unknown Recovery
+
+`memoria-web/feat/save-feedback-presentation`にて、Community Accentの保存Ownerを画面ComponentからAuthenticated Application Shell内のSession Controllerへ移した。
+
+- **Session Controller**：`src/features/community-settings/communityAccentSaveController.ts`。Community IDで独立した`confirmed / draft / pending / in-flight / failure / observedMatches`を保持し、`subscribe/getSnapshot`でViewだけを接続する。画面から離れてもPending MutationとSnapshotは保持され、同じCommunityへ戻るとDraft/Badge/Alertが復元される。ブラウザーReload後の永続化は保証しない。
+- **Owner**：既存`CommunityAccentPreviewProvider`をShell内のController Ownerとしても利用し、`useCommunityAccentSave(communityId)`は`useSyncExternalStore`で該当IDだけを購読。UnmountしてもControllerはDisposeされず、Shell側PreviewはMutation確定・Error・明示破棄に応じて解除する。
+- **Queue**：Valid HEXだけを最新希望値として保存する。同一Communityの送信は直列、進行中の後続変更をCoalesce、遅い旧ResponseでDraftを上書きしない。Confirmed Mutation ResultだけがApollo Cacheを更新する。背景Queryの古い値はControllerの最初のHydration以外に採用せず、過去の値でConfirmedを巻き戻さない。
+- **Unknown Outcome**：通信不明または未確認Responseは`unknown`とし、自動再送を停止。UIの`現在の状態を確認`で既存`CommunityMySettingsDocument`を`network-only`照会する。照会が成功し一致した場合だけ`確認完了`を表示し、当該Mutation成功を証明したとは扱わない。不一致時は照会成功後の明示`もう一度保存`だけ許可する。照会が失敗した場合には再送不可。照会・再送とは独立に`変更を破棄`を提供するが、旧Mutationの遅延Commitを否定するものではない。
+- **Rejected**：Draft保持・Preview解除・手動`もう一度保存`または`変更を破棄`。`CommunityPreferencesContent`では`onAccentDraftChange`により未完成HEXを含むRHF DraftをControllerへ保存する。明示破棄時はInputをConfirmedへ戻し、同居Alias FormをRemountしない。
+- **API/Clientの未整合**：今回の`isUnknownAccentOutcome`は現在のApollo Client Errorを使った暫定分類であり、合意済みTyped Domain Result/Error SchemaのAPI実装・生成Typeへの接続は未完了。なおSession内Queueを保持してもLate MutationのGlobal LWW順序保証は成立しない。
+- **テスト追加**：ControllerのUnmount後Snapshot、Community分離、Incomplete Draft非送信、Old in-flight + New Draft、Unknownの照会前再送禁止、Query一致の手動確認完了、Rejectedの明示再送、Discard、Stale QueryのConfirmed巻戻し防止を対象とするUnit Testを追加。
+- **Personal Preferences**：MutationのConfirmed結果と後続Refetchを分離する変更を`usePersonalSettingsActions.ts`へ追加。Refetch失敗がConfirmed Mutationを失敗/Unknownへ変換しない。
+- **実行Gate**：GitHubへのCode・Test追加は確認できるが、Typecheck / Biome / Unit / Storybook / VRT / Next Buildの成功は未確認。BranchのGitHub Actions Runがなく、Merge/Release可能と判断しない。Session Queue実装の残り：Personal Preferencesの長命化、UI Timing・A11y、Typed Hybrid ErrorのBackend/Client対応、Alias/Accent競合と実機VRT。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
