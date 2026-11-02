@@ -25,6 +25,17 @@
 - Context IDが変わる場合、フォームをContextごとに独立させ、新しいContextの初期値で初期化する。保存Controllerの対象IDとDraftが混在しないようContext境界で明示的に識別する。
 - Personal PreferencesはRHFが編集中の入力値を所有するが、保存対象Patchは従来どおり入力イベントで生成する。RHFのDirty Fieldを保存対象抽出へ新たに利用しない。
 
+## 2026-11-02 合意：Zod / zodResolverの適用と共通化の境界
+
+- Settingsの各独立RHF Formに、フォームのInput / Outputを区別したZod Schemaと`zodResolver`を適用する。入力中のDraftはRHFが所有し、ZodはValidationと保存時の正規化を定義する。
+- `z.input<typeof schema>` は入力値、`z.output<typeof schema>` は検証済み保存値として扱う。RHFは必要に応じて`useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>`を使用する。
+- Mantine UIと既存のError表示タイミングは変えない。`safeParse`による保存可否の導出などが必要な場合も、同一Schemaを唯一のValidation正本とし、別のValidationルールを二重実装しない。
+- Personal PreferencesのPatch保存は入力イベント起点、Community Accentは有効HEX入力だけを既存保存Controllerへ通知し、`handleSubmit`へ保存方式を変更しない。未完成HEXをRHF Draftとして保持する。
+- 各Schemaは対応するドメイン・フォームの近くに配置する。記述の類似だけを理由に名前やField Schemaを共通化しない。
+- Community名・Tag名・Group名のように複数ユースケースで同一ドメイン制約が必要になれば、その段階で各ドメインのSource of Truthを確認して抽出する。**今回の作業はPersonal / Community Settingsのみ**とし、他のFeatureへの共通化を行わない。
+- `react-hook-form`、`zod`、`@hookform/resolvers`は既存依存を利用する。Backend最終Validationを置き換えない。
+- Git commitの`[skip ci]`はPR作成済みブランチへの追加コミット時のみ付ける。PR未作成ブランチのコミットには付けない（今回の作業指示であり恒久的設計規約ではない）。
+
 ## 現行の責務と移行境界
 
 | 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
@@ -114,7 +125,7 @@
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
 2. 次にそのPhaseのフォーム入力StateだけRHFへ移し、保存ControllerとGenerated Hookには不要な変更を加えない。
-3. Phaseごとのコミットは単一目的に限定する。手動コミットには現在のユーザー指示に従って`[skip ci]`を付ける。ユーザーがCI起動を指定したコミットのみ外す。この一時的な実行指定は恒久的な設計規約ではない。
+3. Phaseごとのコミットは単一目的に限定する。`[skip ci]`はPR作成済みのブランチへの追加コミットでのみ利用する。PR未作成のブランチでは付けない。この一時的な指示は恒久的な設計規約ではない。
 4. Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js BuildをPR上で確認する。少なくともCompact / Medium / Wideで既存Storyと画面レイアウトを比較する。
 5. 未解決の仕様変更は実装側で決めず、合意を得てから変更する。PR作成・マージは別途明示的承認が必要。
 
