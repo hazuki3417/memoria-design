@@ -10,6 +10,9 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 - Backendへの業務Query / Mutationは原則Apollo Clientへ統一する。業務GraphQL通信のためのNext.js Server ActionおよびブラウザCustomEventによる機能間同期を廃止する。認証情報の秘匿に必要なHTTP Route Handlerは許可するが、業務ロジックを重複実装しない。
 - GraphQL Operationを定義し、Code Generatorが生成するApollo React Hooksを基本のQuery / Mutation Interfaceとする。単に名前や返り値を転送する独自Hookは作らない。
+- **GraphQL定義の唯一の管理場所**: Web側の業務Query / Mutation / Fragmentは `memoria-web/src/infrastructure/graphql/operations/**/*.graphql` に置く。Schemaに基づいてCodegenで生成したDocument・Type・Apollo HookをFeatureから利用する。Feature内で独自の `gql` テンプレート、GraphQL文字列、手書きのOperation結果型を定義しない。既存Operationで同じ要求を満たす場合は再利用し、必要な選択項目だけを変更する場合もOperation正本へ反映する。生成ファイルは直接編集しない。
+- **Client / Serverの区別**: Client Componentは生成Apollo Hookを基本とする。Server側でもOperationの定義と型は生成成果物へ統一するが、Apollo Clientを使用するかServer専用Transportを使用するかは認証、Cache、Next.js実行境界を確認して決定する。実行方式の判断を待つことは、Server側で手書きGraphQL文字列を増やす許可ではない。
+- **段階的な移行と検証**: Personal / Community Settingsから重複Operationを除去する。QueryのfetchPolicy、Mutationの応答確認、refetch対象、保存順序、楽観的Cache更新、エラー時の復元、画面表示を変更しないことを回帰条件とする。規約未対応の別Featureは個別Issue / 作業で扱い、一括置換しない。
 - 複数のOperation、共通の業務ルール、Error Mapping、Cache整合性などを一つの業務責務として組み立てる必要がある場合に限り独自Hookを設ける。単一Mutationでも有意味な業務境界なら許容する。React非依存の処理は純粋関数として分離し、モックと単体Testを容易にする。
 - Server State（Community一覧、Membership等）はApollo Cacheを唯一のフロントエンド側の共有Sourceとし、同一情報をContextやuseStateへ複製しない。UI Stateは各Component、Navigation StateはURL/Routerが所有する。Contextは画面スコープの識別子など、本当に必要な情報に限る。
 - Group Browser等のPreview fixtureおよび疑似Media生成は、実際のFeature Component内に埋め込まずStory / Mock Data境界から明示的に渡す。GraphQLとの接続は生成Apollo Hookに委ね、Storybook IntegrationではApolloのGraphQL OperationをMockedProviderでMockする。表示用のServer State Snapshotを独立したReact Stateへ複製しない。追加取得のカーソルとページ結合はApollo Query結果を正本とし、追加取得のLoading / Error / RetryのみをUI状態として扱う。
