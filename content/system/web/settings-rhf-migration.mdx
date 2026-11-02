@@ -660,6 +660,76 @@ SettingsのPage Header付近にフォーム単位の小さなStatusを置く。�
 - **U2**：StatusをPage Header説明文直下へ配置し、Saving表示開始300ms、Saved表示約2秒、Saving読み上げ開始2秒という閾値を採用するか。UX実装時にStory / Interactionで調整可能な値として所有する。
 - **U3**：Unknown後に現在値が一致した場合、ユーザーの明示的な「確認完了」操作だけで未確定Statusを閉じられるようにするか。合意済みの「手動再保存のみ」は変更しない。
 
+## 2026-11-02 合意・改訂：離脱警告のリスク基準、Header右側Status、Unknown確認完了
+
+### 今回の合意と検討状態
+
+- **合意 U1**：Browser離脱警告は、未保存状態があるという理由だけで一律に表示しない。**操作の重要度と喪失時の影響度**からFeature / Operation単位に要否を決定する。一般Settingsへ標準警告を要求しない。安全に保存完了できないBrowser終了の技術的限界は従来どおり。
+- **合意 U2（配置の希望）**：通常の保存Statusは**Page Headerタイトルの右側**へ置き、表示有無でHeaderと後続コンテンツが伸縮・ジャンプしないことを不変条件とする。短いStatusと詳細Errorを同じ領域へ詰め込まない。ResponsiveなLayoutとError時の具体UIは提案段階。
+- **合意 U3**：Unknown OutcomeのServer再照会結果が現在Draftと一致した場合、ユーザーが明示的な「確認完了」を押して未確定表示を閉じられる。**当該Mutationの成功を確認したとは表示しない**。不一致・照会失敗では確認完了に進めず、引き続きDraft保持・状態照会・手動再保存を案内する。Unknownからの自動再送は引き続き禁止。
+
+上の合意は、前節の「未保存ならすべてbeforeunloadで警告」「Statusは説明文直下」という**旧提案を置き換える**。前節に記載した300ms / 2秒等の具体的時間は検証用の候補であり、正式決定ではない。
+
+### 離脱警告のリスク判定規則
+
+一般Settingsの個人表示設定・Accent色・日付形式・サムネイル等は、喪失しても再設定でき、取り返しのつかない影響を通常生まない。**標準ではBrowser離脱警告を要求しない**。ただし保存失敗・Unknown状態をユーザーが認識できる常設Feedbackは別責務として維持する。
+
+重要なドメイン操作で離脱警告を検討する場合は、`操作の不可逆性 / 再入力の負担 / 金銭・権限・データへの影響 / 回復可能性 / 実際の保存寿命`を材料に判断し、操作の契約に判断理由を残す。`beforeunload`が確実に発火することを前提とした保護は認めない。実際の重要操作ではDraftの永続化、原子的Commit、Idempotency、明示Confirm等を優先して設計する。
+
+| Category | 例 | 方針 |
+| --- | --- | --- |
+| 軽微で再現可能な表示設定 | Theme / Personal Preferences / Community Accent | 警告を標準化しない |
+| 再入力コストの高い編集 | 長文入力・複雑な構成変更等 | Operationに応じて警告／Draft保存を検討 |
+| 不可逆・高影響 | 削除、権限・Membership等 | Domainの明示Confirm・冪等性・安全なTransactionを主とし、警告は補助的に検討 |
+
+この表は新たなDomain操作の仕様変更を自動的に承認するものではない。
+
+### SaveStatusの配置：タイトル右側にレイアウト予約
+
+**推奨デザイン**：Page Headerを「タイトル行（左：Title、右：SaveStatus Slot）＋説明文行」にする。SaveStatusの表示幅と高さを常時確保し、`idle`で非表示でもSlot自体はLayoutから外さない。保存中・保存済み・保存待ちはSlot内の短文・Iconで表現し、タイトルと説明文を再配置しない。Titleの長さ・多言語化に備え、HeaderのGrid/Flexは必要な最小幅を確保する。
+
+- Wide / Medium：Titleの右に右寄せSlot。Header全体の高さをStatus有無で変えない。横幅はStatusに必要な幅を固定/最低保証し、Textは折り返し・切詰めに明確な規則を置く。
+- Compact：タイトルとStatusを同一行に収められる場合は右寄せ。収まらない場合は**最初から二段の固定レイアウト**を使用し、Status有無で行数を変えない。無理な重なりや任意タイミングの改行でCLSを生じさせない。
+- `PageHeader`は現在`title`と`description`だけを受け取る。既存consumerのLayoutを維持し、拡張する場合は任意の`trailing`等のSlotを追加するか、対象画面側でComposable Headerを組み立てる。Statusのないconsumerを新しいレイアウトに強制しない。
+- `SaveStatus`はController SnapshotからのRead-only Presentation。Timerや`aria-live`はPresentation Ownerに閉じ、通信Queueの保存状態を変化させない。
+
+### 詳細Error UIの比較（提案：未合意）
+
+**案A（推奨）：タイトル右は短いStatus、エラー詳細はフォーム上部の持続Alert**。
+
+- Header右Slot：成功/進行中は短いStatus、Error時は`要確認`または`保存エラー`の短いStatusのみ。レイアウト予約幅は一定。
+- Header説明文の下、設定項目の前に`FeedbackAlert`を表示し、`理由（1文） / ユーザーへの影響 / 次にできる操作`を提示する。Field固有ValidationはそのField直下へ置き、Form Alertと同じ内容を二重提示しない。
+- 長いError Detailにより**下の設定項目が押し下がることは許容**する（状態変化として内容の追加があるため）。問題となるStatusの表示有無によるHeaderの高さ変動は起こさない。Alertの高さまで常時予約するのは通常のFormを不必要に広くするため推奨しない。
+- `retryable`：変更内容は保持していると明記し、`再試行`。 `unknown`：`現在の状態を確認` → 一致時`確認完了`、必要時`もう一度保存`。 `blocked`：認証・権限の回復行動。`InputValidationFailure`：該当Fieldの修正。
+- AlertはDismissだけで未保存情報を失ったように見せない。成功Notificationを繰り返さず、AlertとStatusの同一文言による読み上げ重複も避ける。
+
+**案B：タイトル右のStatusを押すとPopoverで詳細を表示**。Header以下のレイアウト変動は小さいが、Errorの見逃し・キーボード導線・Screen Readerの発見性に課題がある。未保存Draftの解決に重要なErrorはPopoverだけに閉じ込めず、必要に応じて持続Alertを併用する必要がある。
+
+**案C：Header下に常時高さを確保したError専用領域**。Error出現時のForm押し下げも抑制できるが、通常時に空白が大きく、Compact画面の情報密度を悪化させる。標準方式として推奨しない。
+
+### Unknown「確認完了」の意味と状態遷移（確定）
+
+1. `unknown`へ遷移したら同一Queueの自動送信を停止し、最新Draftと未確定Snapshotを保持する。
+2. `現在の状態を確認`から**既存QueryでServerへ照会**する。Query失敗はUnknownを維持。取得した現在値と最新のユーザー希望値を、該当対象Fieldの正規化済み値で照合する。
+3. **一致**：画面には「現在の設定は選択した値と一致しています」と説明し、`確認完了`ボタンを出せる。クリック時にUnknown Alertを閉じ、現在値を確認済みBaselineとして採用する。これは最新の**現在状態の承認**であり、元のMutationの成功認定ではない。
+4. **不一致**：Unknown Alertを維持し、現在値を表示する。ユーザーが`もう一度保存`を押す場合に限り、古いSnapshotではなく最新Draftを送信する。必要なら`変更を破棄`で現在のServer値へ戻す。
+5. 確認完了後も古いMutationが遅れてCommitし得る。一般Settingsは合意済みLWWで扱うため、強い順序保証は主張しない。確認完了は成功Notificationや「当該Requestが完了済み」の表示には変換しない。
+6. QueueのPendingに新しいField変更が混在する場合は、対象Field単位で照合し、すべての未確定対象が一致することを確認するまで全体の`confirmed`表示へ進めない。
+
+### Regression / Accessibility Gate
+
+- Status Slotの存在・非表示・短文変更でタイトル／説明文／コンテンツ位置が意図せず動かないこと。Wide / Medium / Compactで検証する。
+- Error表示は常にHeader右Slotの範囲に収まり、詳細内容が短縮されずにForm側で読めること。ErrorとField Validationを重複表示しない。
+- Error Alertの表示/復旧でFocusを奪わず、キーボードで各アクションへ移動でき、Screen Readerが長文を何度も読み上げないこと。
+- Confirm済み／未保存あり／Unknown／Browser終了時の警告判定をリスク分類に照らして検証し、一般Settingsへ一律`beforeunload`を適用しない。
+- Unknown Query一致→`確認完了`ではMutation Retryを送信しないこと。Query不一致→手動保存は最新Draftだけ送信すること。Query失敗ではUnknownを維持すること。
+
+### 残る合意が必要な判断
+
+- **E1**：Error UIを**A：Header右に短いStatus + Form上部の持続Alert**とするか。Error発生時の設定項目の押し下げを許容するか。
+- **E2**：CompactでタイトルとStatusが共存できない場合、固定二段Layoutを採用するか。
+- **E3**：300ms後にSaving表示、Saved約2秒、Saving読み上げ2秒後という既存の時間案を採用するか。原則として視認性と過剰な変更通知抑制のバランスをStoryで検証する。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
