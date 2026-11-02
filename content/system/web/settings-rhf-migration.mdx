@@ -36,6 +36,15 @@
 - `react-hook-form`、`zod`、`@hookform/resolvers`は既存依存を利用する。Backend最終Validationを置き換えない。
 - Git commitの`[skip ci]`はPR作成済みブランチへの追加コミット時のみ付ける。PR未作成ブランチのコミットには付けない（今回の作業指示であり恒久的設計規約ではない）。
 
+## 2026-11-02 合意：Zod OutputとGraphQL InputのMapping
+
+- Form内のDraftはRHFが所有する。Zod Schemaは入力Validation、Trim、空欄からNullable値への正規化など、Applicationが扱う検証済み値の生成に責任を持つ。
+- GraphQL固有のInput Shape、Generated Type、Enum変換、Partial Patchの構築はAction / GraphQL Boundaryに所属する。単純な `{ input: { communityId, name } }` のような組み立ては接続箇所で直接行い、Mapperを必須としない。
+- 複雑な構造変換や独立した契約が存在する場合だけPure Mapperを抽出する。既存の `src/features/settings/preferences/userPreferencesGraphqlAdapter.ts` はその実例であり、`toGraphqlUserPreferencesPatch` が入力PatchをGenerated GraphQL Enumへ変換する。既存の `userPreferencesGraphqlAdapter.test.ts` を対応Testとして維持する。
+- Schemaの型は `z.input` と `z.output` / `z.infer` を意図に応じて使用し、Mutation InputはCodegen型をGraphQL Boundaryで使用する。両者が同じ形なら直接渡せるが、等価であると推測してMappingを省略しない。
+- Community Aliasの空文字 `null` 化はApplicationへ渡す正規化値であり、Zodの責務とする。SchemaにGraphQL依存を導入しない。
+- 本変更では既存のMutation・保存Queue・Rollback・UI・Storybook Contractを変更しない。Settings以外への横断的Mapper / 共通Schemaの導入は対象外。
+
 ## 現行の責務と移行境界
 
 | 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
