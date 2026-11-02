@@ -866,6 +866,17 @@ type PageHeaderProps = {
 - **既存実装変更**：`memoria-web/feat/save-feedback-presentation`の`PageHeader`の`trailing`→`titleAccessory`、`SaveStatus`のBadge化、関連Storyの修正。Usageの本体Codeは変更しない。
 - **検証Gate**：`PageHeader.Default`、Status状態別Story、`SettingsUsage`のPersonal / Community Story、Compact / Medium / Wideで表示・操作・レイアウトを比較する。変更コードをGitHubで確認した時点では型・Lint・VRT完了を意味しない。
 
+### 2026-11-02 実装追補：Personal PreferencesのSaveStatus接続
+
+`memoria-web/feat/save-feedback-presentation`にて、**共通Presentation層から最初のConsumerへの接続**を追加した。
+
+- `preferencesSaveQueue.ts`は従来の400ms Debounce、Field Patch Coalesce、1 in-flightの直列保存、RetryでのPatch保持を維持し、追加の任意Callbackで`pending/saving/saved/attention`を通知する。データ保存・送信順をStatus UIの都合で変更しない。
+- `usePreferencesSave.ts`は通知を`SaveStatusState`へ射影し、Unmount後のReact State更新を抑制する。ControllerをSession Scopeへ移す**後続作業は未実装**。現時点のCleanup時FlushはSession内の長命Queue契約を満たしたとみなさない。
+- `useUserPreferences.ts`はRHF Draftおよび保存Actionと独立に`saveStatus`を公開する。`SettingsPreferences.tsx`は実保存Callback`onSave`がある場合のみ`PageHeader.titleAccessory`へBadgeを表示。Story/Prototypeで保存Callbackがないときは従来のHeader DOMを保つ。既存Field配置とLabelは維持する。
+- `preferencesSaveQueue.test.ts`に、Pending → Saving → Saved、保存中の追加Patch、Error → AttentionのTestを追加。`SettingsPreferences.stories.tsx`に、入力変更後のPendingとSavedを確認するInteraction Storyを追加。
+- `saved`表示保持時間、通信断とUnknown Outcomeの判定、Session内Queue Controller、Accent PreviewおよびCommunity Settingsへの接続、BackendのHybrid Error Resultは**未実装**。現状のQueueが全てのTransport Errorを`retryable`扱いする旧仕様を保持している点は、合意済みUnknown契約との未解決差分として扱う。
+- **Gate**：GitHub上のCode/Story/Test追加は確認したが、Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js Buildの実行結果が確認できていないため完了判定しない。既存ConsumerのLayoutとBehaviorを比較して検証すること。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
