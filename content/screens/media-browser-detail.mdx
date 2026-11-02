@@ -392,3 +392,8 @@ Group DetailのダミーMediaサムネイルを操作可能にし、MediaBrowser
 MediaBrowserの既存Image Detail Modalの標準開閉挙動を正本とし、GroupBrowser起点でも同じ挙動を維持する。独自の`transitionProps`は指定しない。GroupBrowserはDialogをサムネイル押下時に初めてマウントするのではなく、閉じた状態で常時マウントしておき、選択Mediaの変更によって`opened`を切り替える。これにより既存Modalの開閉トランジションを利用する。Image Detail内部の前後画像切り替え、回転、情報パネル開閉アニメーションは変更しない。本体WebとVisual Prototypeで同じ開閉方式を使用する。
 
 Dialogのマウントと開閉の一般ルールは [`Dialogのライフサイクルと開閉制御`](../guidelines/dialog-lifecycle.mdx) を正本とする。Image Detailはこの共通ルールに従う。
+
+
+## Processing状態の自動同期（横断設計 #339）
+
+Media BrowserとMedia Detailの非同期画像Processing監視は[Media処理と派生物の横断状態同期設計](/media/processing#processing状態同期の横断設計案issue-339)を共有する。Browserは取得済みRelay ConnectionのPROCESSING Mediaだけを登録し、10秒間隔の共通集約Pollingで状態を取得する。更新はMedia単位とし、追加取得済みページ、Tag filter、選択・スクロール状態を定期的な一覧全体の再取得によって破壊しない。READY時のVariant取得・画像読込失敗はProcessing失敗と別扱い。DetailはDialog Open中かつProcessing状態の対象だけ登録し、閉鎖・対象変更で解除する。通信3回連続失敗で自動監視を停止し手動再開、非表示時停止・可視復帰即時確認（通信失敗で停止済みの場合は除く）を適用する。署名付きVariant URL更新はProcessing監視とは別責務であり、既存の12分再取得挙動の回帰条件も横断設計で扱う。Visual Prototypeは今回変更せず、UIの具体的な配置・表現は別途検証する。

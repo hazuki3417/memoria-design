@@ -262,3 +262,8 @@ Initial ReleaseではUpload時にTag編集を提供します。TagをUpload成�
 
 Wideでは複数fileを一覧しながらsummaryと実行Actionを確認できる構成とし、Compactではpreviewよりfile名・状態・問題理由・Actionの識別を優先します。Upload実行Actionをstickyにするか通常flow内に置くか等の具体的visual値はVisual Reviewで決定します。
 
+
+
+## Processing状態の自動同期（横断設計 #339）
+
+画像Processingの自動監視には[Media処理と派生物の横断状態同期設計](/media/processing#processing状態同期の横断設計案issue-339)を適用する。HTTP 201のReceiptに含まれるMedia IDをUpload画面内のfile行へ紐づけ、Processing中のMediaのみ共通の集約Pollingへ登録する。READY/FAILEDの確定結果を当該行・集計へ反映し、BackendのProcessing失敗をUploadの送信失敗と混同しない。Uploadの送信結果不明は状態を推測せず、重複Uploadを行わない。10秒間隔、通信3回連続失敗停止・手動再開、非表示停止・復帰時即時確認は横断合意として適用する。停止時の具体的な再開UI配置・文言はVisual Prototypeで別途確認する。本節は実装前設計であり、現行Webの自動同期実装済みを意味しない。
