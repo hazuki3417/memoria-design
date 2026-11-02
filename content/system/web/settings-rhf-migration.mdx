@@ -287,6 +287,38 @@ Feature固有の保存Actionは、少なくとも成功時の**保存済み確�
 | Personal Preferences | FieldごとのPatch成功とDirty解消、連続編集・古い応答・失敗・Retry・背景Refetch・未完成HEX |
 | Community Accent | 連続色変更の直列保存、反映の確定/結果不明、復元先・未完成HEX、失敗表示、再選択導線 |
 
+### GraphQL Errorの実際の公開契約（2026-11-02 API確認）
+
+確認元：`memoria-api` `develop` の `graph/handler.go`、`graph/handler_test.go`、`graph/{user,community}.resolvers.go`、`internal/service/{user,community}/service.go`、`schemas/graphql/{user,community}.graphql`。**GraphQL `extensions.code`の正本は`graph/handler.go`のErrorHandler**であり、`internal/errors/common.go`に存在する`BAD_REQUEST`などの定数をそのままGraphQL公開契約とみなさない。
+
+| GraphQL `extensions.code` | 確実に判定できる意味 | Settings FormへのMapping方針 |
+| --- | --- | --- |
+| `VALIDATION` | 検証失敗。Settings MutationではField Pathなし | Form Alertを既定とする。Client Zodが対象Fieldを特定できる場合は別途Field Error。APIからField Errorを断定しない |
+| `UNAUTHENTICATED` | 認証状態が無効 | Blocked：認証再確認を案内 |
+| `UNAUTHORIZED` | UnauthorizedErrorによる認可関連の失敗 | 原因を確認できる範囲でBlocked。MessageをUI分岐に使用しない |
+| `FORBIDDEN` | 権限不足 | Blocked：権限確認・離脱等を案内 |
+| `NOT_FOUND` | 対象を参照できない | Blocked / Stale対象：表示中のContextを再確認。Field Errorと推測しない |
+| `CONFLICT` | 競合や業務制約。Settingsでは詳細reasonなし | Form Alert。入力の単純な再送で解決すると推測しない |
+| `INTERNAL_SERVER_ERROR` | サーバー内部失敗 | 結果確定を推測できない場合はUnknown Outcomeとして扱い、安易に自動再送しない |
+| `UNKNOWN_OUTCOME` | 一部のMutationに限った結果未確定 | Unknown Outcome。Settings各Mutationの公開契約として現時点では存在しない |
+| Transport / Timeout / Network failure | 通信できない、応答を確認できない | 書込が到達した可能性があるときはUnknown Outcome。Request送信前と確実に判定できる場合のみ再試行可能候補 |
+
+`VALIDATION`と`CONFLICT`はServerの`extensions.reason`や`fieldPath`がSettingsについて定義されていないため、Frontendがエラーメッセージの文字列を解析して個別Fieldへ割り当てることはしない。Serverから詳細が返せるようになった時点でMapperの分類を拡張する。現行`graph/handler.go`はMedia Groupの一部にのみ`reason`を付与しており、それをSettingsへ一般化した仕様として扱わない。
+
+**保存確定の条件**：ProfileはMutation ResponseのUser/Profile/Nickname、Community NameはCommunity/Name、PreferencesはPreferences、Community AccentとAliasはSettingsの戻り値で、対象となる保存値が確定したことを確認する。Mutationが成功した後のRefetch Errorを同一Operationの失敗として握りつぶしてはいけない。Current Web実装の`awaitRefetchQueries: true`は成功判定とRefresh判定を結合し得るため、更新確定と後続再取得を別に観測する設計へ切り替える。Backendの応答値が正規化される場合、要求と完全一致しなくても確定した正規化値をBaselineとする条件をOperationごとに定義する。
+
+**分類の優先順位**：1. 確定Mutation Payloadがある場合は保存確定を優先し、後続Refetch失敗は非ブロックの別Result。2. 確定していない明示的Error Codeがある場合は上表で分類。3. 書込の結果自体を確認できない場合はUnknown Outcome。4. 定義されていないCode・複合Errorを安易にRetryableやFieldへ分類しない。Userへ表示する文言はApplication側で安全に用意し、APIの内部Messageをそのまま露出しない。
+
+**Context/対象の確認**：後続の再取得により同じContextで確定済み値と一致することは確認できるが、「今回のMutationが成功した」とまで証明できないケースがある。未知結果を確定扱いにするかは、更新Version / 冪等性 / 操作固有のResult照会Contractを確認してから決める。現時点のSettings Mutation Payloadには保存Request ID / Version / Idempotency Keyがなく、厳密な因果関係の判定には使えない。
+
+#### 実装単位の提案（コード変更前の設計）
+
+1. GraphQL BoundaryにFeatureから使用する小さなError分類関数を設ける。Apollo Error / GraphQL `extensions.code`を安全に参照し、既知のCodeだけを意味カテゴリへ変換する。Errorの文言を分類条件にしない。
+2. 各保存ActionでMutation Responseを検証し、**Confirmed Value**／**分類済みFailure**をForm Ownerへ返す。既存の`Promise<boolean>`を段階的に置換する。TypeやResult Wrapperは具体的なConsumerの要件が判明してから最小で選ぶ。
+3. Form OwnerがFeedbackの主要表示先を決める。Field ErrorはRHF、Form Errorは持続するFeedbackAlert、明示保存の確定SuccessはNotification、自動保存はInline Statusとする。接続層の重複Notificationは移行時に除去する。
+4. 連続保存のQueueはPatch単位でSuccess/Failureを通知し、古いResponseで後続Draftを上書きせず、確定したFieldだけBaselineを進める。QueueにSnapshot ID等を持たせる必要性は実装時に検証する。
+5. Unit TestはError Codeと未定義CodeのMapping、Mutation成功・Refetch失敗の独立性、Mutation不明結果、連続Patch確定を検証する。Interaction TestはField / Form Error・再試行導線・成功通知と静かな自動保存を検証する。
+
 ### 最終判断を要するもの
 
 1. APIのField Path・Business Error・Retryable・Unknown識別に必要な機械判定情報を追加するか、既存Error codeと個別Operationで扱える範囲に限定するか。
