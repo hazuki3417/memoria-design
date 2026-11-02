@@ -857,6 +857,16 @@ Coding Agentは実装前にGitHub上の最新Source of Truthと対象implementat
 
 実装後は影響するcontractを検証し、Refactorでは変更前とのvisual / behavioral regressionも確認します。新たに確定した長期的判断や未解決事項は適切なSource of Truth / Issueへ反映します。GitHubへのwriteは成功responseだけで完了とせず、最新状態を再取得して実際の反映を確認します。
 
+### 合意済み実装の連続実行・報告単位（2026-11-02合意）
+
+ユーザーが機能や作業範囲の実装を承認した場合、Coding Agentは承認済み範囲を**機能単位でまとめて**進める。単一のFile更新・Test追加・Commitの成功を作業の終了条件とせず、実装、関連する回帰Test、適切なQuality Gate、Source of Truth反映確認まで継続する。
+
+- 通常の途中経過に個別承認を要求しない。小さな修正やCommitごとに作業を停止したり、残作業一覧だけで反復的に返信したりしない。
+- 合意済み仕様を変えずに進められる別の作業が残っている限り、未合意の一点を理由に全作業を停止しない。独立して実装・検証できる範囲を先に完了する。
+- 大きな設計変更、明示的に未合意のContract、権限を要する操作などが必要な場合だけ、判断点と選択肢をまとめて確認する。PR Merge / Release / 本番反映の許可を作業承認から推測しない。
+- GitHubへの反映をreadで検証することと、Runtime / CI / Visual Gateを実行して成功確認することを区別する。実行できない検証は未確認と報告し、機能完了と称しない。
+- 状態不明のWrite操作を繰り返さず、まず最新Source of Truthを確認する。重大な未解決課題はIssueへ残し、合意済みの長期運用ルールは設計正本へ反映する。
+
 ### Source Codeの自動編集と改行
 
 AI、GitHub API、script等を利用してSource Codeを作成・更新する場合、tool呼び出し用のescape表現と、実際にfileへ書き込むSource Codeを区別します。
