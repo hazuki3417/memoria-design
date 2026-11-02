@@ -216,6 +216,85 @@ Validationは未操作時に表示しない。原則BlurまたはSubmit後に表
 
 この追加合意は新しいUX仕様の採用を意味するが、上記の未決定項目を実装者が推測で確定したり、PR #234に無関係な変更を混在させたりしない。
 
+## 2026-11-02 詳細設計：保存結果・エラー契約とFeedback配置（Issue #235）
+
+**設計ステータス**：本章は合意済みUX原則に基づく実装可能な責務・状態・テスト設計である。Backendに不足しているErrorの識別方法、Unknown Outcomeの再確認・再送可否、自動保存の具体的表示・Rollbackは合意待ちであり、推測でAPI契約やUXを確定しない。先行するRHF移行PR #234には自動的に適用せず、後続の変更で実装する。
+
+**GitHub上の確認対象**：`memoria-web`（`refactor/settings-rhf-profile`）の`usePersonalSettingsActions`、`useCommunitySettingsActions`、`useCommunityNameSettings`、`usePreferencesSave`、`preferencesSaveQueue`、`ConnectedCommunityPreferences`、`Feedback`と、`memoria-api`（`develop`）の`schemas/graphql/{user,community}.graphql`、`internal/errors/common.go`。APIには`UNAUTHORIZED`、`FORBIDDEN`、`BAD_REQUEST`、`INTERNAL_SERVER_ERROR`があるが、Settings MutationのPayloadには統一Field Error、結果不明、Retryableの詳細結果が定義されていない。コード値だけからField Pathや保存の成否を推測しない。
+
+### 責務境界と失敗の解釈
+
+| Owner | 主な責務 | 禁止する責務 |
+| --- | --- | --- |
+| Backend | 最終Validation、認可、永続化、確定した結果・機械判定可能なError情報を提供 | Frontend向け表示位置・Notification選択 |
+| GraphQL / Application Boundary | Mutation結果・GraphQL Error・通信Errorを取得し、根拠のある結果情報へ変換。更新確定と後続Refetch失敗を区別 | Notificationの直接表示、Form Draftの変更、未知のErrorをField Errorと推測 |
+| Form Owner | RHF Draft、保存操作、Field / Form Error、確定済みBaseline、Resultごとの再試行導線 | GraphQL例外メッセージの文言解析、Apollo Cache同期Layerの所有 |
+| Feedback UI | 与えられたErrorと保存状態をField / Form / Inline Status / Notificationとして描画し、支援技術へ通知 | 保存結果・ビジネスルールの独自判定 |
+
+既存`Promise<boolean>`や接続側の失敗Notificationは、Featureに結果の意味を伝達できない。Community Nameの後続改修では成功のみを`true`とし、失敗理由を失うI/Fを廃止する。保存成功NotificationはForm Ownerのみが発火させ、保存失敗の主表示はForm Alertとする。
+
+### 結果分類と振る舞い
+
+| 結果 | 判定根拠 | Draft / Baseline | 主表示と次の操作 |
+| --- | --- | --- | --- |
+| confirmed-success | 更新Mutationの確定結果（更新対象と応答値を照合） | Confirmed値のみBaselineへ反映。送信後の新Draftは維持 | 手動：一度だけ成功Notification／自動：静かな保存済みStatus |
+| field-invalid | APIがFieldを機械判定可能に特定できる / RHF・Zod Field Validation | Draft保持。Baseline不変 | 対応FieldのError、修正後再検証 |
+| form-invalid | 入力群の関係または業務制約。Fieldへ一意に帰属しない | Draft保持。Baseline不変 | 持続するForm Alert、修正する条件を提示 |
+| retryable-failure | **再試行してよいと確認できる**一時失敗 | Draft保持。Baseline不変 | 持続するForm Alert＋再試行 |
+| blocked | 権限喪失・認証切れ等の継続不可が確認できる | Draftは可能な限り保持。保存操作は抑止 | 持続するForm Alert＋権限確認・再読込・認証導線 |
+| unknown-outcome | 書込要求の応答がない等、反映の有無を断定できない | Baselineを勝手に進めない。Draft保持 | 未確定と明示。状態照会を先に案内。再送安全性が未確認なら自動再試行しない |
+
+`BAD_REQUEST`は必ずしも単一Field Validationではなく、`INTERNAL_SERVER_ERROR`も再試行安全性の証明にならない。通信Timeout・切断でMutation実行済みの可能性がある場合も、安易に`retryable-failure`へ変換しない。
+
+**Mutation成功とRefetch失敗**：Mutationの確定結果を取得後、後続`refetchQueries`が失敗した場合は保存成功を取り消さず、「データ更新の再確認ができない」別の非ブロック状態として扱う。MutationのResponse確認前の通信失敗は`unknown-outcome`候補として扱い、原因別に判定する。現行の`awaitRefetchQueries: true`や接続側の保存判定は、この区別を保証するために見直し対象とする。
+
+**Client ValidationとError表示**：Zod/RHFが検証を担当する。未操作時はエラー文言を表示せず、BlurまたはSubmit後に表示する。いったん表示されたField Errorは入力変更に追従して更新・解消する。保存ボタンの可否を決める内部妥当性判定は表示契約と分離する。Server Field ErrorはField Pathを根拠にRHF`setError`へ反映し、関連する入力の変更で適切に再検証する。単純な通信失敗に`setError`を使わない。
+
+**同一Resultの表示**：Fieldに帰属する失敗はField Error、Form全体・保存操作に属する失敗はForm Alertを主とする。同一結果をNotificationとAlertに二重表示しない。持続的なエラーは通知が消えても再試行導線が残ること。読み上げ・Focus移動はエラー発生時の優先順位を考慮し、入力中に無闇にFocusを奪わない。
+
+### 実装I/Fの方向性（型名は提案・未確定）
+
+Feature固有の保存Actionは、少なくとも成功時の**保存済み確定値**または識別可能な失敗をFormへ返す。例：`Promise<SaveResult<TValue>>`で`{status:"confirmed"; value:TValue}`／`{status:"field-invalid"; fields:...}`／`{status:"form-invalid"; reason:...}`／`{status:"retryable"; reason:...}`／`{status:"blocked"; reason:...}`／`{status:"unknown"; reason:...}`。これは意味モデルの説明であり、汎用型の導入を確約するものではない。共有されるResult分類に必要な最小型のみ共通化し、個別のField Pathや成功データはFeature側の型に保持する。
+
+`try/catch/finally`または同等の明示的分岐でrejectの未処理をなくす。保存中を表す状態は`finally`で解放するが、失敗状態は自動消去しない。送信時の値と後続のRHF Draftが異なる場合、旧応答による`reset`を禁止する。Context ID変更後に旧Contextの非同期応答が新しいFormへ適用されないよう区別する。
+
+### 手動保存：状態遷移
+
+1. `pristine`：初期値を表示。取得値更新へ追従。未操作のValidation Errorなし。
+2. `editing`：RHF Draft保持。編集対象Fieldは新しい取得値で上書きしない。
+3. `submitting`：Submitで検証したSnapshotを送信。二重Submitを防止。送信中に再編集を許すFeatureでは新しいDraftを保護。
+4. `confirmed-success`：確定したSnapshotをBaselineへ反映。追加編集がない場合のみRHF表示値へ同期。成功Notificationは操作単位で一度だけ。
+5. `field-invalid`／`form-invalid`：Errorを該当場所に保持。正しい編集・再試行で解消。
+6. `retryable-failure`：Draft維持・Form Alert・再試行。失敗原因が残っている間は成功を表示しない。
+7. `blocked`／`unknown-outcome`：継続不可または結果不明を明示。自動再送しない。回復・確認の手段を案内。
+
+### 自動保存：Queue・Baseline・Feedback
+
+- `Draft`（RHF）が最新の選択・未完成入力を表し、Queueが`pending`／`in-flight` Patch、成功確定した値が`confirmed baseline`を表す。各Fieldの`dirty`を「最後に保存を要求したか」の意味で代用しない。
+- Successには**成功したPatch／送信時の値**が必要。Queueに成功Snapshotを伝搬する契約を設ける。受信したServer全体のPreferencesを無条件`reset`することは禁止。
+- Fieldごとに、確定値と送信時以降の新しいDraftを比較する。未送信・in-flight・失敗・さらに編集中のFieldは保護し、確定済みで未編集のFieldのみ保存基準を進める。未完成`accentDraft`は、HEXが未完成の間は保存済みと混同しない。
+- 保存失敗時に`pending` Patchを失わない。再試行可能な失敗と`unknown-outcome`を分け、前者はRetry、後者は確認手段を提示する。Backend側の冪等性が確認できないまま自動再送しない。
+- Status表示は自動保存の多頻度Notificationを避け、保存中・未保存・保存済み・失敗を区別する。複数Fieldの同時更新で「保存済み」と誤表示しない。
+- Community Accentの即時Context反映、保存失敗後RollbackはUX判断待ち。確定色へ戻す場合でも、不完全HEX・保存中の新しい選択・未確定応答を誤って上書きしない。Rollbackする対象と再試行導線を先に決定する。
+
+### 5フォームで追加するテスト
+
+| Form | Unit / Interactionで保証する結果 |
+| --- | --- |
+| Personal Profile | Field Error、Form Error、Retryable、Blocked、結果不明、保存中の取得値更新、成功後に新Draftを消さない |
+| Community Name | `false`相当の失敗・reject時に未処理Promiseがない、失敗はForm Alertのみ、成功Notification一度、Draft保護 |
+| Community Alias | Field Error／全体Errorの表示分離、失敗時のDraft保持、解除(`null`)保存、取得値の追従 |
+| Personal Preferences | FieldごとのPatch成功とDirty解消、連続編集・古い応答・失敗・Retry・背景Refetch・未完成HEX |
+| Community Accent | 連続色変更の直列保存、反映の確定/結果不明、復元先・未完成HEX、失敗表示、再選択導線 |
+
+### 最終判断を要するもの
+
+1. APIのField Path・Business Error・Retryable・Unknown識別に必要な機械判定情報を追加するか、既存Error codeと個別Operationで扱える範囲に限定するか。
+2. `unknown-outcome`をどの操作で再照会・再送可能とするか。BackendのIdempotency・更新Version・結果照会契約の有無を確認して決定する。
+3. 自動保存Statusの表示位置・表示保持時間・再試行操作と、成功通知を不要とする条件。
+4. Community AccentのRollback方針（確定色へ復元／未保存の選択を保持）と未完成HEXの扱い。
+5. 保存中に手動入力をDisableするか許可するか。既存実装と異なるUXへの変更は明示合意が必要。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
