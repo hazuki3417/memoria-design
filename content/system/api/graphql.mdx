@@ -514,6 +514,16 @@ type InputValidationFailure {
 4. 自動保存Statusの位置・表示保持時間・Accessible Announcement。
 5. LWWから除外する重要Domain Operationの判定は各Domainの設計で行い、ここでは一律のRevisionを要求しない。
 
+### 自動保存Clientの寿命とGraphQL Mutationの確定境界（2026-11-02 詳細案）
+
+Settings自動保存における次の境界を、既存のOperationを直接改修する方針に従い明示する。UI Ownerは`content/system/web/settings-rhf-migration.mdx`の「自動保存の回復・画面離脱・Accent Preview」を参照する。
+
+- Backendは既存`updateUserPreferences`／`updateCommunitySettings`の**指定Fieldのみをatomicに確定**し、Successで正規化された確定値を返す。LWWの確定順はDatabase Commit順。Mutationの成功と追加Refetch成功は独立。
+- Client-side画面離脱後も保存を続けるなら、その責務はReact画面Componentでなく認証User/CommunityをKeyとする長命Controllerへ置く。これは**Frontend Controllerの寿命**の設計であり、新Query/MutationやServer側の長期実行保証を要求するものではない。
+- Network Timeout時に既存QueryをRefetchして一致した値を得ても、旧Mutationが後から書き込まないことまでは保証できない。Client再取得と書き込み完了の因果関係を区別する。自動再送を安全に実現する必要があれば、対象Operationに固有の完了確認/順序保証を検討する。一般SettingsのLWW合意を撤回して一律OCCを追加しない。
+- Browser終了／Reload後の保存結果を保証するにはDurable Queue・Server側のOperation追跡等の別契約が必要。通常のJavaScript Promise、`beforeunload`、`sendBeacon`のみで完了保証しない。重要Domain処理のIdempotency保証と混同しない。
+- GraphQL Resultは正常に評価されたDomain Validation／Business Failureを型付きResult、Authentication／Executionを`errors[]`、Response未受信をClientのUnknown Outcomeで管理する。結果の不明なSnapshotより後のユーザー意図を古い再送で巻き戻さない。
+
 ### 複数GraphQL Field ErrorのWeb表示
 
 GraphQLは`data`と`errors`が同時に返る場合があるため、Operation全体のエラーを1件に潰して判断しない。
