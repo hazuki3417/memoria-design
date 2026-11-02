@@ -895,6 +895,18 @@ type PageHeaderProps = {
 - `CommunityPreferencesContent.stories.tsx`にBadge+詳細AlertのStoryを追加。既存Consumerに`saveFeedback`が渡されない場合は従来のForm DOMを維持する。
 - **未完了**：Errorの手動Retry / Draft破棄Actionを提供するController API、Unknown Outcomeの別文言と再照会、Preview Overlay分離、Session長命Queue、実行Gate。Error Alertの追加だけで合意済みRecovery UIを満たしたと判断しない。
 
+### 2026-11-02 実装追補：Community Accent Confirmed / Preview表示の分離
+
+`memoria-web/feat/save-feedback-presentation`において、合意済みの**Preview表示は現在CommunityのShell全体、Apollo CacheはConfirmed値の参照元**という責務境界の初期実装を追加した。
+
+- `src/features/application-shell/CommunityAccentPreviewContext.tsx`：認証Application Shellで保持するPreview専用Provider。Previewは`{ communityId, color, owner }`で管理し、Apolloの`Community.mySettings.accentColor`へはPreviewを書き込まない。ProviderはShellの寿命に紐付くためBrowser終了後の復元を保証しない。
+- `src/features/application-shell/ApplicationShellContainer/ApplicationShellContainer.tsx`：現在選択中CommunityとSwitcherで、確認済みApollo値に対象IDが一致する一時Previewだけ重ねた表示値を利用。Personalや別Communityの色を変更しない。UsageのHeaderやPageHeader Title BadgeのLayoutは無変更。
+- `src/features/community-settings/ConnectedCommunityPreferences/ConnectedCommunityPreferences.tsx`：ColorInputの有効HEX選択時はPreview Providerを更新し、**Apollo Cacheへは書き込まない**。MutationのSuccessで取得したConfirmed色だけを既存Cache Fragmentへ保存する。保存失敗/UnmountでPreviewを解除し、ColorInput Draftを維持する。Aliasは既存のField-aware Cache Mergeを継続する。
+- **遅延応答保護**：Previewに発行順の`owner`を割り当て、成功・失敗・UnmountのCleanupは自分が登録したPreviewだけ解除する。遅延Mutationの応答が新しいContext/選択のPreviewを消すことを防止する。
+- `src/features/application-shell/communityAccentPreview.ts`と`communityAccentPreview.test.ts`：表示値のProjectionと所有者限定CleanupのPure Helper、およびCommunity境界・旧Cleanup・新Preview保持を確認するUnit Testを追加。
+- **まだ未完了**：現状`ConnectedCommunityPreferences`の保存QueueはComponent内の`desired/inFlight`管理であり、画面遷移後の同一認証Sessionで状態を復元するController契約は未実装。Unknown Outcome照会・手動再保存、明示Retry/破棄、同一CommunityでのLate ResponseがConfirmedを巻き戻さない厳密制御、API Hybrid Resultの移行は別作業。ProviderはPreview表示のOwnerでありSession Save Queueの代替ではない。
+- **Gate**：Unit / Typecheck / Biome / Storybook Interaction / Wide-Medium-Compact VRT / Next Buildの実行成功は未確認。既存Shell・Switcher・Settings・AliasのVisual / Behavioral Regressionを通すまで完了としない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
