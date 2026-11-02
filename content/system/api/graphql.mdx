@@ -227,6 +227,36 @@ extend type Mutation {
 - 既存Media Group / Bulkの部分成功・Reason表現、Account・Community削除などの冪等性と認可契約は影響分析してから移行する。既存UI / Behaviorを変更する箇所は個別にテストし、黙って簡略化しない。
 - 既存の画面/UIが`errors[].extensions.code`だけを参照している間は移行期の互換性を明記し、一括置換で意図しないError表示を生まない。
 
+### 既存GraphQL I/Fの直接改修方針（2026-11-02合意）
+
+**Operation互換用の並列I/Fは作成しない。** 現行`memoria-api/schemas/graphql/*.graphql`のQuery / MutationをSource of Truthとして棚卸しし、Hybrid Error Modelで意味の変わる既存Fieldの戻り値・Error分類・必要なInputを直接更新する。古い契約を温存するための`*V2`、`*WithResult`、`*New`などのMutation / Queryを作らない。後方互換のための旧Field併存も原則禁止する。
+
+- **OperationのUser Intentを維持**：既存Mutationの機能を複数の新Mutationへ分割したり、異なるUser Intentを横断的に統合したりしない。GraphQLの共通Failure Object / Enum / Union / Input型の新設は許容するが、Mutation / Queryの追加とは区別する。
+- **非互換変更を許容**：戻り値をPayloadからResult Unionへ直接変更し、既存GraphQL Operation・Fragment・生成型・Resolver・Web Adapter・Testを同じ新契約へ改修する。Consumerを型付きResultへ移行する責務を省略しない。
+- **名称の不一致**：現行Schemaの`renameCommunity`とAPI設計正本の`updateCommunity`は不一致。既存の設計正本で決定済みの`updateCommunity`へ単一Fieldを**置換**する案を維持するが、`renameCommunity`と`updateCommunity`を同時公開しない。「Operation名も完全に保持する」意図なら命名規約との設計衝突があるため、実行前に最終合意を得る。
+- **Query**：既存Queryは原則Data Modelを返すままとし、GraphQL Request / Execution Error・部分Data・認可・Nullableの契約を整える。Hybrid Modelの採用だけを理由にQuery用Union・新Queryを追加しない。
+- **Bulk**：既存Bulk MutationのItem Resultと部分成功の意味を維持し、共通FailureとOperation Errorの分類を整合させる。既存Consumerの個別結果情報を削らない。
+- **切替手順**：GitHub上でAPI / Web双方の変更対象を確定し、GraphQL SDL→gqlgen / Resolver / Error Presenter→API Contract Test→Web Operation / Codegen→Form UI / Cache / Interaction Testを整合した単位で変更する。本番配備・Releaseは別途承認が必要。新旧APIの同時稼働を前提としたcompatibility layerは用意しない。
+- **検証**：既存GraphQL Schema上のQuery / Mutationを横断検索し、業務FailureをGraphQL ErrorにするべきでないOperation、実行ErrorをPayloadへ混ぜているOperation、Bulkの部分成功、Authentication/Authorization、Error Path、Null Bubbling、Data+ErrorsをAuditする。すべてのOperationを機械的にUnion化しない。
+
+#### 共有FailureとValidation Codeの採用基準（2026-11-02合意）
+
+`InputValidationFailure`と`InputViolation`は、複数Mutationで同一の意味を持つ共有Objectとして採用する。具体的なUnion MemberはOperation別に列挙し、必要のないFailureを追加しない。`InputViolationCode`は安定した汎用的な入力制約カテゴリを表すGraphQL Enumを採用する。SDLドラフトの`REQUIRED`、`INVALID_FORMAT`、`INVALID_VALUE`、`TOO_LONG`、`OUT_OF_RANGE`、`INVALID_COMBINATION`は候補集合とし、実際のDomain制約を監査して正式な列挙値を確定する。
+
+`inputPath: [String!]!`はInput Objectに相対のField Pathを表す。必ずしも単一FieldへErrorを割り当てられないケースを、空のPath等で曖昧に表現しない。Cross-field / Form-levelの機械可読な帰属表現は次の詳細設計で確定し、Clientが未知のPath / Enum値を受信した場合には安全なForm AlertにFallbackする。
+
+Domain RuleやState Conflictは`InputValidationFailure`へ混在させない。操作固有の制約は専用Reason Enum / Failure型を優先し、実際に複数操作で意味を共有することを確認できた場合に限り共通化する。GraphQL Enumの将来追加に備えてClientのunknown handlingを契約とし、公開ReasonをUI文言として直接描画しない。
+
+#### 現行SchemaのOperation棚卸し起点
+
+- `user.graphql`：`registerUser`、`updateUserProfile`、`updateUserPreferences`と既存User Query
+- `community.graphql`：`updateCommunitySettings`、`createCommunity`、`renameCommunity`、Membership操作、Community削除受付とCommunity Query
+- `group.graphql`：GroupのCreate / Update / Deleteと分類Bulk、Group Query
+- `media.graphql`：Media削除と取得・Original Download
+- `tag.graphql`：Tag分類更新とTag Query
+
+これらはMutation / Queryの**追加を指示する一覧ではなく**、既存I/Fに対する意味・結果・Errorの横断監査対象である。具体的な各Operationの変更はDomain Contractを確認して確定する。
+
 ### Settings Mutationの型付きResult：Operation別SDLドラフト（2026-11-02、詳細合意待ち）
 
 この節は**Hybrid Error Model確定後のOperation別設計提案**であり、実行可能Schemaへ適用済みではない。GraphQLで有効な型構成と、実装に必要な契約・追加判断を示す。既存仕様と異なるOperation名・Failure Case・Idempotency / Revisionの選択を合意なしに実装へ適用しない。
