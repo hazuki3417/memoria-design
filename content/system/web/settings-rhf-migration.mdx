@@ -747,6 +747,106 @@ SettingsのPage Header付近にフォーム単位の小さなStatusを置く。�
 - **E2**：CompactでタイトルとStatusが共存できない場合、固定二段Layoutを採用するか。
 - **E3**：300ms後にSaving表示、Saved約2秒、Saving読み上げ2秒後という既存の時間案を採用するか。原則として視認性と過剰な変更通知抑制のバランスをStoryで検証する。
 
+## 2026-11-02 共通Save Feedback ComponentとResponsive Contract：実装詳細案
+
+**位置付け**：自動保存と明示保存の共通UI責務を実装可能なComponent境界として整理した**設計提案**。前節の合意済み原則（操作別の離脱リスク判断、タイトル右側の安定したStatus、Unknownの確認完了）を変更しない。Form上部Alertの採用、Compactの固定二段、時間の閾値は最終合意待ち。
+
+### 既存実装とのVisual / Behavior Contract
+
+2026-11-02時点の`memoria-web/refactor/settings-rhf-profile`を確認した。現在の`PageHeader`は`title: string`・`description: string`のみを受け取り、Mantine `Box`の中に`Title(order=1,size=h2)`と`Text(size=sm, mt=4)`を配置する。`FeedbackAlert`はMantine `Alert`を包む共通Componentであり、既存`showNotification`は成功・失敗の通知を行う。ProfileとCommunity AliasはボタンLoading＋成功Notification、PreferencesとCommunity Accentは自動保存とError Alertを使う。
+
+**後方互換のために新しいQuery / Mutationは追加しない。** UIは既存Componentを置換せず、責務を保ったまま必要なPresentation Slotを追加する。既存`PageHeader`のSlot未使用Consumerでタイトル階層・Typography・Spacing・DescriptionのMargin・Responsive Behaviorを変更しない。
+
+### Proposed component interfaces（例、実装前に確定）
+
+```tsx
+type SaveVisualState =
+  | "idle"
+  | "pending"
+  | "saving"
+  | "saved"
+  | "attention"
+
+type SaveStatusProps = {
+  state: SaveVisualState
+  // UX文言と状態の帰属はPresenter/Featureが組み立てる
+  label: string | null
+  accessibleLabel?: string
+}
+
+type PageHeaderProps = {
+  title: string
+  description: string
+  trailing?: React.ReactNode
+}
+```
+
+- `SaveStatus`は**Presentation専用**。GraphQL Error、Mutation Hook、Queue/Retry、RHF、Apolloに依存しない。`attention`は「要確認」等の短い見出しのみで、Error Detailを保持しない。
+- 状態や保存結果は各FeatureのPresenter/Adapterで共通の`SaveFeedbackModel`に正規化する。上記型は**UI用の短いProjection**であり、Domain Failure・Transport Unknown・Retryable/Blocked等の意味を失わない。Error詳細は別Modelで`FeedbackAlert`へ渡す。
+- `PageHeader.trailing`は任意のSlotであり、未指定時のMarkup / Spacing / Visualを従来と等価に維持する。Slotに値がある場合だけ、左タイトル領域と右Slotを並べるLayoutを使う。`PageHeader`は`SaveStatus`を直接Importしない。
+- SaveStatus自体に`Notification`、`FeedbackAlert`、`Popover`、`Dialog`等を内部合成しない。必要な表現はFeatureのCompositionで選ぶ。
+- 明示保存ではButton Loadingと成功Notificationを基本として継続し、Header Statusの表示はFeatureの必要性に応じて選ぶ。自動保存は原則Header Status、成功Notificationなし。
+
+### レイアウトとCL​​S契約
+
+**Wide / Medium**：
+- タイトル行は「柔軟なタイトル領域 + 右端に幅予約したtrailing Slot」の2領域。Statusの`idle`/非表示を`display:none`でSlotごと取り除かず、予約された高さ・幅の中でContentだけをHiddenにする。
+- Saving/Saved/Attentionへ変化してもタイトル位置・説明位置・後続内容が移動しない。Messageは短く、Status自体を横幅の自動拡張要因としない。
+- Titleが長い場合にStatusと重ならないよう左領域`min-width:0`等を適用し、折り返し・省略は既存タイトルの意味を損なわない範囲で定義する。
+
+**Compact**：
+- 横幅に余裕がある場合のSingle Rowを基本としつつ、狭いViewportではBreakpoint単位で**常に二段**（Title行と右寄せStatus行）へ切り替える候補。Statusが`idle`でも空Slotを予約し、表示切替で行数を変えない。
+- 二段化が余白を過剰に増やす場合は、タイトル行内のStatusをIcon中心の短い固定幅にする代替案をStoryで比較する。Viewportサイズで切り替え、保存状態自体をBreakpointにしない。
+
+**Alert**：Header右は短いStatusのみ。詳細なMessage・複数のField/Operationの解決導線は**Form上部の持続`FeedbackAlert`**へ（A案）。Alertは必要時だけ現れ、下のFieldを押し下げる。Error枠の高さを常時予約しない。Field Errorは該当Inputに置き、Form Alertと二重表示しない。
+
+### Error UI比較と採用推奨
+
+| 候補 | 長所 | 短所 / 評価 |
+| --- | --- | --- |
+| **A：Header短いStatus + Form上部Alert（推奨）** | Headerの位置安定、理由・回復操作が常時可視、Mobile / Screen Readerで発見しやすい | Error出現時はForm内容が下に移動する（許容する案） |
+| B：Header右からPopover | 通常のForm位置は変動しない | Errorの見逃し、Focus管理、再試行操作の発見性が悪化 |
+| C：常時空のError専用枠 | Error出現時にもForm位置が安定 | 正常時の不要な余白、Compactで情報密度低下 |
+
+**推奨：A**。情報量が多い状態を狭いHeader Slotへ押し込まず、`SaveStatus`を短い状態、`FeedbackAlert`を理由・影響・次のアクションへ分ける。
+
+### 共通Feedback Modelと各Operation
+
+| Outcome | Presenterの判断 | 明示保存 | 自動保存 |
+| --- | --- | --- | --- |
+| `saving` | 同一操作の進行中 | ボタンLoading、必要なときStatus | Header短いStatus |
+| `confirmed` | 確定Success / 確定Baseline | 成功Notification原則1回、Draft確定 | Saved短時間表示。成功Toastなし |
+| `field-validation` | Field PathとScopeを使い修正対象へ | Field Error | Field Error |
+| `form/domain-failure` | 理由・影響・回復手段 | Form Alert | Form Alert＋Header「要確認」 |
+| `retryable` | 再送可能性を操作固有契約で確認 | Retry導線 | 再試行導線。自動連続Retryしない |
+| `unknown` | 結果未確定。Server状態を照会 | Form Alert / 確認手順 | Alert＋Header「要確認」。確認後の手動再保存 |
+| `blocked` | 認証/権限等で操作不可 | Form Alert | Form Alert＋Header「要確認」 |
+
+`FeedbackAlert`は`kind="error"`だけでなく意味に応じたAppearanceを利用できるが、Domain/Transportの生Error本文をそのまま表示しない。ControllerがStatusの`saving`を通知してもFeatureがButton Loadingを選んだならHeader Statusを必須とはしない。
+
+### Motion・時間・Screen Reader（設計案）
+
+- Pendingは有効入力で即時に見せるが、Debounce中に多頻度Announcementをしない。Savingは**継続300ms後**の可視表示候補、Savedは**最終確定後2秒**表示候補。新しいPending/Failureが発生したらSavedの表示TimerをCancelする。
+- Savingが**2秒超**継続した場合だけ`aria-live=polite`で一度「保存中」と通知する案。Confirmedは最後の保存群に対して一度だけ通知。短時間のPending↔Saving切替を全て読み上げない。
+- Header AttentionはErrorの存在を示すが、詳細Alertと同じMessageを繰り返して読まない。Errorは持続的・発見可能、Focusを現在入力から強制移動しない。
+- DurationはUI表示の調整値であり、APIの保存確定判定・Queue Debounceとは別。HeaderのStatus Idleで領域を取り除かない。
+
+### Storybook / Test Matrix
+
+- `PageHeader.Default`（Slotなし）を変更前BaselineとしてVisual比較。SlotありSaving/Saved/Attention/Idleの4状態、Wide・Medium・Compactを追加。
+- StatusのContent表示/非表示・Timer切替で**Title・Description・FormのLayout Shiftがない**ことを測定・比較する。Compact二段候補は狭い幅での可読性と余白を比較する。
+- `FeedbackAlert`に手動保存のValidation/Domain/Unknown、Prefs自動保存のError/Retry、Community AccentのUnknownを乗せ、ButtonとField Errorを重複表示しない。
+- 実際のProfile手動保存は保存ボタンLoading・Success Notificationが変わらないこと。Alias / Community Nameも元の表示項目・操作を保持する。
+- KeyboardでRetry、確認完了、変更破棄へ到達できること。`role=alert`とStatus Politeの同一内容の二重読み上げがないこと。
+- `SaveStatus`を強制的に全てのQuery Page/Detail Dialogへ追加しない。利用ConsumerのVisual / Behavior契約を維持する。
+
+### 次に確認する決定
+
+1. **UI-A**：Header右は短いStatus、Error詳細はForm上部の持続Alertとし、Error表示時のForm押し下げは許容する。
+2. **UI-Compact**：狭い画面では、固定二段レイアウトと固定幅Icon/短文のどちらを採るかをStoryで比較し確定する。
+3. **UI-Timing**：Savingの300ms表示遅延、Savedの2秒表示、長時間Savingの2秒後読み上げを採用するか（Storyで調整できるPresentation設定）。
+4. **適用範囲**：自動／明示保存に共通Feedbackを使うが、Header Status表示は利用Consumerが選び、既存手動保存のボタンLoading・成功Notificationを維持する（原則は既に合意）。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
