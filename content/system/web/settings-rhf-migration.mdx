@@ -473,6 +473,62 @@ APIのError ContractをHybrid Modelへ更新する際、**互換用の新Mutatio
 
 これらはBackendのSchema・TransactionとWebのFeedbackの一体的な契約として確定し、必要なIntegration / Storybook Interactionを追加する。互換用Mutation / Queryの追加は行わない。
 
+## 2026-11-02 自動保存UX：Preferences / Community Accentの状態と回復設計（個別判断待ち）
+
+参照：`content/system/api/graphql.mdx`「Personal Preferences / Community Accentの並行更新・自動保存UX設計」。本章は**Hybrid Error Modelと既存Operationの直接改修という合意済み方針を前提にした詳細案**であり、Revision方式・Color Overlay・自動再送条件の実装判断はまだ確定していない。
+
+### 状態の所有と更新原則
+
+- Form RHF = 現在ユーザーが編集した`draft`。ColorInputの未完成文字列もここで保持する。
+- Save Controller / Queue = Debounce、Pending Patch、In-flight Snapshot、通信結果、Retry/Conflict/Unknownの状態。
+- Confirmed Baseline = 保存確定したServer値と必要なRevision。Apollo Cacheは共有する確定済みServer Dataを表す。
+- Preview Overlay = 色などの一時的な見た目の反映。Server確定値とは分ける。API確定前の色をApollo共有Cacheへ確定値として上書きしない。
+- 操作・ContextのIDを付与し、旧Contextから返る遅延Responseで新しいContextのDraftやShell表示を上書きしない。
+
+### Personal Preferences：変更から確定まで
+
+| 状態・Event | Controller | RHF / Feedback |
+| --- | --- | --- |
+| 入力イベント | 有効なField PatchをPendingへ結合、400ms Debounce | Draftを即時変更。未完成Accent HEXは送信しない |
+| Flush開始 | Patch、送信時の値、期待Revision、FieldごとのBaseをSnapshot化 | 「保存中」。編集中Draftは保持 |
+| 確定Success | Snapshotを元にConfirmed Baseline / Revisionを進め、後続Pendingを保存 | 送信後の変更がないFieldだけDirtyを解消。通知は連発しない |
+| Server Field Validation | Queueの該当Patchを停止 | Field Error（Field Group / Formは責務に応じた位置） |
+| CAS Conflict | Queueを停止して最新QueryをRefetch | 別Field変更は安全な差分再適用候補。同Field変更は比較UIで利用者に決定を求める |
+| Result Unknown | 無条件再送しない。Snapshotを失わない | 永続的なForm Alertで状態不明を伝え、確認手段を提示 |
+| ConfirmedだがRefetch失敗 | Confirmed状態を維持 | 追加のRefetch Errorだけ非ブロック表示 |
+
+「全Fieldの`reset`」や、`shouldDirty: true`で立てたFlagを保存後も永続的に保持する実装は許容しない。保存確定・外部取得値・追加編集が交差した場合のOwnerとDirty解消方法を個別Field単位で定義する。Queueの`onSaved`は確定値だけでなく成功したSnapshotと結び付ける。
+
+Unmount後も通信継続させる場合はQueueのOwnerと失敗の追跡をComponent寿命より長くし、未確認Patchを黙って消さない。画面離脱時に保存を中断する案とのUX比較は別途判断する。
+
+### Community Accent：プレビュー・確定・失敗
+
+**推奨UX**：新しい色の選択は即座にプレビュー可能にしつつ、共有Server Stateへの確定反映はMutation Success後に限定する。
+
+| Event | 共有の確定色 | Preview Overlay | ColorInput Draft |
+| --- | --- | --- | --- |
+| 色を選択 | 変更しない | 選んだ色を即時表示 | 選択色を保持 |
+| 保存中に別色を選択 | 変更しない | 最新の選択色を表示 | 最新の色を保持 |
+| 最後の選択が保存確定 | 確定色に更新 | 不要になれば解除 | 確定色と同期（新しい編集がなければ） |
+| 保存失敗確定 | 最後の確定色を維持 | 解除し確定色へ見た目を戻す候補 | 選択値は保持。Form Alert＋再試行／破棄 |
+| 結果不明 | 確定色を仮更新しない | 確定色へ戻す候補 | Draft保持＋状態確認 |
+| Revision Conflict | 最新の確定色を取得 | 競合解決時まで保持または解除（判断待ち） | Draft保持。現在色／選択色の比較・選択 |
+
+ColorInputの不完全HEXは保存に送らず、Field Errorを表示するタイミングはForm規約に従う。既存の`restoreOnAccentChange`は、失敗により**見た目を戻す**ことと**入力Draftを破棄する**ことを同一の操作として扱っているため、新設計では別の責務に分ける。Aliasとの同時更新は一つのUser × Community Settings Revisionを共有し、別Fieldが更新されても適切に再評価する。
+
+### 自動保存Feedbackと操作導線
+
+- Pending：「保存待ち」、In-flight：「保存中」、すべて確定：「保存済み」（短時間表示後に静かに消す候補）。Fieldごとに通知を出さず、Form単位に表示する。
+- Errorは内容に応じて該当Field／Form Alertで持続表示する。Retryable、Unknown、Conflict、Blockedはメッセージと次の行動を区別する。未知の結果で「保存できませんでした」と断定しない。
+- 自動保存のConflictでは最新値とDraftを比較でき、現在値を採用するか、自分の値で明示的に再保存するかを選べるようにする。失敗したPatchを消さず、選択なしに自動上書きしない。
+- エラーや状態表示はAccessibilityを満たし、Statusが頻繁に通知されないこと、Input中にFocusを奪わないこと、Compact / Medium / Wideで導線が消えないことをStoryで保証する。
+
+### 回帰テストの追加
+
+Personal Preferencesは連続Patch・後続編集・Field単位のDirty解消・新しいServer値とのMerge・Conflict/UnknownでのQueue停止・再取得後の回復・Unmountを検証する。Community Accentは最新選択のPreview、失敗時の確定色復元とDraft保持、Alias同時更新、Context切替、競合解決、未完成HEXを検証する。APIは同Revisionからの同時更新、CAS、返却値/Revision、失敗時のatomic性、権限を検証する。
+
+**追加合意待ち**：Aggregate Revision採用の可否、別Field自動Merge、失敗時Preview Overlayの表示範囲とColorInputの保持、Unknown Outcome後の再送ルール、Statusの表示位置と持続時間、画面離脱時のQueue存続。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
