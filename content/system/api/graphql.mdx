@@ -514,7 +514,7 @@ type InputValidationFailure {
 4. 自動保存Statusの位置・表示保持時間・Accessible Announcement。
 5. LWWから除外する重要Domain Operationの判定は各Domainの設計で行い、ここでは一律のRevisionを要求しない。
 
-### 自動保存Clientの寿命とGraphQL Mutationの確定境界（2026-11-02 詳細案）
+### 自動保存Clientの寿命とGraphQL Mutationの確定境界（2026-11-02 合意）
 
 Settings自動保存における次の境界を、既存のOperationを直接改修する方針に従い明示する。UI Ownerは`content/system/web/settings-rhf-migration.mdx`の「自動保存の回復・画面離脱・Accent Preview」を参照する。
 
@@ -523,6 +523,18 @@ Settings自動保存における次の境界を、既存のOperationを直接改
 - Network Timeout時に既存QueryをRefetchして一致した値を得ても、旧Mutationが後から書き込まないことまでは保証できない。Client再取得と書き込み完了の因果関係を区別する。自動再送を安全に実現する必要があれば、対象Operationに固有の完了確認/順序保証を検討する。一般SettingsのLWW合意を撤回して一律OCCを追加しない。
 - Browser終了／Reload後の保存結果を保証するにはDurable Queue・Server側のOperation追跡等の別契約が必要。通常のJavaScript Promise、`beforeunload`、`sendBeacon`のみで完了保証しない。重要Domain処理のIdempotency保証と混同しない。
 - GraphQL Resultは正常に評価されたDomain Validation／Business Failureを型付きResult、Authentication／Executionを`errors[]`、Response未受信をClientのUnknown Outcomeで管理する。結果の不明なSnapshotより後のユーザー意図を古い再送で巻き戻さない。
+
+#### 合意済み自動保存UXに対するAPI/Clientの具体契約（2026-11-02）
+
+2026-11-02、次の4点を確定した。**(1) 現在CommunityのShell全体へ有効なAccent Previewを適用、(2) 保存失敗・結果不明時はShellを最後の確認済み色へ戻しColorInput Draftを保持、(3) 通常のClient-side画面遷移後も認証Session内でQueue継続、(4) Unknown OutcomeはServer状態を確認してからユーザーの明示操作で再保存し、自動再送しない。** UIの正本は`content/system/web/settings-rhf-migration.mdx`の確定仕様とする。
+
+- APIの`updateUserPreferences`・`updateCommunitySettings`は**既存Operationを直接改修**し、指定Fieldのみをatomicに更新する。LWWはServer Commit順。成功Resultは確定した正規化済み状態を返し、GraphQL Error/Result Failure/Transport Unknownを混同しない。未指定Fieldを過去のClient Snapshotで上書きしない。
+- Serverへ送信する値はColorInputの**完全に検証済み**HEXのみ。不完全な入力DraftをMutationへ送らない。Aliasの明示null解除と未指定の保持を区別する。
+- 確定値を返すAPI契約と、Shellへ暫定Accentを描画するPreview Overlayは別責務。BackendはPreview Field・専用Mutation・新Queryを追加しない。ApolloのShared CacheはServerの確認済み値を保持し、Client Overlayを保存結果として扱わない。
+- Timeout/通信断後、Clientは**既存QueryをServerへ再照会**して現在状態を示す。現在値が希望値に一致しても、特定の旧Mutationが成功した証明にはならない。再保存はUserの明示操作があったときのみ、最新Draftを用いて行う。旧Operationが後からCommitされ得るリスクはLWWで許容し、厳密な取消・順序保証があると偽らない。
+- 一般Settingsへ`revision`・`expectedRevision`・結果追跡専用Queryを新設しない。重要Domainに必要な冪等性・競合制御は別途設計する。
+- **Session内Queueの長寿命性はClient責務**であり、Browser終了後の送信完了をBackendが保証するものではない。Browser終了警告とStatus表示時間は別途未確定。
+- Backendの検証では、同Field LWW、別Field同時Patchが相互に保持されること、Alias null解除、Success Valueの正規化、Permission Error、Error Union、Mutation成功後のRefetch失敗、リトライに対するDomain側の副作用を確認する。
 
 ### 複数GraphQL Field ErrorのWeb表示
 
