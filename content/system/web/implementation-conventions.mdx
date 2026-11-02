@@ -642,6 +642,18 @@ Feedback presentationはError typeだけで決めず、Userがその情報をど
 
 Form StateはReact Hook Formへ一元化し、Client側Validationは利用者支援として扱います。最終的なValidationと認可はAPIが保証し、Server Validation ErrorをFeature contextで解釈して対応Field等へ反映します。
 
+### Form Validation / NormalizationとGraphQL Mapping（2026-11-02合意）
+
+Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValidationと、Applicationへ渡す値の正規化・変換を担当します。GraphQLのOperation、Generated Type、Input shape、API固有EnumをZod Schemaへ持ち込みません。Zodが出力する値をAPIへそのまま渡せるかは別の判断とします。
+
+- Form Inputの型は必要に応じて `z.input<typeof schema>`、検証済みOutputは `z.output<typeof schema>` / `z.infer<typeof schema>` を利用します。Transform等で型が変わるときはInputとOutputを明示的に区別します。
+- GraphQL Mutation Inputの構築、Field名やNested Objectの対応、GraphQL Enumへの変換、Partial Patchの形はGraphQL Boundary（Composition / Action / Mapper）が担当し、Codegenで生成された型を境界で使用します。Zod OutputとGraphQL Inputが等しい場合、不要なMapperを挟みません。
+- 単純な構造変換は既存のComposition / Action内で直接記述できます。変換に独立した意味・変更理由・再利用性・複雑な条件分岐・テスト価値が現れたときのみ、React非依存のPure Mapperを抽出します。Mapper専用LayerやDirectoryを機械的に増やしません。
+- Mapperを抽出した場合、その実装に対応する `*.test.ts` を近接配置し、値の対応、Enum変換、Optional / Nullable / Partial Patchでの省略・保持など、当該Mapperの契約を検証します。
+- ZodによるClient Validationは利用者支援であり、最終的なValidationと認可はBackendが保証します。
+
+
+
 認証はNext.jsがHttpOnly Session Cookieを保持し、必要なAccess TokenをAPI呼び出しへ渡すBFF寄りの構成を基本とします。TokenをBrowserの公開State、URL、Logへ露出しません。具体的な認証設定は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)とUser設計に従います。
 
 ## Testing Architecture
