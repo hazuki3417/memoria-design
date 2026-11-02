@@ -166,6 +166,23 @@ Web共通のForm Draft同期UXを既存のSettings Formへ具体化する。単�
 - **Community Accent**：取得値の変更時、未編集なら同期し、未完成HEX等の編集中Draftは保持する。一方、既存の「保存失敗時に最後の保存色へ戻す」というUX契約は優先し、保存Controllerが`restoreOnAccentChange`を明示して復元する。Contextへの即時色反映・Rollback・直列保存の実装責務は移動しない。
 - Storybook Interactionで各フォームの再取得時同期とDraft保護を検証し、AccentはRollbackによる復元も確認する。実行結果はTypecheck・Storybook・Build・VRTのGateで別途確認すること。リポジトリの更新だけで実行済みとみなさない。
 
+## 2026-11-02 合意：保存Feedbackは自動・明示保存に共通する契約
+
+**適用対象の明確化**：保存結果の意味、Field / Form Errorの分類、表示位置、復旧操作、SaveStatusのPresentation責務は、**自動保存専用ではなく、ユーザーが明示的に保存する操作も含む共通契約**とする。この後の「自動保存」という章は、入力イベントから保存を開始する場合のQueue・Debounce・Preview・寿命に関する**追加的な詳細**を定めたものであり、共通Feedbackの適用範囲を狭めない。
+
+| 関心事 | 共通する契約 | 操作別の決定 |
+| --- | --- | --- |
+| 保存の結果 | Confirmed / Rejected（Field・Form・Domain）/ Retryable / Blocked / Unknownを判別し、Draftを保護 | 保存トリガー、送信順序、二重Submit / Queue、再試行安全性 |
+| Short Status | `SaveStatus`は表示専用Component。Pending / Saving / Confirmed / Error等の短い状態を、Layoutを変動させないSlotへ描画できる | Header右Slot、保存ボタンのLoading等、表示自体の要否・適切な場所 |
+| 詳細Error | Field ValidationはField近傍、復旧手順を要するErrorはForm上部など解決操作が可能な場所へ。生のGraphQL Errorを直接表示しない | Domain固有の手順、Field Groupの対象、Errorを表示するContainer |
+| 成功Feedback | Confirmedのみ成功として扱い、Refetch失敗と区別する | 明示保存は原則Notification、自動保存は控えめなInline Status |
+| 離脱警告 | 操作の重要度・喪失影響・復旧可能性で要否を判断 | 軽微な自動設定保存には一律警告を要求せず、重要な手動操作も個別に評価 |
+| Layout / Accessiblity | 短いStatusの出現・消失でHeaderを伸縮させず、Error内容の発見性と読み上げを保証 | DialogなどHeaderを持たない操作にHeader Slotを強制しない |
+
+**Component境界**：`SaveStatus`（短い状態のPresentation）、既存の`FeedbackAlert`（理由と解決操作）、`Notification`（明示操作の完了等）は再利用可能な責務として扱う。`SaveStatus`を自動保存専用にしない。`PageHeader`を拡張する場合、既存Consumerのタイトル・説明・高さ・Responsive契約を不変として、任意のtrailing Slot等でcompositionする。共通Componentは表示状態のOwnerではなく、Form / FeatureがOperationのResultを解釈しUIを選択する。
+
+**現時点の判断境界**：タイトル右Slotと詳細ErrorのA案（Headerの短いStatus＋Form側の持続Alert）は有力なUI提案であり、採用とCompactのレイアウト・時間閾値は別途合意する。手動保存時にNotificationを維持する既存合意を、Header Statusの追加だけで暗黙に廃止しない。
+
 ## 2026-11-02 合意：保存結果とForm FeedbackのUI/UX
 
 この章は2026-11-02の追加合意による**次段階の設計基準**である。前章のRHF移行時に維持した既存Feedback仕様を自動的に変更したものとは扱わない。実装変更は各Featureの状態・Story・Screen Contractを比較した上で別途行う。Web共通原則は`implementation-conventions.mdx` の「Form Feedback / Validation UX」を正とする。
