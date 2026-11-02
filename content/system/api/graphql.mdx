@@ -227,6 +227,176 @@ extend type Mutation {
 - 既存Media Group / Bulkの部分成功・Reason表現、Account・Community削除などの冪等性と認可契約は影響分析してから移行する。既存UI / Behaviorを変更する箇所は個別にテストし、黙って簡略化しない。
 - 既存の画面/UIが`errors[].extensions.code`だけを参照している間は移行期の互換性を明記し、一括置換で意図しないError表示を生まない。
 
+### Settings Mutationの型付きResult：Operation別SDLドラフト（2026-11-02、詳細合意待ち）
+
+この節は**Hybrid Error Model確定後のOperation別設計提案**であり、実行可能Schemaへ適用済みではない。GraphQLで有効な型構成と、実装に必要な契約・追加判断を示す。既存仕様と異なるOperation名・Failure Case・Idempotency / Revisionの選択を合意なしに実装へ適用しない。
+
+#### 共有Failureの境界
+
+```graphql
+"""
+Mutation Input Object内のパス。例: ["nickname"], ["dateFormat"]。
+GraphQL errors[].path（Response Field path）とは異なる。
+"""
+type InputViolation {
+  inputPath: [String!]!
+  code: InputViolationCode!
+}
+
+enum InputViolationCode {
+  REQUIRED
+  INVALID_FORMAT
+  INVALID_VALUE
+  TOO_LONG
+  OUT_OF_RANGE
+  INVALID_COMBINATION
+}
+
+"""
+各Violationは入力修正で解決可能な情報に限る。
+空配列を返さないことをResolver契約で保証する。
+"""
+type InputValidationFailure {
+  violations: [InputViolation!]!
+}
+
+enum DomainRuleCode {
+  OPERATION_NOT_ALLOWED_IN_CURRENT_STATE
+}
+
+type DomainRuleFailure {
+  code: DomainRuleCode!
+}
+
+enum StateConflictCode {
+  STALE_STATE
+}
+
+type StateConflictFailure {
+  code: StateConflictCode!
+}
+```
+
+- **共有する条件**：結果の意味・参照するClient UI分岐・安全な公開情報が同じ場合に限る。操作特有の失敗理由は無理に汎用Enumへ足さず、専用Failure Object / Reason Enumの利用を優先する。上記EnumのValueは**候補**であり、実際に発生するDomain Failureがない限りOperationへ含めない。
+- 入力Fieldの識別子はGraphQL Inputの公開Field名を使い、UI Component名やFormのLabelを含めない。`inputPath`の先頭はInput変数ではなくInput Object直下を表す。非公開ID・DBの構造・Security上の情報を含めない。未知のPathはClientでForm AlertへFallbackする。
+- GraphQL Enumを用い、Codegenで既知の値を型として扱う。将来Enum値が増えた場合のUnknown FallbackをClientに設ける。CodeをUI文言として表示しない。複数Field間のValidationで修正可能Fieldが特定できない場合はForm LevelのFailureを検討する（空Pathの使用規則は別途確定）。
+- GraphQL Unionに含まれる共通Failureは、別Operationからも利用できるが、Unionを列挙する単位はOperationごと。Clientは`__typename`とOperation文脈で分岐する。複数のUnionで同名の共通Failure Objectを利用することはGraphQL Schema上可能。
+- Failure Resultは**業務制約を評価した結果、該当Commandの永続化が成立しなかった**ことを表す。原子性を持つ単一resource更新の途中成功や、成功後のRefetch失敗をFailure型にしない。
+
+#### Operation別の候補
+
+| Operation | Successで返す確定状態 | 業務Failure候補 | GraphQL errors[] / Transportへ残すもの |
+| --- | --- | --- | --- |
+| `updateUserProfile` | `User`（Profile含む） | `InputValidationFailure` | 未認証、Inactive User、実行/通信障害 |
+| `updateUserPreferences` | 確定済み`UserPreferences` | `InputValidationFailure`（空Patch、値の不正、組合せ） | 未認証、実行/通信障害 |
+| `updateCommunity`（現行`renameCommunity`から移行） | 更新後の`Community` | `InputValidationFailure`、実際のDomain Constraintが判明した場合のみOperation固有Failure | 未認証、権限不足、存在秘匿、実行/通信障害 |
+| `updateCommunitySettings` | 確定済み`CommunitySettings` | `InputValidationFailure`（空Patch、Accent形式、Alias長など） | 未認証、Membership消失・存在秘匿、実行/通信障害 |
+
+**今回の設計案では、存在しないDomain Rule・State ConflictをSettingsの4 Mutationへ架空に追加しない。** 例えばCommunity Administratorであることは認可条件であり、DomainRuleFailureに置き換えない。同時更新のVersionを導入するかどうかを確定後、必要なOperationへ`StateConflictFailure`を追加する。登録・削除・Membership操作・GroupなどのResultを同時に無差別変更せず、全APIのSemantic Auditで適用する。
+
+#### 実行可能なSDL形状のドラフト
+
+以下は**追加・置換する部分の差分案**である。既存の`User`、`UserPreferences`、`Community`、`CommunitySettings`、Input Object本体は継続利用する。上記共有Failure定義と組み合わせた場合のGraphQL SDLとしての形状を示す。現行Schemaにそのまま追記すると既存Mutationと重複するため、移行時は該当Fieldを置換すること。
+
+```graphql
+type UpdateUserProfileSuccess {
+  user: User!
+}
+
+union UpdateUserProfileResult =
+    UpdateUserProfileSuccess
+  | InputValidationFailure
+
+type UpdateUserPreferencesSuccess {
+  preferences: UserPreferences!
+}
+
+union UpdateUserPreferencesResult =
+    UpdateUserPreferencesSuccess
+  | InputValidationFailure
+
+type UpdateCommunitySuccess {
+  community: Community!
+}
+
+union UpdateCommunityResult =
+    UpdateCommunitySuccess
+  | InputValidationFailure
+
+type UpdateCommunitySettingsSuccess {
+  settings: CommunitySettings!
+}
+
+union UpdateCommunitySettingsResult =
+    UpdateCommunitySettingsSuccess
+  | InputValidationFailure
+
+extend type Mutation {
+  updateUserProfile(
+    input: UpdateUserProfileInput!
+  ): UpdateUserProfileResult!
+
+  updateUserPreferences(
+    input: UpdateUserPreferencesInput!
+  ): UpdateUserPreferencesResult!
+
+  updateCommunity(
+    input: UpdateCommunityInput!
+  ): UpdateCommunityResult!
+
+  updateCommunitySettings(
+    input: UpdateCommunitySettingsInput!
+  ): UpdateCommunitySettingsResult!
+}
+
+input UpdateCommunityInput {
+  communityId: ID!
+  name: String!
+}
+```
+
+- `UpdateCommunityInput`は`renameCommunity`の名称変更に対応するドラフト。既存の設計正本は`updateCommunity`を選択済みだが、将来更新Fieldを追加する場合の部分更新・nullable・omitの厳密な契約は追加時に決める。
+- `UpdateUserPreferencesInput`はGraphQLのNullable Input Fieldを使ったPatchだが、**未指定と明示nullの意味を区別**する。現行の「明示null禁止、未指定だけ許容」をServerのOptional Presence判定で検証する。
+- `UpdateCommunitySettingsInput`のAliasだけはnullで解除できる。accentColorはnull禁止、未指定なら変更しない。Accent/aliasを両方指定した場合は単一Mutationのatomicな処理とし、どちらかがInvalidなら全体不成立。
+- Success Objectの確定値は正規化済み結果を返す（Trimした名前、Uppercase HEX、nullable Alias等）。ClientはRequest値の完全一致ではなく返却された確定値をBaselineとする。保存成功時に追加Refetchが必要かどうかは独立のCache/UI問題として扱う。
+- `union`に対するClient Selectionは`__typename`とInline Fragmentで行う。Query/Mutation以外のGraphQL Request ErrorとResult Failureは別経路で処理する。
+
+#### Wire上の例とClient振る舞い
+
+```graphql
+mutation SaveProfile($input: UpdateUserProfileInput!) {
+  updateUserProfile(input: $input) {
+    __typename
+    ... on UpdateUserProfileSuccess {
+      user { id profile { nickname } }
+    }
+    ... on InputValidationFailure {
+      violations { inputPath code }
+    }
+  }
+}
+```
+
+- 成功：`data.updateUserProfile.__typename == "UpdateUserProfileSuccess"`。返却Userを保存確定値として使い、手動保存ではNotificationを一度表示する。
+- 入力エラー：`InputValidationFailure`の各Violationについて、既知のField PathはRHFのField Errorへ適用する。未知のPathやForm LevelはForm AlertへFallbackし、Error配列があるだけでMutationを失敗扱いにしない。
+- GraphQL Execution Error：Operationに応じて`errors[].extensions.code`を安全に解釈する。MutationのResult Unionを受信していない場合、`data`の一部があるというだけで保存確定と判断しない。
+- Transport Error / Timeout：Requestを実行済みか不明ならUnknown Outcomeとして表現する。現在値の再取得が同じだからといって特定Requestの成功を証明したことにはしない。
+
+#### Backend / Webへの実装引き渡し
+
+1. `memoria-api`：User / Community ServiceでDomain Validationを構造化し、Resolverで対応するFailure Resultへ変換する。認証・認可・存在秘匿・予期しない障害はError Presenterへ残す。gqlgen Union Resolver / generated modelとAPI Integration Testを更新する。
+2. `memoria-web`：GraphQL OperationとCodegenの変更に追従し、Connection LayerでResultを意味情報へMapping。Feature FormがField / Form Error、Success Notification、保存中・未確定Statusを選択する。Apollo Mutation Responseの部分データ・GraphQL Error Policy、Cache更新とRefetch失敗を独立に検証する。
+3. 移行：`renameCommunity`から`updateCommunity`、従来PayloadからResult Unionへの変更はGraphQLのBreaking Change。API/Clientの同時展開または互換期間を明記する。既存ConsumerとMutation依存を列挙し、Codegen / Typecheck / API Contract Test / Interaction / VRT / Buildで検証する。
+4. APIのエラー公開Codeの統一（`INTERNAL`等）と、`InputViolationCode`の最小集合はOperationの実際のDomain Validationを棚卸しして確定する。全DomainのFailure分類を一度に推測で確定しない。
+
+#### 最終合意を要する判断
+
+- **J1：共通Failure型の共有範囲**：`InputValidationFailure`を各MutationのUnion Memberとして共有するか、Operation固有名のFailure型を用意するか。推奨は意味が同じFailureだけ共有し、Domain Failureは固有型を優先。
+- **J2：Violation Code・Input Path**：Enumを採用するか、拡張可能なString Codeを採用するか。推奨は安定した分類はEnum、将来拡張時はClientにFallback、Operation固有Reasonは固有Enum。
+- **J3：同時更新**：Profile・Community名・Preferences・Accent/aliasでRevision / Preconditionを導入する範囲。現行の直列Queueは同一Client内の順序のみ保証する。
+- **J4：Unknown Outcome回復**：操作別に、状態照会・再送・Idempotency Keyの要否を確定する。全MutationへのKey導入は推奨しない。
+- **J5：Migration**：Web/APIの非互換SDL変更の移行期間と対応順。合意なく本番GraphQL契約を切り替えない。
+
 ### 複数GraphQL Field ErrorのWeb表示
 
 GraphQLは`data`と`errors`が同時に返る場合があるため、Operation全体のエラーを1件に潰して判断しない。
