@@ -89,7 +89,7 @@
 **対象**：`src/features/settings/profile/SettingsProfile/SettingsProfile.tsx`。接続APIは`SaveProfile = (nickname: string) => Promise<void>`を維持。
 
 - `useForm<{ nickname: string }>`。既存`initialNickname`、`initialSaveState`、`blockedMessage`をそのまま受け取る。
-- 現行Storyの`initialSaveState === saving / retryable-error`で初期Draft末尾に「新」を付ける振る舞いを維持。
+- `initialSaveState` は保存・エラー状態だけを表し、`initialNickname` の値を改変しない。2026-11-02に合意した修正として、以前のComponent抽出時に混入した初期Draft末尾への「新」の付加を削除する。`saving` / `retryable-error` を指定したStoryでは初期ニックネームがそのまま表示されることを検証する。
 - `normalized = nickname.trim()`、`invalid = normalized.length === 0`、`dirty = normalized !== savedBaseline`とする。RHFの`formState.isDirty`だけではTrim同値判定を代替できない。
 - 保存中/blockedは既存どおり入力不可。保存成功時に`onSave(normalized)`の解決後、基準値を更新し`reset({ nickname: normalized })`する。
 - 失敗時はDraftを保持し、`retryable-error`または`blocked`を表示する。保存成功通知、文言、Buttonの`更新/再試行/更新中`、disabled条件は変更しない。
