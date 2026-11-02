@@ -427,6 +427,95 @@ mutation SaveProfile($input: UpdateUserProfileInput!) {
 - **J4：Unknown Outcome回復**：操作別に、状態照会・再送・Idempotency Keyの要否を確定する。全MutationへのKey導入は推奨しない。
 - **J5：Migration**：Web/APIの非互換SDL変更の移行期間と対応順。合意なく本番GraphQL契約を切り替えない。
 
+### Cross-field Validation・同時更新・Unknown Outcome：詳細設計案（2026-11-02、選択事項は合意待ち）
+
+この節はHybrid Error Modelと「既存I/Fを直接改修する」合意に従う詳細設計案である。Cross-fieldの帰属規則、更新競合のPrecondition、結果未確定からの復旧を**相互に混同しない**。以下に示す追加FieldやVersionは新Mutation / Queryの導入を意味しない。後述の判断事項が確定するまでSDLへの実装は行わない。
+
+#### Cross-field / Form-level Validationの帰属
+
+現在の`InputViolation { inputPath: [String!]!, code: InputViolationCode! }`は単一Fieldを表すには十分だが、複数Fieldの関係やFieldへ帰属できないInput制約を自然に示せない。空Pathを暗黙のForm Errorとして流用せず、**Errorの対象Scopeと関連するInput Pathを別の情報として型で表す**ことを推奨する。
+
+```graphql
+enum InputViolationScope {
+  FIELD
+  FIELD_GROUP
+  FORM
+}
+
+type InputFieldPath {
+  segments: [String!]!
+}
+
+type InputViolation {
+  scope: InputViolationScope!
+  code: InputViolationCode!
+  inputPaths: [InputFieldPath!]!
+}
+
+type InputValidationFailure {
+  violations: [InputViolation!]!
+}
+```
+
+上記は既存ドラフトの`InputViolation`を**置換する候補**であり、同名型を別に追加しない。Resolver / Serviceで次の不変条件を保証し、Integration Testで検証する。
+
+- `FIELD`は関連Pathがちょうど1件、`FIELD_GROUP`は関連する相異なるPathが2件以上、`FORM`は0件または説明用の関連Path群。Field指定が曖昧であれば`FORM`を選ぶ。
+- `InputFieldPath.segments`は1件以上のGraphQL Input Field名からなる。配列要素等のPath表現は必要なOperationで形式を追加定義し、現在のClientが理解できないPathはForm ErrorへFallbackする。
+- `FIELD_GROUP`の`inputPaths`は「関連する入力」を識別するための情報であり、すべてのFieldの下に同じ文言を重複表示する指示ではない。
+- Clientは`FIELD`をField Error、`FIELD_GROUP`を関連Field群の近傍またはForm Alert、`FORM`をForm Alertに表示する。可視Text・Focus・Accessible Descriptionの関連付けはForm Ownerが制御する。
+- `code`は公開された汎用制約の分類であり、詳細なDomain ReasonやUI文言ではない。Operation固有の条件を既存Enum値へ無理に写さず、必要に応じて専用Reason型を使用する。
+- GraphQL Request Coercion ErrorはResolver実行前なので、この型付きFailureではなく`errors[]`へ残る。
+
+**採用を推奨**するが、このSDL変更はまだ合意済みの個別Schema仕様ではない。
+
+#### 同時更新：Server側Preconditionの責務
+
+同じClient内でのMutation直列化は別端末・別タブのLost Updateを防止しない。Serverが参照した確定状態と同じRevisionを前提に更新する**Optimistic Concurrency Control（OCC）**を、同時編集で他の確定値を失わせるべきでないAggregateへ導入する設計を推奨する。
+
+- ProfileはUser Profile、User PreferencesはUser Preferences、Community名はCommunity、Community Alias / Accentは**User × Community Settings**を独立した更新対象とする。異なるAggregateのRevisionを混用しない。
+- 各更新対象の既存Query / PayloadでOpaqueな`revision`を公開し、既存Mutation Inputに`expectedRevision`を追加する案。RevisionはServerが発行し、Clientは値の内部形式・大小比較へ依存しない。
+- Serverは認証・認可・入力検証後、同一Transactionで`expectedRevision`と現行Revisionを比較し、一致時だけ更新・Revision更新を確定する。未一致なら永続化せず型付き`StateConflictFailure`を返す。Conflict時の現在値を公開してよいかは認可上検証する。
+- *部分更新では未指定Fieldを変更しない*ことを維持する。Aggregate全体のRevisionだと異なるFieldへの独立編集も競合するため、Conflict時は最新Queryと保護されたDraftとの差分を再評価し、ユーザー操作や再送Policyを定義する。差分を見ずに旧Patchを自動再送すると新しい確定値を失う可能性がある。
+- ProfileやCommunity名の同値更新・Normalized Valueの扱い、Alias解除(`null`)時のRevision増分、「実質変更なし」でRevisionを進めるかはDB更新契約に明記する。
+- 自動保存はPatchごとに送信Snapshotと`expectedRevision`を保持。成功レスポンスの確定Revisionへ進め、Queue中の新Draftを維持する。Conflict時はQueueを止めてRefetch、差分評価とFeedbackへ移る。SnapshotとRevisionが不一致のまま再送しない。
+
+**代替案**：単一Fieldを同じ値へ収束させるSettingsの一部ではLast Write Winsとし、すべてのSettingへOCCを導入しない。OCCは不要な競合・再試行の負担を増やすため、実際の編集損失リスクとUIの解決導線をOperationごとに判断する。**一律OCC導入はまだ確定しない。**
+
+#### Unknown Outcome：Clientから観測できる事実と復旧の設計
+
+通信断・Timeoutは「Mutation未実行」を証明しない。結果未確定は保存失敗、Serverが返す`StateConflictFailure`、一時的なRefetch失敗と区別する。
+
+| 観測結果 | Clientの保存判定 | 復旧候補 |
+| --- | --- | --- |
+| 型付きSuccessを受信 | Confirmed。応答の値・RevisionをBaselineへ | 必要なら背景Refetchを独立実行 |
+| 型付き業務Failureを受信 | Commandは不成立 | Field / Form Error、Conflictなら差分確認 |
+| Responseを受信できない | Unknown Outcome | 同一対象の既存Queryで現状態を確認。因果関係は推測しない |
+| Mutation成功の後にRefetch失敗 | 保存はConfirmed、Refreshのみ失敗 | 元の保存成功を取り消さずRefreshの再試行 |
+| Queryで現在値が以前と一致 | Request不成立の証明にはならない | 未確定表示を維持し、再送条件を検討 |
+| Queryで送信値と一致 | 現在状態は送信意図と一致。ただし当該Requestの成功証明とは限らない | 後続操作の副作用と整合条件を確認してUIを回復 |
+
+**回復の選択肢**：
+
+- **最終値を設定するだけの単純なSetting更新**：再送で副作用が重複しないとAPIが保証するなら、現在Revisionを確認し、まだ適用されていないField Patchのみ再送可能とする。ただし通常のGet後に他端末が更新し得るため、必要ならPreconditionを付ける。
+- **副作用が重複するOperation**：既存`content/system/api/idempotency.mdx`のKey契約（同一Key＋同一Request、24時間保証）をOperationの必要性に応じて採用する。同じ操作をRetryする際に新しいKeyを発行しない。期限外は重複防止を保証しない。
+- **安全な再送も明確な結果照会もできない場合**：Clientが保存完了を断定したり自動再送したりせず、未確定状態と現在データを示す。重複副作用のある操作では再確認の導線が必要。
+
+Keyだけで別端末のLost Updateを防ぐことはできず、Revisionだけで同一Requestの二重副作用を防げるとも限らない。OCCは*並行変更の整合性*、Idempotency Keyは*同じ論理要求の重複副作用防止*、Refetchは*現在状態の観測*という別の役割を持つ。
+
+#### 変更対象と検証条件
+
+- API：既存QueryのRevision Field（採用対象のみ）、既存Mutation InputのPrecondition、同名MutationのSuccess / Failure Union、RepositoryのAtomic Compare-and-Set、Operation単位のError / Idempotency Test。互換用の新Query / Mutationを追加しない。
+- Web：各Formの最新Draft・送信Snapshot・Confirmed Baseline・Revision・Unknown Outcomeを分離し、Result毎にFeedbackを選択。Apollo CacheとServer確定値の帰属を維持する。自動保存QueueはConflict / Unknownで無条件再送を停止する。
+- Test：2Clientの同時更新、異なるFieldのPartial Patch、同値更新、Validation FailureのField / Group / Form、通信断の前後、成功後Refetch失敗、In-flight中の新Draft、同一Idempotency Key Retry、Expired Key、Context切替後の古いResponseを、必要なOperationのUnit / Integration / Interactionで検証する。
+
+#### 追加合意が必要な判断
+
+1. InputViolation Scope + 関連Path群の構造を採用するか。
+2. OCC / Revisionを導入するAggregateの範囲と、Aggregate全体Revisionによる独立Field競合を許容するか。特に自動保存のSettingsは競合解決UXと一体で選ぶ。
+3. Settingsの各更新を再送安全なSet操作として保証する範囲と、監査・Outbox等への副作用の重複を許容するか。
+4. Unknown Outcome時、再取得後に自動再送するか、ユーザーによる確認後に再送するか。
+5. Community名のOperation名を既存設計の`updateCommunity`に統一するか（旧`renameCommunity`との並存は禁止）。
+
 ### 複数GraphQL Field ErrorのWeb表示
 
 GraphQLは`data`と`errors`が同時に返る場合があるため、Operation全体のエラーを1件に潰して判断しない。
