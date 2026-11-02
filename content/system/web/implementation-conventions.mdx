@@ -659,6 +659,8 @@ TestはCoverage数値のためではなく、責務に適した方法でBehavior
 
 Pure LogicのUnit TestではReact、Mantine、Apollo、DOMを必要としない状態を基本とします。Testは対象Codeへ近接配置します。
 
+テストファイルはStoryと同様に、**原則として検証対象の実装ファイルと同じ場所に、同じbasenameの `*.test.ts` / `*.test.tsx` を対応させます**（例：`communityNameSchema.ts` と `communityNameSchema.test.ts`）。単に同じ画面・Domain・Directoryに属することや、個別のTestが短いことを理由に複数の独立した対象のTestを1ファイルへ集約しません。複数実装を横断するTestを置く場合は、各実装のUnit Testを寄せ集めず、**その結合・Interaction・Contract自体が独立した検証対象**であることを明示し、読み手が所有責務と変更影響を識別できる名称・配置にします。この例外はファイル数削減や共通化のために増やしません。
+
 StorybookはProduct Specificationではなく、実装を独立して観察・検証するための実行可能なExampleです。Visual Regression Test、Accessibility、Human Visual Review、E2Eの役割は[Frontend UI設計・開発方針](/system/frontend-ui-development)と[テスト設計](/test-design)に従います。
 
 ## Implementation Conventions
