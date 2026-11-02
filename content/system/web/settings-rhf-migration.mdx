@@ -21,7 +21,7 @@
 
 ### 2026-11-02 追加合意（実装時の決定）
 
-- サーバー再取得時のCommunity Name未保存Draftは、既存どおり `communityName` Props変更時に上書きする（今回の移行で挙動を変えない）。
+- **2026-11-02 UX方針による変更**：Community NameのServer Props更新時は、未編集なら更新値へ同期し、編集中なら未保存Draftを保持する。以前合意した無条件上書きは廃止する。
 - Context IDが変わる場合、フォームをContextごとに独立させ、新しいContextの初期値で初期化する。保存Controllerの対象IDとDraftが混在しないようContext境界で明示的に識別する。
 - Personal PreferencesはRHFが編集中の入力値を所有するが、保存対象Patchは従来どおり入力イベントで生成する。RHFのDirty Fieldを保存対象抽出へ新たに利用しない。
 
@@ -55,6 +55,15 @@
 ## Form defaultValuesの合意（2026-11-02）
 
 各Settings Formの初期値はForm所有者の`defaultValues`に直接記述する。ZodにRHF初期値生成の責務を持たせない。初期値構築が複雑になるか、複数のFormで実際に同じ初期化ロジックが必要になった場合のみPure Functionを検討する。初期値とサーバー再取得時の`reset`は別の契約として扱う。
+
+## 2026-11-02 合意：Form Draftの同期UX
+
+- Formは画面で確認した初期値から編集する。Apollo Cacheの内部差異や多端末競合表示を共通Form機能として扱わない。
+- 未編集のDraftはServerから届いた新しい値を表示してよい。編集中・保存中・保存失敗で未確定の値があるときはその入力を上書きしない。Context変更時は新しいContextとして初期化する。
+- 保存成功時は確定した値を保存基準へ反映する。保存中にユーザーが新たに編集した場合、古い保存応答で新しいDraftを消さない。
+- 手動保存と自動保存の保存開始・失敗時UIは各Featureの既存契約を尊重する。保存Queue、Rollback、Cache操作をこの方針のためだけに新しい共通Layerへ移さない。
+- Community Nameは今回の合意でServer Props変更時の無条件上書きを廃止し、未編集時のみ自動追従する。Interaction Storyで再取得時の未編集同期と編集中保護を検証する。
+- Profile・Alias・Preferences・Accentの既存挙動は、追加の回帰確認なしに広範囲を変更しない。特に自動保存中のサーバー応答とRollbackはそれぞれ既存の保存契約を優先し、個別のテストで確認する。
 
 ## 現行の責務と移行境界
 
@@ -116,7 +125,7 @@
 - `useForm<{ name: string }>`を既存のForm state ownerに置く。現在の`draft` / `setDraft` / `invalid` / `dirty` / `savingName` / `saveName`として公開される意味的Propsを基本的に維持する。下位SectionへRHF固有APIを渡さない。
 - `normalized = name.trim()`、`invalid = !normalized`、`dirty = normalized !== savedName`。Admin以外は入力不可、保存ボタン非表示を維持。
 - `onSaveName(updated)`の戻り値trueだけを成功として保存済み基準値を進める。falseでは保存済み扱いしない。Mock/PreviewでCallbackがない場合の既存成功表示は保持する。
-- 現行`useEffect([communityName])`はServer側名の変化でDraftまで上書きする。RHF移行で`reset`するときの同一挙動と、編集中の値を保護する改善案のどちらにするかは仕様変更の可能性があるため、実装前に明示確認する。
+- `communityName` Props更新時、未編集ならRHFを`reset`し、編集中はDraftを保持する。保存済み値の比較基準は更新する。旧実装の無条件`reset`は2026-11-02のUX方針合意により変更する。
 - `onSaveName`がrejectした場合の既存`finally`経路など、未処理例外を含む既存挙動を先にテストで可視化し、仕様変更を無断導入しない。
 
 ### Phase 4：Personal Preferences
@@ -157,7 +166,7 @@
 
 ## 確定事項・実装上の注意
 
-1. **サーバー再取得中の未保存Draft**：Community Nameの `communityName` Props変更時のDraft上書きは既存挙動を維持する。Dirty中保護は今回導入しない。
+1. **サーバー再取得中の未保存Draft**：フォーム未編集時は新しい値へ追従し、編集中はDraftを保護する。Community Nameの旧来の無条件上書きは合意により廃止する。
 2. **Context切り替え時**：Context ID単位でフォームのライフサイクルを分離する。Context ID変更時は該当Contextの入力を初期化し、異なるContextへDraft・保存対象を混入させない。
 3. **Personal Preferences**：RHFをフォーム値の所有者とする。保存Patchは入力イベントから生成し、Dirty Fieldsを保存トリガーにしない。
 4. **既存実装の不整合・潜在不具合の扱い**：Community Name保存reject時の表示など、移行以外の振る舞いは黙って変更しない。必要な改善は別途合意する。
