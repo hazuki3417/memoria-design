@@ -1,0 +1,881 @@
+# Personal / Community Settings：React Hook Form移行詳細設計
+
+> 状態：実装前詳細設計。2026-11-02に合意済みの原則と、実装前に確認する提案を区別する。対象コードは`memoria-web/develop`（2026-11-02時点）。
+>
+> 本文はPersonal / Community ContextのSettingsのみを対象とする。Media Detail、Account Registration等の他Featureへの展開は含まない。
+
+## 目的・正本
+
+- `content/system/web/implementation-conventions.mdx` のState Ownership・Form規約をSettingsへ適用する。
+- FormのDraft / Dirty / Field ValidationをReact Hook Form（RHF）で一元管理し、Apollo ClientをGraphQL Server Stateの共有表現とする。
+- 保存順序、Debounce、Mutation、Cache更新、Rollback、Retryなどの既存振る舞いとUI / Responsive / Storybook Contractを維持する。
+- 新しいSettings UIや汎用Form Frameworkの構築ではなく、既存実装の責務抽出として進める。
+
+### 合意済み
+
+1. 各フォームを独立したRHF Formとして管理する（Page全体・複数Contextで単一のFormを共有しない）。
+2. 既存Queue、Mutation、Rollbackを維持し、入力値管理の責務のみRHFへ移す。
+3. 移行順序：Personal Profile → Community Alias → Community Name → Personal Preferences → Community Accent。
+4. 変更前後のVisual / Behavioral / Responsive Contractを維持する。既存のCapabilityを共通化のために削除しない。
+
+
+### 2026-11-02 追加合意（実装時の決定）
+
+- **2026-11-02 UX方針による変更**：Community NameのServer Props更新時は、未編集なら更新値へ同期し、編集中なら未保存Draftを保持する。以前合意した無条件上書きは廃止する。
+- Context IDが変わる場合、フォームをContextごとに独立させ、新しいContextの初期値で初期化する。保存Controllerの対象IDとDraftが混在しないようContext境界で明示的に識別する。
+- Personal PreferencesはRHFが編集中の入力値を所有するが、保存対象Patchは従来どおり入力イベントで生成する。RHFのDirty Fieldを保存対象抽出へ新たに利用しない。
+
+## 2026-11-02 合意：Zod / zodResolverの適用と共通化の境界
+
+- Settingsの各独立RHF Formに、フォームのInput / Outputを区別したZod Schemaと`zodResolver`を適用する。入力中のDraftはRHFが所有し、ZodはValidationと保存時の正規化を定義する。
+- `z.input<typeof schema>` は入力値、`z.output<typeof schema>` は検証済み保存値として扱う。RHFは必要に応じて`useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>`を使用する。
+- Mantine UIと既存のError表示タイミングは変えない。`safeParse`による保存可否の導出などが必要な場合も、同一Schemaを唯一のValidation正本とし、別のValidationルールを二重実装しない。
+- Personal PreferencesのPatch保存は入力イベント起点、Community Accentは有効HEX入力だけを既存保存Controllerへ通知し、`handleSubmit`へ保存方式を変更しない。未完成HEXをRHF Draftとして保持する。
+- 各Schemaは対応するドメイン・フォームの近くに配置する。記述の類似だけを理由に名前やField Schemaを共通化しない。
+- Community名・Tag名・Group名のように複数ユースケースで同一ドメイン制約が必要になれば、その段階で各ドメインのSource of Truthを確認して抽出する。**今回の作業はPersonal / Community Settingsのみ**とし、他のFeatureへの共通化を行わない。
+- `react-hook-form`、`zod`、`@hookform/resolvers`は既存依存を利用する。Backend最終Validationを置き換えない。
+- Git commitの`[skip ci]`はPR作成済みブランチへの追加コミット時のみ付ける。PR未作成ブランチのコミットには付けない（今回の作業指示であり恒久的設計規約ではない）。
+
+## 2026-11-02 合意：Zod OutputとGraphQL InputのMapping
+
+- Form内のDraftはRHFが所有する。Zod Schemaは入力Validation、Trim、空欄からNullable値への正規化など、Applicationが扱う検証済み値の生成に責任を持つ。
+- GraphQL固有のInput Shape、Generated Type、Enum変換、Partial Patchの構築はAction / GraphQL Boundaryに所属する。単純な `{ input: { communityId, name } }` のような組み立ては接続箇所で直接行い、Mapperを必須としない。
+- 複雑な構造変換や独立した契約が存在する場合だけPure Mapperを抽出する。既存の `src/features/settings/preferences/userPreferencesGraphqlAdapter.ts` はその実例であり、`toGraphqlUserPreferencesPatch` が入力PatchをGenerated GraphQL Enumへ変換する。既存の `userPreferencesGraphqlAdapter.test.ts` を対応Testとして維持する。
+- Schemaの型は `z.input` と `z.output` / `z.infer` を意図に応じて使用し、Mutation InputはCodegen型をGraphQL Boundaryで使用する。両者が同じ形なら直接渡せるが、等価であると推測してMappingを省略しない。
+- Community Aliasの空文字 `null` 化はApplicationへ渡す正規化値であり、Zodの責務とする。SchemaにGraphQL依存を導入しない。
+- 本変更では既存のMutation・保存Queue・Rollback・UI・Storybook Contractを変更しない。Settings以外への横断的Mapper / 共通Schemaの導入は対象外。
+
+## 2026-11-02 合意：Mapperの型I/F契約
+
+- **フォーム専用Mapper**は、入力を対象Schemaの `z.output<typeof schema>`（または `z.infer`）、出力をGraphQL Codegen生成Input型として明示する。フォームの未検証InputをMapperへ直接渡さない。型契約に加えて近接Unit Testで変換結果を保証する。
+- **複数ユースケースで共有されるMapper**は、フォームSchemaではなく共有Application Model / Patch型を入力とする。現実に必要になるまで専用Application Modelを増やさない。
+- Personal Preferencesの `userPreferencesGraphqlAdapter.ts` は、RHFのInputに加えて入力イベント由来のPartial Patchと取得結果を扱う境界である。入力契約 `UserPreferencesPatch`、出力契約 `UpdateUserPreferencesInput` を維持する。Zodの `preferencesSchema` には表示用 `accentDraft` が含まれるが、これをAPI Mapperへ流出させない。
+- 既存のMapperは新ルールへの適合が確認できれば機械的に書き換えず、Mapperが必要なフォームで初めて型契約を追加する。
+
+## Form defaultValuesの合意（2026-11-02）
+
+各Settings Formの初期値はForm所有者の`defaultValues`に直接記述する。ZodにRHF初期値生成の責務を持たせない。初期値構築が複雑になるか、複数のFormで実際に同じ初期化ロジックが必要になった場合のみPure Functionを検討する。初期値とサーバー再取得時の`reset`は別の契約として扱う。
+
+## 2026-11-02 合意：Form Draftの同期UX
+
+- Formは画面で確認した初期値から編集する。Apollo Cacheの内部差異や多端末競合表示を共通Form機能として扱わない。
+- 未編集のDraftはServerから届いた新しい値を表示してよい。編集中・保存中・保存失敗で未確定の値があるときはその入力を上書きしない。Context変更時は新しいContextとして初期化する。
+- 保存成功時は確定した値を保存基準へ反映する。保存中にユーザーが新たに編集した場合、古い保存応答で新しいDraftを消さない。
+- 手動保存と自動保存の保存開始・失敗時UIは各Featureの既存契約を尊重する。保存Queue、Rollback、Cache操作をこの方針のためだけに新しい共通Layerへ移さない。
+- Community Nameは今回の合意でServer Props変更時の無条件上書きを廃止し、未編集時のみ自動追従する。Interaction Storyで再取得時の未編集同期と編集中保護を検証する。
+- Profile・Alias・Preferences・Accentの既存挙動は、追加の回帰確認なしに広範囲を変更しない。特に自動保存中のサーバー応答とRollbackはそれぞれ既存の保存契約を優先し、個別のテストで確認する。
+
+## 現行の責務と移行境界
+
+| 対象 | Draftの現在地 | 保存の現在地 | 移行するもの | 維持するもの |
+| --- | --- | --- | --- | --- |
+| Personal Profile | `SettingsProfile` の `name`/`saved` | `SettingsProfile`→`usePersonalSettingsActions` | nicknameのDraft、基準値、Dirty、必須Validation | 保存ボタン、通知、retryable / blocked、Apollo Mutation・refetch |
+| Community Alias | `CommunityAliasControl` の `draft` | `ConnectedCommunityPreferences` の `onSave` | Alias Draft、Dirty、100 Unicode code point上限 | 空欄解除、成功通知、失敗時Draft保持、Cache更新・best-effort refetch |
+| Community Name | `useCommunityNameSettings` の `name`/`draft` | `useCommunitySettingsActions.onSaveName` | name Draft、基準値、Dirty、必須Validation | Admin制約、保存ボタン/通知、Mutation、MyCommunities refetch |
+| Personal Preferences | `useUserPreferences` の `preferences`/`accentDraft` | `usePreferencesSave`→`createPreferencesSaveQueue`→Apollo Mutation | 編集中Field、ColorInputの未完成入力、Field更新とPatch作成 | 400ms Debounce、Patch結合、直列化、失敗後の値保持・retry、画面離脱時Flush、blocked |
+| Community Accent | `CommunityPreferencesContent` の `draft` + `ConnectedCommunityPreferences` の `accent` | 接続側 `flush`/Apollo Cache | HEX Draftのみ | Preview、valid HEXだけ即時Context反映、最新選択の直列保存、失敗時最後の保存色へ復元 |
+
+実装上の既存Component API・表示文言・ARIA・Props・Storyの契約は原則維持する。Field Componentに`control`、`UseFormReturn`等のRHF型を漏らさず、Form所有者で`Controller` / `useController`を使用して`value` / `onChange` / `error`等の既存Propsへ射影する。既存表示Component自身がフォーム所有者なら、その内部にRHFを持ってよい。機械的なComponent増加は行わない。
+
+## 共通実装ルール
+
+### 初期値と同期
+
+- `useForm<FormValues>({ defaultValues: ... })` に初期Server Snapshotまたは既存Story Fixtureを渡す。RHFの`defaultValues`は通常の再Renderだけでは自動更新されないため、同期が必要な場合はフォーム単位で明示する。
+- Dirtyの意味は現行契約が優先。現行がTrim/正規化後に比較するFieldでは、RHFの生の`isDirty`をそのまま保存可否に転用しない。`getValues`・`useWatch`で値を取得し、Pure Functionで正規化した値を保存基準値と比較して導出する。
+- 保存成功時は確認済みServer Response / 保存対象の値を基準に`reset`を検討する。ただし、保存中の新しいユーザー入力を上書きしない。入力が凍結される明示保存フォームと、操作が継続する自動保存フォームとで同期方法を分ける。
+- Apolloの`cache-and-network`再取得のたびにDraftを無条件`reset`しない。現在の同期挙動に変更が生じる場面は「未決定事項」に記す。
+- Field ValidationとServer保存失敗は別物。RHFの`errors`は入力制約を中心とし、`retryable`/`blocked`/保存中・通知は現行のInteraction Stateと表示契約を維持する。
+- React Hook FormはApollo Cache、Mutation実行順序、Queue、Context AccentのAuthorityを所有しない。
+- `mode`・Validation表示時機・`onBlur`等は既存UIのError表示時機を回帰条件として選択する。初回表示で空欄エラーが出るStoryなどを消さない。
+
+### TextInputの接続
+
+- `Controller`でMantineのControlled Inputへ`field.value`/`field.onChange`を橋渡しする。可能なら`field.ref`/`field.onBlur`も接続し、Focus / Accessibilityを維持する。
+- Trim、空欄許容、Unicode code point等のドメイン判断はPure Functionで行う。必要に応じて`rules.validate`へ渡すが、Serverからの制約強化を推測で追加しない。
+- Save前のGuardは入力Validity、正規化後Dirty、権限、保存中/blockedから導出する。重複したBoolean Stateを増やさない。
+
+## フォーム別詳細
+
+### Phase 1：Personal Profile
+
+**対象**：`src/features/settings/profile/SettingsProfile/SettingsProfile.tsx`。接続APIは`SaveProfile = (nickname: string) => Promise<void>`を維持。
+
+- `useForm<{ nickname: string }>`。既存`initialNickname`、`initialSaveState`、`blockedMessage`をそのまま受け取る。
+- `initialSaveState` は保存・エラー状態だけを表し、`initialNickname` の値を改変しない。2026-11-02に合意した修正として、以前のComponent抽出時に混入した初期Draft末尾への「新」の付加を削除する。`saving` / `retryable-error` を指定したStoryでは初期ニックネームがそのまま表示されることを検証する。
+- `normalized = nickname.trim()`、`invalid = normalized.length === 0`、`dirty = normalized !== savedBaseline`とする。RHFの`formState.isDirty`だけではTrim同値判定を代替できない。
+- 保存中/blockedは既存どおり入力不可。保存成功時に`onSave(normalized)`の解決後、基準値を更新し`reset({ nickname: normalized })`する。
+- 失敗時はDraftを保持し、`retryable-error`または`blocked`を表示する。保存成功通知、文言、Buttonの`更新/再試行/更新中`、disabled条件は変更しない。
+- 回帰：Trimだけの変更は保存可にしない、空白のみの入力、成功・失敗・blocked・Story初期状態。
+
+### Phase 2：Community Alias
+
+**対象**：`src/features/community-settings/CommunityAliasControl/CommunityAliasControl.tsx`。接続`onSave(alias: string | null)`を維持。
+
+- `useForm<{ alias: string }>`。`savedAlias ?? ""`を初期値とし、入力中はstringで管理する。APIへ渡す時だけ`trim()`後の空文字を`null`へ変換する。
+- `Array.from(normalized).length > 100`を既存どおりの無効条件とし、UTF-16 lengthに置き換えない。
+- 保存可否は`normalized !== (savedAlias ?? "")`、`!saving`、`!invalid`。成功時にDraftを解放・次の表示をServer値へ同期するが、Mutation成功前にDraftを消さない。
+- 保存失敗ではDraftとエラー表示を保持し、後続入力時にエラーを消す。既存の成功通知・入力のdisabled・Alias解除契約を保持。
+- `savedAlias`更新時の`reset`と入力中Draft保護は、現在の`draft ?? savedAlias`の振る舞いを比較して実装する。保存結果を未確認のうちに新しい値を保存済み扱いにしない。
+
+### Phase 3：Community Name
+
+**対象**：`src/features/community-settings/useCommunityNameSettings.ts`と`CommunityNameSection`、Consumerの`CommunitySettings`。
+
+- `useForm<{ name: string }>`を既存のForm state ownerに置く。現在の`draft` / `setDraft` / `invalid` / `dirty` / `savingName` / `saveName`として公開される意味的Propsを基本的に維持する。下位SectionへRHF固有APIを渡さない。
+- `normalized = name.trim()`、`invalid = !normalized`、`dirty = normalized !== savedName`。Admin以外は入力不可、保存ボタン非表示を維持。
+- `onSaveName(updated)`の戻り値trueだけを成功として保存済み基準値を進める。falseでは保存済み扱いしない。Mock/PreviewでCallbackがない場合の既存成功表示は保持する。
+- `communityName` Props更新時、未編集ならRHFを`reset`し、編集中はDraftを保持する。保存済み値の比較基準は更新する。旧実装の無条件`reset`は2026-11-02のUX方針合意により変更する。
+- `onSaveName`がrejectした場合の既存`finally`経路など、未処理例外を含む既存挙動を先にテストで可視化し、仕様変更を無断導入しない。
+
+### Phase 4：Personal Preferences
+
+**対象**：`useUserPreferences`、`SettingsPreferences`。既存`usePreferencesSave`・`preferencesSaveQueue`・`usePersonalSettingsActions.savePreferences`は維持。
+
+- RHFは`UserPreferences`に相当する入力Fieldsを所有し、特にColorInputの未完成HEX入力は表示専用のDraftとしてForm内で所有する。`useState(preferences)` / `useState(accentDraft)`は撤去する。必要なFieldの追加構造は実装時に型名を決定する。
+- Date Format、File Size、Thumbnail、Navigation Wrap、初期情報表示の選択イベントで、RHFのField値を更新し、同じ有効値の単一Field Patchを既存Queueへ`enqueue`する。全値を送る`handleSubmit`や`watch`→`useEffect`での保存トリガーへ置き換えない（初期同期や`reset`で意図しない保存を起こさないため）。
+- ColorInputは不完全HEXを表示保持し、有効な`/^#[0-9a-fA-F]{6}$/`に達した場合だけ`personalAccentColor`のUppercase Patchを送る。既存の`changeAccentDraft`相当の契約を維持する。
+- 既存400ms Debounce、Patch結合、in-flight中の追加変更、失敗値と後続値の結合、`retry`、unmount`flush`、`blocked`を変更しない。
+- 保存成功Responseで新しいDraftを上書きしない。自動保存中に入力したFieldを保護する。Dirtyの基準値をどう扱うかはRHF内の表示要件の有無を踏まえ、保存済み値を別の可変RHFフォームとして二重所有しない。
+- Mantine `useMantineColorScheme`のTheme選択はRHFへ移さない（現行の管理主体と保存方式を維持）。
+- 既存`createPreferencesSaveQueue`のUnit Testを回帰基準とし、RHF接続の追加テストで「入力→Patchが一度だけEnqueueされる」「初期化/Reset時にはEnqueueされない」「無効HEXはEnqueueされない」を検証する。
+
+### Phase 5：Community Accent
+
+**対象**：`CommunityPreferencesContent`、接続側`ConnectedCommunityPreferences`の境界。Aliasとは別フォーム。
+
+- `CommunityPreferencesContent`のColorInput Draftを`useForm<{ accentDraft: string }>`で所有する。`setAccent`の既存PropsとPreview契約は維持し、HEX正規表現を満たす入力だけ接続側へ通知する。
+- 接続側の`saved`、`desired`、`inFlight`、`active`、`flush`、Apollo `readFragment/writeFragment`は保存状態のControllerとして維持する。RHFへ移管しない。
+- `accent` Propsが保存成功・Rollback・外部Server更新によって変化した時の`reset`は、現行`useEffect([accent])`のDraft同期契約と整合させる。ただし未完成のHEX入力を無関係なRenderで破棄しない。
+- 保存中の連続選択は最後の選択値を処理する。Mutation失敗時は共有CacheとInputを最後の保存色へ戻す。Alias更新時のAccent保持、Accent更新時のAlias保持を保証する。
+- `isPreview`時は保存もContext更新も行わず、既存のプレビュー表示とStoryの挙動を維持する。
+
+## テストファイルの配置（追加合意）
+
+実装の主たる責務をテストの単位とし、Storyと同様に各実装ファイルの近傍でbasenameを対応させる。Schema Unit Testは`profileSchema.test.ts`、`communityAliasSchema.test.ts`、`communityNameSchema.test.ts`、`preferencesSchema.test.ts`、`communityAccentSchema.test.ts`とする。互いに独立したSchemaのUnit Testを`settingsFormSchemas.test.ts`のような画面単位の大きなテストファイルへまとめない。
+
+横断的な検証が必要なら、個別Unit Testの寄せ集めではなく、具体的な連携BehaviorやContractを検証するテストとして対象と配置を明確化する。テスト内容・期待値は分割によって削除・簡略化しない。
+
+## 2026-11-02 追加実装：残り4フォームのDraft同期
+
+Web共通のForm Draft同期UXを既存のSettings Formへ具体化する。単純な値の差異を競合UIとして表示せず、ユーザーの編集中の入力を保護する。
+
+- **Personal Profile**：初期NicknameのProps変更時、現在値が保存基準と等しい未編集状態なら`reset`して新しい値を表示する。編集中のDraft、保存失敗による再試行用Draftは保護する。保存中のフォーム操作は従来どおり無効。
+- **Community Alias**：編集開始の履歴を保持する`editing`フラグではなく、直前に受け取った取得値と現在のDraftの差で未編集を判断する。未編集時はProps更新へ追従し、編集中は上書きしない。保存失敗のDraft維持・空欄の`null`化は維持する。
+- **Personal Preferences**：RHFの`reset(..., { keepDirtyValues: true })`で未編集Fieldのみ新しい取得値へ反映する。保存Queue、入力イベント起点のPatch生成、ColorInputの未完成`accentDraft`、Debounce・Retry・Blockedの契約は変更しない。RHFのDirty Flagは編集中の値を保護するための印であり、保存Patchを生成する目的では使わない。
+- **Community Accent**：取得値の変更時、未編集なら同期し、未完成HEX等の編集中Draftは保持する。一方、既存の「保存失敗時に最後の保存色へ戻す」というUX契約は優先し、保存Controllerが`restoreOnAccentChange`を明示して復元する。Contextへの即時色反映・Rollback・直列保存の実装責務は移動しない。
+- Storybook Interactionで各フォームの再取得時同期とDraft保護を検証し、AccentはRollbackによる復元も確認する。実行結果はTypecheck・Storybook・Build・VRTのGateで別途確認すること。リポジトリの更新だけで実行済みとみなさない。
+
+## 2026-11-02 合意：保存Feedbackは自動・明示保存に共通する契約
+
+**適用対象の明確化**：保存結果の意味、Field / Form Errorの分類、表示位置、復旧操作、SaveStatusのPresentation責務は、**自動保存専用ではなく、ユーザーが明示的に保存する操作も含む共通契約**とする。この後の「自動保存」という章は、入力イベントから保存を開始する場合のQueue・Debounce・Preview・寿命に関する**追加的な詳細**を定めたものであり、共通Feedbackの適用範囲を狭めない。
+
+| 関心事 | 共通する契約 | 操作別の決定 |
+| --- | --- | --- |
+| 保存の結果 | Confirmed / Rejected（Field・Form・Domain）/ Retryable / Blocked / Unknownを判別し、Draftを保護 | 保存トリガー、送信順序、二重Submit / Queue、再試行安全性 |
+| Short Status | `SaveStatus`は表示専用Component。Pending / Saving / Confirmed / Error等の短い状態を、Layoutを変動させないSlotへ描画できる | Header右Slot、保存ボタンのLoading等、表示自体の要否・適切な場所 |
+| 詳細Error | Field ValidationはField近傍、復旧手順を要するErrorはForm上部など解決操作が可能な場所へ。生のGraphQL Errorを直接表示しない | Domain固有の手順、Field Groupの対象、Errorを表示するContainer |
+| 成功Feedback | Confirmedのみ成功として扱い、Refetch失敗と区別する | 明示保存は原則Notification、自動保存は控えめなInline Status |
+| 離脱警告 | 操作の重要度・喪失影響・復旧可能性で要否を判断 | 軽微な自動設定保存には一律警告を要求せず、重要な手動操作も個別に評価 |
+| Layout / Accessiblity | 短いStatusの出現・消失でHeaderを伸縮させず、Error内容の発見性と読み上げを保証 | DialogなどHeaderを持たない操作にHeader Slotを強制しない |
+
+**Component境界**：`SaveStatus`（短い状態のPresentation）、既存の`FeedbackAlert`（理由と解決操作）、`Notification`（明示操作の完了等）は再利用可能な責務として扱う。`SaveStatus`を自動保存専用にしない。`PageHeader`を拡張する場合、既存Consumerのタイトル・説明・高さ・Responsive契約を不変として、任意のtrailing Slot等でcompositionする。共通Componentは表示状態のOwnerではなく、Form / FeatureがOperationのResultを解釈しUIを選択する。
+
+**現時点の判断境界**：タイトル右Slotと詳細ErrorのA案（Headerの短いStatus＋Form側の持続Alert）は有力なUI提案であり、採用とCompactのレイアウト・時間閾値は別途合意する。手動保存時にNotificationを維持する既存合意を、Header Statusの追加だけで暗黙に廃止しない。
+
+## 2026-11-02 合意：保存結果とForm FeedbackのUI/UX
+
+この章は2026-11-02の追加合意による**次段階の設計基準**である。前章のRHF移行時に維持した既存Feedback仕様を自動的に変更したものとは扱わない。実装変更は各Featureの状態・Story・Screen Contractを比較した上で別途行う。Web共通原則は`implementation-conventions.mdx` の「Form Feedback / Validation UX」を正とする。
+
+### Feedbackの選択基準
+
+| 事象 | 主要な表示先 | 次の行動 |
+| --- | --- | --- |
+| ClientまたはServerの単一Field Validation | 該当FieldのError | Fieldを修正 |
+| 関係Field間の不整合 | 関連Fieldの近傍またはForm Alert | 関係する入力を修正 |
+| Form全体のValidation・業務制約 | Form Alert | 指示された条件を修正 |
+| 明示保存の成功 | 成功Notification | 必要なら次の操作 |
+| 自動保存の成功・進行中 | 控えめなInline Status。通知連発なし | 原則不要 |
+| 明示保存の一時失敗 | 消えないForm Alert | Draftを保ったまま再試行 |
+| 保存結果を確認できない | Form Alert（未確定と明示） | 状態を確認し、重複保存に注意 |
+| 操作権限喪失・継続不可 | Form Alert | 再読み込み・権限確認等 |
+| Background Refetch失敗（表示済みデータあり） | 非ブロックのNotification / Status | 必要なら再取得 |
+| 初期取得失敗（フォーム利用不能） | Page Error | 再取得・画面離脱 |
+| 破壊的な明示操作の成功 | 成功Notificationまたは遷移先の状態表示 | 完了を確認 |
+
+Validationは未操作時に表示しない。原則BlurまたはSubmit後に表示し、その後の編集に追従して解消する。保存可否を判断する内部Validationと、Error文言を提示するタイミングは別に管理する。Field Errorは該当入力に関連付け、Form Alertは保存操作と問題内容が分かる位置に置く。同じ失敗をNotificationとAlertの両方で繰り返さない。
+
+### 非同期保存・結果契約
+
+- Form Ownerは編集中のDraftと見た目のError / Statusを管理し、API / Application Boundaryは成功、入力の不備、業務制約、再試行可能な失敗、継続不可、結果不明を意味的に識別できる情報として返す。例外文言やHTTP codeだけでUI分岐しない。
+- 手動保存はSubmit開始時に検証し、成功が**確認できた値**のみ保存基準へ反映する。Submit後の追加編集を以前の応答で消さない。失敗時はDraftを保持し、可能な修正・再試行・状態確認の行動を示す。
+- 自動保存は入力イベント起点のPatch・保存順序・追加編集の保護を保証し、静かな保存状態を提供する。成功後に保存済みFieldのDirtyを適切に解消するが、未送信・in-flight・失敗中の値は保存済みと誤認しない。
+- 保存の失敗は一律の`false`や汎用例外に潰さない。Promise rejectを放置せず、UIに必要な失敗分類が届くようにする。フィードバックの表示責務が接続層とForm層に分散し、重複通知されないようにする。
+- 自動保存失敗時に`Rollback`するか、未保存Draftを残して再試行させるかは入力の種類・即時Preview・誤解のリスクにより選択する。一律のRollback義務は設けない。
+
+### 5フォームへの適用計画（未実装の設計変更）
+
+| Form | 方向性 | 特に確認する点 |
+| --- | --- | --- |
+| Personal Profile | 明示保存成功はNotification。Field ErrorとForm Alertを原因別に表示 | 保存中の取得値更新、結果不明、Retryable / Blocked |
+| Community Name | 明示保存成功はNotification。失敗は消えないForm Alertへ統一 | 現行`Promise<boolean>`と接続層Notificationを、失敗分類のある契約へ変更。rejectの捕捉 |
+| Community Alias | 明示保存成功はNotification。Field Error / Form Alertの共通表示基準に合わせる | 保存失敗・再試行・別名解除（nullable） |
+| Personal Preferences | 自動保存成功のNotificationを省略。保存中・保存済み・失敗を静かに明示 | QueueのPatch確定単位とRHF Dirty解消、後続入力の保護、失敗分類 |
+| Community Accent | 即時Previewと保存結果を別に示す | Rollback時の通知・復元方法と再試行手段。既存Rollbackを無断変更しない |
+
+### 実装前に詰める事項
+
+1. **自動保存の失敗UX**：Personal Preferencesは入力保持＋Retryを基本候補とする。Community Accentは即時PreviewのためRollback候補だが、「復元する値は何か」「未完成HEXはどう扱うか」「ユーザーの再試行導線」を確定してから実装する。
+2. **Result Unknown**：操作によって再試行の安全性が異なる。確認方法と再送方法をAPI更新契約に照らして具体化する。
+3. **保存状態の表示粒度**：自動保存のInline Statusの配置・保持時間・読み上げ方、複数Fieldの保存中表示を画面とStoryで決定する。
+4. **Error Mapping**：現在のGraphQL Mutation / Application ErrorがField / Form / Blocked / Unknownのどの情報を返せるかを確認し、足りない契約を明確化する。
+5. **Validationの表示変更**：既存の`mode: "onChange"`を機械的に置換せず、初期・Blur・Submit・編集後の視覚状態と保存ボタンの関係をStoryで比較する。
+
+この追加合意は新しいUX仕様の採用を意味するが、上記の未決定項目を実装者が推測で確定したり、PR #234に無関係な変更を混在させたりしない。
+
+## 2026-11-02 詳細設計：保存結果・エラー契約とFeedback配置（Issue #235）
+
+**設計ステータス**：本章は合意済みUX原則に基づく実装可能な責務・状態・テスト設計である。Backendに不足しているErrorの識別方法、Unknown Outcomeの再確認・再送可否、自動保存の具体的表示・Rollbackは合意待ちであり、推測でAPI契約やUXを確定しない。先行するRHF移行PR #234には自動的に適用せず、後続の変更で実装する。
+
+**GitHub上の確認対象**：`memoria-web`（`refactor/settings-rhf-profile`）の`usePersonalSettingsActions`、`useCommunitySettingsActions`、`useCommunityNameSettings`、`usePreferencesSave`、`preferencesSaveQueue`、`ConnectedCommunityPreferences`、`Feedback`と、`memoria-api`（`develop`）の`schemas/graphql/{user,community}.graphql`、`internal/errors/common.go`。APIには`UNAUTHORIZED`、`FORBIDDEN`、`BAD_REQUEST`、`INTERNAL_SERVER_ERROR`があるが、Settings MutationのPayloadには統一Field Error、結果不明、Retryableの詳細結果が定義されていない。コード値だけからField Pathや保存の成否を推測しない。
+
+### 責務境界と失敗の解釈
+
+| Owner | 主な責務 | 禁止する責務 |
+| --- | --- | --- |
+| Backend | 最終Validation、認可、永続化、確定した結果・機械判定可能なError情報を提供 | Frontend向け表示位置・Notification選択 |
+| GraphQL / Application Boundary | Mutation結果・GraphQL Error・通信Errorを取得し、根拠のある結果情報へ変換。更新確定と後続Refetch失敗を区別 | Notificationの直接表示、Form Draftの変更、未知のErrorをField Errorと推測 |
+| Form Owner | RHF Draft、保存操作、Field / Form Error、確定済みBaseline、Resultごとの再試行導線 | GraphQL例外メッセージの文言解析、Apollo Cache同期Layerの所有 |
+| Feedback UI | 与えられたErrorと保存状態をField / Form / Inline Status / Notificationとして描画し、支援技術へ通知 | 保存結果・ビジネスルールの独自判定 |
+
+既存`Promise<boolean>`や接続側の失敗Notificationは、Featureに結果の意味を伝達できない。Community Nameの後続改修では成功のみを`true`とし、失敗理由を失うI/Fを廃止する。保存成功NotificationはForm Ownerのみが発火させ、保存失敗の主表示はForm Alertとする。
+
+### 結果分類と振る舞い
+
+| 結果 | 判定根拠 | Draft / Baseline | 主表示と次の操作 |
+| --- | --- | --- | --- |
+| confirmed-success | 更新Mutationの確定結果（更新対象と応答値を照合） | Confirmed値のみBaselineへ反映。送信後の新Draftは維持 | 手動：一度だけ成功Notification／自動：静かな保存済みStatus |
+| field-invalid | APIがFieldを機械判定可能に特定できる / RHF・Zod Field Validation | Draft保持。Baseline不変 | 対応FieldのError、修正後再検証 |
+| form-invalid | 入力群の関係または業務制約。Fieldへ一意に帰属しない | Draft保持。Baseline不変 | 持続するForm Alert、修正する条件を提示 |
+| retryable-failure | **再試行してよいと確認できる**一時失敗 | Draft保持。Baseline不変 | 持続するForm Alert＋再試行 |
+| blocked | 権限喪失・認証切れ等の継続不可が確認できる | Draftは可能な限り保持。保存操作は抑止 | 持続するForm Alert＋権限確認・再読込・認証導線 |
+| unknown-outcome | 書込要求の応答がない等、反映の有無を断定できない | Baselineを勝手に進めない。Draft保持 | 未確定と明示。状態照会を先に案内。再送安全性が未確認なら自動再試行しない |
+
+`BAD_REQUEST`は必ずしも単一Field Validationではなく、`INTERNAL_SERVER_ERROR`も再試行安全性の証明にならない。通信Timeout・切断でMutation実行済みの可能性がある場合も、安易に`retryable-failure`へ変換しない。
+
+**Mutation成功とRefetch失敗**：Mutationの確定結果を取得後、後続`refetchQueries`が失敗した場合は保存成功を取り消さず、「データ更新の再確認ができない」別の非ブロック状態として扱う。MutationのResponse確認前の通信失敗は`unknown-outcome`候補として扱い、原因別に判定する。現行の`awaitRefetchQueries: true`や接続側の保存判定は、この区別を保証するために見直し対象とする。
+
+**Client ValidationとError表示**：Zod/RHFが検証を担当する。未操作時はエラー文言を表示せず、BlurまたはSubmit後に表示する。いったん表示されたField Errorは入力変更に追従して更新・解消する。保存ボタンの可否を決める内部妥当性判定は表示契約と分離する。Server Field ErrorはField Pathを根拠にRHF`setError`へ反映し、関連する入力の変更で適切に再検証する。単純な通信失敗に`setError`を使わない。
+
+**同一Resultの表示**：Fieldに帰属する失敗はField Error、Form全体・保存操作に属する失敗はForm Alertを主とする。同一結果をNotificationとAlertに二重表示しない。持続的なエラーは通知が消えても再試行導線が残ること。読み上げ・Focus移動はエラー発生時の優先順位を考慮し、入力中に無闇にFocusを奪わない。
+
+### 実装I/Fの方向性（型名は提案・未確定）
+
+Feature固有の保存Actionは、少なくとも成功時の**保存済み確定値**または識別可能な失敗をFormへ返す。例：`Promise<SaveResult<TValue>>`で`{status:"confirmed"; value:TValue}`／`{status:"field-invalid"; fields:...}`／`{status:"form-invalid"; reason:...}`／`{status:"retryable"; reason:...}`／`{status:"blocked"; reason:...}`／`{status:"unknown"; reason:...}`。これは意味モデルの説明であり、汎用型の導入を確約するものではない。共有されるResult分類に必要な最小型のみ共通化し、個別のField Pathや成功データはFeature側の型に保持する。
+
+`try/catch/finally`または同等の明示的分岐でrejectの未処理をなくす。保存中を表す状態は`finally`で解放するが、失敗状態は自動消去しない。送信時の値と後続のRHF Draftが異なる場合、旧応答による`reset`を禁止する。Context ID変更後に旧Contextの非同期応答が新しいFormへ適用されないよう区別する。
+
+### 手動保存：状態遷移
+
+1. `pristine`：初期値を表示。取得値更新へ追従。未操作のValidation Errorなし。
+2. `editing`：RHF Draft保持。編集対象Fieldは新しい取得値で上書きしない。
+3. `submitting`：Submitで検証したSnapshotを送信。二重Submitを防止。送信中に再編集を許すFeatureでは新しいDraftを保護。
+4. `confirmed-success`：確定したSnapshotをBaselineへ反映。追加編集がない場合のみRHF表示値へ同期。成功Notificationは操作単位で一度だけ。
+5. `field-invalid`／`form-invalid`：Errorを該当場所に保持。正しい編集・再試行で解消。
+6. `retryable-failure`：Draft維持・Form Alert・再試行。失敗原因が残っている間は成功を表示しない。
+7. `blocked`／`unknown-outcome`：継続不可または結果不明を明示。自動再送しない。回復・確認の手段を案内。
+
+### 自動保存：Queue・Baseline・Feedback
+
+- `Draft`（RHF）が最新の選択・未完成入力を表し、Queueが`pending`／`in-flight` Patch、成功確定した値が`confirmed baseline`を表す。各Fieldの`dirty`を「最後に保存を要求したか」の意味で代用しない。
+- Successには**成功したPatch／送信時の値**が必要。Queueに成功Snapshotを伝搬する契約を設ける。受信したServer全体のPreferencesを無条件`reset`することは禁止。
+- Fieldごとに、確定値と送信時以降の新しいDraftを比較する。未送信・in-flight・失敗・さらに編集中のFieldは保護し、確定済みで未編集のFieldのみ保存基準を進める。未完成`accentDraft`は、HEXが未完成の間は保存済みと混同しない。
+- 保存失敗時に`pending` Patchを失わない。再試行可能な失敗と`unknown-outcome`を分け、前者はRetry、後者は確認手段を提示する。Backend側の冪等性が確認できないまま自動再送しない。
+- Status表示は自動保存の多頻度Notificationを避け、保存中・未保存・保存済み・失敗を区別する。複数Fieldの同時更新で「保存済み」と誤表示しない。
+- Community Accentの即時Context反映、保存失敗後RollbackはUX判断待ち。確定色へ戻す場合でも、不完全HEX・保存中の新しい選択・未確定応答を誤って上書きしない。Rollbackする対象と再試行導線を先に決定する。
+
+### 5フォームで追加するテスト
+
+| Form | Unit / Interactionで保証する結果 |
+| --- | --- |
+| Personal Profile | Field Error、Form Error、Retryable、Blocked、結果不明、保存中の取得値更新、成功後に新Draftを消さない |
+| Community Name | `false`相当の失敗・reject時に未処理Promiseがない、失敗はForm Alertのみ、成功Notification一度、Draft保護 |
+| Community Alias | Field Error／全体Errorの表示分離、失敗時のDraft保持、解除(`null`)保存、取得値の追従 |
+| Personal Preferences | FieldごとのPatch成功とDirty解消、連続編集・古い応答・失敗・Retry・背景Refetch・未完成HEX |
+| Community Accent | 連続色変更の直列保存、反映の確定/結果不明、復元先・未完成HEX、失敗表示、再選択導線 |
+
+### GraphQL Errorの実際の公開契約（2026-11-02 API確認）
+
+確認元：`memoria-api` `develop` の `graph/handler.go`、`graph/handler_test.go`、`graph/{user,community}.resolvers.go`、`internal/service/{user,community}/service.go`、`schemas/graphql/{user,community}.graphql`。**GraphQL `extensions.code`の正本は`graph/handler.go`のErrorHandler**であり、`internal/errors/common.go`に存在する`BAD_REQUEST`などの定数をそのままGraphQL公開契約とみなさない。
+
+| GraphQL `extensions.code` | 確実に判定できる意味 | Settings FormへのMapping方針 |
+| --- | --- | --- |
+| `VALIDATION` | 検証失敗。Settings MutationではField Pathなし | Form Alertを既定とする。Client Zodが対象Fieldを特定できる場合は別途Field Error。APIからField Errorを断定しない |
+| `UNAUTHENTICATED` | 認証状態が無効 | Blocked：認証再確認を案内 |
+| `UNAUTHORIZED` | UnauthorizedErrorによる認可関連の失敗 | 原因を確認できる範囲でBlocked。MessageをUI分岐に使用しない |
+| `FORBIDDEN` | 権限不足 | Blocked：権限確認・離脱等を案内 |
+| `NOT_FOUND` | 対象を参照できない | Blocked / Stale対象：表示中のContextを再確認。Field Errorと推測しない |
+| `CONFLICT` | 競合や業務制約。Settingsでは詳細reasonなし | Form Alert。入力の単純な再送で解決すると推測しない |
+| `INTERNAL_SERVER_ERROR` | サーバー内部失敗 | 結果確定を推測できない場合はUnknown Outcomeとして扱い、安易に自動再送しない |
+| `UNKNOWN_OUTCOME` | 一部のMutationに限った結果未確定 | Unknown Outcome。Settings各Mutationの公開契約として現時点では存在しない |
+| Transport / Timeout / Network failure | 通信できない、応答を確認できない | 書込が到達した可能性があるときはUnknown Outcome。Request送信前と確実に判定できる場合のみ再試行可能候補 |
+
+`VALIDATION`と`CONFLICT`はServerの`extensions.reason`や`fieldPath`がSettingsについて定義されていないため、Frontendがエラーメッセージの文字列を解析して個別Fieldへ割り当てることはしない。Serverから詳細が返せるようになった時点でMapperの分類を拡張する。現行`graph/handler.go`はMedia Groupの一部にのみ`reason`を付与しており、それをSettingsへ一般化した仕様として扱わない。
+
+**保存確定の条件**：ProfileはMutation ResponseのUser/Profile/Nickname、Community NameはCommunity/Name、PreferencesはPreferences、Community AccentとAliasはSettingsの戻り値で、対象となる保存値が確定したことを確認する。Mutationが成功した後のRefetch Errorを同一Operationの失敗として握りつぶしてはいけない。Current Web実装の`awaitRefetchQueries: true`は成功判定とRefresh判定を結合し得るため、更新確定と後続再取得を別に観測する設計へ切り替える。Backendの応答値が正規化される場合、要求と完全一致しなくても確定した正規化値をBaselineとする条件をOperationごとに定義する。
+
+**分類の優先順位**：1. 確定Mutation Payloadがある場合は保存確定を優先し、後続Refetch失敗は非ブロックの別Result。2. 確定していない明示的Error Codeがある場合は上表で分類。3. 書込の結果自体を確認できない場合はUnknown Outcome。4. 定義されていないCode・複合Errorを安易にRetryableやFieldへ分類しない。Userへ表示する文言はApplication側で安全に用意し、APIの内部Messageをそのまま露出しない。
+
+**Context/対象の確認**：後続の再取得により同じContextで確定済み値と一致することは確認できるが、「今回のMutationが成功した」とまで証明できないケースがある。未知結果を確定扱いにするかは、更新Version / 冪等性 / 操作固有のResult照会Contractを確認してから決める。現時点のSettings Mutation Payloadには保存Request ID / Version / Idempotency Keyがなく、厳密な因果関係の判定には使えない。
+
+#### 実装単位の提案（コード変更前の設計）
+
+1. GraphQL BoundaryにFeatureから使用する小さなError分類関数を設ける。Apollo Error / GraphQL `extensions.code`を安全に参照し、既知のCodeだけを意味カテゴリへ変換する。Errorの文言を分類条件にしない。
+2. 各保存ActionでMutation Responseを検証し、**Confirmed Value**／**分類済みFailure**をForm Ownerへ返す。既存の`Promise<boolean>`を段階的に置換する。TypeやResult Wrapperは具体的なConsumerの要件が判明してから最小で選ぶ。
+3. Form OwnerがFeedbackの主要表示先を決める。Field ErrorはRHF、Form Errorは持続するFeedbackAlert、明示保存の確定SuccessはNotification、自動保存はInline Statusとする。接続層の重複Notificationは移行時に除去する。
+4. 連続保存のQueueはPatch単位でSuccess/Failureを通知し、古いResponseで後続Draftを上書きせず、確定したFieldだけBaselineを進める。QueueにSnapshot ID等を持たせる必要性は実装時に検証する。
+5. Unit TestはError Codeと未定義CodeのMapping、Mutation成功・Refetch失敗の独立性、Mutation不明結果、連続Patch確定を検証する。Interaction TestはField / Form Error・再試行導線・成功通知と静かな自動保存を検証する。
+
+### 最終判断を要するもの
+
+1. APIのField Path・Business Error・Retryable・Unknown識別に必要な機械判定情報を追加するか、既存Error codeと個別Operationで扱える範囲に限定するか。
+2. `unknown-outcome`をどの操作で再照会・再送可能とするか。BackendのIdempotency・更新Version・結果照会契約の有無を確認して決定する。
+3. 自動保存Statusの表示位置・表示保持時間・再試行操作と、成功通知を不要とする条件。
+4. Community AccentのRollback方針（確定色へ復元／未保存の選択を保持）と未完成HEXの扱い。
+5. 保存中に手動入力をDisableするか許可するか。既存実装と異なるUXへの変更は明示合意が必要。
+
+## 2026-11-02 合意：GraphQL Hybrid Error Model
+
+**設計ステータス：Hybrid Modelの基本方針は確定、Operation別のSDL・公開Error Code・同時更新/冪等性は詳細設計待ち。** 既存Backendの実装互換性や差分最小化を優先せず、GraphQLのSchema表現力・利用者の回復可能性・運用上の信頼性を基準に設計し直す。現行Source of Truthの`content/system/api/graphql.mdx`は「Transport / Application Errorは`errors[].extensions.code`」を採用しているため、次の提案は**旧契約を置き換える合意済み方針**であり、APIのGraphQL設計正本にも反映済み。Web #235、API #128と連携し、確定後にAPI GraphQL設計正本・Schema・Web設計を同期する。
+
+### 選択肢の比較
+
+| 方式 | 利点 | 注意点 |
+| --- | --- | --- |
+| A. 全失敗をGraphQLトップレベル`errors`へ集約 | GraphQL標準Execution Errorを利用可能、既存の`extensions.code`に適合 | 期待される業務的失敗をGraphQL型として表現しにくい。ClientがCode / Field判定に依存する |
+| B. 業務上の失敗をMutation Payloadの型付きResult（Union）に表現、認証・実行失敗はトップレベル`errors` | ResultをSchema・Codegen・Exhaustive Handlingへ明示でき、Operation単位の期待される失敗が自己記述的 | Union分岐・型の増加。初期の契約変更は大きい |
+| C. すべての例外・失敗をUnion Payloadにする | Query時と違いMutationの戻り値は単一の成功／失敗型に統一可能 | 認証・インフラ障害まで通常の業務結果と同一視し、GraphQL Execution Errorと混同する |
+
+**採用：BのHybrid。** GraphQL Specificationは業務ErrorをUnionにすることを義務付けていないが、予期される・利用者が対処できる業務結果はSchemaの型で表現するメリットが大きい。Protocol・認証・権限制御・実行障害はGraphQLトップレベル`errors`とTransportで扱う。複数更新対象の部分成功は、既存Bulk Item Resultをこの分類と整合させる。全Mutationに機械的にUnionを追加せず、予期される業務失敗のあるCommandへ適用する。
+
+### Resultの意味とSchema例（設計候補）
+
+```graphql
+type UpdateUserProfileSuccess {
+  profile: UserProfile!
+}
+
+type InputViolation {
+  # GraphQL response pathではなく、Mutation Input内のField path
+  inputPath: [String!]!
+  code: String!
+}
+
+type InputValidationFailure {
+  violations: [InputViolation!]!
+}
+
+type DomainRuleFailure {
+  code: String!
+}
+
+type StateConflictFailure {
+  code: String!
+}
+
+union UpdateUserProfileResult =
+    UpdateUserProfileSuccess
+  | InputValidationFailure
+  | DomainRuleFailure
+  | StateConflictFailure
+
+extend type Mutation {
+  updateUserProfile(input: UpdateUserProfileInput!): UpdateUserProfileResult!
+}
+```
+
+例はContract Boundaryの説明用であり、同名のGeneric Error型を全Mutationで共有する確定仕様ではない。`inputPath`は`nickname`等の**Input Modelのpath**であり、GraphQLのExecution Errorの`errors[].path`（失敗したResponse Fieldのpath）と混同しない。Fieldの問題が一意でない場合はForm LevelのDomain Failureとする。Field ErrorのcodeはUI文言ではなく安定した機械判定用識別子であり、MessageはWebのlocale・Form Contextに応じて組み立てる。必要な入力や業務制約のみ、型・コード・対象Pathの粒度をOperation単位で定義する。
+
+成功Resultは保存済みの最終値を返す。成功判定後の別Queryの再取得失敗を保存失敗へ格下げしない。UnionのFailureは**更新が確定していない業務上の拒否**を意味し、Successと同時に発生させない。認証失敗・権限不足・対象秘匿・サーバー障害の扱いはAPI Security Contractに従い、Unauthorized等を一般のUser Error型に混在させない。
+
+### GraphQL Execution ErrorとTransportの契約
+
+- `errors[].extensions.code`はTransport、Authentication、Authorization、Schema/Execution、Infrastructureの識別に用いる。GraphQLの`errors[].path`は失敗したResponse Fieldの位置であり、入力不正Fieldの代用としない。
+- 認証：`UNAUTHENTICATED`、認可：`FORBIDDEN`、不存在と存在秘匿：`NOT_FOUND`という既存Security上の原則を継承する。内部Error・Stack Trace・DB名などの情報は外部へ返さない。
+- `INTERNAL`等の公表Codeについて現行の`INTERNAL_SERVER_ERROR`を含む不一致を整理し、仕様・実装・Testを同じ契約へ揃える。HTTP StatusとGraphQL Error Codeは別概念であり、GraphQL ResponseのError配列／nullableの挙動とApollo `errorPolicy`の組み合わせを検証する。
+- Mutationが応答の途中で失敗した場合、Clientは書き込みの成否を判断できないことがある。**Unknown Outcomeは必ずしもBackendが返すError CodeではなくClientの知識状態**である。接続タイムアウトを`Retryable`と同義にしない。
+- 予期されるField / Domain FailureはUnion等のSchema Resultへ、Authorization等の実行不可はGraphQL Errorへ、Network断・Timeout等の応答未確認はClient Transport Statusへ分ける。ValidationのうちGraphQL Input Coercion / Syntaxの失敗はMutation Resolverに到達せずGraphQL Request Errorとなり、業務Validation Resultとは別に扱う。
+
+### 冪等性・同時編集・回復
+
+- 最終状態を同じ値へ設定するSetting更新は、一般に重複送信しても同じ最終値へ収束するが、監査・イベント・非同期副作用まで自動的に冪等とは限らない。手動保存は重複実行防止と送信Snapshotの特定を前提にし、再送が安全なOperationを明示する。
+- User Preferences / Community Accent等の自動保存は、Queueの直列化と後続編集の保護を保証する。送信Snapshotと確定応答を照合し、後続Draftを消さない。通信断時に「既に保存された」と判断しない。
+- Idempotency Keyは削除・作成・支払い等の重複副作用が問題になるCommandで必須候補とし、全Mutationへ無条件に要求しない。事後状態の再取得は現在値の確認には使えるが、**どのRequestが成功したか**を一般に証明しない。
+- 同時編集で他端末／他操作の更新を失わせない必要がある場合、Version / Preconditionの導入をCommandの性質から検討する。Web側のQueueだけでは複数Client間のLost Updateを防止できない。
+- APIの確定したMutation Responseを保存基準にし、Cache反映・追加Refetchは別の結果とする。GraphQL Data / Errorの部分成功はQueryの独立FieldとBulk Item Contractに従い、単一Form保存のConfirmed判定と混同しない。
+
+### 決定の順番
+
+1. 【合意済み】期待される業務上の失敗は型付きResult、認証・実行失敗はGraphQL errors[]、応答未確認はClientのUnknown Outcomeで扱う。
+2. 成功/Field Validation/Domain Rule/State ConflictのSchema型とOperationごとの分類・Error Codeを決める。保護すべきリソース存在情報をFailureへ漏らさない。
+3. 認証・認可・実行失敗の公開GraphQL Error CodeとError Presenterを整理し、HTTP Status / Nullable / Apolloの検証を指定する。
+4. 自動保存の同時編集・Unknown Outcome・Idempotency / Version要件をFeatureごとに確定する。
+5. API Schema正本（`content/system/api/graphql.mdx`）と実装を変更し、Web Error Adapter / Form Feedback / Interaction Testsへ展開する。
+
+## 2026-11-02 Operation別Result SDLとForm Feedbackの接続案（詳細合意待ち）
+
+GraphQLの正本`content/system/api/graphql.mdx`「Settings Mutationの型付きResult：Operation別SDLドラフト」に、`updateUserProfile`／`updateUserPreferences`／`updateCommunity`（現行`renameCommunity`の移行先）／`updateCommunitySettings`の型とFailure候補を定義した。**Hybrid Modelの基本方針は合意済み、Operation別SDLと移行方法は未確定**。
+
+| GraphQL Result | Frontend責務とFeedback |
+| --- | --- |
+| `*Success` | 応答中の正規化済み確定値をBaselineに反映。手動保存は成功Notification、自動保存は控えめな保存済みStatus |
+| `InputValidationFailure` | `inputPath`を既知のRHF Field名へ写像。修正可能なField ErrorをFieldの近くに表示し、不明FieldはForm Alert |
+| `DomainRuleFailure`（適用Operationのみ） | 業務上の失敗原因・次の操作をForm Alertに表示 |
+| `StateConflictFailure`（適用Operationのみ） | 自動再送せず、状態の再取得・差分確認・再操作を案内 |
+| GraphQL Execution Error | 認証・認可・存在秘匿・内部障害を公開`extensions.code`で判別。UIへ生のError Messageをそのまま表示しない |
+| Response未受信・Transport不明 | Unknown Outcome。保存済み/未保存の両方を断定せず、操作の再送安全性が確認できるまで自動リトライしない |
+
+**実装の具体化**：Form OwnerはError種別とUI表示状態を管理し、Connection層はGraphQLのUnion `__typename`・Execution Error・Transport結果を分離する。型付きSuccessだけを確定成功とし、同期対象を送信Snapshotと関連付ける。古いMutation Responseや背景Refetchが追加編集を上書きしない。Field Errorの表示タイミングは既定のBlur / Submitに従い、Server Validation Errorは保存応答を受け取った時点で表示する。
+
+**現行実装との差分**：`useCommunitySettingsActions.onSaveName`の`Promise<boolean>`と接続層Notification、`usePersonalSettingsActions`のPayload前提、`preferencesSaveQueue`の成功Snapshot不足、Community AccentのRollbackは後続実装対象。GraphQL API変更はBreaking Changeとなるため、APIとWebの整合した移行計画を先に確定する。
+
+**判断待ち**：共通Failure型の境界、Violation Enumの粒度、Unknown Outcomeの再送・照会契約、API/Web移行方式。一般Settingsの同時更新はLWWに確定。これらはWebの単独実装で補完しない。
+
+## 2026-11-02 合意：API I/F直接改修とWeb移行
+
+APIのError ContractをHybrid Modelへ更新する際、**互換用の新Mutation / Queryは定義しない**。現行I/Fを直接改修し、FrontendのGraphQL Operation / Fragment / Codegen / Application Adapter / Form Consumerを新しいResult契約へ追従させる。
+
+- 既存`updateUserProfile`、`updateUserPreferences`、`updateCommunitySettings`は同じMutation FieldのResult型を直接変更する。`renameCommunity`と既存API設計正本の`updateCommunity`の名称衝突は、並列公開せず単一Fieldの置換を基本候補として扱い、Operation名の最終判断を実装前に確認する。
+- 現在の接続層で行っている失敗Notificationの発火は、新Resultへ更新する際にForm Ownerへ移管する。成功値のみ保存基準へ反映し、Field Validationは`InputViolation.inputPath`をRHF FieldへMappingする。
+- 既存のQueryは原則変更しない。GraphQL Execution Error・認証/認可・部分Dataの取り扱いを統一する必要がある場合、既存QueryのConsumerを改修する。Error処理を目的とする新Queryは作らない。
+- APIとWebを整合した変更単位で移行する。Backend Schema変更だけを先に配備して既存Web Consumerを壊さない。旧I/Fと新I/Fを並列提供するcompatibility期間は設けない。Deploy / Releaseは別途承認を必要とする。
+- 適用対象はSettingsに限定しない。Media、Group、Tag、Community Membership、削除、Bulk等の現在のError表現をAuditし、各Operationの実際の業務Failureだけを型付きResultにする。UI/UX、既存ConsumerのCapability、Partial Successの意味を消さない。
+
+共通Validation型は同じ意味の`InputViolation`と`InputValidationFailure`のみ共有し、Fieldに帰属しないErrorを根拠なく単一Fieldへ付与しない。Validation Codeは安定した汎用カテゴリのGraphQL Enumを採用し、個別DomainのReasonは必要なOperationで別に定義する。Enumの候補値とCross-field/Form-level Pathの表現はAPIのDomain監査後に確定する。
+
+**未確定**：Operation名（特にCommunity名変更）の最終整合、Violation Codeの具体値、Cross-field表現、Unknown Outcome回復、自動保存UX。一般SettingsのPreconditionは導入しない。これらの未合意事項はWeb側で補完しない。
+
+## 2026-11-02 合意：一般SettingsはLast Write Wins（OCC標準案を撤回）
+
+**複数端末・複数ユーザーからの一般的な設定編集は、Serverで後から確定した書き込みを採用する。** 従来のこの章で提示したAggregate Revision、3-way Merge、Atomic CAS、競合比較UIをSettingsの標準として導入する案は**不採用**とする。重要Domain操作は操作固有の競合制御を別途設計する。正本：`content/system/api/graphql.mdx`「同時更新：一般SettingsはLast Write Wins」。
+
+- PreferencesとCommunity Settings（Accent / Alias）は、**指定したFieldだけを更新するPatch**とし、未指定Fieldは保護する。例えば別端末の日付形式変更とサムネイルサイズ変更が互いの値を巻き戻さない。
+- 同一Fieldを複数端末が更新した場合、Backendで最後に確定した値が最終状態となる。一般SettingsのためのConflict Dialogや手動Mergeは提供しない。
+- 同一Clientの連続操作はDebounce、Coalesce、送信順序の直列化を維持する。Serverの確定順とResponse到着順を混同せず、古いMutation Responseで新しいDraft・Cacheの確定値を無条件に上書きしない。
+- `revision` / `expectedRevision`の追加を一般Settingsの前提にしない。既存Mutation / Queryを直接改修し、互換Mutation / Queryは追加しない。
+- 保存されない可能性がある通信断・Timeoutは引き続きUnknown Outcomeとして扱い、LWWであることだけを理由に無条件で再送しない。重要な不可逆Commandには各DomainのIdempotency等を別途適用する。
+
+### Field / Field Group / Form Validation
+
+APIの`InputViolationScope`（FIELD / FIELD_GROUP / FORM）と複数関連Input Pathのドラフトは引き続き検討対象。FIELDはInput直下、FIELD_GROUPは関連Field群近傍、FORMはForm Alert。ServerによるエラーをUIに機械的に表示せず、Form Ownerが表示位置を決める。Validationの初期非表示・Blur/Submit後の表示原則を維持する。
+
+### Preferences QueueとDirtyのライフサイクル
+
+1. RHF DraftとConfirmed Baseline、Pending / In-flight Snapshotを別に持つ。400ms Debounceで有効なField Patchを結合。未完成HEXはDraftのみ保持し送信しない。
+2. MutationのSuccessは**送信Snapshot**と対応させ、返却された確定値のうち保存したFieldだけBaselineを進める。後続編集がないFieldのDirtyを解消し、編集中のFieldは保持する。Response全体でRHFを`reset`しない。
+3. Cache更新もPatchのField Ownershipを維持する。外部Refetchの値は未編集のFieldへ反映するが、Pending / In-flight中のDraftを上書きしない。LWWが意味するServerの最新値は、必要なら既存QueryをRefetchして確認する。
+4. Validation / Retryable / Unknownでは対応するPatchを失わない。Unknown Outcomeは確実な失敗と断定せず、既存Queryで最新状態を確認する。再送の可否・回数は操作の副作用契約とともに決定する。
+5. Unmount後に保存を継続する必要がある場合はQueue ControllerのOwnerと結果をComponent寿命の外へ移す。画面離脱時の寿命は個別判断待ち。
+
+### Community AccentのPreview・保存失敗UX
+
+- `confirmedAccent`は確定したBackend値。`previewAccent`は一時的な表示Overlay。`accentDraft`は未完成HEXも含む入力値。これらを同一のApollo Cache値に混同しない。
+- 有効色を選ぶと即時Previewする。新しい選択があれば古いMutation Responseによって選択色を戻さない。未完成HEXは保存に送らない。
+- 保存失敗が明確な場合は、共有Contextの見た目を最後の確定色へ戻しながら、ColorInputの最後の選択値は保持し、Field / Form Errorと再試行／破棄を提供する**推奨案**。見た目のPreview範囲は別途合意する。
+- AccentとAliasは同じUser × CommunityのSettingsを更新するが、指定FieldのみのPatchを維持する。Aliasの成功ResponseでAccentの最新Draftや共有Cacheを巻き戻さない。
+- 通信結果未確定は「保存結果を確認できません」と表示し、無条件再送せず現在値を確認する。LWWは二重副作用防止の契約ではない。
+- Community切替後、旧ContextからのResponse / Overlayを新Contextへ適用しない。
+
+### 自動保存Statusとテスト
+
+Pending「保存待ち」、In-flight「保存中」、全て確定「保存済み」。自動保存の成功Notificationは連発させず、Field / Form Errorは修正・再試行するまで適切な位置に残す。Unknownは未保存断定を避ける。Statusはフォーム単位とし、同じエラーをNotificationと重複させない。Compact / Medium / Wide、スクリーンリーダー通知をInteraction / Visual Testで確認する。
+
+テストでは、異なるFieldへの同時Patch、同FieldへのLWW、Alias解除、保存中の新しいDraft維持、古いResponse / Refetch、Dirty解消、未完成HEX、Context切替、Unknown OutcomeとSuccess後Refetch失敗を保証する。一般SettingsのOCC Conflict Dialogや3-way Mergeのテストは要求しない。
+
+### 引き続き合意が必要な事項
+
+1. Community AccentのPreview Overlay適用範囲と、失敗時の見た目復元・Draft保持のUX。
+2. Unknown Outcome後の状態再取得・再送条件。
+3. Queueの画面離脱後の寿命と、失敗の提示方法。
+4. Statusの表示位置・保持時間・読み上げ条件。
+5. Operation別のValidation ScopeとCodeの最終SDL、および重要Domain操作に適用する競合制御の境界。
+
+## 2026-11-02 合意：自動保存の回復・画面離脱・Accent Preview（確定）
+
+この節は合意済みの**LWW・Field単位Patch・Hybrid Error・既存I/F直接改修**を前提とする。従前のRevision/CAS/3-way Merge案より優先する。**2026-11-02合意**：現在CommunityのShell全体へPreview、保存失敗時は見た目を確定色へ戻してDraft保持、通常のClient-side画面遷移後もSession内Queue継続、Unknown Outcomeでは状態確認後に手動再保存。次の状態遷移と責務はこの合意を実装に引き渡す確定契約とする。Browser終了時のWarningとStatus表示位置・時間は別途未確定。
+
+### Shared Save Controllerの境界
+
+**確定**：QueueはSettings Form Componentに閉じ込めず、認証Session内の長命なClient Controllerとして保持する。ただし全Formへ巨大な汎用State Machineを強制せず、共通の保存順序・Snapshot管理だけを抽出し、Formは表示とDraftのOwnerのままとする。
+
+- Personal Preferences Queue Key：ログインUser（当人のAccount同期Preferences）。Community Settings Queue Key：ログインUserとCommunity IDの組み合わせ。Contextを切り替えてもQueue間のSnapshot・応答・Errorを混在させない。
+- 保存する情報：`pendingPatch`（最新版のField値）、`inFlightSnapshot`（送信したField/値）、`confirmedFields`（Mutationから得た確定値）、`lastStatus`（pending/saving/confirmed/rejected/unknown/blocked）、必要なError情報。ControllerはDraftそのもののForm Ownerにはならない。
+- 同一QueueのMutationは**1 in-flight**。Pendingは400ms DebounceでCoalesceし、同Fieldの後続編集が先行Patchより優先する。Response到着と確定順の混同を避け、先行ResultのフルObjectを無条件に共有Cacheへwriteしない。
+- Community AccentとAliasは同一`updateCommunitySettings`を使用するが、AccentはAuto-save、AliasはManual Save。共通のField-aware Patch Commit / Cache Mergeを使い、**Aliasの成功応答で最新Accent Draft/Previewを巻き戻さない**。ただし保存トリガーやFeedbackは統合しない。
+- 同じUser/Communityへ戻ったとき、Controllerが未完了のSaveとFailureを保持していれば画面側がStatusを再購読し、編集Draftを安全に再構築できるようにする。戻った際の編集内容とサーバー再取得値の採用はPending/Unknownを優先保護する。
+- ログアウト・別アカウントログイン・明示的なContext破棄時はControllerを別Identityの操作へ流用しない。未完了Requestが後から返っても旧Identity/Contextにのみ紐づける。
+
+### Unknown OutcomeとRetryの状態遷移
+
+| Event | Controllerの状態 | 画面での動作 |
+| --- | --- | --- |
+| 有効な変更 | Pending（最新FieldをCoalesce） | Draft更新、控えめな「保存待ち」 |
+| Flush | In-flight（Snapshotを固定） | 「保存中」。後続編集は別Pendingへ |
+| `*Success` | Snapshot分のConfirmedのみ確定、後続Pendingを継続 | 古いResultでDraftを消さない。全て終了なら「保存済み」 |
+| `InputValidationFailure` / 明確な業務拒否 | Rejected、当該FieldのDraft維持 | Field / Form Error。再編集で更新 |
+| 確実に未実行と判定可能な一時失敗 | Retryable、Patchを保持 | 再試行可能なForm Alert。ユーザー起点Retryを基本 |
+| Timeout / Network断 / Response未確認 | Unknown、未確定Snapshot保持、Queueを停止 | 「保存結果を確認できません」。既存QueryのRefreshで現在状態確認 |
+| 認証切れ・権限不足 | Blocked、Queueを停止 | 認証・権限確認。無条件Retry禁止 |
+| Mutation成功後のRefetch失敗 | Confirmed、RefreshのみError | 保存成功を取り消さず、Refresh Errorを別扱い |
+
+**Unknownの復旧（合意済み）**：新規Saveを一旦停止し、既存Queryを`network-only`等で再取得する（CacheをServer照会結果の代用にしない）。現在値が希望値に一致すれば**現在状態の一致**としてUIを回復可能。ただし当該Requestの実行成功と断定しない。値が異なる場合は最新DraftとServer値を提示し、ユーザーが明示的に再保存する導線を提供する。**Unknownから自動再送は行わない。**新たな保存操作に進む前に、遅れて届く旧Requestの書き込みが後勝ちになる可能性があるため、旧Requestがまだ実行され得る場合は**単純Refetchだけで完全な順序保証はできない**。厳密に保証するならRequest CancelのServer保証、Operation識別・結果照会、Keyによる再実行の排除等が必要。一般Settingsへこれらを標準導入するかは費用対UXで判断し、保証できないことを保証済みとして実装しない。
+
+**Retryable/Unknownを分ける基準**：Requestが確実に送信されていない等、保存不成立が識別できる場合のみRetryable。送信後のTimeout等はUnknown。LWWという性質だけで`retryable`に分類しない。自動再送・無制限Retryは導入しないことを基本候補とする。ユーザーによる再保存でも**後続Draftより古いSnapshotを再送しない**。
+
+### 画面離脱・Browser終了時の契約案
+
+| 境界 | 推奨動作 |
+| --- | --- |
+| Settings内Tab移動 / Client-side Route変更 | 長命ControllerがPendingをFlushして処理継続。Form unmount後もControllerが結果とFailureを管理 |
+| 同User/同Communityへ戻る | ControllerのPending/Unknown/Failureを画面へ再接続。Server値より新しい未保存編集を保護 |
+| Community切替 | 旧CommunityのControllerは旧Keyで処理継続、新Communityへ影響させない。旧Overlayは解除 |
+| Logout / Account切替 | 他IdentityへQueueを引き継がない。必要なら未保存の有無を案内。秘密情報を永続保存しない |
+| Tab終了 / Reload / Browser終了 | JavaScriptの非同期送信完了を保証できない。未送信・未確定があればBeforeUnload等の警告の是非を検討。Queueを安全に永続化する要件は別途判断 |
+| 保存結果が画面外で失敗 | Controllerへ持続的にFailureを保持し、Settingsへ戻ったときForm Alertで表示。Session内の全画面通知は乱発しない |
+
+`usePreferencesSave`の現行Cleanupにある`controller.flush()`だけでは、Unmount後のResult観測、Error追跡、Controller寿命を保証しない。長命Controller化する場合はMountごとにListenerをSubscribe/Unsubscribeし、React unmounted stateを更新しない。SingletonのUser/Context ScopeとCache Fragmentの責務を明示する。
+
+### Community Accent：Preview / Draft / Confirmedの区別
+
+- **Confirmed**：Serverが確定した`accentColor`。Apollo正規化Cacheはこの値の参照元とする。
+- **Preview Overlay**：有効HEXが入力された時点で即時表示できる一時色。**適用範囲は現在選択中のCommunity Context Shell全体**（Switcherの当該ContextのAccent表示を含む）と設定画面。別Communityや永続Server Cacheには反映しない。
+- **Draft**：RHFが所有するColorInputの文字列。未完成HEXも保持。未完成値は保存しない、Previewは最後の有効色のまま。
+- **成功**：Mutation Resultの確定色をCacheへ反映。保存確定した選択と今のDraftが同じならOverlay解除。より新しいDraftがあればそのOverlay維持。
+- **確実な失敗 / Unknown（確定）**：Overlayを解除してShellの表示を最後の確定色へ戻し、ColorInputには最後のユーザー選択を保持すること。Form近傍に持続するFeedback Alertと「再試行」または「変更を破棄」。Unknownでは「未保存」と断定しない。破棄でのみDraftを確定色へ同期する。
+- **Context切替**：旧ContextのOverlay解除。旧Contextへ戻る場合は未保存Draft・FailureをControllerに保持するかどうかを別途決める。旧Contextの遅延結果を新Contextの表示へ適用しない。
+- AccentとAliasのPartial PatchはFieldごとの保存確定を区別し、片方の保存成功がもう片方のPreviewや未完了Draftを上書きしない。
+
+### StatusのPresentation案
+
+SettingsのPage Header付近にフォーム単位の小さなStatusを置く。値は「保存待ち」「保存中」「保存済み」「保存結果を確認できません」等。PendingとSavingの頻繁な切り替わりを読み上げないよう、`role="status"`を更新制限し、成功Notificationは省略する。保存済みは**全Pending/In-flightがなく、全対象Fieldの確定が確認できたときのみ**表示し、短時間で非表示とする案。エラーはForm Alert/Field Errorとして残し、Statusと重複しない。Compact/Medium/Wideで位置とFocus/AnnouncementをStoryで検証する。
+
+### 検証シナリオ
+
+1. A→B→Cの色連続変更中にAが成功し、CのDraft/Overlayが巻き戻らない。
+2. Accent in-flight中にAliasを保存しても、両方のPartial PatchとCacheの最新Fieldが残る。
+3. 画面Unmount後、保存成功/失敗がControllerに残り、再訪時に正しいStatus/再試行導線を表示する。
+4. Community ID/Account切替後、旧Requestは新Contextへ影響しない。
+5. Timeout後のRefetchが一致/不一致/失敗/遅延した各場合に、成功・未保存を誤断定しない。
+6. 最後の確定色への見た目復帰時に、ColorInputの未完成/未保存Draftを保持する。
+7. Pendingが残っているのに「保存済み」を表示しない。スクリーンリーダーへ保存中を過剰に読み上げない。
+8. Browser終了時の送信完了を保証していないことを前提に、警告/復元の選択結果と一致するBehaviorを検証する。
+
+### 2026-11-02 UXの合意と残課題
+
+- **Q1確定**：有効なAccent Previewは**現在選択中のCommunityのShell全体**と設定画面に適用。現在ContextのSwitcher表示も連動し、別CommunityやApolloの確定Server値にPreviewを混入させない。
+- **Q2確定**：保存失敗・UnknownでPreviewを解除し、Shellは最後に確認された確定色を表示。**ColorInput Draftは失わず**、確実な失敗では再試行／変更破棄、Unknownでは状態確認→手動再保存／破棄を提示。
+- **Q3確定**：通常のClient-side画面遷移とCommunity切替後も認証Session内のKey付きQueueを継続。PendingをFlushし、in-flight・Failureを保存。再訪時に購読し直してDraftとStatusを復元。Logout・Account切替後に他Userへ引き継がない。
+- **Q4確定**：Unknownでは自動再送しない。既存Queryで**Serverへ問い合わせて**現在値を確認し、ユーザーが**明示的な再保存操作**をしたときだけ最新Draftを新しい操作として送信。Server値がDraftと一致した場合は「現在の設定は希望値と一致」と表示できるが、旧Mutationの確定を証明したとは扱わない。旧Mutationが遅延確定する競合リスクはLWWの範囲で説明し、強い順序保証を偽装しない。
+- **残課題 Q5**：Browser終了・Reload時のWarning、永続Queueの要否。今回のSession Queue合意だけでBrowser終了後の保存は保証しない。
+- **残課題 Q6**：Statusの具体的な位置・保存済み表示保持時間・Accessible Announcementの更新頻度。Pending/Saving/Confirmed/Failureの意味・フォーム単位の表示・過剰通知回避は既に合意済み。
+
+### 実装できる状態遷移・操作の確定契約
+
+| State | Save Controller | Shell / Form | User Action |
+| --- | --- | --- | --- |
+| `confirmed` | Pending/In-flightなし。確定値を保持 | Previewは解除。Statusは保存済み（表示時間は後続仕様） | 通常編集 |
+| `pending` | 最新の有効PatchをCoalesce | 有効AccentはShell Preview。Formは最新Draft | 入力継続可能 |
+| `saving` | 送信Snapshot固定、続きはPendingへ | Previewは最新選択のまま。「保存中」 | 入力継続可能 |
+| `confirmed-with-more-pending` | 成功SnapshotのみBaseline更新、次を送信 | 新しいPreview/Draftを古いSuccessで戻さない | 不要 |
+| `rejected` | 自動再送停止。未保存Snapshot / 最新Draftを保護 | Shellは確定色へ。入力は保持。Field/Form Error | 修正、明示Retry、破棄 |
+| `unknown` | 新規送信停止。未確定Snapshotと後続Draftを区別 | Shellは直近の**確認済み**色へ。入力は保持。未確定Alert | Server状態確認→手動再保存／破棄 |
+| `blocked` | 認証/認可解消まで送信停止 | Shellは確定色。Draft保持。回復手順を表示 | 認証/権限を確認 |
+| `unmounted` | 認証Session Queueは停止・破棄しない | 旧画面は描画しない。旧Community Overlayは解除 | 再訪時に再購読 |
+
+- **色復元の根拠**：Confirmed AccentはMutation Successまたは確実に取得できた最新Queryを正本とする。Response未確認のMutation値やApolloへの楽観的なPreview書込をConfirmedとして扱わない。Confirmed値のRefresh更新は未保存Draftを消さない。
+- **Preview解除とDraft破棄は別操作**：Failure/Unknown時の解除はShellの見た目だけに作用する。Draftの破棄をユーザーが選んだときに初めてColorInputを現在Confirmedへ同期し、当該未保存Patchを解消する。
+- **Queue / Form ownership**：Session ControllerはPending/In-flight、再訪に必要な最新入力Snapshot、ErrorとConfirmed値を保持する。画面表示中のRHFがDraftの唯一の編集Ownerで、再Mount時はControllerから復元する。画面外でReact Stateを更新しない。
+- **結果未確定からの手動復旧**：Query照会失敗時はUnknownを保持して再取得を案内。照会成功後も自動再送を開始しない。再保存が選ばれた時点で**旧Snapshotではなく最新Draft**を使用し、同一Session Queueで順序を管理する。遅延旧MutationをServer側で排除する保証は今回設けない。
+- **コンテキスト境界**：Previewは現在のCommunityだけに描画。別Communityへ切替えても旧ContextのPending/In-flightは旧Keyで継続するが、Shell表示を横断しない。旧Communityへ戻った際の未保存Draft・エラー状態は復元し、保存失敗時のPreview自動復帰は行わない。
+- **Feedback**：自動保存成功Notificationは出さない。Rejected/Unknown/Blockedは修正操作・状態確認・Retry導線のある持続的なField/Form Alert。エラー発生時にFocusを奪わない。全Patchが確定するまで「保存済み」を表示しない。
+
+### 回帰テスト：確定Gate
+
+1. Previewが現在CommunityのShell、Switcherの当該Context表示、設定画面へ適用される一方、他Community・確定Apollo Stateへ混入しない。
+2. 保存失敗時にShellが確定色へ戻り、完全/不完全HEXのColorInput Draftと再試行対象が保持され、破棄を選ぶまで消えない。
+3. Unknownで旧Snapshotを自動再送せず、Query一致/不一致/失敗のいずれも手動再保存のみが送信を再開する。
+4. 通常画面遷移後もQueueが処理継続し、失敗時に保存して再訪で表示。旧画面へUnmount後のReact State更新がない。
+5. Community / Accountを切替えた後、旧KeyのResponse・Preview・Draftが新Contextに適用されない。
+6. AccentとAliasの同時PatchでField Ownershipを維持し、別Fieldの成功が後続Draftを壊さない。
+7. Success後Refetch失敗はConfirmedを取り消さず、Pending中に「保存済み」を表示しない。
+
+
+## 2026-11-02 詳細設計案：Browser終了警告と自動保存Status（UX最終合意待ち）
+
+**状態：実装可能な提案。数値・警告の採否は最終合意前。** 2026-11-02に確定した「現在CommunityのShell全体へのPreview、失敗時の確定色復帰＋Draft保持、Session内長命Queue、Unknownの再照会＋手動再保存」に従う。本節はSession継続とBrowser Process終了を区別し、保存完了を保証できない境界で過剰な保証をしない。
+
+### Browser離脱警告の仕様案
+
+**推奨：通常のSPA遷移では警告しない。Page Lifecycleを終了するNavigation / Reload / Tab Closeの際、Queueに未確定の保存対象がある場合のみ`beforeunload`標準確認を試みる。**
+
+| 境界 | 処理 |
+| --- | --- |
+| Next.js Client-side route変更 / Settings内画面変更 | 警告せず、認証Session QueueにPending / In-flightを残し継続する |
+| Community切替 | 警告せず、旧Community KeyのQueueを継続。旧Preview Overlayのみ解除する |
+| Browser Reload / 外部サイト遷移 / Tab Close | 未確定保存を持つQueueが存在する場合のみ`beforeunload`標準確認を試みる |
+| 完全にConfirmedでPending / In-flight / Failure / Unknownがない | 離脱警告を設置せず通常終了 |
+| Browser Process強制終了 / Mobile OSによる廃棄 / Crash | Event発火もPending Mutation完了も保証しない。Browser終了後のDurable Queueは本案の対象外 |
+| Logout / Account切替 | 別IdentityへQueueを引き継がず、別途認証Flowで未保存状態の案内と明示破棄の必要性を検討する。自動保存済みと偽らない |
+
+- **Warning対象**：1つ以上のSession Queueが`pending`、`saving`、`rejected-with-unsaved-draft`、`unknown`、`blocked-with-unsaved-draft`であるとき。複数Communityをまたいで監視する。未完成HEXはQueueが保存できないため、RHF Draftと確定値の差があり破棄で失われる場合は未保存対象として数える。単なる`saving`表示待ちや終了済み`confirmed`は対象外。
+- **ブラウザーAPI契約**：`beforeunload`の実装はBrowserのユーザー操作要件・表示制限に従い、Eventを登録しても警告が表示されることを保証しない。独自テキストや自動的な通信完了を保証しない。未保存がなくなればListenerを解除し、常時Listenerは登録しない。Pagehide/Visibilityイベントを保存確定の証拠にしない。
+- **注意**：`beforeunload`のCancel/Proceedをアプリケーションが完全には観測できない。警告の後に離脱しない場合の状態はQueueが継続管理する。Client-only保存状態のBrowser終了後復旧は保証しない。
+- **Status / Errorの前提**：保存ができないのに「保存済み」へ進めない。Browser終了時警告はFallbackであり、Primary FeedbackはForm Status / Alert。
+
+### 保存Statusの表示契約案
+
+**推奨配置：Personal Preferences・Community Preferencesの`PageHeader`説明文直下。** PageHeader自体のPropsを安易に拡張するのではなく、必要な位置へ独立`SaveStatus` Presentationを配置する。AliasのManual SaveとAccent Auto-saveは同じCommunity設定画面にあっても保存結果を混同しない。共通にできるのは状態の表示責務であり、QueueやFormのState Machineを無理に共通化しない。
+
+| 状態 | 視覚表示 | 提示条件 / 終了条件 |
+| --- | --- | --- |
+| `pristine` | 何も表示しない | 初期値を閲覧しただけ |
+| `pending` | 「保存待ち」 | Userが有効値を変更し、まだMutation送信前。400ms Debounce中。即時表示でも読み上げなし |
+| `saving` | 「保存中」 | In-flightがありConfirmedでない。短い通信の点滅を抑えるため、**開始から300ms以上続いた場合に表示する案** |
+| `saved` | 「保存済み」 | 全対象QueueのPending/In-flightがなく、最新Draftに有効な未保存変更がなく、Confirmed Successを得た場合。**約2秒表示後に消す案** |
+| `rejected` | Field Error / 持続するForm Alert | 対応する修正・再試行 / 破棄まで保持。`保存済み`より優先 |
+| `unknown` | 持続するForm Alert「保存結果を確認できません」 | Server照会と手動での再保存 / 破棄まで保持 |
+| `blocked` | 持続するForm Alert「設定を変更できません」 | 認証・権限などの問題が解消されるまで保持 |
+| `invalid-draft` | Field Error（表示時機はBlur/SubmitのUX原則） | 未完成HEXでは`保存済み`を表示しない。未操作時にErrorを表示しない |
+
+**表示優先順位**：Blocked / Unknown / Rejected / 入力Error ＞ Pending ＞ Saving ＞ Saved ＞ Pristine。異なるFieldにPendingとIn-flightが並存する場合は「保存中」または「未保存の変更あり」を示し、すべて保存済みと誤認させない。個々の短いMutationごとに「保存済み」を繰り返さず、**最後の変更群の確定**を1回の表示イベントとする。
+
+**Accessibility**：
+- 視覚Statusとスクリーンリーダー向けAnnouncementを分離する。Pending→Saving→Savedの頻繁な切替をすべて`aria-live`で読み上げない。
+- 最小限の候補：Savingが**2秒を超える場合に一度だけ**polite Statusで「保存中」、最後に保存が確定したときのみ「変更を保存しました」を一度読み上げる。初期表示やすべてのField変更で読まない。Errorは持続するAlertとして適切な`role="alert"`等を使い、重複読み上げを防ぐ。
+- FocusをInputから移動させない。Status / Errorと入力のAccessible Descriptionを関連付ける。ColorInputの未完成Draftは入力時に繰り返しErrorを宣言せず、Blur / Submit後の表示原則に従う。
+- Errorを単色の装飾やIconだけで伝えない。Compact / Medium / WideでStatusとErrorが重ならず、横幅が狭い時も折り返す。
+
+### Save Controllerとの実装I/F
+
+- Controllerが`pendingCount / inFlight / unsaved / status / lastConfirmedAt / outcome`などを**導出可能なSnapshot**として購読者へ提供する。これらは概念上の値であり、共通の巨大な型を強制しない。
+- `saved`判定は「最後の通信が成功」ではなく**最新有効DraftとConfirmed値の一致、Pending / In-flightゼロ、未解決Failureがない**ことを要件とする。未完成ColorInputなどが保存対象にならない状態は別途表示を抑止する。
+- UIの表示TimerはPresentation層に閉じ、通信QueueのDebounce Timer・保存状態を変更しない。再Mount時に古いSaved Timerだけを再開して成功Notificationのように繰り返さない。
+- Browser warning用の`hasUnsavedChanges`はSession全Queueと現存Formの未送信/不完全Draftから導出し、React PageのUnmountで未確認の変更を忘れない。異なるIdentityへ持ち越さない。
+
+### テスト / Gate
+
+1. Pending / In-flight / Unknown / Rejected / 不完全HEXではBrowser離脱警告が有効候補になり、Confirmed後には解除されること。通常SPA遷移で警告しないこと。
+2. Browserが警告を表示しない場合も、アプリが保存済みと誤表示しないこと。Tab/Browser終了後の保存完了はIntegration Testでも保証を主張しない。
+3. PendingとIn-flightが混在するときにSavedを表示せず、最終確定後だけ短時間Savedとなること。
+4. 300ms未満のSavingでちらつかないこと、連続編集でSaved表示Timerが適切にCancel/Restartされること。
+5. アクセシビリティ：SavingのAnnouncementが過剰にならず、保存成功は最終確定時に1回、Errorは持続しFocusを奪わないこと。
+6. AccentのShell Preview、別Community・Account切替、Unmount後再訪、Timeout後の手動再保存について合意済みテストも通すこと。
+
+### 今回の詳細設計で追加合意が必要なこと
+
+- **U1**：Browser Reload / Tab Close時、未確定の保存対象に対して標準離脱警告を試みるか（推奨：試みる）。Browser終了後のDurable Queueは追加しない。
+- **U2**：StatusをPage Header説明文直下へ配置し、Saving表示開始300ms、Saved表示約2秒、Saving読み上げ開始2秒という閾値を採用するか。UX実装時にStory / Interactionで調整可能な値として所有する。
+- **U3**：Unknown後に現在値が一致した場合、ユーザーの明示的な「確認完了」操作だけで未確定Statusを閉じられるようにするか。合意済みの「手動再保存のみ」は変更しない。
+
+## 2026-11-02 合意・改訂：離脱警告のリスク基準、Header右側Status、Unknown確認完了
+
+### 今回の合意と検討状態
+
+- **合意 U1**：Browser離脱警告は、未保存状態があるという理由だけで一律に表示しない。**操作の重要度と喪失時の影響度**からFeature / Operation単位に要否を決定する。一般Settingsへ標準警告を要求しない。安全に保存完了できないBrowser終了の技術的限界は従来どおり。
+- **合意 U2（配置の希望）**：通常の保存Statusは**Page Headerタイトルの右側**へ置き、表示有無でHeaderと後続コンテンツが伸縮・ジャンプしないことを不変条件とする。短いStatusと詳細Errorを同じ領域へ詰め込まない。ResponsiveなLayoutとError時の具体UIは提案段階。
+- **合意 U3**：Unknown OutcomeのServer再照会結果が現在Draftと一致した場合、ユーザーが明示的な「確認完了」を押して未確定表示を閉じられる。**当該Mutationの成功を確認したとは表示しない**。不一致・照会失敗では確認完了に進めず、引き続きDraft保持・状態照会・手動再保存を案内する。Unknownからの自動再送は引き続き禁止。
+
+上の合意は、前節の「未保存ならすべてbeforeunloadで警告」「Statusは説明文直下」という**旧提案を置き換える**。前節に記載した300ms / 2秒等の具体的時間は検証用の候補であり、正式決定ではない。
+
+### 離脱警告のリスク判定規則
+
+一般Settingsの個人表示設定・Accent色・日付形式・サムネイル等は、喪失しても再設定でき、取り返しのつかない影響を通常生まない。**標準ではBrowser離脱警告を要求しない**。ただし保存失敗・Unknown状態をユーザーが認識できる常設Feedbackは別責務として維持する。
+
+重要なドメイン操作で離脱警告を検討する場合は、`操作の不可逆性 / 再入力の負担 / 金銭・権限・データへの影響 / 回復可能性 / 実際の保存寿命`を材料に判断し、操作の契約に判断理由を残す。`beforeunload`が確実に発火することを前提とした保護は認めない。実際の重要操作ではDraftの永続化、原子的Commit、Idempotency、明示Confirm等を優先して設計する。
+
+| Category | 例 | 方針 |
+| --- | --- | --- |
+| 軽微で再現可能な表示設定 | Theme / Personal Preferences / Community Accent | 警告を標準化しない |
+| 再入力コストの高い編集 | 長文入力・複雑な構成変更等 | Operationに応じて警告／Draft保存を検討 |
+| 不可逆・高影響 | 削除、権限・Membership等 | Domainの明示Confirm・冪等性・安全なTransactionを主とし、警告は補助的に検討 |
+
+この表は新たなDomain操作の仕様変更を自動的に承認するものではない。
+
+### SaveStatusの配置：タイトル右側にレイアウト予約
+
+**推奨デザイン**：Page Headerを「タイトル行（左：Title、右：SaveStatus Slot）＋説明文行」にする。SaveStatusの表示幅と高さを常時確保し、`idle`で非表示でもSlot自体はLayoutから外さない。保存中・保存済み・保存待ちはSlot内の短文・Iconで表現し、タイトルと説明文を再配置しない。Titleの長さ・多言語化に備え、HeaderのGrid/Flexは必要な最小幅を確保する。
+
+- Wide / Medium：Titleの右に右寄せSlot。Header全体の高さをStatus有無で変えない。横幅はStatusに必要な幅を固定/最低保証し、Textは折り返し・切詰めに明確な規則を置く。
+- Compact：タイトルとStatusを同一行に収められる場合は右寄せ。収まらない場合は**最初から二段の固定レイアウト**を使用し、Status有無で行数を変えない。無理な重なりや任意タイミングの改行でCLSを生じさせない。
+- `PageHeader`は現在`title`と`description`だけを受け取る。既存consumerのLayoutを維持し、拡張する場合は任意の`trailing`等のSlotを追加するか、対象画面側でComposable Headerを組み立てる。Statusのないconsumerを新しいレイアウトに強制しない。
+- `SaveStatus`はController SnapshotからのRead-only Presentation。Timerや`aria-live`はPresentation Ownerに閉じ、通信Queueの保存状態を変化させない。
+
+### 詳細Error UIの比較（提案：未合意）
+
+**案A（推奨）：タイトル右は短いStatus、エラー詳細はフォーム上部の持続Alert**。
+
+- Header右Slot：成功/進行中は短いStatus、Error時は`要確認`または`保存エラー`の短いStatusのみ。レイアウト予約幅は一定。
+- Header説明文の下、設定項目の前に`FeedbackAlert`を表示し、`理由（1文） / ユーザーへの影響 / 次にできる操作`を提示する。Field固有ValidationはそのField直下へ置き、Form Alertと同じ内容を二重提示しない。
+- 長いError Detailにより**下の設定項目が押し下がることは許容**する（状態変化として内容の追加があるため）。問題となるStatusの表示有無によるHeaderの高さ変動は起こさない。Alertの高さまで常時予約するのは通常のFormを不必要に広くするため推奨しない。
+- `retryable`：変更内容は保持していると明記し、`再試行`。 `unknown`：`現在の状態を確認` → 一致時`確認完了`、必要時`もう一度保存`。 `blocked`：認証・権限の回復行動。`InputValidationFailure`：該当Fieldの修正。
+- AlertはDismissだけで未保存情報を失ったように見せない。成功Notificationを繰り返さず、AlertとStatusの同一文言による読み上げ重複も避ける。
+
+**案B：タイトル右のStatusを押すとPopoverで詳細を表示**。Header以下のレイアウト変動は小さいが、Errorの見逃し・キーボード導線・Screen Readerの発見性に課題がある。未保存Draftの解決に重要なErrorはPopoverだけに閉じ込めず、必要に応じて持続Alertを併用する必要がある。
+
+**案C：Header下に常時高さを確保したError専用領域**。Error出現時のForm押し下げも抑制できるが、通常時に空白が大きく、Compact画面の情報密度を悪化させる。標準方式として推奨しない。
+
+### Unknown「確認完了」の意味と状態遷移（確定）
+
+1. `unknown`へ遷移したら同一Queueの自動送信を停止し、最新Draftと未確定Snapshotを保持する。
+2. `現在の状態を確認`から**既存QueryでServerへ照会**する。Query失敗はUnknownを維持。取得した現在値と最新のユーザー希望値を、該当対象Fieldの正規化済み値で照合する。
+3. **一致**：画面には「現在の設定は選択した値と一致しています」と説明し、`確認完了`ボタンを出せる。クリック時にUnknown Alertを閉じ、現在値を確認済みBaselineとして採用する。これは最新の**現在状態の承認**であり、元のMutationの成功認定ではない。
+4. **不一致**：Unknown Alertを維持し、現在値を表示する。ユーザーが`もう一度保存`を押す場合に限り、古いSnapshotではなく最新Draftを送信する。必要なら`変更を破棄`で現在のServer値へ戻す。
+5. 確認完了後も古いMutationが遅れてCommitし得る。一般Settingsは合意済みLWWで扱うため、強い順序保証は主張しない。確認完了は成功Notificationや「当該Requestが完了済み」の表示には変換しない。
+6. QueueのPendingに新しいField変更が混在する場合は、対象Field単位で照合し、すべての未確定対象が一致することを確認するまで全体の`confirmed`表示へ進めない。
+
+### Regression / Accessibility Gate
+
+- Status Slotの存在・非表示・短文変更でタイトル／説明文／コンテンツ位置が意図せず動かないこと。Wide / Medium / Compactで検証する。
+- Error表示は常にHeader右Slotの範囲に収まり、詳細内容が短縮されずにForm側で読めること。ErrorとField Validationを重複表示しない。
+- Error Alertの表示/復旧でFocusを奪わず、キーボードで各アクションへ移動でき、Screen Readerが長文を何度も読み上げないこと。
+- Confirm済み／未保存あり／Unknown／Browser終了時の警告判定をリスク分類に照らして検証し、一般Settingsへ一律`beforeunload`を適用しない。
+- Unknown Query一致→`確認完了`ではMutation Retryを送信しないこと。Query不一致→手動保存は最新Draftだけ送信すること。Query失敗ではUnknownを維持すること。
+
+### 残る合意が必要な判断
+
+- **E1**：Error UIを**A：Header右に短いStatus + Form上部の持続Alert**とするか。Error発生時の設定項目の押し下げを許容するか。
+- **E2**：CompactでタイトルとStatusが共存できない場合、固定二段Layoutを採用するか。
+- **E3**：300ms後にSaving表示、Saved約2秒、Saving読み上げ2秒後という既存の時間案を採用するか。原則として視認性と過剰な変更通知抑制のバランスをStoryで検証する。
+
+## 2026-11-02 共通Save Feedback ComponentとResponsive Contract：実装詳細案
+
+**位置付け**：自動保存と明示保存の共通UI責務を実装可能なComponent境界として整理した**設計提案**。前節の合意済み原則（操作別の離脱リスク判断、タイトル右側の安定したStatus、Unknownの確認完了）を変更しない。Form上部Alertの採用、Compactの固定二段、時間の閾値は最終合意待ち。
+
+### 既存実装とのVisual / Behavior Contract
+
+2026-11-02時点の`memoria-web/refactor/settings-rhf-profile`を確認した。現在の`PageHeader`は`title: string`・`description: string`のみを受け取り、Mantine `Box`の中に`Title(order=1,size=h2)`と`Text(size=sm, mt=4)`を配置する。`FeedbackAlert`はMantine `Alert`を包む共通Componentであり、既存`showNotification`は成功・失敗の通知を行う。ProfileとCommunity AliasはボタンLoading＋成功Notification、PreferencesとCommunity Accentは自動保存とError Alertを使う。
+
+**後方互換のために新しいQuery / Mutationは追加しない。** UIは既存Componentを置換せず、責務を保ったまま必要なPresentation Slotを追加する。既存`PageHeader`のSlot未使用Consumerでタイトル階層・Typography・Spacing・DescriptionのMargin・Responsive Behaviorを変更しない。
+
+### Proposed component interfaces（例、実装前に確定）
+
+```tsx
+type SaveVisualState =
+  | "idle"
+  | "pending"
+  | "saving"
+  | "saved"
+  | "attention"
+
+type SaveStatusProps = {
+  state: SaveVisualState
+  // UX文言と状態の帰属はPresenter/Featureが組み立てる
+  label: string | null
+  accessibleLabel?: string
+}
+
+type PageHeaderProps = {
+  title: string
+  description: string
+  trailing?: React.ReactNode
+}
+```
+
+- `SaveStatus`は**Presentation専用**。GraphQL Error、Mutation Hook、Queue/Retry、RHF、Apolloに依存しない。`attention`は「要確認」等の短い見出しのみで、Error Detailを保持しない。
+- 状態や保存結果は各FeatureのPresenter/Adapterで共通の`SaveFeedbackModel`に正規化する。上記型は**UI用の短いProjection**であり、Domain Failure・Transport Unknown・Retryable/Blocked等の意味を失わない。Error詳細は別Modelで`FeedbackAlert`へ渡す。
+- `PageHeader.trailing`は任意のSlotであり、未指定時のMarkup / Spacing / Visualを従来と等価に維持する。Slotに値がある場合だけ、左タイトル領域と右Slotを並べるLayoutを使う。`PageHeader`は`SaveStatus`を直接Importしない。
+- SaveStatus自体に`Notification`、`FeedbackAlert`、`Popover`、`Dialog`等を内部合成しない。必要な表現はFeatureのCompositionで選ぶ。
+- 明示保存ではButton Loadingと成功Notificationを基本として継続し、Header Statusの表示はFeatureの必要性に応じて選ぶ。自動保存は原則Header Status、成功Notificationなし。
+
+### レイアウトとCL​​S契約
+
+**Wide / Medium**：
+- タイトル行は「柔軟なタイトル領域 + 右端に幅予約したtrailing Slot」の2領域。Statusの`idle`/非表示を`display:none`でSlotごと取り除かず、予約された高さ・幅の中でContentだけをHiddenにする。
+- Saving/Saved/Attentionへ変化してもタイトル位置・説明位置・後続内容が移動しない。Messageは短く、Status自体を横幅の自動拡張要因としない。
+- Titleが長い場合にStatusと重ならないよう左領域`min-width:0`等を適用し、折り返し・省略は既存タイトルの意味を損なわない範囲で定義する。
+
+**Compact**：
+- 横幅に余裕がある場合のSingle Rowを基本としつつ、狭いViewportではBreakpoint単位で**常に二段**（Title行と右寄せStatus行）へ切り替える候補。Statusが`idle`でも空Slotを予約し、表示切替で行数を変えない。
+- 二段化が余白を過剰に増やす場合は、タイトル行内のStatusをIcon中心の短い固定幅にする代替案をStoryで比較する。Viewportサイズで切り替え、保存状態自体をBreakpointにしない。
+
+**Alert**：Header右は短いStatusのみ。詳細なMessage・複数のField/Operationの解決導線は**Form上部の持続`FeedbackAlert`**へ（A案）。Alertは必要時だけ現れ、下のFieldを押し下げる。Error枠の高さを常時予約しない。Field Errorは該当Inputに置き、Form Alertと二重表示しない。
+
+### Error UI比較と採用推奨
+
+| 候補 | 長所 | 短所 / 評価 |
+| --- | --- | --- |
+| **A：Header短いStatus + Form上部Alert（推奨）** | Headerの位置安定、理由・回復操作が常時可視、Mobile / Screen Readerで発見しやすい | Error出現時はForm内容が下に移動する（許容する案） |
+| B：Header右からPopover | 通常のForm位置は変動しない | Errorの見逃し、Focus管理、再試行操作の発見性が悪化 |
+| C：常時空のError専用枠 | Error出現時にもForm位置が安定 | 正常時の不要な余白、Compactで情報密度低下 |
+
+**推奨：A**。情報量が多い状態を狭いHeader Slotへ押し込まず、`SaveStatus`を短い状態、`FeedbackAlert`を理由・影響・次のアクションへ分ける。
+
+### 共通Feedback Modelと各Operation
+
+| Outcome | Presenterの判断 | 明示保存 | 自動保存 |
+| --- | --- | --- | --- |
+| `saving` | 同一操作の進行中 | ボタンLoading、必要なときStatus | Header短いStatus |
+| `confirmed` | 確定Success / 確定Baseline | 成功Notification原則1回、Draft確定 | Saved短時間表示。成功Toastなし |
+| `field-validation` | Field PathとScopeを使い修正対象へ | Field Error | Field Error |
+| `form/domain-failure` | 理由・影響・回復手段 | Form Alert | Form Alert＋Header「要確認」 |
+| `retryable` | 再送可能性を操作固有契約で確認 | Retry導線 | 再試行導線。自動連続Retryしない |
+| `unknown` | 結果未確定。Server状態を照会 | Form Alert / 確認手順 | Alert＋Header「要確認」。確認後の手動再保存 |
+| `blocked` | 認証/権限等で操作不可 | Form Alert | Form Alert＋Header「要確認」 |
+
+`FeedbackAlert`は`kind="error"`だけでなく意味に応じたAppearanceを利用できるが、Domain/Transportの生Error本文をそのまま表示しない。ControllerがStatusの`saving`を通知してもFeatureがButton Loadingを選んだならHeader Statusを必須とはしない。
+
+### Motion・時間・Screen Reader（設計案）
+
+- Pendingは有効入力で即時に見せるが、Debounce中に多頻度Announcementをしない。Savingは**継続300ms後**の可視表示候補、Savedは**最終確定後2秒**表示候補。新しいPending/Failureが発生したらSavedの表示TimerをCancelする。
+- Savingが**2秒超**継続した場合だけ`aria-live=polite`で一度「保存中」と通知する案。Confirmedは最後の保存群に対して一度だけ通知。短時間のPending↔Saving切替を全て読み上げない。
+- Header AttentionはErrorの存在を示すが、詳細Alertと同じMessageを繰り返して読まない。Errorは持続的・発見可能、Focusを現在入力から強制移動しない。
+- DurationはUI表示の調整値であり、APIの保存確定判定・Queue Debounceとは別。HeaderのStatus Idleで領域を取り除かない。
+
+### Storybook / Test Matrix
+
+- `PageHeader.Default`（Slotなし）を変更前BaselineとしてVisual比較。SlotありSaving/Saved/Attention/Idleの4状態、Wide・Medium・Compactを追加。
+- StatusのContent表示/非表示・Timer切替で**Title・Description・FormのLayout Shiftがない**ことを測定・比較する。Compact二段候補は狭い幅での可読性と余白を比較する。
+- `FeedbackAlert`に手動保存のValidation/Domain/Unknown、Prefs自動保存のError/Retry、Community AccentのUnknownを乗せ、ButtonとField Errorを重複表示しない。
+- 実際のProfile手動保存は保存ボタンLoading・Success Notificationが変わらないこと。Alias / Community Nameも元の表示項目・操作を保持する。
+- KeyboardでRetry、確認完了、変更破棄へ到達できること。`role=alert`とStatus Politeの同一内容の二重読み上げがないこと。
+- `SaveStatus`を強制的に全てのQuery Page/Detail Dialogへ追加しない。利用ConsumerのVisual / Behavior契約を維持する。
+
+### 次に確認する決定
+
+1. **UI-A**：Header右は短いStatus、Error詳細はForm上部の持続Alertとし、Error表示時のForm押し下げは許容する。
+2. **UI-Compact**：狭い画面では、固定二段レイアウトと固定幅Icon/短文のどちらを採るかをStoryで比較し確定する。
+3. **UI-Timing**：Savingの300ms表示遅延、Savedの2秒表示、長時間Savingの2秒後読み上げを採用するか（Storyで調整できるPresentation設定）。
+4. **適用範囲**：自動／明示保存に共通Feedbackを使うが、Header Status表示は利用Consumerが選び、既存手動保存のボタンLoading・成功Notificationを維持する（原則は既に合意）。
+
+## 2026-11-02 共通Save Feedback Presentationの実装着手
+
+- **実装Branch**：`memoria-web/feat/save-feedback-presentation`（`refactor/settings-rhf-profile`を起点に作成）。既存リファクタリングへの影響を抑えるため、最初の実装単位は`PageHeader`の任意Slotと`SaveStatus`の純粋なPresentation Component、状態Storyに限定する。
+- **Component実装**：`src/components/PageHeader/PageHeader.tsx`へ任意`trailing`を追加し、未指定時は既存のDOM / Typography / Spacingをそのまま返す。`PageHeader.module.css`でStatus用の固定幅Slotを予約する。狭いViewport（暫定30rem以下）ではタイトル行とSlotを常時二段にする。Breakpoint値はVRTで確認する。
+- **SaveStatus実装**：`src/components/SaveStatus/SaveStatus.tsx`は`idle/pending/saving/saved/attention`の短い表現のみを持ち、`idle`では`visibility:hidden`によりSlotを消さない。GraphQL、RHF、Apollo、Retryに依存しない。`announce`は明示的に指定するまでLive Regionを有効にしない。
+- **Story**：`src/components/SaveStatus/SaveStatus.stories.tsx`に各Status、Idle、短いStatusと詳細`FeedbackAlert`の組み合わせを追加。`PageHeader.Default`の既存Storyと比較する。
+- **UI-A方針**：Header右は短い状態、理由と復旧操作が必要なErrorはForm上部の持続Alertとする。この分離により通常のHeaderの伸縮を抑える。Error出現で設定項目が下へ移動することは許容する。Field ErrorはField近傍。実フォームへの組み込みは保存状態ControllerのResult契約と併せて行い、既存の明示保存Notificationを無断で除去しない。
+- **未検証**：GitHub上へCodeをCommitした段階では、Typecheck、Biome、Storybook Interaction、VRT、Next.js Buildの成功を保証しない。各Gateを確認し、必要なら修正するまで完了扱いにしない。
+- **残設計**：Saving/Savedの表示TimerとLive Announcement、実FormへのSaveStatus接続、Session Queue、GraphQL Hybrid Result改修は今回のPresentation PR相当の変更に含めず、別段階で実装する。
+
+## 実装単位とテストGate
+
+1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
+2. 次にそのPhaseのフォーム入力StateだけRHFへ移し、保存ControllerとGenerated Hookには不要な変更を加えない。
+3. Phaseごとのコミットは単一目的に限定する。`[skip ci]`はPR作成済みのブランチへの追加コミットでのみ利用する。PR未作成のブランチでは付けない。この一時的な指示は恒久的な設計規約ではない。
+4. Typecheck、Unit、Storybook Interaction、Visual Regression、Next.js BuildをPR上で確認する。少なくともCompact / Medium / Wideで既存Storyと画面レイアウトを比較する。
+5. 未解決の仕様変更は実装側で決めず、合意を得てから変更する。PR作成・マージは別途明示的承認が必要。
+
+## 確定事項・実装上の注意
+
+1. **サーバー再取得中の未保存Draft**：フォーム未編集時は新しい値へ追従し、編集中はDraftを保護する。Community Nameの旧来の無条件上書きは合意により廃止する。
+2. **Context切り替え時**：Context ID単位でフォームのライフサイクルを分離する。Context ID変更時は該当Contextの入力を初期化し、異なるContextへDraft・保存対象を混入させない。
+3. **Personal Preferences**：RHFをフォーム値の所有者とする。保存Patchは入力イベントから生成し、Dirty Fieldsを保存トリガーにしない。
+4. **既存実装の不整合・潜在不具合の扱い**：Community Name保存reject時の表示など、移行以外の振る舞いは黙って変更しない。必要な改善は別途合意する。
+
+## 実装後の完了条件
+
+- 5フォームの編集中Stateがそれぞれ独立したRHFに管理され、同一意味のDraftをReact local stateへ二重保持していない。
+- 既存Queue / Mutation / Cache / Retry / RollbackのBehaviorが維持される。
+- UI、文言、操作、Accessibility、Responsive、Storybookの既存契約が維持される。
+- Preview / Production両Contextの画面状態が意図せず変わらない。
+- 対象の変更はSettings Featureに限定され、必要なGitHub Actionsの結果が成功する。

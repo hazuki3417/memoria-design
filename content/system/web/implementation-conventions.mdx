@@ -642,6 +642,55 @@ Feedback presentationはError typeだけで決めず、Userがその情報をど
 
 Form StateはReact Hook Formへ一元化し、Client側Validationは利用者支援として扱います。最終的なValidationと認可はAPIが保証し、Server Validation ErrorをFeature contextで解釈して対応Field等へ反映します。
 
+### Form Validation / NormalizationとGraphQL Mapping（2026-11-02合意）
+
+Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValidationと、Applicationへ渡す値の正規化・変換を担当します。GraphQLのOperation、Generated Type、Input shape、API固有EnumをZod Schemaへ持ち込みません。Zodが出力する値をAPIへそのまま渡せるかは別の判断とします。
+
+- Form Inputの型は必要に応じて `z.input<typeof schema>`、検証済みOutputは `z.output<typeof schema>` / `z.infer<typeof schema>` を利用します。Transform等で型が変わるときはInputとOutputを明示的に区別します。
+- GraphQL Mutation Inputの構築、Field名やNested Objectの対応、GraphQL Enumへの変換、Partial Patchの形はGraphQL Boundary（Composition / Action / Mapper）が担当し、Codegenで生成された型を境界で使用します。Zod OutputとGraphQL Inputが等しい場合、不要なMapperを挟みません。
+- 単純な構造変換は既存のComposition / Action内で直接記述できます。変換に独立した意味・変更理由・再利用性・複雑な条件分岐・テスト価値が現れたときのみ、React非依存のPure Mapperを抽出します。Mapper専用LayerやDirectoryを機械的に増やしません。
+- Mapperを抽出した場合、その実装に対応する `*.test.ts` を近接配置し、値の対応、Enum変換、Optional / Nullable / Partial Patchでの省略・保持など、当該Mapperの契約を検証します。
+- ZodによるClient Validationは利用者支援であり、最終的なValidationと認可はBackendが保証します。
+
+- **Mapperの型I/F契約**：特定フォーム専用のMapperでは、入力を `z.output<typeof formSchema>`（同義の `z.infer` 可）、出力を対象OperationのCodegen生成Input型で明示します。Zodの入力途中の値（`z.input`）ではなく検証済みOutputを受け取ることを基本とします。Mappingの正確性は型整合性に加え、近接配置したUnit Testで保証します。
+- **複数ユースケースで共有するMapper**：入力を特定フォームSchemaに結びつけず、実際に共有されるApplication ModelまたはPatch型としてよいものとします。共有要件が生じる前に独立型や追加Layerを作りません。フォーム専用Draft（未完成入力など）を共有Mapperの入力契約へ含めません。
+
+### Form Draftの同期と保存UX（2026-11-02合意）
+
+- フォームは画面に表示された初期値を起点に編集する。**初期表示では取得済みの値を使用し、編集内容を本人の操作なしに変えない**。RHFがDraftを管理し、Zodが検証・正規化、GraphQL Boundaryが取得・保存を担当する。Apollo Cacheの内部状態との差分検出や競合表示をFormの共通機能として導入しない。
+- 画面表示中に新しい取得値が届いた場合、**未編集のDraftは新しい値へ追従し、編集中・保存中・保存失敗時の未保存Draftは上書きしない**。Draftの保護は正規化後の値差や保存中の変更も考慮し、RHFの`isDirty`だけへ機械的に委ねない。
+- 明示保存では検証済みの値を送信し、保存成功時に確認済みの値を保存基準へ反映する。保存要求後にさらに入力されたDraftは古い保存応答で上書きしない。失敗時には編集値を保持して再試行可能にする。
+- 自動保存は入力イベントによる送信、Debounce・直列化・Rollbackなど既存のFeature契約を維持する。共通化するのは「未確定の入力を意図せず失わせない」というUX原則であり、保存方式や失敗時のUIまで画一化しない。
+- Contextが切り替わったら新しいContextの初期値へ切り替え、旧ContextのDraft・保存対象を混在させない。厳密な多端末競合制御が必要になった場合は、Formの共通FrameworkではなくBackendとの更新契約を含めて個別に設計する。
+- 新しい汎用Form State Machine、Cache同期Layer、共通Controllerは作らない。同期・保存のContractは各Featureに近い場所で実装し、未編集・編集中・保存成功・失敗などを対応するInteraction Testで検証する。
+
+### Form Feedback / Validation UX（2026-11-02合意）
+
+FormのFeedbackはHTTP StatusやApollo Cacheの状態から機械的に表示を決めず、**結果の意味、利用者が次に取るべき行動、情報を保持する必要がある時間**に基づき判断する。Result Classification → UX Policy → Presentationの責務を分ける。
+
+- **明示的な単発保存の成功**：原則、成功Notificationを一度表示する。削除・除外等の重要な完了も結果を知らせる。自動保存、検索・絞り込み、プレビュー、結果が直接明白な軽量操作ではNotificationを乱発しない。自動保存は必要な保存中・保存済み状態をフォーム単位の簡潔なInline Statusとして表す。
+- **Field Validation / Server Field Validation**：特定のFieldを修正することで解決する問題は、そのFieldに紐づくErrorとして表示する。Cross-fieldは原因と修正先に応じて関係Field群の近傍またはForm Errorとし、同じ説明を重複させない。
+- **Form全体のValidation / 業務制約 / 保存失敗**：フォーム内で修正や再試行が必要なら、フォームに残るForm Alertとして表示する。通常は入力を失わせず、原因と可能な次の行動を明記する。Toast / Notificationだけに依存しない。
+- **操作不可・認可・認証の失敗**：一時的な通信失敗とは区別し、無意味な再試行を促さない。権限再確認・画面再読み込み・認証遷移など、利用可能な操作を案内する。
+- **結果不明**：通信失敗等で保存の成否が確定しない場合、「未保存」と断定しない。重複実行の影響を考慮し、必要に応じて再取得・状態確認を優先する。
+- **背景の再取得失敗**：表示済みデータを利用し続けられる場合は非ブロックのNotificationまたはStatusとし、初期取得が不可能ならPage Errorにする。
+- **表示の重複を避ける**：同一失敗についてField Error・Form Alert・Notificationで同文を重ねず、必要な持続性と場所を満たす主要な表示先を決める。支援技術への通知、Focus、Errorとの関連付けも含めて設計する。
+- **Validation表示タイミング**：初期表示で未操作のFieldへエラーを示さない。基本はBlur後、Submit時に表示し、表示済みのエラーは入力変更に追従して再検証する。内部の妥当性判定・保存可否と利用者へのエラーメッセージ提示は分離する。
+- **保存状態**：手動保存は保存中・成功・再試行可能な失敗・操作継続不可・結果不明を区別する。自動保存は編集のたびに成功通知せず、未確定の入力・順序・保存結果を保護する。Promise rejectを未処理で放置しない。
+- **自動保存失敗時のRollback**：自動保存という理由だけで一律にRollbackしない。UIへの即時反映と確定値との関係、ユーザーの再試行負担に基づき、入力を保持するか表示値を復元するかをFeatureごとに選択する。選択が確定していないFeatureは既存契約を黙って変更しない。
+- **実装の境界**：GraphQL / Applicationの意味的ErrorをFeatureへ渡し、FeatureのForm Ownerが表示方法を選ぶ。HTTP codeや例外文言をUIで直接解釈しない。すべてのFormへ汎用Result型・共通State Machine・新しいFactoryを先行導入しない。
+
+### FormのDefault Values（2026-11-02合意）
+
+- RHFの `defaultValues` はForm所有者が入力時点のContext / Server Snapshot / UI要件から決定し、原則その場で直接指定します。Zod SchemaはValidationと正規化の責務に留め、RHFの初期値を生成するためだけに `.default()` / `.prefault()` を追加しません。欠落データに対するParse契約として必要なZodのDefault機能は禁止しません。
+- 初期値を複雑な条件で構成する、複数Formで同じ初期化ルールを実際に共有する等の理由が生じた場合にのみ、React非依存のFactory / Pure Functionへ抽出します。小規模なForm向けの汎用Default Values Utilityは先回りして導入しません。
+- Form Inputに `z.input<typeof schema>` を利用して初期値の型を整合させます。RHFの `defaultValues` はPartialを許容するため、全Field指定の静的保証が重要な場合にのみ `satisfies z.input<typeof schema>` 等を検討します。
+- 初期値の定義とServer再取得時のDraft同期（`reset` 等）は別の責務です。Context変更や保存中のDraft保護を含め、既存Featureの同期契約に従います。
+
+
+
+
+
 認証はNext.jsがHttpOnly Session Cookieを保持し、必要なAccess TokenをAPI呼び出しへ渡すBFF寄りの構成を基本とします。TokenをBrowserの公開State、URL、Logへ露出しません。具体的な認証設定は[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)とUser設計に従います。
 
 ## Testing Architecture
@@ -658,6 +707,8 @@ TestはCoverage数値のためではなく、責務に適した方法でBehavior
 | 重要なUser Flow | Playwright E2E |
 
 Pure LogicのUnit TestではReact、Mantine、Apollo、DOMを必要としない状態を基本とします。Testは対象Codeへ近接配置します。
+
+テストファイルはStoryと同様に、**原則として検証対象の実装ファイルと同じ場所に、同じbasenameの `*.test.ts` / `*.test.tsx` を対応させます**（例：`communityNameSchema.ts` と `communityNameSchema.test.ts`）。単に同じ画面・Domain・Directoryに属することや、個別のTestが短いことを理由に複数の独立した対象のTestを1ファイルへ集約しません。複数実装を横断するTestを置く場合は、各実装のUnit Testを寄せ集めず、**その結合・Interaction・Contract自体が独立した検証対象**であることを明示し、読み手が所有責務と変更影響を識別できる名称・配置にします。この例外はファイル数削減や共通化のために増やしません。
 
 StorybookはProduct Specificationではなく、実装を独立して観察・検証するための実行可能なExampleです。Visual Regression Test、Accessibility、Human Visual Review、E2Eの役割は[Frontend UI設計・開発方針](/system/frontend-ui-development)と[テスト設計](/test-design)に従います。
 
