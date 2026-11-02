@@ -655,6 +655,15 @@ Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValid
 - **Mapperの型I/F契約**：特定フォーム専用のMapperでは、入力を `z.output<typeof formSchema>`（同義の `z.infer` 可）、出力を対象OperationのCodegen生成Input型で明示します。Zodの入力途中の値（`z.input`）ではなく検証済みOutputを受け取ることを基本とします。Mappingの正確性は型整合性に加え、近接配置したUnit Testで保証します。
 - **複数ユースケースで共有するMapper**：入力を特定フォームSchemaに結びつけず、実際に共有されるApplication ModelまたはPatch型としてよいものとします。共有要件が生じる前に独立型や追加Layerを作りません。フォーム専用Draft（未完成入力など）を共有Mapperの入力契約へ含めません。
 
+### Form Draftの同期と保存UX（2026-11-02合意）
+
+- フォームは画面に表示された初期値を起点に編集する。**初期表示では取得済みの値を使用し、編集内容を本人の操作なしに変えない**。RHFがDraftを管理し、Zodが検証・正規化、GraphQL Boundaryが取得・保存を担当する。Apollo Cacheの内部状態との差分検出や競合表示をFormの共通機能として導入しない。
+- 画面表示中に新しい取得値が届いた場合、**未編集のDraftは新しい値へ追従し、編集中・保存中・保存失敗時の未保存Draftは上書きしない**。Draftの保護は正規化後の値差や保存中の変更も考慮し、RHFの`isDirty`だけへ機械的に委ねない。
+- 明示保存では検証済みの値を送信し、保存成功時に確認済みの値を保存基準へ反映する。保存要求後にさらに入力されたDraftは古い保存応答で上書きしない。失敗時には編集値を保持して再試行可能にする。
+- 自動保存は入力イベントによる送信、Debounce・直列化・Rollbackなど既存のFeature契約を維持する。共通化するのは「未確定の入力を意図せず失わせない」というUX原則であり、保存方式や失敗時のUIまで画一化しない。
+- Contextが切り替わったら新しいContextの初期値へ切り替え、旧ContextのDraft・保存対象を混在させない。厳密な多端末競合制御が必要になった場合は、Formの共通FrameworkではなくBackendとの更新契約を含めて個別に設計する。
+- 新しい汎用Form State Machine、Cache同期Layer、共通Controllerは作らない。同期・保存のContractは各Featureに近い場所で実装し、未編集・編集中・保存成功・失敗などを対応するInteraction Testで検証する。
+
 ### FormのDefault Values（2026-11-02合意）
 
 - RHFの `defaultValues` はForm所有者が入力時点のContext / Server Snapshot / UI要件から決定し、原則その場で直接指定します。Zod SchemaはValidationと正規化の責務に留め、RHFの初期値を生成するためだけに `.default()` / `.prefault()` を追加しません。欠落データに対するParse契約として必要なZodのDefault機能は禁止しません。
