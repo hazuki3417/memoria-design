@@ -166,6 +166,56 @@ Web共通のForm Draft同期UXを既存のSettings Formへ具体化する。単�
 - **Community Accent**：取得値の変更時、未編集なら同期し、未完成HEX等の編集中Draftは保持する。一方、既存の「保存失敗時に最後の保存色へ戻す」というUX契約は優先し、保存Controllerが`restoreOnAccentChange`を明示して復元する。Contextへの即時色反映・Rollback・直列保存の実装責務は移動しない。
 - Storybook Interactionで各フォームの再取得時同期とDraft保護を検証し、AccentはRollbackによる復元も確認する。実行結果はTypecheck・Storybook・Build・VRTのGateで別途確認すること。リポジトリの更新だけで実行済みとみなさない。
 
+## 2026-11-02 合意：保存結果とForm FeedbackのUI/UX
+
+この章は2026-11-02の追加合意による**次段階の設計基準**である。前章のRHF移行時に維持した既存Feedback仕様を自動的に変更したものとは扱わない。実装変更は各Featureの状態・Story・Screen Contractを比較した上で別途行う。Web共通原則は`implementation-conventions.mdx` の「Form Feedback / Validation UX」を正とする。
+
+### Feedbackの選択基準
+
+| 事象 | 主要な表示先 | 次の行動 |
+| --- | --- | --- |
+| ClientまたはServerの単一Field Validation | 該当FieldのError | Fieldを修正 |
+| 関係Field間の不整合 | 関連Fieldの近傍またはForm Alert | 関係する入力を修正 |
+| Form全体のValidation・業務制約 | Form Alert | 指示された条件を修正 |
+| 明示保存の成功 | 成功Notification | 必要なら次の操作 |
+| 自動保存の成功・進行中 | 控えめなInline Status。通知連発なし | 原則不要 |
+| 明示保存の一時失敗 | 消えないForm Alert | Draftを保ったまま再試行 |
+| 保存結果を確認できない | Form Alert（未確定と明示） | 状態を確認し、重複保存に注意 |
+| 操作権限喪失・継続不可 | Form Alert | 再読み込み・権限確認等 |
+| Background Refetch失敗（表示済みデータあり） | 非ブロックのNotification / Status | 必要なら再取得 |
+| 初期取得失敗（フォーム利用不能） | Page Error | 再取得・画面離脱 |
+| 破壊的な明示操作の成功 | 成功Notificationまたは遷移先の状態表示 | 完了を確認 |
+
+Validationは未操作時に表示しない。原則BlurまたはSubmit後に表示し、その後の編集に追従して解消する。保存可否を判断する内部Validationと、Error文言を提示するタイミングは別に管理する。Field Errorは該当入力に関連付け、Form Alertは保存操作と問題内容が分かる位置に置く。同じ失敗をNotificationとAlertの両方で繰り返さない。
+
+### 非同期保存・結果契約
+
+- Form Ownerは編集中のDraftと見た目のError / Statusを管理し、API / Application Boundaryは成功、入力の不備、業務制約、再試行可能な失敗、継続不可、結果不明を意味的に識別できる情報として返す。例外文言やHTTP codeだけでUI分岐しない。
+- 手動保存はSubmit開始時に検証し、成功が**確認できた値**のみ保存基準へ反映する。Submit後の追加編集を以前の応答で消さない。失敗時はDraftを保持し、可能な修正・再試行・状態確認の行動を示す。
+- 自動保存は入力イベント起点のPatch・保存順序・追加編集の保護を保証し、静かな保存状態を提供する。成功後に保存済みFieldのDirtyを適切に解消するが、未送信・in-flight・失敗中の値は保存済みと誤認しない。
+- 保存の失敗は一律の`false`や汎用例外に潰さない。Promise rejectを放置せず、UIに必要な失敗分類が届くようにする。フィードバックの表示責務が接続層とForm層に分散し、重複通知されないようにする。
+- 自動保存失敗時に`Rollback`するか、未保存Draftを残して再試行させるかは入力の種類・即時Preview・誤解のリスクにより選択する。一律のRollback義務は設けない。
+
+### 5フォームへの適用計画（未実装の設計変更）
+
+| Form | 方向性 | 特に確認する点 |
+| --- | --- | --- |
+| Personal Profile | 明示保存成功はNotification。Field ErrorとForm Alertを原因別に表示 | 保存中の取得値更新、結果不明、Retryable / Blocked |
+| Community Name | 明示保存成功はNotification。失敗は消えないForm Alertへ統一 | 現行`Promise<boolean>`と接続層Notificationを、失敗分類のある契約へ変更。rejectの捕捉 |
+| Community Alias | 明示保存成功はNotification。Field Error / Form Alertの共通表示基準に合わせる | 保存失敗・再試行・別名解除（nullable） |
+| Personal Preferences | 自動保存成功のNotificationを省略。保存中・保存済み・失敗を静かに明示 | QueueのPatch確定単位とRHF Dirty解消、後続入力の保護、失敗分類 |
+| Community Accent | 即時Previewと保存結果を別に示す | Rollback時の通知・復元方法と再試行手段。既存Rollbackを無断変更しない |
+
+### 実装前に詰める事項
+
+1. **自動保存の失敗UX**：Personal Preferencesは入力保持＋Retryを基本候補とする。Community Accentは即時PreviewのためRollback候補だが、「復元する値は何か」「未完成HEXはどう扱うか」「ユーザーの再試行導線」を確定してから実装する。
+2. **Result Unknown**：操作によって再試行の安全性が異なる。確認方法と再送方法をAPI更新契約に照らして具体化する。
+3. **保存状態の表示粒度**：自動保存のInline Statusの配置・保持時間・読み上げ方、複数Fieldの保存中表示を画面とStoryで決定する。
+4. **Error Mapping**：現在のGraphQL Mutation / Application ErrorがField / Form / Blocked / Unknownのどの情報を返せるかを確認し、足りない契約を明確化する。
+5. **Validationの表示変更**：既存の`mode: "onChange"`を機械的に置換せず、初期・Blur・Submit・編集後の視覚状態と保存ボタンの関係をStoryで比較する。
+
+この追加合意は新しいUX仕様の採用を意味するが、上記の未決定項目を実装者が推測で確定したり、PR #234に無関係な変更を混在させたりしない。
+
 ## 実装単位とテストGate
 
 1. 各Phaseでまず既存の正常・失敗・未完成入力・権限・Story状態を比較し、必要なComponent/Interaction Testを追加する。
