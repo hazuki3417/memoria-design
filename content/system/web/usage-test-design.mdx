@@ -119,6 +119,13 @@ Usageを含む全画面のUpload制約表示・Upload拒否条件の詳細、DB�
 
 Usageの責務境界：`features/usage/Usage`が両Context共通の表示・Interactionを所有し、`features/settings/usage`と`features/community-settings/usage`が各GraphQL接続を所有する。UI StoryでComponent Interaction / VRTを、各Connected Storyで生成Apollo HookとClientを通すGraphQL境界Mock Integrationを保証する。
 
+## Storybookの責務とContext接続の対称性（2026-11-03）
+
+- `Usage.stories.tsx` が共通UIのVisual / Interaction / Responsive契約を所有し、同じ状態を表示するだけの重複Storyを増やさない。別途必要なVRTとInteractionの保証は、異なる検証目的として共存できる。
+- `ConnectedPersonalUsage.stories.tsx` と `ConnectedCommunityUsage.stories.tsx` は、**Ready (Decimal)、Ready (Binary)、Empty、Loading、Error→再試行成功、Error→再試行失敗**の共通GraphQL IntegrationシナリオをそれぞれのQuery接続で検証する。
+- PersonalとCommunityの総Story数を機械的に一致させない。Community A→B切替のようなContext固有の契約は独立Storyで保持する。CommunityではPreferencesの取得が別Operationであることなど、固有の失敗条件を追加検討できる。
+- Apollo Clientと生成Hookを通したまま外部GraphQL応答だけをMockし、共通のProjection fixtureを再利用してもContext別のQueryとRetryを実際に検証する。既存のInteraction / VRT / Story ID契約はStory移行時に照合する。
+
 ## VRT候補とViewport
 
 視覚的に区別する価値のある状態のみを選び、全Case × 全Viewportの直積は要求しない。
