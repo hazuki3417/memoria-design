@@ -26,6 +26,10 @@ Compactでは同じSectionへの到達能力を維持したまま表示方式を
 
 Page固有のForm、Feedback、Usage、Account削除導線は共通Navigationに混在させず、本文側の責務とします。画面ごとの情報密度を共通Navigationに合わせて簡略化しません。数値幅・BreakpointそのものはVisual Reviewで固定された独立Contractではないため、本書では固定しません。
 
+## Loading / Errorと権限の境界
+
+初回取得中や取得失敗でもApplication ShellとSettings Navigationは維持し、選択PageのContent領域だけをLoading / Errorへ切り替えます。共通のLoader遅延・Background Refetch時のContent保持・PageStatusBoundaryの責務は[Settings共通Loading / Errorと責務境界](/system/web/settings-rhf-migration#settings共通loading--errorと責務境界web-docsからの移管2026-11-03)を参照します。Usageの再試行は[Usage画面UI設計](/screens/usage-ui-design)を正本とし、他Pageの共通Errorに自動的に再試行Actionを追加しません。
+
 ## 関連仕様
 
 - [User Settings](/screens/user-settings)
