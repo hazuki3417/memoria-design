@@ -298,7 +298,9 @@ export type {
 import type { ApplicationNavigationItem } from "../ApplicationNavigationContent"
 ```
 
-Storybookの分類名（`title`）はComponent名や責務が分かる識別子を基本とし、利用者向けの日本語の操作文言（例：「Communityへ共有」「Groups編集」）をComponentの代替名にしません。Story名は実際に表示される意味のあるパターンを表し、Dialog / Modalでは単に`Opened`と`Closed`を列挙せず、表示されたDialogの内容・Context・状態の差異をStoryにします。閉じた状態は、閉じる動作そのものが検証対象である場合にInteraction Test等で確認します。
+StorybookのCSF `title` は**実際の検証対象Componentの所属pathと名前**を表し、`src/features/usage/Usage.tsx` なら `features/usage/Usage` のように、ソース上のownerを起点に探索できる表記を基本とします。大文字小文字・表示用の空白・URL名などの独自分類を混在させず、Storyファイル名（原則 `<ComponentName>.stories.tsx`）・`meta.component`・所有者を対応させます。Story専用の「Apollo Integration」「Profile」「Members」等の画面種別や検証目的は、無関係な下位Componentを所有者に見せるCSF `title` の代用にしません。必要な区別は個々のStoryの`name`と検証内容で表します。実際の画面Compositionを検証するStoryは、その画面を所有するPage / Screen Componentに隣接させます。
+
+Story名は実際に表示される意味のあるパターンを表し、Dialog / Modalでは単に`Opened`と`Closed`を列挙せず、表示されたDialogの内容・Context・状態の差異をStoryにします。閉じた状態は、閉じる動作そのものが検証対象である場合にInteraction Test等で確認します。CSF `title` やStory exportの変更はStory IDを変更し、VRT BaselineとStory ID参照へ影響します。**既存の承認済みBaselineを内容変更なしに移行してから差分比較**し、新規または変更された画像はVisual Reviewで承認されるまでBaselineに採用しません。表示・Interaction・Responsive contractを維持することを優先します。
 
 例えば `src/features/media-browser/` では、小さな非公開ComponentをFeature直下へ配置することも、独立した責務のMediaTileをDirectoryへ分けることもできます。
 
