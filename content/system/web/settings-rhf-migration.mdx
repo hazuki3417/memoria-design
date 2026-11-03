@@ -4,7 +4,14 @@
 >
 > 本文はUser本人のPersonal SettingsとCommunity ContextのSettingsを対象とする。Personal Settingsは現在選択中のCommunity Contextに依存しない。Media Detail、Account Registration等の他Featureへの展開は含まない。
 
-## Settings共通Loading / Errorと責務境界（Web docsからの移管：2026-11-03）
+## 目的・正本
+
+- `content/system/web/implementation-conventions.mdx` のState Ownership・Form規約をSettingsへ適用する。
+- FormのDraft / Dirty / Field ValidationをReact Hook Form（RHF）で一元管理し、Apollo ClientをGraphQL Server Stateの共有表現とする。
+- 保存順序、Debounce、Mutation、Cache更新、Rollback、Retryなどの既存振る舞いとUI / Responsive / Storybook Contractを維持する。
+- 新しいSettings UIや汎用Form Frameworkの構築ではなく、既存実装の責務抽出として進める。
+
+## Settings共通Loading / Errorと責務境界
 
 本節はPersonal Settings（Profile / Preferences / Account / Usage）およびCommunity Settings（General / Members / Preferences / Usage）の**画面領域に共通する契約**を扱う。Personal SettingsはUser本人の独立したdestinationであり、Community切替によってPersonalの値・集計scopeは切り替えない。各Screen Specification、特に[User Settings](/screens/user-settings)、[Community Settings](/screens/community-management)および[Usage](/screens/usage)の機能・権限・復旧仕様を上書きしない。実装の具体的なpath・Storyのexport名・テストRunnerは`memoria-web`を正本とする。
 
@@ -45,13 +52,6 @@ Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system
 - 変更時はTypeScript、Lint / Format、Unit、Storybook Interaction、VRTのCompact（375×812）・Medium（1024×768）・Wide（1440×900）、Buildを対象PRのGateに従って確認する。Navigation、保存、Permission Loss、Loading、Background Refresh、Responsiveを変更前の有効なContractと比較する。Story追加・Code更新だけでGate成功とは判断しない。
 
 移行元の`memoria-web/docs/settings-refactoring-boundaries.md`に含まれていた一時的な「未実行」「作業Branchが遅れている可能性」等は**設計契約ではなく当該PR / Issueで管理すべき作業記録**のため本節へ移さない。Component Directory移行の横断規約は[Frontend実装規約](/system/web/implementation-conventions)、Usage分離の現在の方針はUsage関連設計を正本とし、過去の実装一覧を新たな必須構造として規範化しない。
-
-## 目的・正本
-
-- `content/system/web/implementation-conventions.mdx` のState Ownership・Form規約をSettingsへ適用する。
-- FormのDraft / Dirty / Field ValidationをReact Hook Form（RHF）で一元管理し、Apollo ClientをGraphQL Server Stateの共有表現とする。
-- 保存順序、Debounce、Mutation、Cache更新、Rollback、Retryなどの既存振る舞いとUI / Responsive / Storybook Contractを維持する。
-- 新しいSettings UIや汎用Form Frameworkの構築ではなく、既存実装の責務抽出として進める。
 
 ### 合意済み
 
