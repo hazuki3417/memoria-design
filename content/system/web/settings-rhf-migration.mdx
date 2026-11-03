@@ -4,6 +4,48 @@
 >
 > 本文はPersonal / Community ContextのSettingsのみを対象とする。Media Detail、Account Registration等の他Featureへの展開は含まない。
 
+## Settings共通Loading / Errorと責務境界（Web docsからの移管：2026-11-03）
+
+本節はPersonal Settings（Profile / Preferences / Account / Usage）およびCommunity Settings（General / Members / Preferences / Usage）の**画面領域に共通する契約**を扱う。各Screen Specification、特に[User Settings](/screens/user-settings)、[Community Settings](/screens/community-management)および[Usage](/screens/usage)の機能・権限・復旧仕様を上書きしない。実装の具体的なpath・Storyのexport名・テストRunnerは`memoria-web`を正本とする。
+
+### Loading / Errorの表示契約
+
+- 初回Loading、必須データ欠落、初回取得失敗でもApplication Header、Application Shell、Settings Navigationを保持し、選択されたPageの**Content領域のみ**をLoading / Errorへ切り替える。
+- 共通の`PageStatusBoundary`でLoader / Error / Readyの表示を行う。LoaderはContent領域中央に配置し、短時間の取得で点滅しないよう**300ms遅延**する。
+- 初回取得失敗・必須データ欠落では再読み込みを案内する共通Errorを提示する。**共通Boundary自体は再試行ボタンや再取得処理を所有しない。** Usageの初回取得ErrorではFeature UIが「再試行」を提供する例外があり、対象Custodianの再取得・Error→成功/再失敗は[Usage UI設計](/screens/usage-ui-design)と[Usageテストマトリクス](/system/web/usage-test-design)を正本とする。
+- 取得済みの有効なDataが存在するBackground Refetchでは既存Contentを保持し、Loader / Skeletonへ戻さない。Background Refreshの失敗は正常に取得済みの内容を破棄せず、非ブロッキングなError Notification等で伝える。
+- UsageはSkeletonを表示しない。確定済みの集計情報がないInitial Loading / Errorでは集計表を表示せず、共通BoundaryのLoading / Errorを使用する。Accountも必須CurrentUserを待つ。Authorizationの喪失、特にCommunity Membership喪失時のNavigationは隠さず、各画面の権限契約を維持する。
+- Visual / Interaction / Responsive検証ではWide・CompactでShell / Navigationが維持されること、Loader遅延、Background Refetch、Usage固有Retry、権限喪失を確認する。共通Boundaryの各状態はそのComponentのStory、Usage固有UIはUsageのStory / Integrationで確認する。
+
+### Settings固有の実装責務（移行時点の境界）
+
+以下は既存UI / Behavior / Responsiveを維持するための責務配分であり、名称やdirectory構造を永久に固定する規約ではない。共通化を理由に設定Field、Action、Navigation、Breakpoint、Loading Delay、Error遷移、Permission / ConfirmationのCapabilityを削除しない。横断的Component規約は[Frontend実装規約](/system/web/implementation-conventions)を優先する。
+
+| 境界 | 所有する責務 |
+| --- | --- |
+| Personal: `ConnectedSettings` | CurrentUserの取得、初期Page状態の判定、Dataと表示の接続 |
+| Personal: `usePersonalSettingsActions` | Profile / Preferences Mutation、Confirmation、CurrentUser Refetchの契約 |
+| Personal: `Settings` / `SettingsSectionContent` | 既存Settings Navigation / Page CompositionとProfile / Preferences / Account / Usageの選択・表示。後者はData取得しない |
+| Personal: `ConnectedPersonalSettingsSection` | AccountとUsageで異なるData依存の接続を維持 |
+| Community: `CommunitySettingsRoute` | Data Source、Loading/Error境界、既存Section Navigation、Action CallbackのComposition |
+| Community: `useCommunitySettingsActions` | Community名変更、Member削除、Role変更、Leave Mutationおよび既存の通知、戻り値、Refetch、Confirmation |
+| Community: `useCommunitySettingsMembership` | Membership参照、Accent選択、PreferencesでのMembership喪失Redirect |
+| Community: `CommunitySettings` / `CommunitySettingsContent` | Responsive Navigation、Section選択、名前・Invitationの状態、Page LayoutとGeneral / Members / Preferences / Usageの内容選択 |
+| Community: `ConnectedCommunityPreferences` | 通信 / Cache、保存順序と状態の接続 |
+| Shared: `PageStatusBoundary` | Page単位のLoading / Error / Ready表示。Feature固有Retryは所有しない |
+
+Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system/web/usage-test-design)および[Frontend実装規約](/system/web/implementation-conventions)で定義する現在の責務分離を優先する。Settings全体のDirectory再配置はこの移管の対象外。
+
+### 既存Story / Regression Contract
+
+- Storyは実際の所有Componentの近くへ置き、Storybookの`title`は対応するSource上のownerを表す。古いURL分類名をそのまま固定せず、[Frontendテスト戦略](/system/web/frontend-testing)を正本とする。
+- Personal Profileは初期値、必須Validation、保存成功、Retryable / Blocked、再取得時Draft保護を検証する。Personal Preferencesは各設定FieldとMedia DetailのNavigation Wrapを、Accountは削除画面への到達を検証する。
+- Community Generalは名前の編集、Invalid、Saving、Read Onlyを、Community Membersは検索、Role変更、除外、LeaveのConfirmation / Success / Failureと最終Administrator保護を検証する。
+- Shared BoundaryのLoading / Error、Settings NavigationとLayoutのComposition、Usageの計算・表示・Retryはそれぞれ適切な所有Component / IntegrationのStoryで検証する。
+- 変更時はTypeScript、Lint / Format、Unit、Storybook Interaction、VRTのCompact（375×812）・Medium（1024×768）・Wide（1440×900）、Buildを必要な範囲で実行する。Navigation、保存、Permission Loss、Loading、Background Refresh、Responsiveを変更前の有効なContractと比較する。Story追加・Code更新だけでGate成功とは判断しない。
+
+移行元の`memoria-web/docs/settings-refactoring-boundaries.md`に含まれていた一時的な「未実行」「作業Branchが遅れている可能性」等は**設計契約ではなく当該PR / Issueで管理すべき作業記録**のため本節へ移さない。Component Directory移行の横断規約は[Frontend実装規約](/system/web/implementation-conventions)、Usage分離の現在の方針はUsage関連設計を正本とし、過去の実装一覧を新たな必須構造として規範化しない。
+
 ## 目的・正本
 
 - `content/system/web/implementation-conventions.mdx` のState Ownership・Form規約をSettingsへ適用する。
