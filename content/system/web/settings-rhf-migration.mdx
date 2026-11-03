@@ -1,12 +1,12 @@
 # Personal / Community Settings：React Hook Form移行詳細設計
 
-> 状態：実装前詳細設計。2026-11-02に合意済みの原則と、実装前に確認する提案を区別する。対象コードは`memoria-web/develop`（2026-11-02時点）。
+> 状態：段階的実装・移行の設計履歴を含む文書。各節の「合意済み」「提案」「実装追補」は記述時点の状態であり、現行の実装完了・Gate通過を意味しない。現行Code / Story / CIは`memoria-web`の対象作業ブランチ・PRを確認する。
 >
-> 本文はPersonal / Community ContextのSettingsのみを対象とする。Media Detail、Account Registration等の他Featureへの展開は含まない。
+> 本文はUser本人のPersonal SettingsとCommunity ContextのSettingsを対象とする。Personal Settingsは現在選択中のCommunity Contextに依存しない。Media Detail、Account Registration等の他Featureへの展開は含まない。
 
 ## Settings共通Loading / Errorと責務境界（Web docsからの移管：2026-11-03）
 
-本節はPersonal Settings（Profile / Preferences / Account / Usage）およびCommunity Settings（General / Members / Preferences / Usage）の**画面領域に共通する契約**を扱う。各Screen Specification、特に[User Settings](/screens/user-settings)、[Community Settings](/screens/community-management)および[Usage](/screens/usage)の機能・権限・復旧仕様を上書きしない。実装の具体的なpath・Storyのexport名・テストRunnerは`memoria-web`を正本とする。
+本節はPersonal Settings（Profile / Preferences / Account / Usage）およびCommunity Settings（General / Members / Preferences / Usage）の**画面領域に共通する契約**を扱う。Personal SettingsはUser本人の独立したdestinationであり、Community切替によってPersonalの値・集計scopeは切り替えない。各Screen Specification、特に[User Settings](/screens/user-settings)、[Community Settings](/screens/community-management)および[Usage](/screens/usage)の機能・権限・復旧仕様を上書きしない。実装の具体的なpath・Storyのexport名・テストRunnerは`memoria-web`を正本とする。
 
 ### Loading / Errorの表示契約
 
@@ -14,7 +14,7 @@
 - 共通の`PageStatusBoundary`でLoader / Error / Readyの表示を行う。LoaderはContent領域中央に配置し、短時間の取得で点滅しないよう**300ms遅延**する。
 - 初回取得失敗・必須データ欠落では再読み込みを案内する共通Errorを提示する。**共通Boundary自体は再試行ボタンや再取得処理を所有しない。** Usageの初回取得ErrorではFeature UIが「再試行」を提供する例外があり、対象Custodianの再取得・Error→成功/再失敗は[Usage UI設計](/screens/usage-ui-design)と[Usageテストマトリクス](/system/web/usage-test-design)を正本とする。
 - 取得済みの有効なDataが存在するBackground Refetchでは既存Contentを保持し、Loader / Skeletonへ戻さない。Background Refreshの失敗は正常に取得済みの内容を破棄せず、非ブロッキングなError Notification等で伝える。
-- UsageはSkeletonを表示しない。確定済みの集計情報がないInitial Loading / Errorでは集計表を表示せず、共通BoundaryのLoading / Errorを使用する。Accountも必須CurrentUserを待つ。Authorizationの喪失、特にCommunity Membership喪失時のNavigationは隠さず、各画面の権限契約を維持する。
+- UsageはSkeletonを表示しない。確定済みの集計情報がないInitial Loading / Errorでは集計表を表示せず、共通BoundaryのLoading / Errorを使用する。Accountも必須CurrentUserを待つ。Authorizationの喪失は単なる取得Errorと同一視せず、Community Membership喪失時は非公開情報を保持表示せず安全なdestinationへ遷移するなど、[Community Settings](/screens/community-management)と[Application Information Architecture](/system/application-information-architecture)の権限契約を優先する。
 - Visual / Interaction / Responsive検証ではWide・CompactでShell / Navigationが維持されること、Loader遅延、Background Refetch、Usage固有Retry、権限喪失を確認する。共通Boundaryの各状態はそのComponentのStory、Usage固有UIはUsageのStory / Integrationで確認する。
 
 ### Settings固有の実装責務（移行時点の境界）
@@ -38,11 +38,11 @@ Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system
 
 ### 既存Story / Regression Contract
 
-- Storyは実際の所有Componentの近くへ置き、Storybookの`title`は対応するSource上のownerを表す。古いURL分類名をそのまま固定せず、[Frontendテスト戦略](/system/web/frontend-testing)を正本とする。
+- Storyは実際の所有Componentの近くへ置き、Storybookの`title`は対応するSource上のownerを表す。古いURL分類名をそのまま固定せず、[Frontendテスト戦略](/system/web/frontend-testing)を正本とする。Visual / Interactionのサイドバー表示順は同戦略に従い、Storyの分類整理だけでID・Fixture・既存VRT Baselineを変更しない。
 - Personal Profileは初期値、必須Validation、保存成功、Retryable / Blocked、再取得時Draft保護を検証する。Personal Preferencesは各設定FieldとMedia DetailのNavigation Wrapを、Accountは削除画面への到達を検証する。
 - Community Generalは名前の編集、Invalid、Saving、Read Onlyを、Community Membersは検索、Role変更、除外、LeaveのConfirmation / Success / Failureと最終Administrator保護を検証する。
 - Shared BoundaryのLoading / Error、Settings NavigationとLayoutのComposition、Usageの計算・表示・Retryはそれぞれ適切な所有Component / IntegrationのStoryで検証する。
-- 変更時はTypeScript、Lint / Format、Unit、Storybook Interaction、VRTのCompact（375×812）・Medium（1024×768）・Wide（1440×900）、Buildを必要な範囲で実行する。Navigation、保存、Permission Loss、Loading、Background Refresh、Responsiveを変更前の有効なContractと比較する。Story追加・Code更新だけでGate成功とは判断しない。
+- 変更時はTypeScript、Lint / Format、Unit、Storybook Interaction、VRTのCompact（375×812）・Medium（1024×768）・Wide（1440×900）、Buildを対象PRのGateに従って確認する。Navigation、保存、Permission Loss、Loading、Background Refresh、Responsiveを変更前の有効なContractと比較する。Story追加・Code更新だけでGate成功とは判断しない。
 
 移行元の`memoria-web/docs/settings-refactoring-boundaries.md`に含まれていた一時的な「未実行」「作業Branchが遅れている可能性」等は**設計契約ではなく当該PR / Issueで管理すべき作業記録**のため本節へ移さない。Component Directory移行の横断規約は[Frontend実装規約](/system/web/implementation-conventions)、Usage分離の現在の方針はUsage関連設計を正本とし、過去の実装一覧を新たな必須構造として規範化しない。
 
