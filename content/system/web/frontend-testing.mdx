@@ -51,7 +51,7 @@ ComponentとIntegrationの境界はComponent数で決めない。単独Component
 
 ## GraphQL境界のMock・Storybook Integration / VRT（2026-10-22合意）
 
-- Component固有の表示・InteractionはProps / Callbackを使い、Apolloを不要にする。GraphQLとの接続を保証するFrontend Integrationでは本物のFeature Container、生成済みApollo Hook、Apollo Clientを通し、外部GraphQL応答をMockする。生成HookそのもののMockで接続検証を代替しない。
+- Component固有の表示・InteractionはProps / Callbackを使い、Apolloを不要にする。GraphQLとの接続を保証するFrontend Integrationでは本物のFeature EntryまたはConnected / Container Component、生成済みApollo Hook、Apollo Clientを通し、外部GraphQL応答をMockする。生成HookそのもののMockで接続検証を代替しない。`Connected` / `Container` の独立Componentを必須とはせず、Storybook Integration Storyも検証目的に応じて許容する。
 - 最初の標準方式はApollo Client 3の `MockedProvider`。Operation、Variables、応答Data / Errorの対応を明示し、一覧の成功・空・失敗・Retry・Mutation・Paginationを決定的に再現する。実Backend / Production APIへ接続しない。
 - GraphQL Code Generatorの生成型・DocumentをFixtureの型とOperationの基準とする。固定Scenarioは仕様に意味のある値を明示し、Response shapeの変更を型チェックで検出する。
 - `@graphql-tools/mock` は大量のFixtureやSchema整合性確認を補助する候補。Schemaからの自動生成だけでGroup Relation等の製品制約・境界ケースを保証した扱いにしない。
