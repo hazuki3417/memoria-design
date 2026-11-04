@@ -18,6 +18,8 @@ AI Agentは、まず依頼の種類を特定して[タスク別の読み取り�
 
 **Task Contextの確定**：設計・調査・実装・レビュー・GitHub操作を開始・再開するとき、または依頼・Scope・操作権限が変わるときは、[Task Context Resolution Skill](../../skills/task-context-resolution/SKILL.md)を取得し、現行のGoal・Scope・Issue / PR / branchの実状態・権限・未確認事項を整理します。規範の正本は本Context mapと[AI支援開発](/ai-development)であり、Skillは新しい操作許可や工程ゲートを追加しません。
 
+**Frontend既存Componentのリファクタリング**：Component・Hook・Compositionの抽出・責務分離・共通化・配置変更では、[Component Refactoring Skill](../../skills/component-refactoring/SKILL.md)を取得し、既存ConsumerのVisual / Behavioral / State / Responsive Contractを確認して変更前後を照合します。仕様・既存契約とテスト方針の正本は[Frontend UI設計・開発方針](/system/frontend-ui-development)、[Frontend実装規約](/system/web/implementation-conventions)、[Frontendテスト戦略](/system/web/frontend-testing)にあります。Skillは新たな仕様変更・操作許可や必須工程を定義しません。
+
 **ブランチに関する作業の入口**：作業ブランチの選択、継続可否、作成・切替、現在のPR状態の確認では、書き込みの有無を問わず[Branch Management Skill](../../skills/branch-management/SKILL.md)を取得します。Skillの一覧は[Memoria Skills](../../skills/README.md)を参照し、適用前にIssue・PR・branchの最新状態と該当する正本規約を確認します。Skillの存在は操作許可を意味しません。
 
 ## 情報の優先順位
