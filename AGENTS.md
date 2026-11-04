@@ -6,6 +6,8 @@
 
 詳細な規範は所有する文書を参照し、Taskごとの読み取り順序は `content/context/index.mdx` を使用します。
 
+再利用可能な作業手順は [`skills/README.md`](skills/README.md) を入口として確認します。Taskに該当するSkillがある場合は、GitHub上の最新`SKILL.md`を取得します。Skillは正本の規約を置き換えず、使用するだけで操作が許可されるものではありません。ブランチの選択・継続など、**GitHubへの書き込みを伴わない判断**でも該当Skillを探します。
+
 ## リポジトリの責務
 
 `memoria-design` はMemoriaのProduct設計、Architecture、横断的な設計判断のSource of Truthです。
