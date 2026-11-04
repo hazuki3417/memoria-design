@@ -89,15 +89,11 @@ ChatGPTは人間の指示を文字列どおりの実装要求として無条件�
 
 この節は、既存の許可・設計・ブランチ運用規約を実際の行動に結びつけるための判断規則である。確認の回数を増やす工程ではない。作業開始、再開、途中での依頼変更に適用し、判断内容に変更がなければ繰り返さない。
 
-**Step 1：作業Contextの確定（人間への質問ではなくSource of Truthのread）**
+**作業ContextとGoal・不変条件の確定**
 
-1. 最新の人間の指示と合意済みのGoal・Scope、明示的な変更先、関連Issue・Open PR・head/base branchを確認する。中断後も前回の作業状態を前提にしない。
-2. 既存作業の継続・そのPRへの追加変更か、独立した新規作業かを区別する。**既存PRの範囲に含まれる依頼は、既存作業ブランチを優先し、新規branch/PRの標準手順を機械的に適用しない。** 指定branchがあればそれを使用する。異なるbranchが必要と考える場合は、作成前に理由と影響を提示して確認する。
-3. [Context map](/context)と対象Repositoryの最新AGENTS/規約、Component・Story・テスト等の実装を確認する。新しい書込み先が一意に確定しない場合は変更しない。
+最新の人間の指示、現在有効な合意、関連Issue・PR・branchをGitHubで確認し、Goal・Scope・操作許可・未決事項を整理する具体的手順は[Task Context Resolution Skill](../skills/task-context-resolution/SKILL.md)に従います。作業branchの継続・新規作成・切替の判断は[Branch Management Skill](../skills/branch-management/SKILL.md)、必要な設計・実装規約の発見と実際の取得は[Source of Truth Discovery Skill](../skills/source-of-truth-discovery/SKILL.md)に従います。以前の会話やIssueの古い情報だけで状態を確定せず、既存PRへの継続作業に機械的な新規branch作成を適用しません。
 
-**Step 2：ユーザーのGoalと不変条件の確定**
-
-表面的な手段（「名前を一致させる」「共通化する」等）と目的（「所有Componentから発見しやすい」「既存振る舞いを維持する」等）を分ける。変更対象が実際に所有する責務と、既存のVisual・Behavior・State・Responsive・Test Contractを確認する。異なるComponentのStoryを単に同じWrapperで描画しているという理由で一つに集約してはならない。
+指示された手段（「名前を一致させる」「共通化する」等）と本来のGoalを区別し、変更対象の所有責務、既存のVisual・Behavior・State・Responsive・Test Contractを不変条件として確認します。異なるComponentのStoryが同じWrapperで表示されるという理由だけで、一つのComponentに集約しません。未合意の仕様変更や重要な責務変更は次の判断基準に従います。
 
 **Step 3：必要な『確認』を分類する**
 
