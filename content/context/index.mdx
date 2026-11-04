@@ -14,6 +14,8 @@ AI Agentは、まず依頼の種類を特定して[タスク別の読み取り�
 
 この節は読む順序だけを案内し、仕様・承認条件・規約を再定義しません。人間が体系的に読む場合は[Home](/)の「初めて読む場合」を入口にします。
 
+**Task Contextの確定**：設計・調査・実装・レビュー・GitHub操作を開始・再開するとき、または依頼・Scope・操作権限が変わるときは、[Task Context Resolution Skill](../../skills/task-context-resolution/SKILL.md)を取得し、現行のGoal・Scope・Issue / PR / branchの実状態・権限・未確認事項を整理します。規範の正本は本Context mapと[AI支援開発](/ai-development)であり、Skillは新しい操作許可や工程ゲートを追加しません。
+
 **ブランチに関する作業の入口**：作業ブランチの選択、継続可否、作成・切替、現在のPR状態の確認では、書き込みの有無を問わず[Branch Management Skill](../../skills/branch-management/SKILL.md)を取得します。Skillの一覧は[Memoria Skills](../../skills/README.md)を参照し、適用前にIssue・PR・branchの最新状態と該当する正本規約を確認します。Skillの存在は操作許可を意味しません。
 
 ## 情報の優先順位
