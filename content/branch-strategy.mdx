@@ -21,7 +21,7 @@ Memoriaでは、個人開発・小規模プロダクトに適した簡易Git Flo
 
 ## 作業ブランチ
 
-**新規の独立した作業を開始する場合**、通常の作業ブランチは最新の`develop`から作成します。既存Issue・Open PRの作業範囲に含まれる継続作業では、新規branchを機械的に作成せず、現在のhead branchとユーザーの指定を確認してその作業ブランチを利用します。既存branchと別のbranchへ分離する必要が生じた場合は、その理由・影響を説明して合意を得てから変更します。判断の詳細は[AI支援開発の決定手順](/ai-development#作業開始判断実行の決定手順)を参照します。
+**新規の独立した作業**では、通常の作業ブランチは最新の`develop`を派生元とします。**既存Issue・Open PRの継続作業**では、ユーザーから指定されたbranchと既存PRのheadを照合してそのhead branchを優先し、工程の変化だけで新規branchを作りません。既存branchから別のbranchへ分離する場合は理由・影響を示し、人間との合意を得てから変更します。現在のIssue・PR・ユーザー指定・branchを実際に照合して適用先を判断する手順は[Branch Management Skill](../skills/branch-management/SKILL.md)を参照します。操作の許可範囲は[AI支援開発](/ai-development)が所有し、Skillによって拡張されません。
 
 | 接頭辞 | 用途 |
 | --- | --- |

@@ -21,15 +21,9 @@ GraphQL / SQL schema、生成設定、package設定、repository固有の実装�
 
 ## 作業開始時の必須手順
 
-設計、実装、レビュー、調査、Issue整理を開始または再開するときは、次の順で確認します。
+設計、実装、レビュー、調査、Issue整理の開始・再開時は、最新の[Skill一覧](skills/README.md)で該当するSkillを確認し、実際に読み込んで適用します。Goal・Scope・最新Issue / PRの状態と許可範囲の整理は[Task Context Resolution](skills/task-context-resolution/SKILL.md)、正本の発見・本文取得・設計と実装の照合は[Source of Truth Discovery](skills/source-of-truth-discovery/SKILL.md)、branchの選択・継続判断は[Branch Management](skills/branch-management/SKILL.md)を参照します。
 
-1. 最新のIssue、PR、対象branchと、現在のTaskで人間と合意した要求を確認する。
-2. `content/context/index.mdx` からTaskに対応する読み取り順序を選ぶ。
-3. Domain / Screen / Systemを所有する設計書と、影響する横断設計を確認する。
-4. schema、設定、code、test、CIに関わる判断では、所有する実装repositoryの最新状態を確認する。
-5. 設計と実装、複数の正本、Task要求の間に差異があれば、推測で解消せず差異を明示する。
-
-過去の会話、AI生成要約、古いIssueやPRだけを根拠に現在状態を判断しません。
+参照順序と情報の優先順位は[Context map](content/context/index.mdx)、適用条件・承認要件はそれぞれの所有規約を正本とします。過去の会話、AI生成要約、古いIssueやPRだけを根拠に現在状態を判断せず、必要なGitHubの最新情報を取得します。Skillの適用はGitHubへの操作許可を追加しません。
 
 ## 判断に利用する情報
 
