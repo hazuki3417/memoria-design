@@ -1031,3 +1031,32 @@ Personal Accent ColorはCommunity Accentと同様、入力後の有効なColor D
 ### 2026-11-02 Personal / Community共通機能の一貫性・回帰防止（確定）
 
 PersonalとCommunityで共通する設定機能は、入力中Preview、保存Queue、Pending/Saving/Saved、Validation/Execution/Unknown Outcome、失敗時の確定表示復元とDraft保持、手動再試行・破棄、画面遷移・再訪時の状態復元、アクセシビリティとResponsive Behaviorを比較対象として扱う。実装前に両Consumerのvisual/behavior contractを確認し、一方だけに存在する機能差を暗黙に許容しない。共通責務は適切なComponent/Controller境界で再利用するが、既存consumer固有のCapabilityを削除・簡略化しない。意図的な差異は理由と期待される挙動を設計に明記し、合意なく変更しない。テストは両Consumerの成功だけでなく、対応する状態遷移とVisual/Interactionを照合する。今回のPersonal Accent Preview漏れを回帰防止の具体例とする。
+
+## 2026-11-03以降のSettings契約確定と実装整合（2026-11-05照合）
+
+この節は2026-11-02時点の実装前設計・提案と、その後に合意・実装された契約を区別するための追補である。[Web PR #237](https://github.com/hazuki3417/memoria-web/pull/237)、[API PR #129](https://github.com/hazuki3417/memoria-api/pull/129)はいずれも2026-11-03にマージ済み。古い「Draft・未マージ」記録は履歴であり、現在状態を表さない。Release・本番切替やHuman Visual Reviewの実施はこの記述から推定しない。E1/E2など明示合意のない別のUX選択肢は採用済みとしない。
+
+### Hybrid Mutation Result、Error分類、Context境界
+
+- Settingsの保存MutationはApolloの`errorPolicy: "all"`による部分応答を許容する。対象Operationに型付き`*Success`があればその確定結果を優先し、`InputValidationFailure`なら拒否された入力としてField/Formへ返す。他Fieldの部分Dataを根拠に対象Mutationを成功扱いしない。対象Resultが欠落したときだけ公開`errors[].extensions.code`を解釈する。
+- `UNAUTHENTICATED`、`USER_REGISTRATION_REQUIRED`、`USER_DELETING`、`FORBIDDEN`、`NOT_FOUND`をBlockedとし、自動・盲目的な手動再送を止める。`INTERNAL`、`UNKNOWN_OUTCOME`、再送保証のない`RATE_LIMITED`、混在・未知Code・通信断はUnknown Outcomeとし、照会と明示操作を優先する。別Domainの旧`VALIDATION`／`CONFLICT`はField Pathを推測せずForm-levelに置く。新しい公開Codeの正本は[GraphQL契約](/system/api/graphql)。
+- 確定Mutationと後続Refetch失敗を別に扱う。Unknown状態の現在値確認は旧Mutationの成功証明ではない。照会に使用する`CurrentUserDocument`／`CommunityMySettingsDocument`は必要に応じて`no-cache`で取得し、古い照会応答でより新しいApollo Cacheの確定状態を巻き戻さない。
+- Community単位の保存Controller・Previewを独立させ、別Communityの遅延したMutation／Execution Errorが現在ContextのConfirmed、Draft、Cacheを書き換えない。同一CommunityのAccent/Aliasも各Patchで確定したFieldだけをCommitする。対応するUnit、Apollo Link Integration、Storybook Interactionの実装と検証対象は`memoria-web`を正本とする。
+
+### SaveStatusの確定表示時間
+
+Personal PreferencesとCommunity Accentの自動保存だけ、`SETTINGS_SAVE_STATUS_TIMING`によりSaving Badgeは`saving`遷移から300ms後に表示し、早く終わった操作では表示しない。Saved Badgeは最新の有効な保存が確定したときにのみ表示し、2,000ms後に非表示とする。Badgeが消えてもHeaderの配置領域を維持する。
+
+Savingが2,000ms継続したときだけ「保存中です」を一度`aria-live="polite"`で通知し、Saved確定時は「変更を保存しました」を一度告知する。Errorの読み上げは持続Panel側が所有する。State遷移時に古いTimerを解除し、Queue、400ms Debounce、Rollback、Unknown Recoveryなどの意味的契約を変更しない。他Consumerの`SaveStatus`既定動作は変更しない。これらは`memoria-web/develop/src/components/SaveStatus/SaveStatus.tsx`の実装値と一致する。
+
+### FeedbackPanelとProfileの明示的Recovery
+
+合意された`FeedbackPanel`はPresentationのみを所有し、Error分類とRecoveryの安全性はFeature側が所有する。[Feedback Pattern](/design-system/patterns/feedback)を参照する。Profileでは、確定Successの既存Notificationを一度だけ表示し、Validationは対応FieldまたはForm内Panelへ表示する。Blockedは公開Code別に安全な案内を行い、Unknown OutcomeではDraftを保護して通常の再送を停止する。
+
+ProfileのUnknown時は明示的な「現在の状態を確認」で`CurrentUser`のNicknameを照会する。最新Draftと一致すればユーザーの「確認完了」で観測値を採用するが、旧Mutationの成功通知は出さない。不一致なら照会済みのServer値を示し、ユーザーが「もう一度保存」または「変更を破棄」を選ぶ。照会失敗ではUnknownを維持し、自動再送しない。照会中にDraftが変わった場合は古い結果を破棄する。この契約は`memoria-web/develop/src/features/settings/profile/SettingsProfile/SettingsProfile.tsx`の実装と照合済み。
+
+Personal Preferences／Community AccentのBlocked原因案内もFeatureごとに所有し、API生Messageをそのまま表示しない。Community MembersのRole変更・除外で結果未確定となる場合は既存の確認Modal内の持続Panelで案内し、失敗Notificationの重複や確認前の再送を避ける。既存のRole制約、確認操作、成功Notificationを維持する。
+
+### 実装・検証境界
+
+`memoria-web/develop`の`graphqlSettingsResult.ts`、`SaveStatus.tsx`、`FeedbackPanel.tsx`、`SettingsProfile.tsx`、`memoria-api/develop`の`graph/handler.go`、`schemas/graphql/input_validation.graphql`を2026-11-05に本文確認した。該当PRのマージを確認した一方、すべての現在のStory／VRT画像のHuman Reviewや本番環境での挙動までは今回確認していない。UIのVisual・Behavior・State・Responsive Contractを勝手に更新せず、変更を加える場合は実装正本と承認Baselineを再照合する。
