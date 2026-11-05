@@ -1618,3 +1618,23 @@ Initial Releaseで少なくとも次のCommandは再送による副作用重複�
 ### 2026-11-02 最終再確認：互換期間なし・新I/Fへ完全統一
 
 ユーザー合意：既存のGraphQL I/Fを新しいHybrid Resultの契約へ直接置換し、WebのOperation・生成型・Adapter・画面処理・Testも新I/Fへ統一する。旧I/Fとの互換性を維持する実装、旧新並列Mutation、互換レイヤー、互換期間は**不要であり導入しない**。以前の「互換期間も選択肢」とした記述は撤回する。API/Webの変更は同じ新契約に対して検証する。Release時のデプロイ手順確認は必要だが、互換期間の設計とは別事項。PR merge・Release・本番操作は引き続き個別の許可を要する。
+
+## 2026-11-03 公開GraphQL Error Codeの確定契約（実装照合：2026-11-05）
+
+本節は2026-11-03に合意された公開コードの確定内容であり、本文中の「公開コード最終確定待ち」「Enum候補」等の旧時点の記述を更新する。実行可能Schema・Presenter・Testは `memoria-api/develop` を実装正本とし、設計記述だけで未実装のEndpointや互換性を推定しない。関連する[API PR #129](https://github.com/hazuki3417/memoria-api/pull/129)と[Web PR #237](https://github.com/hazuki3417/memoria-web/pull/237)は2026-11-03にマージ済み。マージと本番Releaseの完了は同義ではない。
+
+| 公開コード | 確定した意味・境界 |
+| --- | --- |
+| `UNAUTHENTICATED` | 有効な認証主体を確定できない |
+| `USER_REGISTRATION_REQUIRED` | 認証済みだがACTIVE User登録を必要とする更新操作。未登録者の `me: null` は保持 |
+| `USER_DELETING` | 本人が削除中など通常操作不可。登録時にもnickname検証より先に削除中を判定し、二重登録を防ぐ |
+| `FORBIDDEN` | 閲覧可能な対象への権限不足。内部詳細は秘匿 |
+| `NOT_FOUND` | 対象不存在または認可上存在秘匿が必要な対象 |
+| `INTERNAL` | 未分類の内部障害。技術詳細を非公開 |
+| `RATE_LIMITED` | 実際にRate Limitを適用している場合のみ使用。発生可能性だけからProducerを新設しない |
+
+`UNAUTHORIZED`と`INTERNAL_SERVER_ERROR`は新しい公開契約の別名として並行公開しない。他Domainで既に使用する`VALIDATION`、`CONFLICT`、`UNKNOWN_OUTCOME`は個別移行前に削除しない。Network Timeout、GraphQL Request Coercion Error、Execution Error、型付きBusiness Failureを混同しない。
+
+Settingsの`InputViolationCode`は `REQUIRED` / `INVALID_FORMAT` / `INVALID_VALUE` / `TOO_LONG` / `OUT_OF_RANGE` / `INVALID_COMBINATION` の6値を確定する。`InputViolationScope`は`FIELD` / `FIELD_GROUP` / `FORM`、`InputFieldPath.segments`を使う。旧提案の単一`inputPath`は使用しない。Fieldへの帰属が確定できないFailureはForm LevelへFallbackし、公開Codeを表示文言へ直接流用しない。
+
+`memoria-api/develop/graph/handler.go`は上記認証・認可・内部障害分類を実装済み、`schemas/graphql/input_validation.graphql`は確定したScopeと6値Enumを定義済み。`memoria-web/develop/src/features/settings/graphqlSettingsResult.ts`はTyped Result欠落時のExecution Error分類と未知Outcomeの再送抑止を実装している。実装が追従したことは本番切替・人間による動作受入れを保証しない。
