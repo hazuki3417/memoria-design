@@ -81,3 +81,15 @@ Operation Feedbackには成功、情報、warning、error等の表現を利用�
 同じ意味のFeedbackは、Notificationとページ内表示など提示先が異なっても、Severity、Icon、Typography等から一貫して理解できるようにします。表示先の役割に応じて、Dismiss、再試行、安全なNavigation等の補助Actionを選択し、すべてのFeedbackへ同じActionを強制しません。
 
 Field Errorは対象Fieldとの関係を優先し、他のFeedbackと同じ大きなPanelを要求しません。Feedbackは色だけに依存して意味を伝えず、長文・拡大文字・狭いViewportでも必要な情報を読めるようにします。Error表示への切替で操作対象が不必要に移動しないよう配慮します。
+
+## 持続するOperation Feedback Panel（2026-11-03合意・実装照合）
+
+Form内の保存失敗、結果未確定、操作不可など、原因と次のActionを**継続して参照する必要がある**場合は、非Modalの持続Panelを利用する。Field Error、成功Notification、Page Error、操作の安全性上必要な確認Modalを一律に置換しない。初期のConsumerはPersonal Profileで、[Web PR #237](https://github.com/hazuki3417/memoria-web/pull/237)に実装された。
+
+- **Visual hierarchy**：意味のあるIcon、短い結果中心のTitle、状況・影響・次に取れる行動の簡潔なBody。必要な場合のみActionを併置。Theme由来の控えめな背景とBorder、Severityに応じたIconと色を用い、色だけで意味を伝えない。
+- **Placement / Persistence**：問題を解決するFormの直前等、操作と近い場所。状態が確定するまで継続表示し、Timer・自由なDismissで未解決の状態を隠さない。Fieldだけで修正可能なFailureをPanelにも重複表示しない。
+- **Interaction / Accessibility**：Error発生時に入力Focusを強制移動しない。Featureが用意したActionはKeyboardで操作でき、狭い画面では折り返す。重要な新規Errorにだけ適切な`role="alert"`を使用し、Field ErrorとSaveStatusの読み上げ重複を避ける。長文・拡大文字・Compact/Medium/Wide・Light/Darkでも読めること。
+- **責務境界**：共通`FeedbackPanel`は`kind`、Title、Body、任意Action Slot、RoleとPresentationを所有する。GraphQL分類、Mutation、Draft、Retry可否、Navigation、成功NotificationはFeature側が所有する。既存`FeedbackAlert`のConsumerは個別レビューなしに一括置換しない。
+- **Modalとの区別**：入力値を見ながら修正・照会・比較する一般的なErrorは非Modal Panelとする。重要な選択や不可逆操作の確認Modalが既にある場合、そのModal内へ持続Panelを配置してよい。Severityだけを理由にModalを追加しない。
+
+`memoria-web/develop/src/components/Feedback/FeedbackPanel/FeedbackPanel.tsx`に上記Presentation Boundaryを確認した。Profileの確定した保存成功は従来の成功Notificationを維持し、Unknown Outcomeの照会結果が入力値と一致しても旧Mutation成功の証明・成功Notificationとはしない。個別のRecoveryや表示タイミングはSettingsのOwner DocumentおよびScreen Contractに従う。
