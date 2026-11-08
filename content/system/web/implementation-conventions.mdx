@@ -220,7 +220,7 @@ Codeは再利用性や技術的な種類ではなく、**その意味を所有�
 
 ## Feature内部構成
 
-FeatureはURL、Screen、Entity、Code量ではなく、独立したUser Purpose / Use Case / Behaviorをownerとします。Feature directoryは `src/features` 直下へkebab-caseでflatに配置し、URLやProduct namespaceをDirectory hierarchyとして表現しません。同じFeatureを複数routeから利用できます。
+FeatureはURL、Screen、Entity、Code量ではなく、独立したUser Purpose / Use Case / Behaviorをownerとします。Feature directoryは `src/features` 直下へkebab-caseでflatに配置し、URLやProduct namespaceをDirectory hierarchyとして表現しません。同じFeatureを複数routeから利用できます。例えばPersonal SettingsのURLが`/settings/...`でも、対応するFeatureは目的を表す`src/features/personal-settings/`とし、Feature Entryの`PersonalSettings.tsx`と画面Compositionの`PersonalSettingsView.tsx`をFeature直下に配置できます。URL PathをFeature名・Component名へ機械的に反映しません。
 
 ```text
 features/
