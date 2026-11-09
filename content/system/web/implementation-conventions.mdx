@@ -242,6 +242,17 @@ Feature数の多さ自体をArchitecture問題とはみなしません。探索�
 
 Featureには**Feature Entry**（外部Consumerが利用する主要な公開Component）という概念を設けます。標準的にはFeature rootに`<FeatureName>.tsx`を置き、機能名を表す名称を優先します。ただし完全一致を強制せず、Feature Entryが画面であることやGraphQL接続・Containerを担うことも要求しません。表示・状態・外部接続を分割するかは実際の責務と検証価値から決めます。`Connected`は外部接続、`Container`は状態・操作・Compositionの概念ですが、それぞれの専用ComponentやLayerを必須にしません。画面専用UI ComponentとFeature Entryの識別はFile配置・公開APIから分かるようにし、他のUI Componentは必要に応じてFeature直下の同名Directoryへ近接配置します。`<FeatureName>Content/`などの一律の受け皿Directoryを導入しません。
 
+### 人間が比較・探索しやすいFeature構造
+
+Memoriaでは、人間が変更内容を理解し、同種の処理の違いを発見し、Code Reviewを効率よく行えることを**コード構造の品質条件**とします。[AI支援開発の共通原則](/ai-development#人間によるコード理解レビューを支える実装品質)に従い、責務分離や再利用性が適切でも、必要な実装や変更理由を見つけにくい構造は見直しの対象です。
+
+- **対応する責務が見つかること**：複数の類似Featureを比べる場合、Entry、Router/外部接続、State Owner、View、Layout、Section、Hook、Story/Testなど、**実際に対応する責務**はできるだけ共通した命名・配置規則から発見できるようにします。Featureごとに無用な命名の揺れや階層の違いを作りません。
+- **固有の責務が分かること**：権限、Data取得、Preview/Production、画面構成などの違いにより責務が固有であれば、同じDirectory数やComponent名に合わせず、その差異が名前・所属・依存方向から読み取れるようにします。同名のEntryで実際の役割が異なる場合も、役割の違いを辿りやすいPublic APIとCompositionを検討します。
+- **構造の差を分類すること**：比較レビューでは、(1) Domain・State・Behavior上必要な違い、(2) 命名・配置・階層の不必要な不揃い、(3) 責務が混在していて見通しを悪くしている箇所を区別します。(2)は意味を損なわない範囲で整理し、(3)は既存ContractとConsumerへの影響を評価して境界を検討します。(1)を形式的な対称性のために削りません。
+- **レビューの追跡可能性**：変更に伴うimport/export、Consumer、Router/GraphQL接続、Story ID、Testの参照を確認し、変更前後の対応が人間に分かるようにします。単なるディレクトリ整理を口実にVisual / Behavioral / State / Responsive Contractを変更せず、最終的な検証は対象Taskの既存Gateと合意に従います。
+
+**同じ構造にすること自体や共通化は達成条件ではありません**。しかし、役割が類似する実装を人間が見比べやすいことは明示的な設計目標です。責務の境界と比較可能性が競合する場合は、どの差異が必要かを根拠付きで説明し、重要な境界変更や仕様変更は人間と合意してから進めます。固定のDirectory Templateや一律1対1のComponent対応は導入しません。
+
 ### Componentの責務境界と実装・Story・Testの配置
 
 Componentを作成・分割するかどうかは、独立した表示・操作、状態の所有、変更理由、再利用する意味的な契約、検証価値をもとに判断します。**Componentを作成したという理由だけで、同名Directory・Story・Testを一式必須としません。** 初期PrototypeのComponent構成は仮の実装境界であり、Visual Reviewとテスト設計の結果を踏まえて責務を見直せます。
