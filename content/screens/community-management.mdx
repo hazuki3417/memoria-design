@@ -64,6 +64,14 @@ nameは必須で、前後の空白を除去して空文字・空白だけの値�
 
 入力と保存の基本Interactionには[Editable Form](/design-system/patterns/editable-form)を適用します。
 
+#### Community名の編集中状態とSection離脱（2026-11合意）
+
+Community SettingsのGeneralでCommunity名を編集している間は、入力中のDraft、Validation、保存処理中・保存失敗時のFeedbackを同じGeneral内で扱います。Generalに留まっている間は、保存結果が不明な場合の現在値の再照会・確認と、既存の復旧Actionを利用できるようにします。
+
+GeneralからSettingsの別Section（Members / Preferences / Usageなど）へ移動した場合、**保存していないCommunity名のDraftと、保存結果不明に伴う画面上の状態・Feedbackは破棄します**。元のGeneralへ戻ったときは、画面に取得済みのCommunity名を初期値として新たな編集状態を開始し、離脱前のDraftや結果不明の表示を自動復元しません。Personal Settingsのニックネーム編集と同じSection離脱時の扱いです。
+
+この破棄は**画面ローカルな編集・Feedback状態の破棄**であり、送信済みの保存操作が失敗した、取り消された、または成功したことを意味しません。特に保存結果が不明な操作を離脱・再訪だけで成功／失敗と断定せず、必要な場合は現在値を確認します。同じ保存操作を確認なしに自動再送しません。Community名の保存済み値、権限制御、およびGeneral内での保存・再照会・復旧Capabilityは変更しません。
+
 ### Invitationを発行する
 
 現在利用可能なInvitationが存在しない場合、Administratorは新しいInvitationを発行できます。
