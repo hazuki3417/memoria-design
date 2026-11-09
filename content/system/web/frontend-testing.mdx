@@ -101,6 +101,13 @@ Storybookはテスト実行環境であると同時に、人が画面・部品�
 
 ## Mock・Fixture・実接続
 
+### Storybook専用Adapter・Mockの責務とテスト選択（2026-11-09合意）
+
+- Storybook・Visual Prototype専用のNavigation Adapter、Mock State、Fixtureは、Production向けの状態管理・API接続と区別できる内部境界に配置する。複数StoryやPrototypeで使う実装は、Consumerごとに複製せず内部の共有Moduleとして分離してよい。単一Consumerでだけ使う処理は、そのConsumerのprivate関数・Hook等として保持することを基本候補とする。
+- **Storybook専用実装だから一律にテスト不要とはしない。必要に応じてUnit / Component / Interaction Testを実装してよい。** 判定基準は、複数Consumerが依存するか、状態・分岐が複雑か、Mockの誤動作が製品UIのテストの信頼性を損なうか、他のStoryや既存Testがその契約をすでに検証しているか、保守費用に対して独立した検証価値があるか、とする。
+- Mockの内部状態の単純な複製テストは必須としない。一方、PreviewとProduction接続の隔離、複数Storyに共有されるNavigation State、外部APIを誤って実行しない境界など、重要で未検証の不変条件は適切な階層で保証する。既存Testを削除する場合は、他のStory / Testで保証が維持されるかを先に確認する。
+- Storybook用HelperやFixtureをProductionのFeature公開APIへ無理に追加しない。見た目や操作はProductionと同じUI Componentで検証し、Mock専用の別UIを作らない。
+
 - Mockは検証対象の外側の制御可能な境界へ置く。内部モジュールを過剰にMockして実際の接続欠陥を隠さない。
 - Component TestではProps / Callback等から入力・イベントを制御する。IntegrationではHTTP / GraphQL境界等を制御し、対象に含めるClient・状態管理・表示の接続を通す。
 - APIレスポンスの成功・失敗をMockしても、実Backendとの契約は保証されない。schema / operation整合性検証やApplication E2E等と役割を分ける。
