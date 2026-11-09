@@ -376,6 +376,8 @@ MediaGroupTileはMediaTileの読み込み・変換・エラー状態モデルを
 
 - **UI側の責務**: 画面構造、レイアウト、表示状態、共通のInteractionを所有します。必要に応じてProps、Callback、slot、children、compositionで差異を受け取ります。
 - **利用側の責務**: Router、認証、データ取得、永続化、Storybook fixture等の外部依存を接続します。これらを共通UIに直接埋め込みません。
+- **画面Navigationの外部注入（全Feature共通）**: Settings、Media Browser、Group Browser等、画面・Section間のNavigationを扱うFeatureの表示Componentは、現在位置と遷移要求をProps / Callback等で受け取り、遷移方式の選択・実行や画面遷移を模したlocal stateを内包しません。URL / browser history / deep linkを伴う本番Navigationは利用側のRoute / AdapterがNext.js Router等で接続し、Storybook / Visual Prototypeでは利用側のStory / Prototype Composition / AdapterがCanvas内で確認可能なlocal state等を接続します。表示ComponentがCallbackの有無や実行環境を判定してRouterとStorybook用local stateを切り替える設計は採用しません。
+- **NavigationとUI Stateの境界**: 外部注入の対象は画面Navigationとその遷移状態です。入力Draft、開閉、選択等、表示Componentが本来所有する画面内の一時的UI Stateまで一律に外部化しません。Navigationの差し替えのみを理由とする二重UI実装やProduction専用の余分なComponent・APIは作らず、Consumer固有の既存契約を維持します。
 - **構造の判断**: Presentational / Containerは責務を考える際の参考概念であり、固定Layer、専用Directory、`Container`という名前のComponentを必須としません。既存のContainerやWrapperも、独立した責務がなければ再検討します。
 - **抽出の判断**: 複数consumerが同じUI contractを必要とするなら共有Compositionを検討します。一方、共通化のためだけに大きな結合Componentを作らず、個別の既存Componentを組み立てる方が適切な場合はそれを許容します。
 - **不変条件**: 既存consumerの情報、Capability、状態、操作、Visual / Behavioral / Responsive contractを維持します。単純なconsumerに合わせて複雑なconsumerの機能を削りません。

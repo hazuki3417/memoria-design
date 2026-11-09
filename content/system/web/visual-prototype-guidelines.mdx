@@ -32,6 +32,8 @@ Prototypeは画面の探索・構築・Visual Reviewに用いる一時的な中�
 Screen Specificationが定める遷移先、操作の意味、遷移後に利用者が得る画面は本体で実装します。Storybookでは、その操作によってStoryの外や無関係なApplication routeへ移動してしまう場合、Story内に留まる表現を選びます。
 
 - Story内のSection切替は、Storybook専用のlocal stateまたは操作adapterで表現できます。
+- **Navigation実装の注入境界（全Feature共通）**: Settings、Media Browser、Group Browser等の共通画面表示Componentは、現在位置と遷移要求をProps / Callback等で扱い、Next.js RouterやStorybook専用local stateを内部で切り替えません。ProductionのRoute / AdapterがRouterによるURL遷移を注入し、Story / Prototype側のComposition / AdapterがStorybook Canvas内で遷移先画面と選択状態を確認できるlocal state等を注入します。
+- **外部注入を行う理由**: StorybookのCanvasでRouterによる本番URL遷移をそのまま実行すると、Story外へ移動するなどPrototypeで期待する画面遷移の確認ができない場合があります。そのため、同じUI Componentを維持したまま利用側で遷移実装を差し替えます。Storybook用の遷移StateをProduction用UIに含めたり、Callback未指定時に自動的にStorybook動作へ切り替えたりしません。
 - 操作部品、選択状態、表示内容は、可能な範囲でScreen Specificationの利用者向けContractに沿わせます。
 - Storybookでlocal stateを使うことを理由に、本体のroute、browser history、deep linkの要件を省略・変更しません。
 - 実URL変更、browser history、直接アクセス、遷移先データの結合は、本体の実装と適切なIntegration / E2E検証で確認します。StorybookとVRTでは、StoryのCanvas内で表示と操作状態を確認します。
