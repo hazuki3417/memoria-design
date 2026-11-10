@@ -134,6 +134,18 @@ VRTの目的は安定したStorybook表示の意図しないVisual / Layout / Re
 
 追跡Issue: [memoria-web #223](https://github.com/hazuki3417/memoria-web/issues/223)。実装運用のSource of Truthは `memoria-web` のVRT README / Workflow / Test設定とする。
 
+### UIカタログとProduction接続のテスト境界（2026-11-10合意）
+
+StorybookはUIの**カタログと検証環境**として、共通のView / Section UIの表示状態・操作・Navigation Callback・Responsive・Accessibility・VRTを検証する。基本のUI StoryはNext.js RouterおよびApolloに依存せず、実UIにFixture / Mock Callbackを渡す。Story内でUIの組み立てを行っても、接続Componentを別実装で完全再現することやProductionの外部依存をStoryへ持ち込むことは要求しない。
+
+- **Storyの原則的な対象**: UI Component、Section UI、画面のView / Compositionなど、カタログ・Interaction / VRTで独立した価値のある表示・操作の境界。Route / Connection Componentを追加しただけで同名Storyを作らず、**原則としてRoute / ConnectionのStoryは不要**。StorybookのためにProductionのProps・Layer・Directoryを増設しない。
+- **例外判断**: 実Apollo HookとClientを通すIntegration Storyに独立した検証価値があり、追加のProvider / Mock設定・カタログの重複に見合う場合は許容する。単に`Connected`という名前であることを理由に必須・禁止とはしない。既存の有効なIntegration Storyを削除するときは他のIntegration / E2Eで同等の保証を確認してから移行する。
+- **接続Integration**: 実際のConnection / Generated Apollo Hook / Apollo Clientを通し、外部GraphQL / HTTPの応答境界だけを制御する。Query・Mutation、Loading/Error/Retry、結果の解釈、Cache / Refetch、権限・保存後のUI反映を必要な範囲で検証する。UI StoryのMock Callback成功はProduction接続の成功を保証しない。Integrationの実行場所はStorybookに限定せず、独立したComponent / Integration Testでもよい。
+- **Application E2E**: 認証、Next.js Route Handler / Proxy、実Apollo通信、Navigation、実Backend / テスト専用DB、永続化をまたぐ主要ユーザーフローを、**実際に動くWebアプリケーション**の隔離環境で検証する。IntegrationのMockが保証しない経路を対象にし、正常系だけでなく高リスクの権限・保存・復旧等から選ぶ。具体的な実行環境・認証準備・テストデータ管理・CI起動条件は未確定であり、別途設計する。
+- **実BackendへのConnection単独接続**: 技術的には可能でも、現行WebはApollo Provider、同一Originの`/api/graphql`、Next.js側のAuth0 Session / Token転送に依存する。別の直結用Client・Proxy・認証Harnessを用意すると構築・保守費用やProduction経路との差分が生まれるため、**標準のテスト方式にはしない**。単純なHTTP / `fetch`等で実行環境依存が小さい接続では、独立した実Backend結合テストを個別に検討してよい。テスト容易性だけを理由にProductionのApollo構成を変更しない。
+
+**テスト選択の判断基準**: (1) 保証したい利用者視点の結果と失敗時のリスク、(2) 実際に通す必要のある接続境界、(3) Provider・Auth・Proxy・DB等の環境準備とProductionとの差分、(4) 既存Story / Testで保証済みの範囲、(5) 実行時間・再現性・保守費用を比較する。Mock Integrationで十分なら実Backendを要求せず、認証・Proxy・永続化までの保証が必要なら少数のApplication E2Eを選ぶ。既存の保証を削る場合は移管先を確かめる。
+
 ## 既存テストの移行と方針改善
 
 既存テストコードは新規方針を正当化する根拠にせず、現行の保証対象を把握するために棚卸しする。適合するテストは維持し、階層の誤りや実装詳細への過度な依存は修正する。重複を整理する場合も有効な保証の消失がないことを確認する。欠けている重要なテストは追加する。変更前後の表示・動作・Keyboard・Responsiveへの意図しない回帰を許容しない。
