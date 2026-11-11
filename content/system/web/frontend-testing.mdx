@@ -165,7 +165,7 @@ Frontend Integrationでは、生成に用いたSchema・Operation・API契約が
 
 **十分性の判断**: (1) 意味的に異なる重要分岐、(2) 保存・結果不明・権限・競合等の重要な不変条件、(3) Mockでは検出できない実アプリの主要結合経路が適切な階層で保証され、既存テストとの無意味な重複・欠落がないこと。API数、Component数、Mock数、Coverage率の単純な量を達成基準にしない。
 
-Application E2EはAuth0のテスト専用Tenantを使わず、外部認証のみをWeb・API双方のテスト専用認証アダプターで代替する。Productionの認証経路から隔離し、実Auth0のLogin / Callback・Token更新やJWT検証をE2Eで保証したとは扱わない。境界と安全要件は[テスト設計のE2E認証代替](/test-design#e2eにおける外部認証の代替)に従う。Sessionの生成・保持と認証主体の注入、環境構成、Migration / Fixture / Cleanup、CIの起動・並列実行方式の具体化は[Webのテスト戦略Issue](https://github.com/hazuki3417/memoria-web/issues/103)で追跡する。設計に合意したことだけでは構築済み・動作確認済みと扱わない。
+Application E2EはAuth0のテスト専用Tenantを使わず、外部認証のみをWeb・API双方のテスト専用認証アダプターで代替する。テスト準備で署名付きSessionをHttpOnly Cookieとして作成し、Web Serverは検証済みSessionからAPI専用の短寿命署名付きBearer Tokenを生成して既存の`Authorization: Bearer`経路へ送る。API側はTokenを検証してIssuer・Subjectを確立し、実際のUser解決・認可・GraphQL処理を維持する。通常ビルドの認証経路から分離し、実Auth0のLogin / Callback・Token更新や**Auth0 Access Token**のJWT検証をE2Eで保証したとは扱わない。SessionとAPI Tokenの独立性・期限・用途・秘密情報・隔離の要件は[テスト設計のE2E認証代替](/test-design#e2eにおける外部認証の代替)に従う。Cookie/Tokenの形式、認証アダプターの差し替え構成、Migration / Fixture / Cleanup、CIの起動・並列実行方式は[Webのテスト戦略Issue](https://github.com/hazuki3417/memoria-web/issues/103)で追跡する。設計に合意したことだけでは構築済み・動作確認済みと扱わない。
 
 ## 既存テストの移行と方針改善
 
