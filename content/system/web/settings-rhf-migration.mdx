@@ -311,11 +311,23 @@ Validationは未操作時に表示しない。原則BlurまたはSubmit後に表
 
 **同一Resultの表示**：Fieldに帰属する失敗はField Error、Form全体・保存操作に属する失敗はForm Alertを主とする。同一結果をNotificationとAlertに二重表示しない。持続的なエラーは通知が消えても再試行導線が残ること。読み上げ・Focus移動はエラー発生時の優先順位を考慮し、入力中に無闇にFocusを奪わない。
 
-### 実装I/Fの方向性（型名は提案・未確定）
+### 明示保存Actionの結果インターフェース
 
-Feature固有の保存Actionは、少なくとも成功時の**保存済み確定値**または識別可能な失敗をFormへ返す。例：`Promise<SaveResult<TValue>>`で`{status:"confirmed"; value:TValue}`／`{status:"field-invalid"; fields:...}`／`{status:"form-invalid"; reason:...}`／`{status:"retryable"; reason:...}`／`{status:"blocked"; reason:...}`／`{status:"unknown"; reason:...}`。これは意味モデルの説明であり、汎用型の導入を確約するものではない。共有されるResult分類に必要な最小型のみ共通化し、個別のField Pathや成功データはFeature側の型に保持する。
+明示的な保存操作では、各Featureの保存ActionがGraphQL Mutationの結果と失敗を解釈し、Formへ`Promise<ExplicitSaveResult<TValue>>`を返す。FormはGraphQL ErrorやApolloの例外を直接分類せず、利用者の操作可否・Validation・復旧手順を結果の意味から決定する。
 
-`try/catch/finally`または同等の明示的分岐でrejectの未処理をなくす。保存中を表す状態は`finally`で解放するが、失敗状態は自動消去しない。送信時の値と後続のRHF Draftが異なる場合、旧応答による`reset`を禁止する。Context ID変更後に旧Contextの非同期応答が新しいFormへ適用されないよう区別する。
+| 結果 | Formへ渡す情報と保証する動作 |
+| --- | --- |
+| `confirmed` | `value: TValue`。Mutationで確定した保存値を渡し、保存済み基準に採用する。送信値とServer確定値が異なる場合は確定値を優先する |
+| `validation` | `violations`。公開された入力違反のField Pathを保持する。Fieldを特定できなければForm全体のErrorとする |
+| `retryable` | 明確に再試行可能と判明した失敗。Draftを保護し、明示的な再試行を案内する |
+| `blocked` | 利用者に提示できる`feedback`を伴う継続不可。公開された理由だけから安全な説明を組み立て、保存と入力を停止する |
+| `unknown` | 保存成立を否定できない失敗。自動再送を避け、現在値の照会と利用者による明示的な解決を待つ |
+
+`useExplicitSave`は上記の結果、送信前の入力妥当性・変更有無、照会結果を受けて、保存中・Blockedの入力停止、通常の保存可否、重複送信防止、Unknown復旧を扱う。RHF Draft、Zod、Field Error、保存済み基準と再取得の同期、画面ごとのFeedback文言は各Formが所有する。GraphQLの型・例外分類はForm Hookへ戻さない。
+
+Storybook / Prototypeでは本番のGraphQL Mutationを使わずに同じForm UIへ意味的なAction結果を渡し、例外を返す既存Story Mockの変換はStory側で行う。環境別のAdapterをFormの公開Propsへ追加しない。
+
+処理が予期せず失敗した場合、保存が拒否されたと断定せず結果不明と扱う。保存中を表す状態は結果を受け取って解除するが、失敗状態は自動消去しない。Context ID変更後に旧Contextの応答を新しいFormへ反映させない。自動保存のQueue・Snapshot・結果確定処理にはこの明示保存Actionの契約を無条件に適用しない。
 
 ### 手動保存：状態遷移
 
