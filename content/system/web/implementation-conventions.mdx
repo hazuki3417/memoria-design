@@ -267,6 +267,15 @@ Componentを作成・分割するかどうかは、独立した表示・操作�
 
 Component Directoryを選択した場合でも、それ自体はPublic API公開を意味しません。公開する境界では `index.ts` により明示的なexportを管理します。既存のComponent Directoryやexportを、設計MDX廃止だけを理由に移動・変更しません。
 
+### JSX属性の並び順とツールによる自動化（2026-11-09合意）
+
+JSXの属性（Componentへ渡すpropsを含む）は、**Biomeの標準Assistが対応する範囲でアルファベット順**に整理する。個人の判断による意味的グルーピングや、手作業で例外まで揃えることは求めない。`memoria-web/biome.json` の `assist.actions.source.useSortedAttributes` を設定の正本とする。
+
+- 自動化は**既存のBiome標準機能**に限定する。自作スクリプト、独自Sorter、props整列のみのための別Linter / Pluginは追加しない。
+- **JSX属性の整列と、PropsのTypeScript型メンバー・関数引数の分割代入・オブジェクトキーの整列は別問題**として扱う。後者について、標準機能で実現可能と確認できない限り手作業の統一規則を課さない。
+- Spread属性による値の上書き、属性評価順の副作用、`key` / `ref` 等の特殊な意味を壊す並べ替えは行わない。ツール側の安全な適用範囲に従い、実際に振る舞いが変わるケースは修正せず検証・判断する。
+- 設定追加だけで既存ソースの全属性が整列済みとは扱わない。Formatter / Assistの実行結果と差分は別途検証し、UI・Behavior・Story IDに影響させない。
+
 ### Custom Hookのファイル責務と再export
 
 独立したCustom Hookは原則として`useXxx.ts`（JSXを必要とする場合のみ`.tsx`）に`useXxx`を実装し、**ファイル名と主たる実装を1:1**で対応させます。小規模なHookを専用Directoryにする必要はありません。複数の独立したHookを名前の異なるComponentファイルへ同居させず、所有するFeature / Componentの近くに配置します。
