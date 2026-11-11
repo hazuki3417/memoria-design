@@ -88,10 +88,19 @@ VRTは**承認済みBaselineを比較の正本として扱う通常実行**と�
 - Webではテスト専用Sessionにより認証状態を再現します。保護画面の認証Guard、Next.js側のデータ取得とRoute Handler / Proxy、Apollo、API、DBの結合を検証対象に含めます。通常のWeb認証処理が参照する境界で差し替え、画面や機能ごとにテスト専用の分岐を散在させません。
 - APIでは認証済み主体の確立だけをテスト用Middlewareに差し替えます。Issuer・Subjectと内部Userの対応、ACTIVE状態、Community・Media等の現在の権限判定、GraphQLの実処理と永続化は通常の実装を使用します。Browserが任意のIssuer・Subjectを通常リクエストへ付加するだけで権限を得られる構成にはしません。
 - テスト用認証経路は専用のビルド・起動構成と隔離された実行環境に限定します。通常・本番のWeb/APIにテスト用認証を有効化できる経路を残さず、テスト専用Endpointや認証用Headerを外部公開しません。主体の切り替えは信頼できるテスト準備経路とサーバー側のSession管理を介し、他のテストからのなりすましやSessionの混線を防ぎます。
-- Auth0 Universal Login、実際のOAuth/OIDC Callback、Auth0 Sessionの失効・Token更新、APIのJWT署名・Issuer・Audience検証は、この代替認証を使うApplication E2Eで保証したとは扱いません。JWT検証はAPI側のUnit / Integration Test、Auth0実接続は必要に応じた別の接続確認で扱い、未検証範囲を明示します。
+- Auth0 Universal Login、実際のOAuth/OIDC Callback、Auth0 Sessionの失効・Token更新、**Auth0 Access Token**のJWT署名・Issuer・Audience検証は、この代替認証を使うApplication E2Eで保証したとは扱いません。Auth0 Access Tokenの検証はAPI側のUnit / Integration Test、Auth0実接続は必要に応じた別の接続確認で扱い、未検証範囲を明示します。
 - 認証主体と業務データは実行・テストケース単位で独立したFixtureとして準備します。Migrationは通常のDB Schemaを用い、開発用DBを破壊するSeederをE2Eに流用せず、失敗時も専用環境の破棄・リセットで再実行可能にします。
 
-テスト専用Sessionの発行方法、Web/APIの差し替え箇所、既存のAPI Integration用認証Middlewareの再利用範囲、依存サービスの起動方法とCIの構成は、各Repositoryの実装・テスト設定を確認して具体化します。実際の接続経路と隔離条件を確認するまで、E2Eが成立したとは扱いません。
+#### テスト用Sessionと署名付きBearer Token
+
+- Playwrightの信頼できるテスト準備処理で、テスト実行・テスト主体に紐づく短寿命の**署名付きSession**を作成し、HttpOnly CookieとしてBrowser Contextへ設定します。BrowserはCookieの内容や主体を任意に書き換えられず、一般利用者向けの任意主体Login Endpointは設けません。
+- E2E専用Web認証アダプターがCookieの署名、有効期限、実行識別子、用途を検証し、Sessionに含まれるIssuer・Subjectから認証主体を確定します。未認証、改ざん、期限切れ、他の実行に属するSessionは拒否します。Sessionの取得、保護画面への遷移、Logout時のSession破棄は製品の画面・BFF経路を使って検証します。ただしAuth0自体のLogin・Logout成立を保証したとは扱いません。
+- Web Serverが検証済みSessionから、**API専用の短寿命署名付きBearer Token**を発行し、既存の`Authorization: Bearer`で実APIへ送ります。API向けTokenをBrowserへ渡さず、実Apollo・Next.js Route Handler・Server側GraphQL取得・Media Uploadの本来の通信経路を維持します。Session CookieとAPI向けTokenは用途・Audience・署名鍵を分離し、互いに流用できない形式とします。
+- E2E専用API認証MiddlewareはBearer Tokenの署名、許可する署名方式、Issuer、Audience、有効期限、用途、実行識別子を検証してからIssuer・Subjectを認証コンテキストへ設定します。無効・期限切れ・異なる用途のToken、署名無しToken、Auth0の本番用Token等は拒否します。Subjectや権限を任意のリクエストHeaderから受け入れず、User状態・Membership等の業務認可は通常処理へ渡します。
+- 署名鍵はテスト実行専用に安全に生成・注入し、通常・本番のAuth0やアプリケーションSessionの鍵と共有しません。ログ、Playwright trace、スクリーンショット、Artifact、Repositoryへ秘密情報や認証Tokenを保存しません。Session・Tokenの再利用は同一実行・許可されたTest Actorの範囲に限定します。
+- E2E用と通常用のWeb/API認証実装は、実行時の公開リクエストや単なる環境変数の切り替えだけでは相互に有効化できないビルド・実行境界で分離します。通常ビルドがテスト専用Session・Tokenを受け付けないこと、E2E環境から実サービスへ接続しないことを検証条件とします。
+
+Cookieと署名付きTokenの具体的な形式・署名方式・有効期限、Webのビルド時差し替え方法、APIの通常Application構成との接続、Fixture・依存サービスの起動、CIの構成は、各Repositoryの実装を確認し、実際の結合・隔離が検証できる形で具体化します。実行検証が成立するまではE2Eを構築済みとして扱いません。
 
 ### GitHub Actions Workflowの表示名
 
