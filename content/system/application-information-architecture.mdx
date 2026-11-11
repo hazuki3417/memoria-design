@@ -176,7 +176,7 @@ Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communi
 - 参加Communityがない場合もPersonalとACTIVE User向けCommunity作成の入口を維持します。
 - Context選択時は上記のDestination対応規則に従って遷移します。切り替え処理中は重複操作を防ぎ、遷移先の取得に失敗した場合はエラーを表示し、現在の利用可能なcontextを維持します。
 - URLを現在contextの正本とし、Switcher独自の永続的な選択状態を持ちません。Browserの戻る・進むと直接アクセス時にもURLから現在contextを復元します。
-- Membership喪失・存在しないURL・閲覧不可・回復不能な取得失敗は、個別の専用画面を設けず共通エラー表示を使用します。APIの公開エラーコードによる内部処理の区別は維持します。認証Session失効時は従来どおりログインへ誘導します。
+- Membership喪失・存在しないURL・閲覧不可・回復不能な取得失敗は、原則として共通エラー表示を使用します。ただしCommunity Settingsの各Sectionでは、本人のMembership一覧を正常に取得して対象Communityへの非所属が確定した場合に限り、非所属の案内とPersonal Dashboard（`/dashboard`）へ戻るボタンを表示します。自動リダイレクトは行いません。未取得・通信失敗・`NOT_FOUND`等を非所属と推定せず、APIの公開エラーコードによる区別と認証Session失効時のログイン誘導は維持します。
 
 ## Context Navigation
 
@@ -236,7 +236,7 @@ Personal contextの標準entryはDashboardです。
 
 Navigation上で操作を提示することと、domain上の認可は分離します。Web UIで非表示または無効化してもAPI側の認可を代替しません。
 
-CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったAdministrator限定Actionを継続利用させません。Community Membershipを失った場合は、そのCommunityの保護データを継続表示せず、他のエラーと共通のエラー画面を表示します。原因を特定する文言やCommunityの非公開情報を表示せず、Personal Dashboard（`/dashboard`）へ戻る導線を提供します。過去のCommunity URLへの直接アクセスで`NOT_FOUND`となった場合も、同じ画面を表示します。
+CommunityのroleやMembershipが変化した場合は現在の権限を再評価し、利用できなくなったAdministrator限定Actionを継続利用させません。Community Membershipを失った場合は、そのCommunityの保護データを継続表示しません。Community Settings（一般・メンバー・環境設定・利用状況）では、本人のMembership一覧の正常取得によって非所属が確定した場合、全Section共通の案内「このCommunityには所属していません」と説明、Personal Dashboard（`/dashboard`）へ戻るボタンを表示します。自動遷移せず、Userの操作で移動します。Loading中・取得失敗は非所属として扱わず、前者はLoading、後者はError / Retryを提示します。Community自体の存在や非公開情報は開示しません。APIの`NOT_FOUND`や他の閲覧不可状態は本人の非所属判定と混同せず、従来の共通エラーの扱いを維持します。
 
 具体的な認可規則は[Community権限](/community/authorization)および[認証・認可・Privacy共通方針](/system/cross-cutting/authentication-authorization-privacy)を正本とします。
 
