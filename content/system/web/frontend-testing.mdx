@@ -157,7 +157,7 @@ Frontend Integrationでは、生成に用いたSchema・Operation・API契約が
 
 #### Application E2Eシナリオの選定基準
 
-実Frontend、認証、Next.js Route Handler / Proxy、実Apollo通信、API、テスト専用DBを含む**実際に稼働するアプリケーション**の主要な結合経路を検証する。Mock Integrationで網羅した細かい分岐をE2Eで重複しないことを基本とする。
+実Frontend、テスト専用認証アダプター、Next.js Route Handler / Proxy、実Apollo通信、API、テスト専用DBを含む**実際に稼働するアプリケーション**の主要な結合経路を検証する。外部認証の成立のみ代替し、Web・APIの実接続と現在のUser・権限判定は通常の処理を検証する。Mock Integrationで網羅した細かい分岐をE2Eで重複しないことを基本とする。
 
 - **代表的な主要User Flow**: 認証済みユーザーが実UIから操作し、API / DBへの反映を確認し、必要ならNavigation / 再読込後の状態まで検証する。機能ごとに単純な成功・失敗の全組合せを繰り返さない。
 - **実境界が重要な高リスクScenario**: 認証・認可、別User / Communityへの影響防止、不可逆操作、永続化や復旧などは、代表的な成功フローのみで保証できない場合に必要な禁止・失敗側のE2E（または該当Backend Integration）も選ぶ。
@@ -165,7 +165,7 @@ Frontend Integrationでは、生成に用いたSchema・Operation・API契約が
 
 **十分性の判断**: (1) 意味的に異なる重要分岐、(2) 保存・結果不明・権限・競合等の重要な不変条件、(3) Mockでは検出できない実アプリの主要結合経路が適切な階層で保証され、既存テストとの無意味な重複・欠落がないこと。API数、Component数、Mock数、Coverage率の単純な量を達成基準にしない。
 
-E2Eの具体的な認証方法、環境構成、Migration / Fixture / Cleanup、CIの起動・並列実行方式は**引き続き未決定**であり、この基準を合意したことだけでは構築済み・動作確認済みと扱わない。関連する実装課題は[Webのテスト戦略Issue](https://github.com/hazuki3417/memoria-web/issues/103)で追跡する。
+Application E2EはAuth0のテスト専用Tenantを使わず、外部認証のみをWeb・API双方のテスト専用認証アダプターで代替する。Productionの認証経路から隔離し、実Auth0のLogin / Callback・Token更新やJWT検証をE2Eで保証したとは扱わない。境界と安全要件は[テスト設計のE2E認証代替](/test-design#e2eにおける外部認証の代替)に従う。Sessionの生成・保持と認証主体の注入、環境構成、Migration / Fixture / Cleanup、CIの起動・並列実行方式の具体化は[Webのテスト戦略Issue](https://github.com/hazuki3417/memoria-web/issues/103)で追跡する。設計に合意したことだけでは構築済み・動作確認済みと扱わない。
 
 ## 既存テストの移行と方針改善
 
