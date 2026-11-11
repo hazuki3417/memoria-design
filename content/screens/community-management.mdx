@@ -96,6 +96,12 @@ AdministratorはCommunity Deletion Confirmationへ進めます。
 
 Settings画面上の単純な確認だけでCommunity削除を確定しません。
 
+## Settings全Section共通のMembership確認
+
+Community SettingsのGeneral / Members / Preferences / Usageを開いたときは、現在Userが対象Communityの有効なMembershipを持つことを確認します。所属情報の取得中はLoading、取得失敗はErrorとRetryを提示し、取得失敗を非所属と見なしません。非所属が確定した場合はSectionの保護情報を表示せず、「このCommunityには所属していません」という案内と「ダッシュボードへ戻る」ボタンを表示します。自動リダイレクトは行いません。
+
+この状態はCommunity SettingsのRoute共通で扱い、個々のSectionが別々の遷移処理を持ちません。Member / AdministratorのCapabilityとAPI側の認可は変更しません。詳細は[Application Information Architecture](/system/application-information-architecture)を参照します。
+
 ## 状態
 
 ### 通常

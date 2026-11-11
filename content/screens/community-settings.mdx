@@ -97,7 +97,7 @@ Community PreferencesはUser × Community scopeの個人設定、[Community Sett
 
 ### Membership失効
 
-Membershipが失効した場合はCommunity Preferencesを継続利用させず、Application IAに従って安全なdestinationへ移動します。
+本人のMembership一覧の正常取得によって対象Communityへの非所属が確定した場合、Preferencesの内容は表示せず、Community Settings共通の非所属案内と「ダッシュボードへ戻る」ボタンを表示します。自動遷移は行わず、ボタン操作時にPersonal Dashboard（`/dashboard`）へ移動します。所属状態の取得中・取得失敗は非所属と混同せずLoading / Error・Retryを表示します。詳細は[Application Information Architecture](/system/application-information-architecture)に従います。
 
 ## 制約
 

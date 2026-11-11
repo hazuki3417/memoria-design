@@ -101,7 +101,7 @@ role変更はMembers上の対象User表示へ即時反映します。他Userの�
 
 ### Membership失効
 
-現在User自身が除外される等によりMembershipを失った場合はMembersを継続表示せず、[Application Information Architecture](/system/application-information-architecture)に従って利用可能な安全なApplication destinationへ移動します。
+現在User自身が除外される等によりMembershipを失い、その非所属が本人のMembership一覧の正常取得によって確定した場合は、Membersの保護情報を継続表示せず、Community Settings共通の非所属案内と「ダッシュボードへ戻る」ボタンを表示します。自動遷移は行いません。取得失敗は非所属と混同せずError / Retryを提示します。**自分自身の退会操作が成功した直後**のDashboardへの遷移と成功Notificationは従来どおり維持します。詳細は[Application Information Architecture](/system/application-information-architecture)に従います。
 
 ## Navigation
 
