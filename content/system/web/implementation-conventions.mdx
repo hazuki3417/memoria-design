@@ -330,6 +330,18 @@ src/features/media-browser/
 
 Feature内部は、Frontendで役割や変更理由を理解しやすい**責務・機能のまとまり**を起点に配置します。独立したまとまりが複数ある場合は `profile/`、`preferences/` 等、その意味を示すdirectoryへ分割し、各まとまりに属するComponent・Hook・Pure Logic・Type・Story・Testを近接配置します。Domainの厳密な境界やURL・Screenの階層を機械的にdirectoryへ写すのではなく、実際に一緒に変更・検証する単位で判断します。一つの明確な責務に収まる小規模Featureではflat構成を許容します。`components/`、`hooks/`、`types/`、`utils/`、`constants/`、`services/` 等のcode種別だけによる分類を標準化しません。小さなprivate Component、Props、型、定数、Pure LogicはownerのFileへ置いて構いません。Feature内部の分割で別の独立した利用目的や複数Feature間の依存を隠さず、外部から再利用される責務が明確な場合は独立FeatureとPublic APIを検討します。
 
+### Feature内部の所有関係と依存方向
+
+Component・Hook・Pure Logic等の配置は、責務の所有関係とModuleの依存方向を人間が追跡できる構造とします。ここでいう「親・子」は単なるDirectoryの物理的な上下関係ではなく、Compositionや責務の所有者と、その配下で独立した責務を担うModuleの関係を指します。Clean Architectureの依存ルールを全面採用するのではなく、Feature内の読みやすさと変更容易性のために次の方向性を適用します。
+
+- **原則（必須）**: 親 / Ownerは子の公開された契約を参照・呼び出せます。子は親の実装詳細を直接importしません。特に、兄弟のSection / Controllerが別のSectionやRouteの内部ファイルを「共通コード置き場」として参照する配置を避けます。
+- **親子間の通信（許容）**: 子が親から受け取ったProps、Callback、slot / children等を利用し、親へイベントや結果を通知して構いません。これは子から親の実装Moduleへのimport依存とは区別します。
+- **兄弟Module間（許容）**: 同じ所有階層のModule同士は、責務上必要なら一方向のimport依存を持てます。ただし相互importなどの循環依存は禁止します。依存が多方向へ広がる場合や一方が事実上の共有Capabilityなら、Ownerと公開境界を見直します。
+- **共通責務の配置（必須）**: 複数の子が使う処理は、実際の責務を所有するFeature直下、適切な共通Owner、または独立したCapabilityに配置します。共有されているという理由だけで上位へ移すことや、依存方向を成立させるためだけの無意味な抽象化は行いません。
+- **検証（必須）**: 配置・責務変更時には対象Moduleのimport（type-onlyを含む）、Public API、全Consumer、Story / Testを確認します。Directory内から直接参照されないことだけで未使用と断定せず、参照先が所属する責務と実際の依存方向を照合します。既存のVisual / Behavioral / State / Responsive Contractは維持します。
+
+例えば`PersonalSettingsRoute/`がRouteのCompositionを所有し、`profile/`・`preferences/`がSectionの接続を所有するとき、両Sectionから使うInspection処理をRoute内部へ置き、子からRoute内部へimportするのは避けます。その処理をどこで所有するかは、取得・確認するデータと変更理由に応じて判断します。
+
 Usageでは`src/features/usage/Usage.tsx`がPersonal / Community共通の表示とInteractionを所有します。Context固有のApollo Query・取得状態・Preferences解決・Retry接続はそれぞれ`src/features/personal-settings/usage/ConnectedPersonalUsage.tsx`、`src/features/community-settings/usage/ConnectedCommunityUsage.tsx`が所有します。共通UIをStorybook Interaction / VRT、実Apollo Hookを通る接続をGraphQL境界MockのIntegration Storyで検証します。
 
 Application Shellはアプリケーション全体のNavigationとContext切替を所有するFeatureとして `src/features/application-shell/` に配置します。Feature内に技術種別だけの `components/` directoryを設けず、`ApplicationShell/`、`ApplicationHeader/` 等の独立した責務ごとにFeature直下へ近接配置します。Productionの接続は実際に利用される `ApplicationShellContainer` が所有し、利用箇所のない別Composition実装を保守目的で重複させません。配置整理では既存のUI、状態、Interaction、Responsive BehaviorとStorybook / Prototypeのcontractを維持します。
