@@ -481,11 +481,11 @@ Storybookの構成都合からProductionのComponentや公開Propsを増やさ�
 
 FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部更新の接続責務と利用者が操作するFormの状態管理を分離して実装する。入力項目や保存対象の違いではなく、**同じ種類の操作に対して同じ状態・操作条件が成立すること**を共通の基準とする。
 
-- **Section Connection / Action**: Sectionに必要な現在値を取得し、保存用ActionをFormへ渡す。ActionはGraphQL Mutation、確認済みの保存結果・Error分類、必要なCache更新・Refetch等の外部副作用を扱う。明示保存では`ExplicitSaveResult<T>`として確定値・Validation・再試行可能・継続不可・結果不明を返し、FormへGraphQL ErrorやApolloの例外分類を持ち込まない。Mutation確定後のRefetch失敗で確定した成功を取り消さない。
+- **Section Connection / Action**: Sectionに必要な現在値を取得し、保存用ActionをFormへ渡す。ActionはGraphQL Mutation、確認済みの保存結果・Error分類、必要なCache更新・Refetch等の外部副作用を扱う。保存方式によらず`SaveActionResult<T>`（`confirmed`・`validation`・`retryable`・`blocked`・`unknown`）を返し、FormやQueueへGraphQL ErrorやApolloの例外分類を持ち込まない。Mutation確定後のRefetch失敗で確定した成功を取り消さない。
 - **Form Owner**: RHFのDraft、ZodのValidationと正規化、保存可能条件、送信中・失敗・結果不明と復旧の状態を扱う。接続されたActionを実行し、入力・保存ボタンの操作可否、確定値への更新、結果に応じたFeedbackを一貫して決定する。外部APIの呼出しやApollo Cache更新は所有しない。
 - **Form UI / Feedback**: Form Ownerが公開する意味的な状態・操作を用いて、入力、Action、Field Error、持続的なFeedbackと復旧操作を表示する。画面固有の文言や入力制約、表示位置を一律にそろえる必要はない。
 - **共通化の単位**: 保存結果の意味と操作条件を共通の振る舞いとして保証し、各FormのAction / Form Ownerは対応するFeatureの近くに置く。共通Moduleを抽出する場合は、実際に同じ責務・状態遷移が存在し、複数Consumerの比較と検証を容易にすることを確認する。単一の巨大なAction Hook、汎用Form State Machine、固定の`Action` Component階層は前提としない。
-- **共通Hookの名前と範囲**: 明示的に実行する保存の状態・操作可否・結果不明時の復旧は`useExplicitSave`が扱う。`ManualSaveLifecycle`など内部の状態遷移方式をHook名に含めず、自動保存と区別できる操作名を用いる。RHF・Zod・Field Error・保存済み値の同期は個々のForm Hookが扱い、GraphQL・API固有の失敗分類は外部Action接続が意味的な結果へ変換する。共通Hookへ全Formの状態や接続を統合しない。
+- **共通Hookの名前と範囲**: 明示的に実行する保存の状態・操作可否・結果不明時の復旧は`useExplicitSave`が扱う。`ExplicitSaveResult<T>`は共通`SaveActionResult<T>`の別名であり、Action自体を明示保存専用にしない。RHF・Zod・Field Error・保存済み値の同期は個々のForm Hookが扱い、GraphQL・API固有の失敗分類は外部Action接続が意味的な結果へ変換する。共通Hookへ全Formの状態や接続を統合しない。
 - **Storybook / Prototype**: 本番と同じForm UIを利用し、Story側はMockの保存結果を明示保存Actionの型へ変換して渡す。例外を返す既存Story CallbackとのAdapterをForm Hook内へ置かず、検証用依存を本番のForm Propsへ追加しない。
 
 明示的な「保存」を押して確定するFormでは、次の操作条件を共通にする。
@@ -502,11 +502,13 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 
 現在値の照会結果がDraftと一致しても、先のMutationが成功した証拠とは扱わない。照会中にDraftが変更された場合は古い照会結果を復旧判断に使わない。Blocked / Unknownと再試行可能な失敗は混同しない。個々のForm固有のValidation・権限・保存データ・Feedback文言は所有元に残す。
 
-**自動保存は別の操作方式**として扱う。入力変更のたびにQueueへ保存意図を積み、送信中も最新の入力を保持するため、明示保存の「保存中は入力停止」を機械的に適用しない。Queueの直列化・順序・送信時Snapshot・Preview / 確定値の境界、失敗後の保留・復旧、静かな保存Statusは、自動保存側の既存仕様を維持して別途扱う。共通化できるのは保存結果の意味や入力を失わない原則など、同じ意味を持つ責務に限る。
+**手動保存と自動保存は同じAction契約を利用する**。異なるのはActionを起動するTriggerであり、手動保存は有効なボタン操作、自動保存は有効な入力変更をDebounceして保存Actionを実行する。自動保存では保存中も最新のDraftを入力可能にし、送信済み値と後続の変更を取り違えないよう、保存通信の直列化と最新値の保持を最小限のTrigger責務として持つ。手動保存の「保存中は入力停止」を自動保存へ適用しない。
 
-**自動保存Actionの失敗契約**：保存成功時は既存Queue / Controllerが要求する確定値を返す。GraphQL・通信Errorの分類はFeature Action接続で実施し、継続不可・入力拒否・再試行可能・結果不明を`AutoSaveFailure`に変換して`AutoSaveActionError`として伝達する。Session / Controllerは`getAutoSaveFailure`で意味的な失敗だけを読み、GraphQLの公開Code・Apolloの例外形状へ依存しない。分類できない失敗は保存の不成立を断定せず`unknown`とし、Queueを一時停止して自動再送しない。これはQueueの成功値／失敗時Promise rejectを維持するための境界であり、明示保存の`ExplicitSaveResult<T>`や`useExplicitSave`を自動保存へ流用するものではない。
+**自動保存の接続Adapter**：Feature Actionは共通の`SaveActionResult<T>`を返す。既存の自動保存Queue / Controllerは「成功時は確定値、失敗時はPromise rejectで保留」という既存APIを維持するため、Connectionで`requireConfirmedSave`により結果を変換する。拒否時の`SaveActionError`は共通`SaveActionFailure`を保持し、Controllerは`getSaveActionFailure`で意味的な失敗を処理する。これは二重の失敗分類や独立した自動保存Action契約ではない。予期しない例外は`unknown`とし、自動再送しない。
 
-Personal Preferencesは複数FieldのPatch結合・400ms Debounce・Application Shell内Sessionと未完成HEXのDraftを保持する。Community AccentはCommunity IDごとの最新有効HEXの直列保存・即時Preview・失敗時の表示色復元と明示復旧を保持する。両者を1つの汎用Queueや共通`useAutoSave`へ先回りして統合しない。自動保存の共通化はAction失敗の意味モデルに限定し、QueueのLifetime・送信順序・復旧条件はそれぞれの所有者が保証する。
+Personal Preferencesは複数FieldのPatch結合・400ms Debounce・Application Shell内Sessionと未完成HEXのDraftを保持する。Community Accentは有効なHEXの入力時にPreviewを**即時反映**し、保存Actionを**最後の有効入力から400msのDebounce後**に実行する。通信中に新しい入力があるときは最新値だけを直列に保存する。未完成HEXが新しい入力になった場合は未送信の保存を破棄し、失敗時は確定色の表示へ戻すとともにDraftと明示的な復旧操作を保持する。Community IDごとのSession、Preview、Rollbackは維持する。
+
+自動保存を単一の`useAutoSave`や共通Queueに統合しない。Trigger側がDebounce・連続編集・必要な直列化を担当し、Feature固有のPatch生成、Preview、Cache同期、復旧UI・Stateの寿命はそれぞれのOwnerに残す。保存結果の契約だけを共通化し、ActionやForm側へTriggerの実装都合を持ち込まない。
 
 Personal Profile、Community Name、Community Aliasのような明示保存Formは、入力項目や接続先が異なってもこの操作条件を共通に適用する。既存画面の操作条件が異なる場合も、画面固有の例外として温存せず共通動作へ整合させる。ただし、自動保存Formや削除・退会等の個別確認を要する業務Actionへ、手動保存の操作規則を無条件に広げない。
 
