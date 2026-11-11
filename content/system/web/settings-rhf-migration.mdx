@@ -342,6 +342,14 @@ Storybook / Prototypeでは本番のGraphQL Mutationを使わずに同じForm UI
 
 ### 自動保存：Queue・Baseline・Feedback
 
+#### 保存Actionの接続Contract（手動保存とは別）
+
+自動保存Actionは確定値を返す既存Promiseを維持し、処理できなかった場合はFeature側のGraphQL接続で公開Error・Typed InputViolation・通信結果を分類し、`AutoSaveActionError`に`AutoSaveFailure`を渡して失敗を伝える。Failureは`validation`（InputViolationまたはForm全体の拒否）／`retryable`（再試行可能と判明した失敗）／`blocked`（公開情報から判断できる操作不可と安全なFeedback）／`unknown`（Mutationが成立していないと確認できない失敗）を区別する。
+
+Session / Queue / Controllerは`getAutoSaveFailure`で分類済みの意味だけを扱い、GraphQL Error CodeやApollo例外を検査しない。分類されていない例外は`unknown`とし、自動再送を行わない。GraphQL ErrorからFeedbackを組み立てるのは接続側であり、通信層の生のMessageを画面へ流さない。失敗時はQueueが保持したPatchやAccent ControllerのDraftを消さず、Blockedは再送を止める。Unknownは現在値を照会し、利用者による明示的な確認・再保存・破棄を待つ。
+
+Personal PreferencesとCommunity Accentは、成功値・保存対象・Debounce・Preview・Rollback・復旧操作・SessionのLifetimeが異なる。Actionの失敗分類を共有しても、QueueやControllerを一つの`useAutoSave`へ統合しない。明示保存の入力停止ルールと`useExplicitSave`も適用しない。Storybookで従来の例外を返すMockを使う場合は、Story側でこのAction境界へ変換し、本番FormのAPIへ検証専用Propsを増やさない。
+
 - `Draft`（RHF）が最新の選択・未完成入力を表し、Queueが`pending`／`in-flight` Patch、成功確定した値が`confirmed baseline`を表す。各Fieldの`dirty`を「最後に保存を要求したか」の意味で代用しない。
 - Successには**成功したPatch／送信時の値**が必要。Queueに成功Snapshotを伝搬する契約を設ける。受信したServer全体のPreferencesを無条件`reset`することは禁止。
 - Fieldごとに、確定値と送信時以降の新しいDraftを比較する。未送信・in-flight・失敗・さらに編集中のFieldは保護し、確定済みで未編集のFieldのみ保存基準を進める。未完成`accentDraft`は、HEXが未完成の間は保存済みと混同しない。
