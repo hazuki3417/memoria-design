@@ -502,7 +502,7 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 
 **自動保存は別の操作方式**として扱う。入力変更のたびにQueueへ保存意図を積み、送信中も最新の入力を保持するため、明示保存の「保存中は入力停止」を機械的に適用しない。Queueの直列化・順序・送信時Snapshot・Preview / 確定値の境界、失敗後の保留・復旧、静かな保存Statusは、自動保存側の既存仕様を維持して別途扱う。共通化できるのは保存結果の意味や入力を失わない原則など、同じ意味を持つ責務に限る。
 
-今回の整理による変更対象は、明示保存を持つPersonal Profile、Community Name、Community Aliasの入力中・保存中・Blocked時の操作条件である。既存実装でCommunity Nameの保存中再編集、Community Name / AliasのBlocked中編集が可能な箇所は、維持すべき固有仕様ではなく、共通動作への統一対象とする。具体的なAction / Form Hook境界と共通Moduleの有無は、既存Consumer・Story・Testの比較により確定する。自動保存Formや削除・退会等の個別確認を要する業務Actionへ、手動保存の操作規則を無条件に広げない。
+Personal Profile、Community Name、Community Aliasのような明示保存Formは、入力項目や接続先が異なってもこの操作条件を共通に適用する。既存画面の操作条件が異なる場合も、画面固有の例外として温存せず共通動作へ整合させる。ただし、自動保存Formや削除・退会等の個別確認を要する業務Actionへ、手動保存の操作規則を無条件に広げない。
 
 ### Composition Root
 
