@@ -127,6 +127,7 @@ Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system
 - Dirtyの意味は現行契約が優先。現行がTrim/正規化後に比較するFieldでは、RHFの生の`isDirty`をそのまま保存可否に転用しない。`getValues`・`useWatch`で値を取得し、Pure Functionで正規化した値を保存基準値と比較して導出する。
 - 保存成功時は確認済みServer Response / 保存対象の値を基準に`reset`を検討する。ただし、保存中の新しいユーザー入力を上書きしない。入力が凍結される明示保存フォームと、操作が継続する自動保存フォームとで同期方法を分ける。
 - Apolloの`cache-and-network`再取得のたびにDraftを無条件`reset`しない。現在の同期挙動に変更が生じる場面は「未決定事項」に記す。
+- 明示保存Formで再取得値を採用してよいかは共通Pure Logic `resolveConfirmedSourceSync`で判定し、`unknown`中は非採用、確定直後の古いQuery echoは非採用、未編集時だけDraftを同期する。保存済み基準、前回Query値、待機中echo、実際のRHF `reset`は各Formが所有する。ProfileのRetryable中に`reset`しない条件は引き続きProfileが指定する。
 - Field ValidationとServer保存失敗は別物。RHFの`errors`は入力制約を中心とし、`retryable`/`blocked`/保存中・通知は現行のInteraction Stateと表示契約を維持する。
 - React Hook FormはApollo Cache、Mutation実行順序、Queue、Context AccentのAuthorityを所有しない。
 - `mode`・Validation表示時機・`onBlur`等は既存UIのError表示時機を回帰条件として選択する。初回表示で空欄エラーが出るStoryなどを消さない。
