@@ -504,6 +504,10 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 
 **自動保存は別の操作方式**として扱う。入力変更のたびにQueueへ保存意図を積み、送信中も最新の入力を保持するため、明示保存の「保存中は入力停止」を機械的に適用しない。Queueの直列化・順序・送信時Snapshot・Preview / 確定値の境界、失敗後の保留・復旧、静かな保存Statusは、自動保存側の既存仕様を維持して別途扱う。共通化できるのは保存結果の意味や入力を失わない原則など、同じ意味を持つ責務に限る。
 
+**自動保存Actionの失敗契約**：保存成功時は既存Queue / Controllerが要求する確定値を返す。GraphQL・通信Errorの分類はFeature Action接続で実施し、継続不可・入力拒否・再試行可能・結果不明を`AutoSaveFailure`に変換して`AutoSaveActionError`として伝達する。Session / Controllerは`getAutoSaveFailure`で意味的な失敗だけを読み、GraphQLの公開Code・Apolloの例外形状へ依存しない。分類できない失敗は保存の不成立を断定せず`unknown`とし、Queueを一時停止して自動再送しない。これはQueueの成功値／失敗時Promise rejectを維持するための境界であり、明示保存の`ExplicitSaveResult<T>`や`useExplicitSave`を自動保存へ流用するものではない。
+
+Personal Preferencesは複数FieldのPatch結合・400ms Debounce・Application Shell内Sessionと未完成HEXのDraftを保持する。Community AccentはCommunity IDごとの最新有効HEXの直列保存・即時Preview・失敗時の表示色復元と明示復旧を保持する。両者を1つの汎用Queueや共通`useAutoSave`へ先回りして統合しない。自動保存の共通化はAction失敗の意味モデルに限定し、QueueのLifetime・送信順序・復旧条件はそれぞれの所有者が保証する。
+
 Personal Profile、Community Name、Community Aliasのような明示保存Formは、入力項目や接続先が異なってもこの操作条件を共通に適用する。既存画面の操作条件が異なる場合も、画面固有の例外として温存せず共通動作へ整合させる。ただし、自動保存Formや削除・退会等の個別確認を要する業務Actionへ、手動保存の操作規則を無条件に広げない。
 
 ### Composition Root
