@@ -485,6 +485,7 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 - **Form Owner**: RHFのDraft、ZodのValidationと正規化、保存可能条件、送信中・失敗・結果不明と復旧の状態を扱う。接続されたActionを実行し、入力・保存ボタンの操作可否、確定値への更新、結果に応じたFeedbackを一貫して決定する。外部APIの呼出しやApollo Cache更新は所有しない。
 - **Form UI / Feedback**: Form Ownerが公開する意味的な状態・操作を用いて、入力、Action、Field Error、持続的なFeedbackと復旧操作を表示する。画面固有の文言や入力制約、表示位置を一律にそろえる必要はない。
 - **共通化の単位**: 保存結果の意味と操作条件を共通の振る舞いとして保証し、各FormのAction / Form Ownerは対応するFeatureの近くに置く。共通Moduleを抽出する場合は、実際に同じ責務・状態遷移が存在し、複数Consumerの比較と検証を容易にすることを確認する。単一の巨大なAction Hook、汎用Form State Machine、固定の`Action` Component階層は前提としない。
+- **共通Hookの名前と範囲**: 明示的に実行する保存の状態・操作可否・結果不明時の復旧は`useExplicitSave`が扱う。`ManualSaveLifecycle`など内部の状態遷移方式をHook名に含めず、自動保存と区別できる操作名を用いる。RHF・Zod・Field Error・保存済み値の同期は個々のForm Hookが扱い、GraphQL・API固有の失敗分類は外部Action接続が意味的な結果へ変換する。共通Hookへ全Formの状態や接続を統合しない。
 
 明示的な「保存」を押して確定するFormでは、次の操作条件を共通にする。
 
@@ -741,7 +742,7 @@ Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValid
 - 明示保存では検証済みの値を送信し、送信中は入力を停止する。保存成功時に確認済みの値を保存基準へ反映する。保存結果が遅れて届いた場合や自動保存などで後続のDraftが存在する場合も、古い応答によって新しい入力を上書きしない。失敗時には編集値を保持し、失敗の意味に応じて再試行・状態確認・継続不可を区別する。
 - 自動保存は入力イベントによる送信、Debounce・直列化・Rollbackなど既存のFeature契約を維持する。共通化するのは「未確定の入力を意図せず失わせない」というUX原則であり、保存方式や失敗時のUIまで画一化しない。
 - Contextが切り替わったら新しいContextの初期値へ切り替え、旧ContextのDraft・保存対象を混在させない。厳密な多端末競合制御が必要になった場合は、Formの共通FrameworkではなくBackendとの更新契約を含めて個別に設計する。
-- 新しい汎用Form State Machine、Cache同期Layer、共通Controllerは作らない。同期・保存のContractは各Featureに近い場所で実装し、未編集・編集中・保存成功・失敗などを対応するInteraction Testで検証する。
+- 新しい汎用Form State Machine、Cache同期Layer、すべてのFormを所有する共通Controllerは作らない。明示保存に限って共通する操作可否・保存状態・復旧を`useExplicitSave`へ集約し、各FormのRHF・Validation・保存済み値同期・固有UIはそれぞれの所有元で実装する。自動保存のQueueとLifecycleは統合しない。未編集・編集中・保存成功・失敗などを対応するInteraction Testで検証する。
 
 ### Form Feedback / Validation UX（2026-11-02合意）
 
