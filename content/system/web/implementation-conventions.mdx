@@ -485,7 +485,7 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 - **Form Owner**: RHFのDraft、ZodのValidationと正規化、保存可能条件、送信中・失敗・結果不明と復旧の状態を扱う。接続されたActionを実行し、入力・保存ボタンの操作可否、確定値への更新、結果に応じたFeedbackを一貫して決定する。外部APIの呼出しやApollo Cache更新は所有しない。
 - **Form UI / Feedback**: Form Ownerが公開する意味的な状態・操作を用いて、入力、Action、Field Error、持続的なFeedbackと復旧操作を表示する。画面固有の文言や入力制約、表示位置を一律にそろえる必要はない。
 - **共通化の単位**: 保存結果の意味と操作条件を共通の振る舞いとして保証し、各FormのAction / Form Ownerは対応するFeatureの近くに置く。共通Moduleを抽出する場合は、実際に同じ責務・状態遷移が存在し、複数Consumerの比較と検証を容易にすることを確認する。単一の巨大なAction Hook、汎用Form State Machine、固定の`Action` Component階層は前提としない。
-- **共通Hookの名前と範囲**: 明示的に実行する保存の状態・操作可否・結果不明時の復旧は`useExplicitSave`が扱う。`ExplicitSaveResult<T>`は共通`SaveActionResult<T>`の別名であり、Action自体を明示保存専用にしない。RHF・Zod・Field Error・保存済み値の同期は個々のForm Hookが扱い、GraphQL・API固有の失敗分類は外部Action接続が意味的な結果へ変換する。共通Hookへ全Formの状態や接続を統合しない。
+- **共通Hookの名前と範囲**: 明示的に実行する保存の状態・操作可否・結果不明時の復旧は`useExplicitSave`が扱う。明示保存のForm HookもActionの戻り値を直接`SaveActionResult<T>`として扱い、保存方式ごとの結果型や別名を設けない。RHF・Zod・Field Error・保存済み値の同期は個々のForm Hookが扱い、GraphQL・API固有の失敗分類は外部Action接続が意味的な結果へ変換する。共通Hookへ全Formの状態や接続を統合しない。
 - **Storybook / Prototype**: 本番と同じForm UIを利用し、Story側はMockの保存結果を明示保存Actionの型へ変換して渡す。例外を返す既存Story CallbackとのAdapterをForm Hook内へ置かず、検証用依存を本番のForm Propsへ追加しない。
 
 明示的な「保存」を押して確定するFormでは、次の操作条件を共通にする。
