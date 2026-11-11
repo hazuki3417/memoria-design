@@ -134,6 +134,39 @@ VRTの目的は安定したStorybook表示の意図しないVisual / Layout / Re
 
 追跡Issue: [memoria-web #223](https://github.com/hazuki3417/memoria-web/issues/223)。実装運用のSource of Truthは `memoria-web` のVRT README / Workflow / Test設定とする。
 
+### UIカタログとProduction接続のテスト境界（2026-11-10合意、同日追補）
+
+Storybookは**UIカタログ兼テスト環境**であり、カタログの純粋さを目的として有効なInteraction / Integration Storyを排除しない。UIの表示・操作・Responsive・Accessibility・VRTと、実際のUIを通して価値のあるGraphQL Mock Integrationの両方に利用する。Connection / Routeの名前や存在だけでStoryを必須にせず、利用者が観測する契約とテスト独自の検証価値で選択する。
+
+- **UI固有の検証**: View / Section UI / 共通UIの表示・操作・Navigation Callback・状態表現は、実際のUI ComponentにFixtureやCallbackを渡すStorybook Interaction / VRTで検証する。Storybook専用のUI再実装、Productionへのテスト専用Propsや不必要な接続注入は行わない。
+- **Mock Integrationの位置付け**: API応答に対するFrontendの意味的な振る舞いを積極的に検証する。Productionの対象コード（必要なFeature Entry / Connection / Container、生成Apollo Hook、Apollo Client、Adapter、Cacheなど）を**検証目的に必要な範囲で実行し**、外部GraphQL / HTTP応答を制御する。Connection Componentのテストを一律に要求しない。生成Hookや対象の接続処理をMockすると、その接続自体を保証したことにはならない。
+- **Storybook / Vitestの選択**: API応答後のUI表示・操作・Focus・Feedback・Retry等を検証する価値がある場合はStorybook Integrationを積極的に選択できる。UIを必要としない結果の分類・変換、Mutation Variables、Cacheの整合性、複雑な応答順序・競合はVitestのUnit / Integrationを基本候補とする。**Storybookを例外、Vitestを標準といった機械的な序列は設けない**。いずれの環境でも必要な接続境界と独立した検証価値で決める。
+- **Route / Connection Story**: 作成したComponentに同名のStoryを自動追加しない。Route / ConnectionのStoryは原則必須ではないが、実Apollo Hook・UI接続の検証に独立した価値があればIntegration Storyを設けてよい。従来の有効なStoryを削除・移行する前に、その保証が別のTest / Storyで維持されるかを確認する。
+- **実BackendへのConnection単独接続**: 技術的には可能でも、現行WebはApollo Provider、同一Originの`/api/graphql`、Next.js側のAuth0 Session / Token転送に依存する。直結用Client・Proxy・認証Harnessを別に構築すると保守費用とProduction経路との差分が生まれるため、標準方式にはしない。実行環境依存の少ないHTTP / `fetch`等では個別に検討できる。テストのためだけにProductionのApollo構成を変更しない。
+
+#### Mock Integrationシナリオの選定基準
+
+APIのすべてのレスポンス値の組合せを列挙せず、**Frontendの処理・表示・操作・不変条件が意味的に異なる応答の同値クラス**を選ぶ。正常系、確定0件・null等、Validation / Conflict / 権限、通信失敗・結果不明、Loading / Retry、二重送信・応答順序・Context切替、Cache / Refetch等は選定候補であり、すべてのQuery / Mutationへの必須チェックリストではない。
+
+1. Given / When / Thenで、利用者が観測する結果、または重要な外部契約・不変条件を先に記述する。単なるMockの成功応答や内部関数の呼出だけを目的としない。
+2. 応答が異なっても同じFrontendの振る舞いへ集約される場合は代表値でよい。結果不明時の再送禁止、失敗時のDraft保護、権限、確定状態の非巻戻しなど、違う処理・禁止事項が必要なら独立Scenarioとして検証する。
+3. Mockは決定的に再現できるOperation / Variables / Response / Error / Delayを使い、必要なら応答順序や回数も制御する。生成GraphQL型・Documentを基準にFixtureを構成する。Mock自体がBackendの正しさを自動保証するものとは扱わない。
+4. Unit / Interaction / Integration / E2Eの既存保証を照合し、同じScenarioを重複する場合は追加で検出する欠陥を明確にする。リスク・分岐の複雑さ・保守費用で選定し、固定件数や一律の網羅率を要求しない。
+
+Frontend Integrationでは、生成に用いたSchema・Operation・API契約が正しいことを前提としてよい。ただしCodegenの静的な整合性と、稼働Backendの実際の応答・意味的契約が一致することは同義ではない。MockでBackend実装の検証を代替せず、必要なAPI側Contract Testと実接続E2Eで補完する。
+
+#### Application E2Eシナリオの選定基準
+
+実Frontend、認証、Next.js Route Handler / Proxy、実Apollo通信、API、テスト専用DBを含む**実際に稼働するアプリケーション**の主要な結合経路を検証する。Mock Integrationで網羅した細かい分岐をE2Eで重複しないことを基本とする。
+
+- **代表的な主要User Flow**: 認証済みユーザーが実UIから操作し、API / DBへの反映を確認し、必要ならNavigation / 再読込後の状態まで検証する。機能ごとに単純な成功・失敗の全組合せを繰り返さない。
+- **実境界が重要な高リスクScenario**: 認証・認可、別User / Communityへの影響防止、不可逆操作、永続化や復旧などは、代表的な成功フローのみで保証できない場合に必要な禁止・失敗側のE2E（または該当Backend Integration）も選ぶ。
+- **選定と実行**: Mockでは検出できない結合欠陥、影響度、発生可能性、環境準備・再現性・実行費用を比較する。通常PRでは影響範囲に応じたシナリオ、Release前は主要フローを広く確認する方針は[テスト設計](/test-design)に従う。
+
+**十分性の判断**: (1) 意味的に異なる重要分岐、(2) 保存・結果不明・権限・競合等の重要な不変条件、(3) Mockでは検出できない実アプリの主要結合経路が適切な階層で保証され、既存テストとの無意味な重複・欠落がないこと。API数、Component数、Mock数、Coverage率の単純な量を達成基準にしない。
+
+E2Eの具体的な認証方法、環境構成、Migration / Fixture / Cleanup、CIの起動・並列実行方式は**引き続き未決定**であり、この基準を合意したことだけでは構築済み・動作確認済みと扱わない。関連する実装課題は[Webのテスト戦略Issue](https://github.com/hazuki3417/memoria-web/issues/103)で追跡する。
+
 ## 既存テストの移行と方針改善
 
 既存テストコードは新規方針を正当化する根拠にせず、現行の保証対象を把握するために棚卸しする。適合するテストは維持し、階層の誤りや実装詳細への過度な依存は修正する。重複を整理する場合も有効な保証の消失がないことを確認する。欠けている重要なテストは追加する。変更前後の表示・動作・Keyboard・Responsiveへの意図しない回帰を許容しない。

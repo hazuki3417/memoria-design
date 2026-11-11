@@ -442,6 +442,18 @@ Component分割は「将来再利用できるか」ではなく、独立した�
 
 この区分は責務を説明するためのものであり、各コンポーネントにPresentational/Containerの二つのファイルや層を必ず作る規則ではありません。Presentation全体を単一コンポーネントに集約することも必須としません。共通のUI責務が明確である場合に限って上位コンポーネントへの抽出を検討し、Propsの橋渡しや環境別の条件分岐だけを増やす抽象化は避けます。実際の責務と複雑さに応じて分割します。既存実装を抽出する際は変更前のvisual / behavior contractと比較し、Storybookを含む表示・操作・レスポンシブの回帰を確認します。
 
+### Settingsを例とするRoute・Connection・UIの接続境界（2026-11-10合意）
+
+Storybookの構成都合からProductionのComponentや公開Propsを増やさず、利用環境ごとの外部依存をUIの外側で接続する。以下はSettingsで合意した責務分担の具体例であり、全Featureに同名の固定Layerや同数のComponentを強制しない。
+
+- **Route / Production Composition**: Section選択、URL / Navigation、必要な画面共通Guardや共通状態の調整、Section Contentの組み立てを担当する。App Routerの`page.tsx`はRoute Parameter等の入口とし、単純な接続ならPage内のCompositionも許容する。ただし、複数画面で共有する接続や独立したLifecycle・状態・外部依存がある場合はFeature側へ置き、PageにGraphQLや認可・復旧処理を無制限に集めない。`SettingsRoute`自体は必須Layerではない。
+- **Section Connection**: Section固有のQuery / Mutation、Cache / Refetch、権限・取得状態の意味的変換、保存・Retryなど、実際に存在する外部接続を所有し、同じSectionのUI ComponentにデータとCallbackを渡す。Section単位を基本候補とするが、**接続が不要なSectionにはConnection Componentを作らない**。既存の共通Query、Provider、Guard、State Ownerを各Connectionに重複させない。独立した接続責務がない単なるProps中継・Hook転送も作らない。
+- **View / Section UI**: Layout、表示状態、入力、局所的UI State、Interactionを担当する。Next.js Router、Apollo Client、生成GraphQL HookおよびStorybookのFixtureを直接取り込まず、意味的なProps / Callback / contentで接続する。RouteがSectionを選びViewへContentを渡し、必要なSection ConnectionはそのContentを構成する形を基本候補とする。
+- **Storybook / Prototype**: ProductionのRoute / Connectionを再現すること自体を目的とせず、**同一の実UI Component**をFixture、Mock Data / Callback、Story専用Navigation State等と組み合わせる。UIカタログ・UI Interaction / VRTはRouterとApolloに依存しない構成を基本とし、ProductionにStorybook専用分岐やテスト用Propsを追加しない。Story側で接続処理に似たCompositionを書いても、実際のGraphQL接続の保証にはならないため、テストの責務は別に扱う。
+- **Story / Directoryの判断**: RouteやConnection Componentには原則Storyを設けない。UIの表示・操作に独立した検証価値がある境界にStoryを置き、接続の検証はIntegration / E2Eを基本とする。Componentを作ったこと、Storyを作らないこと、名前が`Route`/`Connected`であることだけでは専用Directoryを要求しない。関連する複数の実装・Hook・Testや公開APIをまとめる実質的な必要がある場合だけDirectoryを設け、Section固有のConnectionはSection ownerの近くに置く。既存Directoryの一括削除は目的とせず、Consumerと公開APIを照合して移行する。
+
+**判断基準**: 新しいRoute / Connection / Hook / Directoryを設ける前に、(1) 固有の外部依存・State Owner・Lifecycle・Guardが存在するか、(2) 既存ownerとの責務重複や不要なProps中継がないか、(3) 人間がSection単位で追跡・レビューできるか、(4) Production / Storybook / PrototypeのVisual・Behavioral・State・Responsive contractを維持できるか、(5) 接続のテスト保証がどの層に残るかを確認する。異なるFeatureのファイル数やComponent数を揃えること自体を採用基準にしない。接続が複雑なSectionと接続不要のSectionは別構造でよい。
+
 ### Composition Root
 
 GraphQL、Mapper、React State、Pure Logic、Feature Component等を接続するComposition責務は必要ですが、`Composition Root`、`Container`、`Presenter` 等の固定Layer・命名・Directoryを標準化しません。接続Codeは実際のownershipに最も近い境界へ配置し、下位Componentへ外部Integrationの詳細を漏らしません。
