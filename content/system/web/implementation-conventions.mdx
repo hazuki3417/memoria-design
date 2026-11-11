@@ -506,7 +506,7 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 
 **自動保存の接続Adapter**：Feature Actionは共通の`SaveActionResult<T>`を返す。既存の自動保存Queue / Controllerは「成功時は確定値、失敗時はPromise rejectで保留」という既存APIを維持するため、Connectionで`requireConfirmedSave`により結果を変換する。拒否時の`SaveActionError`は共通`SaveActionFailure`を保持し、Controllerは`getSaveActionFailure`で意味的な失敗を処理する。これは二重の失敗分類や独立した自動保存Action契約ではない。予期しない例外は`unknown`とし、自動再送しない。
 
-Personal Preferencesは複数FieldのPatch結合・400ms Debounce・Application Shell内Sessionと未完成HEXのDraftを保持する。Community Accentは有効なHEXの入力時にPreviewを**即時反映**し、保存Actionを**最後の有効入力から400msのDebounce後**に実行する。通信中に新しい入力があるときは最新値だけを直列に保存する。未完成HEXが新しい入力になった場合は未送信の保存を破棄し、失敗時は確定色の表示へ戻すとともにDraftと明示的な復旧操作を保持する。Community IDごとのSession、Preview、Rollbackは維持する。
+Personal Preferencesは複数FieldのPatch結合・400ms Debounce・Application Shell内Sessionと未完成HEXのDraftを保持する。Community Accentは有効なHEXの入力時にPreviewを**即時反映**し、保存Actionを**最後の有効入力から400msのDebounce後**に実行する。通信中に新しい入力があるときは最新値だけを直列に保存する。未完成HEXが新しい入力になった場合は未送信の保存を破棄し、失敗時は確定色の表示へ戻すとともにDraftと明示的な復旧操作を保持する。Community IDごとのSession、Preview、Rollbackは維持する。認証済みApplication Shellの終了時は未実行の保存予約を取り消すが、開始済みMutationを取消済みとは扱わない。
 
 自動保存を単一の`useAutoSave`や共通Queueに統合しない。Trigger側がDebounce・連続編集・必要な直列化を担当し、Feature固有のPatch生成、Preview、Cache同期、復旧UI・Stateの寿命はそれぞれのOwnerに残す。保存結果の契約だけを共通化し、ActionやForm側へTriggerの実装都合を持ち込まない。
 
