@@ -102,8 +102,8 @@ Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system
 
 - Formは画面で確認した初期値から編集する。Apollo Cacheの内部差異や多端末競合表示を共通Form機能として扱わない。
 - 未編集のDraftはServerから届いた新しい値を表示してよい。編集中・保存中・保存失敗で未確定の値があるときはその入力を上書きしない。Context変更時は新しいContextとして初期化する。
-- 保存成功時は確定した値を保存基準へ反映する。保存中にユーザーが新たに編集した場合、古い保存応答で新しいDraftを消さない。
-- 手動保存と自動保存の保存開始・失敗時UIは各Featureの既存契約を尊重する。保存Queue、Rollback、Cache操作をこの方針のためだけに新しい共通Layerへ移さない。
+- 保存成功時は確定した値を保存基準へ反映する。明示保存中は入力を停止する。自動保存等で保存中に新しいDraftが生じる場合や応答が遅れて届く場合も、古い保存応答で新しいDraftを消さない。
+- 明示保存には[Form Actionの接続境界と共通動作](/system/web/implementation-conventions#form-actionの接続境界と明示保存の共通動作)を適用する。自動保存には入力継続・Queue・Preview等の固有の仕組みがあり、手動保存の入力停止条件を適用しない。保存Queue、Rollback、Cache操作をこの方針のためだけに新しい共通Layerへ移さない。
 - Community Nameは今回の合意でServer Props変更時の無条件上書きを廃止し、未編集時のみ自動追従する。Interaction Storyで再取得時の未編集同期と編集中保護を検証する。
 - Profile・Alias・Preferences・Accentの既存挙動は、追加の回帰確認なしに広範囲を変更しない。特に自動保存中のサーバー応答とRollbackはそれぞれ既存の保存契約を優先し、個別のテストで確認する。
 
@@ -321,11 +321,12 @@ Feature固有の保存Actionは、少なくとも成功時の**保存済み確�
 
 1. `pristine`：初期値を表示。取得値更新へ追従。未操作のValidation Errorなし。
 2. `editing`：RHF Draft保持。編集対象Fieldは新しい取得値で上書きしない。
-3. `submitting`：Submitで検証したSnapshotを送信。二重Submitを防止。送信中に再編集を許すFeatureでは新しいDraftを保護。
+3. `submitting`：Submitで検証したSnapshotを送信する。入力と同じ保存Actionを停止し、二重送信を防止する。Draftを保持し、遅延応答で別Contextや新しい状態を上書きしない。
 4. `confirmed-success`：確定したSnapshotをBaselineへ反映。追加編集がない場合のみRHF表示値へ同期。成功Notificationは操作単位で一度だけ。
 5. `field-invalid`／`form-invalid`：Errorを該当場所に保持。正しい編集・再試行で解消。
 6. `retryable-failure`：Draft維持・Form Alert・再試行。失敗原因が残っている間は成功を表示しない。
-7. `blocked`／`unknown-outcome`：継続不可または結果不明を明示。自動再送しない。回復・確認の手段を案内。
+7. `blocked`：Draftを保持したまま入力と保存を停止する。無意味な再送を許さず、判明している理由と可能な次の操作を案内する。
+8. `unknown-outcome`：Draftを保持し、現在値の照会前に再送しない。照会一致は過去のMutation成功と断定せず明示確認、不一致なら明示的な再保存／破棄を提供する。照会失敗は未確定のまま保持する。
 
 ### 自動保存：Queue・Baseline・Feedback
 
@@ -384,7 +385,7 @@ Feature固有の保存Actionは、少なくとも成功時の**保存済み確�
 2. `unknown-outcome`をどの操作で再照会・再送可能とするか。BackendのIdempotency・更新Version・結果照会契約の有無を確認して決定する。
 3. 自動保存Statusの表示位置・表示保持時間・再試行操作と、成功通知を不要とする条件。
 4. Community AccentのRollback方針（確定色へ復元／未保存の選択を保持）と未完成HEXの扱い。
-5. 保存中に手動入力をDisableするか許可するか。既存実装と異なるUXへの変更は明示合意が必要。
+
 
 ## 2026-11-02 合意：GraphQL Hybrid Error Model
 
