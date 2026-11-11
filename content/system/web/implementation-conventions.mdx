@@ -477,6 +477,33 @@ Storybookの構成都合からProductionのComponentや公開Propsを増やさ�
 
 **判断基準**: 新しいRoute / Connection / Hook / Directoryを設ける前に、(1) 固有の外部依存・State Owner・Lifecycle・Guardが存在するか、(2) 既存ownerとの責務重複や不要なProps中継がないか、(3) 人間がSection単位で追跡・レビューできるか、(4) Production / Storybook / PrototypeのVisual・Behavioral・State・Responsive contractを維持できるか、(5) 接続のテスト保証がどの層に残るかを確認する。異なるFeatureのファイル数やComponent数を揃えること自体を採用基準にしない。接続が複雑なSectionと接続不要のSectionは別構造でよい。
 
+### Form Actionの接続境界と明示保存の共通動作
+
+FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部更新の接続責務と利用者が操作するFormの状態管理を分離して実装する。入力項目や保存対象の違いではなく、**同じ種類の操作に対して同じ状態・操作条件が成立すること**を共通の基準とする。
+
+- **Section Connection / Action**: Sectionに必要な現在値を取得し、保存用ActionをFormへ渡す。ActionはGraphQL Mutation、確認済みの保存結果・Error分類、必要なCache更新・Refetch等の外部副作用を扱う。API固有の型・通信状態・実装都合を表示Componentへ漏らさず、保存成功を確認できる結果または意味の分かる失敗を返す。Mutation確定後のRefetch失敗で確定した成功を取り消さない。
+- **Form Owner**: RHFのDraft、ZodのValidationと正規化、保存可能条件、送信中・失敗・結果不明と復旧の状態を扱う。接続されたActionを実行し、入力・保存ボタンの操作可否、確定値への更新、結果に応じたFeedbackを一貫して決定する。外部APIの呼出しやApollo Cache更新は所有しない。
+- **Form UI / Feedback**: Form Ownerが公開する意味的な状態・操作を用いて、入力、Action、Field Error、持続的なFeedbackと復旧操作を表示する。画面固有の文言や入力制約、表示位置を一律にそろえる必要はない。
+- **共通化の単位**: 保存結果の意味と操作条件を共通の振る舞いとして保証し、各FormのAction / Form Ownerは対応するFeatureの近くに置く。共通Moduleを抽出する場合は、実際に同じ責務・状態遷移が存在し、複数Consumerの比較と検証を容易にすることを確認する。単一の巨大なAction Hook、汎用Form State Machine、固定の`Action` Component階層は前提としない。
+
+明示的な「保存」を押して確定するFormでは、次の操作条件を共通にする。
+
+| 状態 | 入力 | 保存・復旧操作 |
+| --- | --- | --- |
+| 未編集・編集中 | 入力できる | 有効な変更があるときだけ保存できる。未操作のField Errorは表示しない |
+| 入力不正 | 修正できる | 不正な値では保存できず、Blur / Submit後に該当FieldのErrorを提示する |
+| 保存中 | **入力を停止する** | 同じ保存を重複実行できない。送信時の値と後続の結果を対応付ける |
+| 保存確定 | 入力できる | 確認済みの値を新しい基準とし、成功Notificationを操作単位で一度だけ表示する |
+| 再試行可能な失敗 | Draftを保持して編集できる | 持続的な説明と、明示的な再試行手段を提供する |
+| 継続不可（Blocked） | **入力を停止し、Draftは保持する** | 無意味な再送を許さず、判明している理由と次に可能な操作を示す |
+| 保存結果不明（Unknown） | Draftを保持する | 現在値を照会する前に同じ操作を再送しない。一致した場合は明示確認、不一致の場合は現在値とDraftを示して明示的な再保存または破棄を選べるようにする。照会失敗時は未確定を維持する |
+
+現在値の照会結果がDraftと一致しても、先のMutationが成功した証拠とは扱わない。照会中にDraftが変更された場合は古い照会結果を復旧判断に使わない。Blocked / Unknownと再試行可能な失敗は混同しない。個々のForm固有のValidation・権限・保存データ・Feedback文言は所有元に残す。
+
+**自動保存は別の操作方式**として扱う。入力変更のたびにQueueへ保存意図を積み、送信中も最新の入力を保持するため、明示保存の「保存中は入力停止」を機械的に適用しない。Queueの直列化・順序・送信時Snapshot・Preview / 確定値の境界、失敗後の保留・復旧、静かな保存Statusは、自動保存側の既存仕様を維持して別途扱う。共通化できるのは保存結果の意味や入力を失わない原則など、同じ意味を持つ責務に限る。
+
+今回の整理による変更対象は、明示保存を持つPersonal Profile、Community Name、Community Aliasの入力中・保存中・Blocked時の操作条件である。既存実装でCommunity Nameの保存中再編集、Community Name / AliasのBlocked中編集が可能な箇所は、維持すべき固有仕様ではなく、共通動作への統一対象とする。具体的なAction / Form Hook境界と共通Moduleの有無は、既存Consumer・Story・Testの比較により確定する。自動保存Formや削除・退会等の個別確認を要する業務Actionへ、手動保存の操作規則を無条件に広げない。
+
 ### Composition Root
 
 GraphQL、Mapper、React State、Pure Logic、Feature Component等を接続するComposition責務は必要ですが、`Composition Root`、`Container`、`Presenter` 等の固定Layer・命名・Directoryを標準化しません。接続Codeは実際のownershipに最も近い境界へ配置し、下位Componentへ外部Integrationの詳細を漏らしません。
@@ -711,7 +738,7 @@ Formの編集値はReact Hook Formが所有し、Zod SchemaはForm InputのValid
 
 - フォームは画面に表示された初期値を起点に編集する。**初期表示では取得済みの値を使用し、編集内容を本人の操作なしに変えない**。RHFがDraftを管理し、Zodが検証・正規化、GraphQL Boundaryが取得・保存を担当する。Apollo Cacheの内部状態との差分検出や競合表示をFormの共通機能として導入しない。
 - 画面表示中に新しい取得値が届いた場合、**未編集のDraftは新しい値へ追従し、編集中・保存中・保存失敗時の未保存Draftは上書きしない**。Draftの保護は正規化後の値差や保存中の変更も考慮し、RHFの`isDirty`だけへ機械的に委ねない。
-- 明示保存では検証済みの値を送信し、保存成功時に確認済みの値を保存基準へ反映する。保存要求後にさらに入力されたDraftは古い保存応答で上書きしない。失敗時には編集値を保持して再試行可能にする。
+- 明示保存では検証済みの値を送信し、送信中は入力を停止する。保存成功時に確認済みの値を保存基準へ反映する。保存結果が遅れて届いた場合や自動保存などで後続のDraftが存在する場合も、古い応答によって新しい入力を上書きしない。失敗時には編集値を保持し、失敗の意味に応じて再試行・状態確認・継続不可を区別する。
 - 自動保存は入力イベントによる送信、Debounce・直列化・Rollbackなど既存のFeature契約を維持する。共通化するのは「未確定の入力を意図せず失わせない」というUX原則であり、保存方式や失敗時のUIまで画一化しない。
 - Contextが切り替わったら新しいContextの初期値へ切り替え、旧ContextのDraft・保存対象を混在させない。厳密な多端末競合制御が必要になった場合は、Formの共通FrameworkではなくBackendとの更新契約を含めて個別に設計する。
 - 新しい汎用Form State Machine、Cache同期Layer、共通Controllerは作らない。同期・保存のContractは各Featureに近い場所で実装し、未編集・編集中・保存成功・失敗などを対応するInteraction Testで検証する。
