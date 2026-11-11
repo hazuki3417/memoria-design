@@ -275,7 +275,7 @@ AIは提案に対して利点・懸念・代替案と推奨理由を述べ、合
 2. `memoria-IaC/AGENTS.md`とREADME
 3. [IaC設計](/system/infrastructure)と[ビルド・デプロイ](/build-deploy)
 4. 初期構成がEC2とDockerであり、ECS/Fargateは将来的な移行先であることを確認する
-5. `memoria-IaC/bin/`のentry point、`src/`のconstruct・stack、`test/`のテスト、repository rootのCDK設定
+5. `memoria-IaC/environments/development/aws/`のTerraform定義・Provider・変数・出力と、`.github/workflows/quality.yml`のfmt・validate
 6. synth・diffとresource置換、IAM、データ保持への影響
 
 ### Mediaの非同期処理・派生物

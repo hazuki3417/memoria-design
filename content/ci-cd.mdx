@@ -26,7 +26,7 @@ CIが担う代表的な責務は次のとおりです。
 - unit / integration等、repositoryで定義された自動testの実行
 - ApplicationやInfrastructure artifactのbuild可能性の検証
 - Docker ComposeなどDevelopment実行環境定義の構築・起動可能性の検証
-- IaCのsynth、diff、policy checkなどdeploy前検証
+- Terraformのfmt・validate、対象環境のplan・policy checkなどDeploy前検証
 - Releaseまたはdeployで利用するimmutable artifactの生成と識別
 - 検証結果をPull Request / commit statusとして可視化し、merge可否の判断材料にすること
 
@@ -42,7 +42,7 @@ Pull Request CIの目的は、対象変更をbase branchへ統合してよいか
 
 - Pull Requestの最新head commitを対象としてrepositoryが定義する必須Quality Gateを実行します。
 - source codeを変更した場合は最新commitに対する検証結果をmerge判断に使用し、古いcommitの成功結果を引き継ぎません。
-- lint / format / static analysis、unit / integration test、build、generated artifact整合性、IaC synthなど、repositoryの責務に応じた検証を行います。
+- lint / format / static analysis、unit / integration test、build、generated artifact整合性、Terraform validateなど、repositoryの責務に応じた検証を行います。
 - Docker Compose等のDevelopment実行環境そのものを所有するrepositoryでは、build・起動可能性を独立したQuality Gateとして扱えます。
 - `develop`向け通常PRと`main`向けRelease PRで共通するrepository Quality Gateは原則として同じ基準を維持し、Release PRだから通常Gateを弱めません。
 - Release固有の自動検証が必要になった場合は、通常Quality Gateを置き換えず追加Gateとして定義します。
@@ -63,7 +63,7 @@ Pull Request CIでbuildしたartifactは検証用artifactとして扱えます�
 | `memoria-api` | `quality / api` | Goの静的検査、test、buildが成功すること |
 | `memoria-api` | `runtime-quality / runtime` | Development用Docker Compose定義を構築・起動でき、対象containerが継続稼働できること |
 | `memoria-web` | `quality / web` | GraphQL client生成、source check、型検査、unit test、Next.js build、client bundleへのserver secret混入検査が成功すること |
-| `memoria-IaC` | `quality / iac` | source formatting、TypeScript検査、Infrastructure test、CDK synthが成功すること |
+| `memoria-IaC` | `quality / iac` | Terraform fmt、Backendなしのinit、validateがAWS認証なしで成功すること |
 | `memoria-design` | `quality / design` | documentation siteをbuildできること |
 
 これらは2026-08時点のrepository実装を基準とした初期必須Gateです。repositoryの責務やQuality Gate構成を変更する場合は、workflowだけを変更してrequired checkの意味を暗黙に変えず、必要に応じてこの設計とbranch protection設定も同時に更新します。

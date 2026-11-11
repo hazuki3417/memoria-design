@@ -12,7 +12,7 @@
 
 branchはcodeの統合段階、environmentは実行先です。作業branchを通常のmerge commitで`develop`へ統合し、結合確認後に`develop`から`main`へRelease PRを作成します。`main`の対象commitへSemantic VersioningのtagとGitHub Releaseを作成します。各リポジトリは独立versionで、pre-releaseは使用しません。
 
-AWSはOIDCと短期credentialを優先し、IaCはsynth・diffでIAM拡大、resource置換、data削除を確認します。DB・storage変更はbackup、migration、rollbackまたはroll-forwardを事前に決めます。
+AWSはOIDCと短期credentialを優先し、Terraformのformat・validateで静的検証を行い、対象環境のplanでIAM拡大、Resource置換、Data削除を確認します。State BackendとLockの設定を確認してからCloudに適用します。DB・Storage変更はBackup、Migration、RollbackまたはRoll-forwardを事前に決めます。
 
 ## Containerのbuildと実行基盤
 
