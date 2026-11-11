@@ -115,7 +115,7 @@ Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system
 | Community Alias | `CommunityAliasControl` の `draft` | `ConnectedCommunityPreferences` の `onSave` | Alias Draft、Dirty、100 Unicode code point上限 | 空欄解除、成功通知、失敗時Draft保持、Cache更新・best-effort refetch |
 | Community Name | `useCommunityNameSettings` の `name`/`draft` | `useCommunitySettingsActions.onSaveName` | name Draft、基準値、Dirty、必須Validation | Admin制約、保存ボタン/通知、Mutation、MyCommunities refetch |
 | Personal Preferences | `useUserPreferences` の `preferences`/`accentDraft` | `usePreferencesSave`→`createPreferencesSaveQueue`→Apollo Mutation | 編集中Field、ColorInputの未完成入力、Field更新とPatch作成 | 400ms Debounce、Patch結合、直列化、失敗後の値保持・retry、画面離脱時Flush、blocked |
-| Community Accent | `CommunityPreferencesContent` の `draft` + `ConnectedCommunityPreferences` の `accent` | 接続側 `flush`/Apollo Cache | HEX Draftのみ | Preview、valid HEXだけ即時Context反映、最新選択の直列保存、失敗時最後の保存色へ復元 |
+| Community Accent | `CommunityPreferencesContent` の `draft` + `ConnectedCommunityPreferences` の `accent` | 接続側Controller/Apollo Cache | HEX Draftのみ | 有効HEXの即時Preview、400ms Debounce後の最新選択直列保存、失敗時最後の確定色を表示・未保存Draft保持 |
 
 実装上の既存Component API・表示文言・ARIA・Props・Storyの契約は原則維持する。Field Componentに`control`、`UseFormReturn`等のRHF型を漏らさず、Form所有者で`Controller` / `useController`を使用して`value` / `onChange` / `error`等の既存Propsへ射影する。既存表示Component自身がフォーム所有者なら、その内部にRHFを持ってよい。機械的なComponent増加は行わない。
 
@@ -189,7 +189,7 @@ Usageの共有UIとContext固有接続は[Usageテストマトリクス](/system
 - `CommunityPreferencesContent`のColorInput Draftを`useForm<{ accentDraft: string }>`で所有する。`setAccent`の既存PropsとPreview契約は維持し、HEX正規表現を満たす入力だけ接続側へ通知する。
 - 接続側の`saved`、`desired`、`inFlight`、`active`、`flush`、Apollo `readFragment/writeFragment`は保存状態のControllerとして維持する。RHFへ移管しない。
 - `accent` Propsが保存成功・Rollback・外部Server更新によって変化した時の`reset`は、現行`useEffect([accent])`のDraft同期契約と整合させる。ただし未完成のHEX入力を無関係なRenderで破棄しない。
-- 保存中の連続選択は最後の選択値を処理する。Mutation失敗時は共有CacheとInputを最後の保存色へ戻す。Alias更新時のAccent保持、Accent更新時のAlias保持を保証する。
+- 保存中の連続選択は最後の選択値を処理し、最後の入力から400msのDebounce後に送信する。Previewは有効HEXに対して即時反映する。Mutation失敗時は確定色の表示へ復元し、復旧に必要な未保存Draftを保持する。Alias更新時のAccent保持、Accent更新時のAlias保持を保証する。
 - `isPreview`時は保存もContext更新も行わず、既存のプレビュー表示とStoryの挙動を維持する。
 
 ## テストファイルの配置（追加合意）
@@ -342,13 +342,17 @@ Storybook / Prototypeでは本番のGraphQL Mutationを使わずに同じForm UI
 
 ### 自動保存：Queue・Baseline・Feedback
 
-#### 保存Actionの接続Contract（手動保存とは別）
+#### 共通保存ActionとTriggerの違い
 
-自動保存Actionは確定値を返す既存Promiseを維持し、処理できなかった場合はFeature側のGraphQL接続で公開Error・Typed InputViolation・通信結果を分類し、`AutoSaveActionError`に`AutoSaveFailure`を渡して失敗を伝える。Failureは`validation`（InputViolationまたはForm全体の拒否）／`retryable`（再試行可能と判明した失敗）／`blocked`（公開情報から判断できる操作不可と安全なFeedback）／`unknown`（Mutationが成立していないと確認できない失敗）を区別する。
+手動保存／自動保存の**保存Actionは同じ`SaveActionResult<T>`**を返す。分類は`confirmed`（保存確定値）、`validation`（Typed InputViolationまたはForm全体の拒否）、`retryable`（安全に再試行できると判明した拒否）、`blocked`（公開情報に基づく操作不可と安全なFeedback）、`unknown`（保存の成立を否定できない失敗）とし、GraphQL Error・Apollo例外の解釈はFeature Action接続内に閉じる。
 
-Session / Queue / Controllerは`getAutoSaveFailure`で分類済みの意味だけを扱い、GraphQL Error CodeやApollo例外を検査しない。分類されていない例外は`unknown`とし、自動再送を行わない。GraphQL ErrorからFeedbackを組み立てるのは接続側であり、通信層の生のMessageを画面へ流さない。失敗時はQueueが保持したPatchやAccent ControllerのDraftを消さず、Blockedは再送を止める。Unknownは現在値を照会し、利用者による明示的な確認・再保存・破棄を待つ。
+明示的な保存は`useExplicitSave`がユーザーのボタン操作をTriggerとし、保存中の入力・重複操作を制御する。自動保存は**有効な入力変更を起点にDebounceして同じActionを呼び出す**。保存中も次の入力を受け付けるため、送信中の値と新しい入力を区別し、実際の通信を直列化して最新値だけを次に送る。Trigger以外の業務的なAction結果分類は共通とする。
 
-Personal PreferencesとCommunity Accentは、成功値・保存対象・Debounce・Preview・Rollback・復旧操作・SessionのLifetimeが異なる。Actionの失敗分類を共有しても、QueueやControllerを一つの`useAutoSave`へ統合しない。明示保存の入力停止ルールと`useExplicitSave`も適用しない。Storybookで従来の例外を返すMockを使う場合は、Story側でこのAction境界へ変換し、本番FormのAPIへ検証専用Propsを増やさない。
+既存の自動保存Queue / Controllerが要求する`Promise<T>`（成功確定値／失敗時reject）はConnectionで`requireConfirmedSave(SaveActionResult<T>)`として変換する。未確定な結果は`SaveActionError`に共通`SaveActionFailure`を格納して渡し、Controllerが`getSaveActionFailure`で解釈する。これは従来のQueueを保持するためのAdapterであり、`AutoSaveFailure`など別のAction結果Contractを設けない。未分類例外は`unknown`として自動再送を禁止する。
+
+Personal Preferencesは400ms DebounceでField Patchを結合して直列送信する。Community Accentは有効HEXのPreviewを即時反映し、最後の有効な入力から400msのDebounceでActionを起動する。送信中に新しい選択があった場合、後続の値はDebounce満了と先の通信完了の両方を待って送る。未完成HEXが最新入力になった場合、送信前の有効HEX予約はキャンセルする（既に始まった通信は取消済みと扱わない）。CommunityごとのSession、失敗時の表示色復元、未保存Draft、結果不明の照会・明示復旧は維持する。
+
+自動保存に`useExplicitSave`の入力停止や汎用`useAutoSave`を導入しない。Preview・Patch生成・Cache・Queueの寿命・復旧表示は各Featureが所有する。Storybookの例外MockはStory側で共通Action契約へ変換し、本番FormのAPIへテスト専用Propsを追加しない。
 
 - `Draft`（RHF）が最新の選択・未完成入力を表し、Queueが`pending`／`in-flight` Patch、成功確定した値が`confirmed baseline`を表す。各Fieldの`dirty`を「最後に保存を要求したか」の意味で代用しない。
 - Successには**成功したPatch／送信時の値**が必要。Queueに成功Snapshotを伝搬する契約を設ける。受信したServer全体のPreferencesを無条件`reset`することは禁止。
