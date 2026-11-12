@@ -24,7 +24,13 @@ Busy等の実行Lifecycle、Concurrency / 二重実行防止、Debounce / Queue�
 - **Recovery / Feature**：結果不明の観測、Retryの成立条件と安全性、Feedback、確認済みの値の反映を扱う。Queue自身がエラーを安全な再送許可へ変換しない。
 - **離脱時**：Queueが未送信PendingをFlushした時点で発生する試行は、画面ローカルなDraft復元とは独立させる。送信を試みるためだけにSession管理を設けない。画面Unmount後の非同期完了を画面のState Setterへ流さず、必要な結果反映は生存するInfrastructure/State Ownerの責務とする。
 
-Lifecycleの公開型、QueueのOwnerの正確な設置箇所、送信後の不確定結果の調停方式は、各Consumerと照合して詳細設計する。ここで汎用の永続Sessionや未合意のAPIを確定しない。
+### 自動保存の結果不明と再訪時の扱い
+
+自動保存では、画面離脱後の結果不明を追跡する永続Session・Scoped Guard・Attempt履歴を設けない。離脱後の失敗・Unknown状態やDraftを再訪時に復元せず、再訪した画面は通常のQueryで取得した現在値から編集を開始する。以前のMutationの結果不明を理由に、新規編集を一律に禁止しない。**ただしQueryの現在値が一致しても、以前のMutationの成功や今後の競合不在を証明するものではない。** 遅れて成立する以前のMutationと新しい編集が競合した場合のRemote更新順序・最終値の保証は行わない。この制限を許容できない操作には自動保存方式を適用せず、明示保存やDomain/API固有の整合性契約を選ぶ。
+
+離脱前にQueueが受け付けた変更に対するFlush、実行中Attemptの処理、結果不明の無条件自動再送禁止、対象User/Communityの隔離は維持する。**結果不明を保持しないことは、未知のOutcomeを確定した拒否として扱ったり、同じ操作を自動的に再送する許可ではない。** 同一Queueが存続する間にUnknownが観測された場合は、新しいPendingを無条件に継続送信せず、Queueの処理を終了する。画面が存続する間のFeedback/明示的な確認はFeatureが担当する。画面離脱後は未確定の入力・失敗状態の復元を要求しない。
+
+Lifecycleの公開型、QueueのOwnerの正確な設置箇所と処理終了後の解放方法は、各Consumerと照合して詳細設計する。ここで汎用の永続Sessionや未合意のAPIを確定しない。
 
 Personal / Community Accentは選択した有効色を即時反映し、保存失敗でも自動Rollbackしない。保存確定前の色を保存済み値とは表示しない。Color Input未完成値、Retry導線、Scope隔離は各Screen Specificationに従う。
 
