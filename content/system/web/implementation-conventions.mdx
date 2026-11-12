@@ -490,7 +490,8 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 - **Storybook / Prototype**: 本番と同じForm UIを利用し、Story側はMockの保存結果を明示保存Actionの型へ変換して渡す。例外を返す既存Story CallbackとのAdapterをForm Hook内へ置かず、検証用依存を本番のForm Propsへ追加しない。
 
 - **明示保存Feedbackの共通UI境界**: `ExplicitSaveRecoveryActions`はUnknown時の照会・確認完了・再送・破棄に用いる同じ表示条件・ボタン構成を所有し、実行可否・Handler・InspectionをForm Ownerから受け取る。FeatureのFeedback PresenterはこのComponentの表示場所と利用可否を決め、具体的な文言はFeatureのPure Modelが所有する。保存結果の意味・復旧状態は`useExplicitSave`を唯一のOwnerとする。
-- **差異の扱い**: 現在のProfile / Community Name / AliasのHook公開名・戻り値・Feedbackの組み立て方の揺れを、既存実装に存在するだけで設計上の例外と認定しない。対応する責務は標準パターンへ揃え、個別の仕様差は根拠を確認する。既存Profileの複数パネル等は今回の内部抽出では維持するが、恒久的なUI例外として承認されたわけではない。画面表示・文言の統一自体は別途UX判断を要する。
+- **明示保存Form Hookの公開契約**: 同じ意味の状態と操作は同じ名前で公開する。Profile / Community Name / Community Aliasでは`failure`・`formInvalid`・`blockedFeedback`・`inspection`、`isSaving`・`isInputDisabled`・`canSubmit`・`canResaveInspected`、`save`・`inspect`・`confirmObservation`・`discardUnconfirmed`を対応させる。照会結果は共通の`ExplicitSaveInspection<T>`の`value`で扱い、Featureごとに`nickname`・`name`・`alias`へ再包装しない。Form Hookは`useXxxForm`とし、入力/Domain固有の操作名やPropsまで機械的に統一しない。
+- **差異の扱い**: 同じ意味のコードの不揃いを設計上の例外と認定せず共通パターンへ是正する。既存Profileの複数パネル等は内部抽出では保護するが、恒久的なUI例外として承認されたわけではない。画面表示・文言そのものの統一は別途UX判断を要する。
 
 明示的な「保存」を押して確定するFormでは、次の操作条件を共通にする。
 
