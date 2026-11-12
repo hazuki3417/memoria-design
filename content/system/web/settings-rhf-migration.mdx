@@ -11,6 +11,16 @@
 - 保存順序、Debounce、Mutation、Cache更新、Rollback、Retryなどの既存振る舞いとUI / Responsive / Storybook Contractを維持する。
 - 新しいSettings UIや汎用Form Frameworkの構築ではなく、既存実装の責務抽出として進める。
 
+## Action / Feedback実装の一貫性（2026-11-12合意）
+
+Personal / Community Settingsで現在見られるCustom Hookの責務・粒度、Action結果からFeedbackまでの実装方式、状態・操作の公開名、Feedbackモデルの組み立て場所の差異は、**これまで内部構造を個別に委ねて実装した結果生じた、意図しない不整合**として扱う。既存コードの違い自体を、合意済みの例外や維持すべきArchitecture Contractの根拠にしない。
+
+- **同種の操作は共通の処理パターンを持つ**：外部接続を持つAction → 共通の保存結果契約（`SaveActionResult<T>`）→ Form / 保存状態のOwner → 意味的なFeedbackと復旧操作 → UI表示という責務の流れを基準とする。この記述は概念上の責務であり、一律のファイル数、階層、Generic Hook / Componentを要求しない。
+- **明示保存の比較基準**：Profile / Community Name / Community Aliasについて、同じ役割のHookの公開状態・操作・命名、Resultの解釈、Validation、Unknownの照会・再送・破棄、Feedbackの導出・描画・通知を比較し、設計上の理由のない実装方法のばらつきを是正する。特定Featureの現在の実装を無条件に全体へ採用しない。
+- **異なるケースの扱い**：通常の処理パターンと異なる必要がある場合は、個別の例外として理由・適用条件・維持すべきContractを明示するか、反復的に必要な処理方式なら独立したパターンとして定義する。自動保存はTrigger、入力継続、Queue、Preview、Session寿命の点で明示保存とは別パターンとするが、共通するAction結果やFeedbackの意味を重複定義しない。
+- **例外の根拠と回帰**：Domain制約、保存対象、状態の寿命、画面固有の必要な表示・操作などを根拠に、必要な差異だけ保持する。例外の判断は既存コードの形だけから行わない。内部構造の整理で合意済みの文言・情報・レイアウト・操作・状態表現・Responsive Behaviorを暗黙に変更しない。
+- **実装判断**：共通化の実現方法や新しいHook / Feedback Componentの境界は、実コード・Consumer・Story/Testを比較して検討する。重要な境界変更や仕様変更は人間と合意してから実装する。本節への反映はリファクタリング完了・動作検証済みを意味しない。
+
 ## Settings共通Loading / Errorと責務境界
 
 本節はPersonal Settings（Profile / Preferences / Account / Usage）およびCommunity Settings（General / Members / Preferences / Usage）の**画面領域に共通する契約**を扱う。Personal SettingsはUser本人の独立したdestinationであり、Community切替によってPersonalの値・集計scopeは切り替えない。各Screen Specification、特に[User Settings](/screens/user-settings)、[Community Settings](/screens/community-management)および[Usage](/screens/usage)の機能・権限・復旧仕様を上書きしない。実装の具体的なpath・Storyのexport名・テストRunnerは`memoria-web`を正本とする。
