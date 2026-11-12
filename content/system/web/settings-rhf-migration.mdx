@@ -21,6 +21,18 @@ Personal / Community Settingsで現在見られるCustom Hookの責務・粒度�
 - **例外の根拠と回帰**：Domain制約、保存対象、状態の寿命、画面固有の必要な表示・操作などを根拠に、必要な差異だけ保持する。例外の判断は既存コードの形だけから行わない。内部構造の整理で合意済みの文言・情報・レイアウト・操作・状態表現・Responsive Behaviorを暗黙に変更しない。
 - **実装判断**：共通化の実現方法や新しいHook / Feedback Componentの境界は、実コード・Consumer・Story/Testを比較して検討する。重要な境界変更や仕様変更は人間と合意してから実装する。本節への反映はリファクタリング完了・動作検証済みを意味しない。
 
+### 明示保存Feedbackの実装整理（2026-11-12）
+
+既存[Web PR #255](https://github.com/hazuki3417/memoria-web/pull/255)の実装を対象とし、同種の責務に同じ実装パターンを適用する。
+
+1. Profile / Community Name / Community AliasのActionは引き続き`SaveActionResult<T>`で結果を返し、保存・照会・重複防止・復旧の状態遷移は`useExplicitSave`が所有する。
+2. 各Form HookはRHF、Zod、Draft / Baselineと再取得同期、保存の意味的状態・操作を所有する。**Feedback文言・Severity・Panel構築の判断をHookへ混ぜない。**
+3. 各Featureの`resolveProfileSaveFeedback`、`resolveCommunityNameSaveFeedback`、`resolveCommunityAliasSaveFeedback`がPure Functionとして現在の意味的状態を表示モデルへ変換する。現時点では既存のValidation / Blocked / Unknown / Retryableの文言・優先順位・Panel数を保つ。
+4. 3画面で同一の「現在の状態を確認」「確認完了」「もう一度保存」「変更を破棄」のボタン条件と表示は`ExplicitSaveRecoveryActions`へ抽出する。`FeedbackPanel`の配置・SeverityとFeature固有の説明は各Presenterが所有する。
+5. 既存Storybook・Visual / Interaction / Responsive Contractを保護し、追加したPure Resolver Unit TestとPRのCI結果を照合する。**コードへの反映と実行GateのPASSは別に確認する。**
+
+**残る不整合**：Form Hookの名称と公開API（例：`useProfileForm` / `useCommunityNameSettings` / `useCommunityAliasForm`）はまだ統一していない。これを意図的な例外とせず、Consumerの利用契約・Story/Testへの影響を確認して後続の整理対象とする。Personal Preferences / Community Accentは自動保存パターンとして別途責務比較を行い、既存Queue / Session / Previewを手動保存へ機械的に合わせない。
+
 ## Settings共通Loading / Errorと責務境界
 
 本節はPersonal Settings（Profile / Preferences / Account / Usage）およびCommunity Settings（General / Members / Preferences / Usage）の**画面領域に共通する契約**を扱う。Personal SettingsはUser本人の独立したdestinationであり、Community切替によってPersonalの値・集計scopeは切り替えない。各Screen Specification、特に[User Settings](/screens/user-settings)、[Community Settings](/screens/community-management)および[Usage](/screens/usage)の機能・権限・復旧仕様を上書きしない。実装の具体的なpath・Storyのexport名・テストRunnerは`memoria-web`を正本とする。
