@@ -1020,4 +1020,6 @@ AI、GitHub API、script等を利用してSource Codeを作成・更新する場
 
 Directory名は原則kebab-caseとし、React Component FileはPascalCase、Hookは `useXxx.ts`、React非依存のTypeScript責務はcamelCase Fileとします。Storyは `<Component>.stories.tsx`、Testは対象Fileに対応する `.test.ts` / `.test.tsx` として近接配置します。GraphQL Operation名はPascalCaseとし、1 Operationを1 `.graphql` Fileに配置してFile名をOperation名へ一致させます。Operation-private Fragmentは同じFileに置けますが、複数Operationで同じsemantic contractとして共有するFragmentは独立したFragment名のFileへ分離できます。Fragment名はsemantic ownerと対象が識別できる名称にします。
 
+Factory・Hookなど、公開する主要な関数が明確なModuleでは、**ファイル名を主要な公開関数名と一致**させます（例：`createAutoSaveQueue.ts` と `createAutoSaveQueue`、`useExplicitSaveProcess.ts` と `useExplicitSaveProcess`）。型と実装の所有先は意味的な責務で判断し、Factoryの設定型・戻り値型は必要に応じてFactoryのファイルに近接配置して構いません。独立した公開契約として意味を持つ型は、`action.ts` の `Action`、`actionOutcome.ts` の `ActionOutcome` のように型名に対応するファイルへ分離できます。内部Helperごとにファイルを増やすことや、型だけの汎用Directoryを設けることは求めません。ファイルのリネームでは既存の公開API・import・対応するTestファイル名を整合させ、Behaviorを維持します。
+
 TypeScriptのstrictな型検査を基本とし、`any` を避け、外部から受け取る未知の値は `unknown` から絞り込みます。FormatとLintには既存のBiomeを使用し、同じ責務のESLintやPrettierを追加前提にしません。検証は[テスト設計](/test-design)とGitHub ActionsのQuality Gateに従います。
