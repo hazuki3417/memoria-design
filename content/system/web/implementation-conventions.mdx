@@ -6,6 +6,58 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 既存の `memoria-web` 実装は再利用候補・参考情報であり、それ自体を要求やArchitectureの正本とはみなしません。新しい設計に適合する実装は再利用し、適合しない実装は変更または廃止できます。既存実装を一括移行するための大規模Refactorは前提にせず、変更対象ごとに判断します。
 
+## Action基盤の責務境界
+
+一回の実行契約、GraphQL Adapter、明示保存、自動保存Queue、Recovery、Confirmation、Consumerの適用と検証条件は[Action実行基盤設計](/system/web/action-execution-design)を参照する。本節は横断的な実装制約を定義する。
+
+Action Coreの共通責務は入力を受け取って実行し、成立が確認された成功・成立しなかったことが確認された拒否・結果不明というOutcomeを返すことに限定する。結果の確実性をTransport例外から推測で格下げせず、送信後の結果不明を拒否と断定しない。個別の型名・Hook名をここで固定しない。
+
+Busy等の実行Lifecycle、Concurrency / 二重実行防止、Debounce / Queue、入力のDirty / Validation、復旧照会、Feedback、Preview、Navigationは必要に応じたCompositionまたはFeatureの責務とする。すべてのActionで高度なDraft / Confirmed / Query Echo同期Controller、汎用Session寿命管理、保存中編集Policy、共通Preview / Rollback Controllerを必要条件にしない。
+
+明示保存Formは保存実行中の入力と同じ保存Actionを停止する。自動保存では連続入力を可能とし、後続変更を失わない最低限の順序制御を行う。保存中に使った入力と返却Outcomeの対応を保持し、古い応答で新しい編集・確認済み結果や別User / Communityの状態を上書きしない。Background Refetchでは編集中の入力を不意に消さず、確定済み保存結果を古い再取得値で巻き戻さない。ただし、そのために特定の汎用同期抽象化を要求しない。
+
+画面から離脱したとき、未保存の入力途中Draftと画面ローカルなFeedbackの復元は保証しない。自動保存のQueueが有効な変更として受け付け、Debounce待ちの未送信Pendingは、SPA内の画面離脱時に待ち時間を省略してFlushし、保存試行を開始する。これは保存成功の保証ではなく、ブラウザ終了・再読み込み時の送信完了も保証しない。保存が失敗しても離脱後のDraft復元・失敗状態の保持・自動Retryは要求しない。すでに送信したActionは離脱だけで成功・失敗・取消と判定せず、結果不明のMutationを安全性未確認のまま再送しない。Queueは処理中のAttemptと未送信Pendingを区別し、画面Unmount後の表示Stateを更新せず、対象User / Community以外に結果を適用しない。
+
+### LifecycleとScheduling / Queueの分担
+
+- **Core**：入力に対する一回の実行とOutcomeを返す。Busy・Debounce・Queue・Recoveryは持たない。
+- **Lifecycle**：必要なFeatureだけが一回の実行試行の実行中・終了を観測する。試行の終了は遠隔操作の成功を意味せず、Outcomeの確実性と同一Stateにしない。明示保存では同じ操作の重複実行と保存中の編集を止める。履歴・汎用Attempt State Machineは必須にしない。
+- **Scheduling / Queue**：有効な保存対象を受け付け、Debounce、同一Fieldの新しい値によるPending上書き、順序・直列化、送信前Flushを担う。保存中に受け付けた新しい変更を古い応答で消さない。Queueが実行中をすでに所有する場合、別のLifecycle Ownerを重ねない。
+- **Recovery / Feature**：結果不明の観測、Retryの成立条件と安全性、Feedback、確認済みの値の反映を扱う。Queue自身がエラーを安全な再送許可へ変換しない。
+- **離脱時**：Queueが未送信PendingをFlushした時点で発生する試行は、画面ローカルなDraft復元とは独立させる。送信を試みるためだけにSession管理を設けない。画面Unmount後の非同期完了を画面のState Setterへ流さず、必要な結果反映は生存するInfrastructure/State Ownerの責務とする。
+
+### 自動保存の結果不明と再訪時の扱い
+
+自動保存では、画面離脱後の結果不明を追跡する永続Session・Scoped Guard・Attempt履歴を設けない。離脱後の失敗・Unknown状態やDraftを再訪時に復元せず、再訪した画面は通常のQueryで取得した現在値から編集を開始する。以前のMutationの結果不明を理由に、新規編集を一律に禁止しない。**ただしQueryの現在値が一致しても、以前のMutationの成功や今後の競合不在を証明するものではない。** 遅れて成立する以前のMutationと新しい編集が競合した場合のRemote更新順序・最終値の保証は行わない。この制限を許容できない操作には自動保存方式を適用せず、明示保存やDomain/API固有の整合性契約を選ぶ。
+
+離脱前にQueueが受け付けた変更に対するFlush、実行中Attemptの処理、結果不明の無条件自動再送禁止、対象User/Communityの隔離は維持する。**結果不明を保持しないことは、未知のOutcomeを確定した拒否として扱ったり、同じ操作を自動的に再送する許可ではない。** 同一Queueが存続する間にUnknownが観測された場合は、新しいPendingを無条件に継続送信せず、Queueの処理を終了する。画面が存続する間のFeedback/明示的な確認はFeatureが担当する。画面離脱後は未確定の入力・失敗状態の復元を要求しない。
+
+### Action OutcomeからQueueの実行制御への接続
+
+Action Coreは一回の試行について、成立確認済みの成功、成立しなかったと確認できた拒否、成否を確認できない結果不明を区別したOutcomeを返す。Queueは**成立確認済み成功の場合にだけ**同一Queueで次のPendingへ進み、拒否または結果不明ではそのQueueの後続自動送信を停止する。拒否理由のValidation / Permission / Conflict / Retryable等、画面の修正・照会・再試行の判断はFeature / Recoveryが担い、QueueはGraphQLエラーや通信例外を独自に解釈しない。
+
+実行AdapterはDomain/API契約に照らしてOutcomeへ分類し、例外や応答欠落だけで遠隔操作の未成立を推測しない。結果の分類に十分な根拠がない場合はUnknownとする。拒否理由が再試行可能であってもQueueが自動Retryしない。画面内で明示Retryする場合は、対象の保存操作・安全性をFeature / Recoveryが判断して新しい試行として渡す。離脱後のDraft / Failure復元や再送は行わない。
+
+Pendingの合流、Debounce、直列実行、離脱時の軽量FlushはQueueの責務とし、**結果の確実性を決めること**と**結果に応じて次の送信を続けること**を分離する。Closureで保持する実行関数と対象IdentityはQueue作成時に固定し、画面Unmount後に消えたReact Stateを更新しない。Queueを永続Sessionや結果不明履歴の保存先にしない。
+
+公開APIの最小候補は、保存対象を受け付ける `enqueue(change)` と、受付を閉じて残りの有効なPendingを送信試行する `close()` の2操作とする。Debounce後の送信と軽量Flushは内部責務にできる。現行の `flush({ manual: true })` は停止解除と送信を兼ねるため、Outcome判定を持つ新Queueの安全な共通操作としては採用しない。これは公開名・TypeScript signatureまでを固定するものではなく、実際のConsumerとRetry導線に照らして決める。
+
+### GraphQL AdapterとAction Coreの接続
+
+GraphQLのGenerated Operation Type / Input Mapper、ApolloのMutation実行、Typed Resultの`__typename`照合はGraphQL実行境界（既存のFeature AdapterまたはInfrastructure Adapter）が担う。共通Action Core / QueueへGraphQL Client、GraphQL Error Code、Generated Typeを持ち込まない。1 Operationが既存Adapterで十分に扱えるなら、Action Core専用に同義の転送Hookを増やさない。
+
+- **Typed Success**：対象Mutation Operationに対して成立を確認できるSuccess Resultを受け取った場合だけ`success`。戻り値が必要なConsumerには、確定したPayloadを渡す。
+- **Typed Rejection**：対象Operationが成立しなかったことを表す定義済みのFailure Result（例えば`InputValidationFailure`）なら`rejected`。Field違反、権限、再試行可否などの理由はFeatureが解釈できる情報として残し、Queueの共通分岐には含めない。
+- **Unconfirmed / Missing**：操作のTyped Resultがなく、GraphQL Error、Transport Error、応答欠落、Timeout、未認識のResult等により成立が確認できない場合は、操作不成立が明確に証明されている場合を除き`unknown`。無関係のPartial Dataや通信が終了したことだけをSuccessの根拠にしない。
+- **Mutationと後続Query**：一度確認済みのMutation Successは、後続のRefetch/Cache調整の失敗によってRejected/Unknownに変更しない。Query失敗は取得・表示同期の別問題として処理する。
+- **Adapter構成**：Feature固有のInput変換とTyped Resultの枝分かれはOperationに近い境界で扱い、Coreは実行とOutcomeを抽象化する。共通の分類Helperを用いるのは複数Operationに同じ証拠規則がある場合だけとし、一律の巨大GraphQL Error Mapperを要件にしない。
+
+Queueは返却されたOutcomeの`success`のみを後続Pendingの送信許可とする。拒否の理由や未知結果の復旧はRecovery/Featureへ委譲し、QueueがError ClassやApollo固有の情報を見ない。具体的なOutcome型のプロパティ名、Payload/Failure I/F、Adapterの関数名はWebの実装設計でConsumerと照合して確定する。
+
+Lifecycleの公開型、QueueのOwnerの正確な設置箇所と処理終了後の解放方法は、各Consumerと照合して詳細設計する。ここで汎用の永続Sessionや未合意のAPIを確定しない。
+
+Personal / Community Accentは選択した有効色を即時反映し、保存失敗でも自動Rollbackしない。保存確定前の色を保存済み値とは表示しない。Color Input未完成値、Retry導線、Scope隔離は各Screen Specificationに従う。
+
 ## GraphQL / Apollo ClientとState Ownership（2026-10-17合意）
 
 - Backendへの業務Query / Mutationは原則Apollo Clientへ統一する。業務GraphQL通信のためのNext.js Server ActionおよびブラウザCustomEventによる機能間同期を廃止する。認証情報の秘匿に必要なHTTP Route Handlerは許可するが、業務ロジックを重複実装しない。
