@@ -975,6 +975,13 @@ PerformanceをProduct Qualityの一部として扱いますが、具体的な要
 
 Large List、virtualization、code splitting等は実際のscaleとUX contractを踏まえて判断します。Mediaは用途に適したthumbnail / preview / original等のrepresentationを利用し、Original assetの不要な取得を避けます。GraphQL / Network optimizationのためにFeature ownershipやUse Case Boundaryを壊しません。Performance問題は可能な限りmeasurementに基づいて改善します。
 
+### Test名・検証目的の表現
+
+- **必須（新規・変更対象）**：`describe`・`it`・`test`等のタイトルは原則**日本語**で記述し、対象機能と**何を検証し、どの結果を期待するか**が読んで分かる文にする。実装手段や「正常に動く」のような曖昧な説明だけをタイトルとしない。
+- **推奨**：機能・状態・操作・期待結果を簡潔に表現する（例：「保存中に再度送信しても、Actionを重複実行しない」）。`describe`は対象の振る舞いをまとめ、`it`/`test`は具体的な保証内容を示す。公開API名やTypeScript識別子、`success`/`unknown`等のコード上の値は必要な場合にそのまま記載してよい。
+- **Parameterized Test**：`it.each`等でタイトルに差し込む状態ラベルも、可能な範囲で日本語で意味が分かるようにする。ただし内部の型名・識別子・Test Fixtureの値を日本語に変える必要はない。
+- **適用範囲**：無関係な既存Testの名称だけを一括変更しない。Test名の修正ではAssertion・Fixture・実行経路を維持し、変更によってTest Runnerや参照先へ影響がないことを確認する。
+
 ### Test Levelの選択
 
 Testは実装単位ではなく、守るべきcontractに最適なlevelで記述します。React非依存のProduct Judgment / State TransitionはVitest、Userから観測可能なComponent BehaviorはComponent / Interaction Test、visual / state variationはStorybook、重要なsystem-wide User FlowはPlaywrightを基本とします。
