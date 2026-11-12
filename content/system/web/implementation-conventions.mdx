@@ -89,6 +89,27 @@ Personal / Community Accentは選択した有効色を即時反映し、保存�
 
 各規約はRule、Rationale、Examples、Exceptions、Verificationを意識して運用します。Formatter / Lint / TypeScriptで検出できるものと、意味的なレビューやTestが必要なものを混同しません。自動化可能であることだけを理由に新しいLint Ruleを追加しません。**一時停止中のQuality Gate / CIは今回変更しません**。再導入時に必要な自動検証を別途判断します。
 
+### 関数定義とオブジェクトによるComposition
+
+- **推奨（新規・変更対象）**：Factoryの返却API、部品の構成Object、Adapterへの注入設定など、**関数を値として持つObject**では、実行処理を名前付き関数としてObjectの外側（必要なClosure内）で定義し、Object側には `submit`、`execute`、`classify` 等の関数参照を渡す。Functionの実装とCompositionの一覧を分離し、人間が各契約をレビューしやすくする。
+- **推奨**：同じ責務・同じファイル内で、ObjectのMethodへ処理本体を直接埋め込む書き方と、先に関数を定義する書き方を理由なく混在させない。公開APIの並びや関数名は、Consumerから見た意味が追えるようにする。
+- **例外**：単純な値変換・委譲、Library / FrameworkがInline関数を要求するAPI、狭い範囲のテストFixture等はInline Callbackを許容する。Factoryの注入処理でも、処理を読み解く必要がある場合は名前付き関数を優先する。機械的にすべてのArrow Functionを禁止しない。
+- **検証**：Factory/Adapterの返却Objectと注入Objectをレビューし、独立した関数定義とその参照の対応、Scope・Closure・Lifecycle、型推論と動作不変を確認する。無関係な既存Codeの表記だけを揃える大規模変更は行わない。
+
+```ts
+function createProcess(execute: (input: string) => Promise<void>) {
+  async function submit(input: string) {
+    await execute(input)
+  }
+
+  function close() {
+    // 必要なCleanup
+  }
+
+  return { submit, close }
+}
+```
+
 ### Component宣言・Props・Export
 
 | 項目 | 標準形と理由 | 強さ・例外 |
