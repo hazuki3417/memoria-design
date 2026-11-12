@@ -24,6 +24,8 @@ AI Agentは、まず依頼の種類を特定して[タスク別の読み取り�
 
 **Repositoryをまたぐ現在の契約整合**：具体的な変更案がなくても、Web/APIやAPI/IaC等の提供側・利用側に分かれる公開・運用契約の現在の対応を確認するときは、[Cross-Repository Contract Analysis Skill](../../skills/cross-repository-contract-analysis/SKILL.md)を取得します。対象のRepository・branch/Versionと設計正本、Schema/Operation・Config/Runtimeの双方を根拠として、静的な一致・不一致・条件付き・未確認を区別します。正本の所在はSource of Truth Discovery、Repository内の実装経路はCodebase Investigation、特定の変更案・diffの波及はImpact Analysisが担います。Skillは実行時互換性・デプロイの保証や新しい検証Gate、GitHub write権限を与えません。
 
+**現在の仕様と成果物の整合性調査**：設計・Issue上の合意、Schema・設定・実装・Prototype・Test等について、指定した機能や保証を単位に意味の対応・欠落・矛盾・未確認を双方向に照合するときは、[Specification Consistency Review Skill](../../skills/specification-consistency-review/SKILL.md)を取得します。実施契機と判定区分は[開発プロセス](/development-process)を正本とし、正式な画面三者の網羅的確認は[画面整合性確認プロセス](/context/screen-prototype-implementation-review-process)へ引き渡します。公開Provider/Consumer契約のみの照合はCross-Repository Contract Analysis、具体的な変更案の波及はImpact Analysisが担います。Skillは新しい工程ゲート・仕様・GitHub操作権限を定義しません。
+
 **Frontend既存Componentのリファクタリング**：Component・Hook・Compositionの抽出・責務分離・共通化・配置変更では、[Component Refactoring Skill](../../skills/component-refactoring/SKILL.md)を取得し、既存ConsumerのVisual / Behavioral / State / Responsive Contractを確認して変更前後を照合します。仕様・既存契約とテスト方針の正本は[Frontend UI設計・開発方針](/system/frontend-ui-development)、[Frontend実装規約](/system/web/implementation-conventions)、[Frontendテスト戦略](/system/web/frontend-testing)にあります。Skillは新たな仕様変更・操作許可や必須工程を定義しません。
 
 **ブランチに関する作業の入口**：作業ブランチの選択、継続可否、作成・切替、現在のPR状態の確認では、書き込みの有無を問わず[Branch Management Skill](../../skills/branch-management/SKILL.md)を取得します。Skillの一覧は[Memoria Skills](../../skills/README.md)を参照し、適用前にIssue・PR・branchの最新状態と該当する正本規約を確認します。Skillの存在は操作許可を意味しません。
