@@ -6,6 +6,18 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 既存の `memoria-web` 実装は再利用候補・参考情報であり、それ自体を要求やArchitectureの正本とはみなしません。新しい設計に適合する実装は再利用し、適合しない実装は変更または廃止できます。既存実装を一括移行するための大規模Refactorは前提にせず、変更対象ごとに判断します。
 
+## Action基盤の責務境界
+
+Action Coreの共通責務は入力を受け取って実行し、成立が確認された成功・成立しなかったことが確認された拒否・結果不明というOutcomeを返すことに限定する。結果の確実性をTransport例外から推測で格下げせず、送信後の結果不明を拒否と断定しない。個別の型名・Hook名をここで固定しない。
+
+Busy等の実行Lifecycle、Concurrency / 二重実行防止、Debounce / Queue、入力のDirty / Validation、復旧照会、Feedback、Preview、Navigationは必要に応じたCompositionまたはFeatureの責務とする。すべてのActionで高度なDraft / Confirmed / Query Echo同期Controller、汎用Session寿命管理、保存中編集Policy、共通Preview / Rollback Controllerを必要条件にしない。
+
+明示保存Formは保存実行中の入力と同じ保存Actionを停止する。自動保存では連続入力を可能とし、後続変更を失わない最低限の順序制御を行う。保存中に使った入力と返却Outcomeの対応を保持し、古い応答で新しい編集・確認済み結果や別User / Communityの状態を上書きしない。Background Refetchでは編集中の入力を不意に消さず、確定済み保存結果を古い再取得値で巻き戻さない。ただし、そのために特定の汎用同期抽象化を要求しない。
+
+画面から離脱したとき、未保存Draftと画面ローカルなFeedbackの復元は保証しない。送信済みActionは離脱だけで成功・失敗・取消と判定せず、結果不明のMutationを安全性未確認のまま再送しない。自動保存のQueueが保持する送信済み操作と画面のDraftは別扱いにする。
+
+Personal / Community Accentは選択した有効色を即時反映し、保存失敗でも自動Rollbackしない。保存確定前の色を保存済み値とは表示しない。Color Input未完成値、Retry導線、Scope隔離は各Screen Specificationに従う。
+
 ## GraphQL / Apollo ClientとState Ownership（2026-10-17合意）
 
 - Backendへの業務Query / Mutationは原則Apollo Clientへ統一する。業務GraphQL通信のためのNext.js Server ActionおよびブラウザCustomEventによる機能間同期を廃止する。認証情報の秘匿に必要なHTTP Route Handlerは許可するが、業務ロジックを重複実装しない。
