@@ -482,12 +482,15 @@ Storybookの構成都合からProductionのComponentや公開Propsを増やさ�
 FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部更新の接続責務と利用者が操作するFormの状態管理を分離して実装する。入力項目や保存対象の違いではなく、**同じ種類の操作に対して同じ状態・操作条件が成立すること**を共通の基準とする。
 
 - **Section Connection / Action**: Sectionに必要な現在値を取得し、保存用ActionをFormへ渡す。ActionはGraphQL Mutation、確認済みの保存結果・Error分類、必要なCache更新・Refetch等の外部副作用を扱う。保存方式によらず`SaveActionResult<T>`（`confirmed`・`validation`・`retryable`・`blocked`・`unknown`）を返し、FormやQueueへGraphQL ErrorやApolloの例外分類を持ち込まない。Mutation確定後のRefetch失敗で確定した成功を取り消さない。
-- **Form Owner**: RHFのDraft、ZodのValidationと正規化、保存可能条件、送信中・失敗・結果不明と復旧の状態を扱う。接続されたActionを実行し、入力・保存ボタンの操作可否、確定値への更新、結果に応じたFeedbackを一貫して決定する。外部APIの呼出しやApollo Cache更新は所有しない。
-- **Form UI / Feedback**: Form Ownerが公開する意味的な状態・操作を用いて、入力、Action、Field Error、持続的なFeedbackと復旧操作を表示する。画面固有の文言や入力制約、表示位置を一律にそろえる必要はない。
+- **Form Owner**: RHFのDraft、ZodのValidationと正規化、保存可能条件、送信中・失敗・結果不明と復旧の状態を扱う。接続されたActionを実行し、入力・保存ボタンの操作可否、確定値への更新、Feedbackと復旧に必要な意味的状態・操作を公開する。GraphQL通信・Apollo Cache更新・表示文言やFeedbackのJSX構築は所有しない。
+- **Feature Feedback Model / UI**: Form Ownerが公開する意味的な状態から、Featureに近接するReact非依存のPure FunctionでFeedbackの優先順位・Severity・タイトル・説明を導出する。Feedback Componentは`FeedbackPanel`にModelを渡し、Unknown時は`ExplicitSaveRecoveryActions`を利用して確認・再保存・破棄の共通操作を表示する。画面固有の文言、Field Error、表示位置・パネル数は既存Contractを比較した上で保全する。Pure ModelへGraphQL ErrorやApolloを持ち込まない。
 - **共通化の単位**: 保存結果の意味と操作条件を共通の振る舞いとして保証し、各FormのAction / Form Ownerは対応するFeatureの近くに置く。共通Moduleを抽出する場合は、実際に同じ責務・状態遷移が存在し、複数Consumerの比較と検証を容易にすることを確認する。単一の巨大なAction Hook、汎用Form State Machine、固定の`Action` Component階層は前提としない。
 - **共通Hookの名前と範囲**: 明示的に実行する保存の状態・操作可否・結果不明時の復旧は`useExplicitSave`が扱う。明示保存のForm HookもActionの戻り値を直接`SaveActionResult<T>`として扱い、保存方式ごとの結果型や別名を設けない。RHF・Zod・Field Error・保存済み値の同期は個々のForm Hookが扱い、GraphQL・API固有の失敗分類は外部Action接続が意味的な結果へ変換する。共通Hookへ全Formの状態や接続を統合しない。
 - **再取得同期のPure Logic**: 明示保存Formの再取得値について、結果不明中に自動採用しないこと、保存確定後の古いQuery echoを受け入れないこと、未編集Draftのみに`reset`を許すことは`resolveConfirmedSourceSync`で共通判定する。各Formは自身の保存済み基準・前回受信値・期待するecho・RHF `reset`を所有し、Profileの再試行可能時など既存Form固有のDraft保護条件は判定入力として維持する。共通のRemote State OwnerやCache同期Layerは追加しない。
 - **Storybook / Prototype**: 本番と同じForm UIを利用し、Story側はMockの保存結果を明示保存Actionの型へ変換して渡す。例外を返す既存Story CallbackとのAdapterをForm Hook内へ置かず、検証用依存を本番のForm Propsへ追加しない。
+
+- **明示保存Feedbackの共通UI境界**: `ExplicitSaveRecoveryActions`はUnknown時の照会・確認完了・再送・破棄に用いる同じ表示条件・ボタン構成を所有し、実行可否・Handler・InspectionをForm Ownerから受け取る。FeatureのFeedback PresenterはこのComponentの表示場所と利用可否を決め、具体的な文言はFeatureのPure Modelが所有する。保存結果の意味・復旧状態は`useExplicitSave`を唯一のOwnerとする。
+- **差異の扱い**: 現在のProfile / Community Name / AliasのHook公開名・戻り値・Feedbackの組み立て方の揺れを、既存実装に存在するだけで設計上の例外と認定しない。対応する責務は標準パターンへ揃え、個別の仕様差は根拠を確認する。既存Profileの複数パネル等は今回の内部抽出では維持するが、恒久的なUI例外として承認されたわけではない。画面表示・文言の統一自体は別途UX判断を要する。
 
 明示的な「保存」を押して確定するFormでは、次の操作条件を共通にする。
 
