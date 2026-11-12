@@ -105,6 +105,8 @@ interface AutoSaveQueue<Patch> {
 - Browserの終了・Reload、遅延した旧MutationとのRemote最終順序、離脱後のUnknown競合を保証しない。厳密な整合性が必要なActionに自動保存を適用しない。
 - 実行中のMutationはUnmountだけを理由に取消したことにしない。ただしSign-out/Client破棄時に実際の通信完了まで保証できるわけではない。
 
+**結果をFeatureへ伝える契約**：送信時のPatchとOutcomeを、Queueの実行結果CallbackまたはFeatureが受け取るPromise等で通知できるようにする。画面表示中はFeatureが失敗したAttemptのInputと、停止時にまだ送信していない有効なPendingを必要な範囲で保持し、明示修正・照会・Retryの導線へ利用できる。Queue内で非成功となったPatchを暗黙に再実行してはならない。画面離脱時は結果の画面購読を解除し、Draft/Retry UIと未送信の失敗内容を復元しない。結果CallbackがApollo Cacheへ反映する場合は対象ScopeとClient寿命を固定し、画面のSetterへ通知しない。
+
 `flush`はDebounce満了と`close`に共通する内部処理とする。現行`flush({manual:true})`のように停止解除と送信を一つの公開操作へ混在させない。画面内RetryはFeature/Recoveryが安全性を判断して、新しい明示Attemptとして組み立てる。
 
 ## Recovery・Feedback・Outcome確実性
