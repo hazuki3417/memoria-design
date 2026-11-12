@@ -91,18 +91,19 @@ Personal / Community Accentは選択した有効色を即時反映し、保存�
 
 ### 関数定義とオブジェクトによるComposition
 
-- **推奨（新規・変更対象）**：Factoryの返却API、部品の構成Object、Adapterへの注入設定など、**関数を値として持つObject**では、実行処理を名前付き関数としてObjectの外側（必要なClosure内）で定義し、Object側には `submit`、`execute`、`classify` 等の関数参照を渡す。Functionの実装とCompositionの一覧を分離し、人間が各契約をレビューしやすくする。
-- **推奨**：同じ責務・同じファイル内で、ObjectのMethodへ処理本体を直接埋め込む書き方と、先に関数を定義する書き方を理由なく混在させない。公開APIの並びや関数名は、Consumerから見た意味が追えるようにする。
-- **例外**：単純な値変換・委譲、Library / FrameworkがInline関数を要求するAPI、狭い範囲のテストFixture等はInline Callbackを許容する。Factoryの注入処理でも、処理を読み解く必要がある場合は名前付き関数を優先する。機械的にすべてのArrow Functionを禁止しない。
-- **検証**：Factory/Adapterの返却Objectと注入Objectをレビューし、独立した関数定義とその参照の対応、Scope・Closure・Lifecycle、型推論と動作不変を確認する。無関係な既存Codeの表記だけを揃える大規模変更は行わない。
+- **標準（新規・変更対象）**：関数定義は名前付き変数へ代入するアロー関数（`const submit = async (input: Input) => { ... }`）を使用する。`function` 宣言・式は原則使用しない。React Component、Custom Hook、Factory、Adapter、private Handlerも対象とする。
+- **例外**：Framework / Libraryの要求や、`this` / `arguments`、Hoisting、Generator等の言語特性によりアロー関数では適切に表現できない合理的理由がある場合に限り`function`を許容し、必要性をコードまたはレビューで説明する。通常の名前付け・関数参照・型推論だけを理由に例外としない。
+- **推奨**：Factoryの返却API、部品の構成Object、Adapterへの注入設定など、関数を値として持つObjectでは、処理を**オブジェクトの外側で名前付きアロー関数として定義**し、Object側は `submit`、`execute`、`classify` 等の参照を受け取る。実装とCompositionの一覧を分離する。
+- **許容**：単純な値変換・直接委譲、Library / Framework API、狭いテストFixture等の短いInline Arrow Callbackは許容する。処理の分岐・副作用を伴うものは名前付き関数を優先する。無関係な既存コードへの一括修正は行わず、変更対象へ適用する。
+- **検証**：Factory / Adapterの返却・注入Object、関数の定義、型推論、Scope / Closure / Lifecycle、Visual / Behavioral Contractが変わっていないことを確認する。
 
 ```ts
-function createProcess(execute: (input: string) => Promise<void>) {
-  async function submit(input: string) {
+const createProcess = (execute: (input: string) => Promise<void>) => {
+  const submit = async (input: string) => {
     await execute(input)
   }
 
-  function close() {
+  const close = () => {
     // 必要なCleanup
   }
 
@@ -114,7 +115,7 @@ function createProcess(execute: (input: string) => Promise<void>) {
 
 | 項目 | 標準形と理由 | 強さ・例外 |
 | --- | --- | --- |
-| Component宣言 | 名前付き `function ComponentName(...)` を基本とし、stack traceと識別性を高める | 推奨。 `memo` / `forwardRef`、Generic Component、Library API等は合理的な別形式を許可 |
+| Component宣言 | 名前付き `const ComponentName = (...) => ...` のアロー関数を基本とし、識別可能な名前を付ける | 原則必須。`function` 宣言はFramework / Libraryの制約等、明確な必要性がある場合にのみ許可し、理由を示す |
 | Props型 | `ComponentNameProps` をComponentの近くに定義し、必要なcontractだけを公開する | 推奨。Genericや既存Library型を直接利用する場合は例外 |
 | Props受け取り | 通常は引数で分割代入し、利用する値を明示する | 推奨。Wrapper等でProps集合を保持すること自体が責務の場合は例外 |
 | デフォルト値 | 省略可能なPropsの既定値は原則として分割代入で表現する | 推奨。正規化処理に独立した意味がある場合は例外 |
