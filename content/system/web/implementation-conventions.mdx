@@ -14,9 +14,19 @@ Busy等の実行Lifecycle、Concurrency / 二重実行防止、Debounce / Queue�
 
 明示保存Formは保存実行中の入力と同じ保存Actionを停止する。自動保存では連続入力を可能とし、後続変更を失わない最低限の順序制御を行う。保存中に使った入力と返却Outcomeの対応を保持し、古い応答で新しい編集・確認済み結果や別User / Communityの状態を上書きしない。Background Refetchでは編集中の入力を不意に消さず、確定済み保存結果を古い再取得値で巻き戻さない。ただし、そのために特定の汎用同期抽象化を要求しない。
 
-画面から離脱したとき、未保存Draftと画面ローカルなFeedbackの復元は保証しない。送信済みActionは離脱だけで成功・失敗・取消と判定せず、結果不明のMutationを安全性未確認のまま再送しない。自動保存のQueueが保持する送信済み操作と画面のDraftは別扱いにする。
+画面から離脱したとき、未保存の入力途中Draftと画面ローカルなFeedbackの復元は保証しない。自動保存のQueueが有効な変更として受け付け、Debounce待ちの未送信Pendingは、SPA内の画面離脱時に待ち時間を省略してFlushし、保存試行を開始する。これは保存成功の保証ではなく、ブラウザ終了・再読み込み時の送信完了も保証しない。保存が失敗しても離脱後のDraft復元・失敗状態の保持・自動Retryは要求しない。すでに送信したActionは離脱だけで成功・失敗・取消と判定せず、結果不明のMutationを安全性未確認のまま再送しない。Queueは処理中のAttemptと未送信Pendingを区別し、画面Unmount後の表示Stateを更新せず、対象User / Community以外に結果を適用しない。
 
-Personal / Community Accentは選択した有効色を即時反映し、保存失敗でも自動Rollbackしない。保存確定前の色を保存済み値とは表示しない。Color Input未完成値、Retry導線、Scope隔離は各Screen Specificationに従う。
+### LifecycleとScheduling / Queueの分担
+
+- **Core**：入力に対する一回の実行とOutcomeを返す。Busy・Debounce・Queue・Recoveryは持たない。
+- **Lifecycle**：必要なFeatureだけが一回の実行試行の実行中・終了を観測する。試行の終了は遠隔操作の成功を意味せず、Outcomeの確実性と同一Stateにしない。明示保存では同じ操作の重複実行と保存中の編集を止める。履歴・汎用Attempt State Machineは必須にしない。
+- **Scheduling / Queue**：有効な保存対象を受け付け、Debounce、同一Fieldの新しい値によるPending上書き、順序・直列化、送信前Flushを担う。保存中に受け付けた新しい変更を古い応答で消さない。Queueが実行中をすでに所有する場合、別のLifecycle Ownerを重ねない。
+- **Recovery / Feature**：結果不明の観測、Retryの成立条件と安全性、Feedback、確認済みの値の反映を扱う。Queue自身がエラーを安全な再送許可へ変換しない。
+- **離脱時**：Queueが未送信PendingをFlushした時点で発生する試行は、画面ローカルなDraft復元とは独立させる。送信を試みるためだけにSession管理を設けない。画面Unmount後の非同期完了を画面のState Setterへ流さず、必要な結果反映は生存するInfrastructure/State Ownerの責務とする。
+
+Lifecycleの公開型、QueueのOwnerの正確な設置箇所、送信後の不確定結果の調停方式は、各Consumerと照合して詳細設計する。ここで汎用の永続Sessionや未合意のAPIを確定しない。
+
+Personal / Community Accentは選択した有効色を即時反映し、保存失敗でも自動Rollbackしない.保存確定前の色を保存済み値とは表示しない。Color Input未完成値、Retry導線、Scope隔離は各Screen Specificationに従う。
 
 ## GraphQL / Apollo ClientとState Ownership（2026-10-17合意）
 
