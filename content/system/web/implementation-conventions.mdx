@@ -8,6 +8,8 @@ Memoria WebのApplication Architecture、状態管理、Component、GraphQL、Fo
 
 ## Action基盤の責務境界
 
+一回の実行契約、GraphQL Adapter、明示保存、自動保存Queue、Recovery、Confirmation、Consumerの適用と検証条件は[Action実行基盤設計](/system/web/action-execution-design)を参照する。本節は横断的な実装制約を定義する。
+
 Action Coreの共通責務は入力を受け取って実行し、成立が確認された成功・成立しなかったことが確認された拒否・結果不明というOutcomeを返すことに限定する。結果の確実性をTransport例外から推測で格下げせず、送信後の結果不明を拒否と断定しない。個別の型名・Hook名をここで固定しない。
 
 Busy等の実行Lifecycle、Concurrency / 二重実行防止、Debounce / Queue、入力のDirty / Validation、復旧照会、Feedback、Preview、Navigationは必要に応じたCompositionまたはFeatureの責務とする。すべてのActionで高度なDraft / Confirmed / Query Echo同期Controller、汎用Session寿命管理、保存中編集Policy、共通Preview / Rollback Controllerを必要条件にしない。
