@@ -1,0 +1,210 @@
+# Action実行基盤設計
+
+## 目的と境界
+
+Memoria Webの操作を、利用者の入力、実行、結果の確実性、Feedback、復旧という観測可能な振る舞いから組み立てる。共通化は責務の重複を減らすための手段であり、すべてのActionを単一のHook、Controller、State Machineへ収めることを目的としない。
+
+本書はActionに関する横断Architectureの責務を定義する。個々の入力制約、表示、結果通知、権限、確認、Navigation、画面離脱の例外は各Screen Specificationと[Feedback](/design-system/patterns/feedback)、[Editable Form](/design-system/patterns/editable-form)を正本とする。GraphQL OperationとGenerated Type、具体的なAPI、Apollo設定、実行コードは`memoria-web`を正本とする。[Frontend実装規約](/system/web/implementation-conventions)のState Ownership・GraphQL規則を適用する。
+
+**対象**：Personal Profile、Community Name / Alias、Personal Preferences、Personal / Community Accent、Community Members、Invitation、Community削除および関連する端末内操作を代表Consumerとする。特に明示保存と自動保存を混同しない。
+
+## 設計原則
+
+1. **最小のAction契約**：一回の実行関数と、その操作の成立確実性を表すOutcomeを共有する。専用`useAction`、`createAction`、クラス、共通React State、永続Sessionは必要性がない限り設けない。
+2. **確実性を保つ**：明確に成立した`success`、未成立と確認できた`rejected`、成立不明の`unknown`を区別する。通信例外、Timeout、Typed Result欠落、無関係なPartial Dataから未成立・成功を推定しない。
+3. **Form / FeatureがUXを所有**：Inputの正規化・Dirty・Validation・保存中Disabled・Feedback・明示Retryの導線を、一律のCore Policyへ押し込まない。
+4. **Operation単位の適合性**：厳密な保存保証・整合性が必要な操作には簡易自動保存を用いない。危険なActionの認可・最新前提・Confirmation・Idempotencyを自動保存の省略条件に巻き込まない。
+5. **既存の能力を失わない**：共通化の都合で特定Consumerの情報、確認、Feedback、操作可能性を削除しない。合意されたUX変更のみを意図的な差分として扱う。
+
+## 主要責務の配置
+
+| 所有先 | 必要な責務 | 所有しないもの |
+| --- | --- | --- |
+| Action契約 / 必要最小のCore | 入力に対する一回の実行、Outcomeの意味・型 | Debounce、React Busy、Validation、Navigation、汎用Retry |
+| GraphQL / device Adapter | Operation固有のInput変換、実行、Typed Resultの解釈 | 共通QueueのSchedulingや画面のFeedback |
+| 明示保存Form / Lifecycle | 正規化済みInputの作成、Dirty、Validation、実行中入力・重複Submit停止、結果表示 | 全Action共通の編集Policy、永続Session |
+| 自動保存Queue | 有効PatchのDebounce・合流・直列化、SPA離脱時Flush、終了 | GraphQL Error分類、Failureを根拠にした自動Retry、画面Draft復元 |
+| Recovery（必要なFeatureのみ） | Unknown時の照会・判断・明示再試行の安全性、拒否理由の解釈 | 全Actionへ強制する汎用Recovery Engine |
+| Feedback / Presentation | Field/Form/Blocking/Operationの適切な表示、成功通知の位置 | Operationの成否の推測、Mutation実行 |
+| Confirmation / Post-Action | 対象・影響の確認、成立後Navigation、遷移先Feedback | 共通Coreへの強制的なModal / Router依存 |
+| Apollo / Server State | Server由来の値の共有と必要な更新・取得 | Form編集中のDraft所有、失敗したMutationの成功偽装 |
+
+これらは論理的な責務であり、必ずしも同名の独立Moduleを作ることを意味しない。小さなConsumerではFeature内に直接Compositionしてよい。
+
+## 一回のActionとOutcome
+
+```ts
+type ActionOutcome<Success, Rejection> =
+  | { kind: "success"; value: Success }
+  | { kind: "rejected"; reason: Rejection }
+  | { kind: "unknown" }
+
+type Action<Input, Success, Rejection> =
+  (input: Input) => Promise<ActionOutcome<Success, Rejection>>
+```
+
+これは概念的なTypeScript契約である。実際の型名・Property名・Generic構成は`memoria-web`のConsumerに合わせる。Success PayloadやTyped Rejectionは必要な操作だけで持つ。単純な同期・端末内操作へ`unknown`を一律に強制しない。
+
+- `success`：対象となる操作の成立が確認済み。後続のRefetch・UI遷移・Notificationまで完了したことを意味しない。
+- `rejected`：対象Operationが成立しなかったことを明確に示すDomain / API契約に基づく。Validation、Blocked、Conflict、Retryableなど詳細理由はFeatureへ保持する。
+- `unknown`：Mutationの成立を確認できない。成功Notificationも無条件自動再送も行わない。Query値との一致だけで旧Mutation成功と判定しない。
+
+`Action`型をすべての操作の基底Classとせず、要求される確実性モデルが異なるTheme切替、Clipboard Copy、Navigationなどは自然な関数・例外契約のままとしてよい。
+
+## AdapterとCoreの接続
+
+1. GraphQL固有のMapper、Generated Document/Type、Apollo Mutation、Typed Resultの`__typename`分岐は、対象Operationに近い実行境界が担う。既存Feature Adapterで十分なら同義の共通転送Hookを追加しない。
+2. Typed Successは操作固有の成立証拠を持つときだけ`success`、Typed Failureが明確な未成立を示すときは`rejected`。結果欠落・Error単独・不明なResultは、未成立の証拠がない限り`unknown`。
+3. GraphQLのExecution Error、Transport Error、Validation Field PathをQueueが直接読まない。
+4. Mutation成立後のQuery Refetch、Cache反映、表示同期は別Outcomeで扱う。Refetch失敗によって確認済みMutation成功をUnknownへ変更しない。
+5. Auth/User/Communityに依存したInput・結果を別Scopeへ転用しない。Adapterが画面Unmount後も使われる場合、存続するClientと固定の対象Identityを参照することを確認する。
+
+Preferencesの現行Operation`SaveUserPreferences`は`UpdateUserPreferencesSuccess`と`InputValidationFailure`を返す。これらの意味の解釈はOperation側の責務であり、Queueに`__typename`を分岐させない。
+
+## 明示保存
+
+Profile、Community Name / Aliasなどの明示保存では、Formが入力途中DraftとValidation、Dirtyを所有する。Update Formでは正規化後の保存済みBaselineと比較し、Create Formへ同じDirty条件を強制しない。
+
+```ts
+// 保存中のinputと同じsave操作は停止（概念例）
+async function saveExplicitly(input: ValidatedInput) {
+  if (saving) return
+  setSaving(true)
+  try {
+    const outcome = await execute(input)
+    if (outcome.kind === "success") applyConfirmed(outcome.value)
+    else showFeedbackFor(outcome)
+  } finally {
+    setSaving(false)
+  }
+}
+```
+
+保存開始時点のInputをSnapshotとして渡す。保存中は対象Formの編集と同じ保存Actionを無効化する。結果不明の照会・明示Retry・保存済み値への採用はFeatureが扱い、共通の「保存中も入力できるPolicy Framework」は設けない。Section離脱では未送信Draftを破棄できるが、送信済み操作を離脱のみで取消・成功・失敗に読み替えない。
+
+## 自動保存Queue
+
+自動保存は、保存の確実な完了を前提としない軽量設定変更にのみ使用する。入力中の無効値はFormにとどめ、有効になったPatchだけをQueueへ渡す。連続編集を止めず、後続変更を保持する。
+
+```ts
+// 表示用のAPI形状。汎用Queueの必須Class/Hook名ではない。
+interface AutoSaveQueue<Patch> {
+  enqueue(patch: Patch): void
+  close(): Promise<void>
+}
+```
+
+**Queue Owner**：対象User / CommunityとMutation Adapterを固定した、画面で生成される短命な実行Ownerとする。SPA離脱で`close`し、新しい入力受付を停止する。Queueは処理中のPromiseと必要なInputだけを終了まで保持する。画面間のDraft / Failure / Unknownを復元するProviderや永続Registryは作らない。実行関数がUnmountしたReact State Setterを参照してはならない。
+
+**内部制御**：
+- QueueはPending、Debounce Timer、実行中Attempt、受付Closed、失敗停止という最小の技術状態を扱う。これらを画面のStatusと同じ巨大State Machineへ統合しない。
+- 同一Fieldの未送信Patchは最新の値で合流する。実行中に新しく受け付けたPatchは別Pendingとして保持し、先行Attemptの`success`後に直列送信する。
+- Debounceが満了したら送信する。SPA離脱時はTimerを止め、未送信の有効Pendingを待たずに送信試行する。実行中なら、その結果が確認済み成功の場合だけ続く。
+- `success`のみ次のPendingへ進む。`rejected`または`unknown`なら以降の自動送信を停止し、自動Retryしない。画面離脱後のPending、失敗、Unknownの復元は行わない。
+- `close`は冪等で、二度呼んでも二重送信を起こさない。終了を表すPromiseは全保存の成功証明ではない。Queue自身が保持するタイマー・参照は終了後に解放する。
+- Browserの終了・Reload、遅延した旧MutationとのRemote最終順序、離脱後のUnknown競合を保証しない。厳密な整合性が必要なActionに自動保存を適用しない。
+- 実行中のMutationはUnmountだけを理由に取消したことにしない。ただしSign-out/Client破棄時に実際の通信完了まで保証できるわけではない。
+
+`flush`はDebounce満了と`close`に共通する内部処理とする。現行`flush({manual:true})`のように停止解除と送信を一つの公開操作へ混在させない。画面内RetryはFeature/Recoveryが安全性を判断して、新しい明示Attemptとして組み立てる。
+
+## Recovery・Feedback・Outcome確実性
+
+- 画面表示中のValidation/Blocked/Unknownは、[Feedback](/design-system/patterns/feedback)に従ってField、Form、持続Panel、Operation Feedbackへ配置する。処理失敗の通知を複数箇所へ無意味に重複させない。
+- 明示保存成功や不可逆操作の成立は原則成功通知を出す。変更時自動保存は成功通知を毎回出さず、必要なInline Statusで知らせる。Navigationを伴う成功は遷移先でも結果を認識できるようにする。
+- Unknownは照会できるOperationで、現在値の観測、旧操作の成否が不明なこと、再送の安全性を区別する。観測値が同じという理由だけで旧Mutation成功Notificationを出さない。
+- Typed Validation/Blockedなど未成立が確認済みの結果だけについて、Featureが明示Retry可否・入力修正・再取得を決定する。Queueが`rejected`のReasonを分析して自動Resumeしない。
+- 自動保存の画面離脱後はDraft/Failure/Unknown履歴・Scoped Guardを保持しない。再訪は通常のQueryを読む。古いMutationと再訪後の更新の競合を完全保証しない。
+- 初回Query失敗やBackground Refetch失敗はMutation Outcomeと別のRead Stateで表現する。Read失敗だけでActionの成功を巻き戻さない。
+
+## Context・Cache・Inputの保護
+
+- Form編集中の値を、遅れて届いたQuery/Mutationで無条件にResetしない。保存済み結果はMutationの確定Payloadを基準とし、古いQuery Echoで確定値を巻き戻さない。ただし高度な共通Draft/Confirmed/Query Echo同期Controllerは必要としない。
+- 同一保存Queueの内部では、試行時のPatchと後続変更の区別を保つ。全体Snapshotで後続の別Fieldを上書きしない。Field単位の合流とApolloとの最小の調停をConsumerで検証する。
+- QueueとAction InputがUser/Community対象を固定し、別Scopeへ結果が漏れないようにする。認証状態・Contextの変更では生存するClient/Cacheへの適用先を確認する。
+- Personal / Community Accentは有効色の選択時に即時反映し、保存失敗後も自動Rollbackしない。未完成HEXは保存せず、保存済み値との違いは画面がある間だけ示せばよい。
+- Themeなど端末内PreferenceやClipboardはRemote Server Stateと混同せず、必要な永続先・Permission・Browser API固有の結果をFeature / Adapterが処理する。
+
+## Confirmation、権限、Post-Action
+
+Role変更、除外、退会、Invitationの発行・無効化、Community削除などは自動保存Queueに入れない。Confirmationや最新権限、対象Identity、最後のAdministrator等の前提を個別Featureが確認し、APIの権限・整合性判定を最終的な成立根拠とする。Clientの事前確認だけで操作成立を保証しない。
+
+- Confirmationは必要な操作だけが利用する。Modalの表示や対象SnapshotをAction Coreの必須Lifecycleにしない。
+- Userの明示確認後も、サーバー側の最新権限・対象条件で拒否され得る。拒否と結果不明を混同しない。
+- Invitation再発行などは、古いIdentityへの要求を最新の対象へ自動的に読み替えない。
+- 成功後NavigationとNotificationは、確定したOperation OutcomeのあとにFeatureが実行する。Navigation失敗でMutation Successを取り消さない。
+
+## Consumer対応
+
+| Consumer | Trigger / 入力 | 共通契約の使い方 | Feature固有の保証 |
+| --- | --- | --- | --- |
+| Personal Profile | 明示保存、Trim/Dirty/Validation | Outcome契約、必要なら小さなBusy State | 保存中入力停止、Unknown照会、成功通知、Section離脱Draft破棄 |
+| Community Name / Alias | 明示保存、個別正規化 | 同上 | 保存中編集停止、表示名のBaseline、Context Switcherへの反映、別名のnull処理 |
+| Personal Preferences | 自動保存、有効Field Patch | Queue + Outcome | 端末ThemeとRemote値の区別、色の即時反映、離脱Flush、失敗時の画面内Feedback |
+| Community Accent | 自動保存、有効HEX | 対象Community固定Queue + Outcome | 即時反映・非Rollback、未完成HEXの非送信、Community Scope隔離 |
+| Community Members | 明示操作 | Outcome。Queueは使わない | 権限、対象・Confirmation、最後のAdmin、退会後Navigation |
+| Invitation | 明示操作 | Outcome。Queueは使わない | Invitation Identity、発行/無効化/再発行の副作用と確認 |
+| Community削除 | 破壊的明示操作 | Outcome。Queueは使わない | 対象名・影響・最新権限・件数変化などの再確認 |
+| Device Theme / Clipboard | ローカル操作 | 必要なら関数契約のみ | Browser/Device側の成立とFeedback。Remote Mutationを強制しない |
+
+## Behavior Inventoryの責務への対応
+
+| 要求 | 責務 / 扱い |
+| --- | --- |
+| A01 Trigger | 明示保存はForm、変更時保存はFeature + Queue |
+| A02 Scheduling | 自動保存Queue：Debounce、合流、直列化 |
+| A03 実行条件 | Form/Feature：Dirty・Validation・Blocked・Busy |
+| A04 Normalization | Form / Adapterの入力変換 |
+| A05 Field/Form Error | Feature / Feedback Pattern |
+| A06 Outcome | Actionの確実性契約 + FeatureのReason |
+| A07 Unknown | Adapter分類、Queue停止、Feature Recovery |
+| A08 Draft/Confirmed同期 | 高度な汎用Controllerは不要。FormとApolloの最小保護 |
+| A09 Patch | QueueとFeature、後続編集を保持 |
+| A10 Lifetime | 画面Draft破棄可。短命Queueは送信試行の終了まで |
+| A11 Scope | Input/Adapter/QueueのUser・Community隔離 |
+| A12 Community Accent | 即時反映・失敗後非Rollback。共通Preview Controller不要 |
+| A13 Personal Accent | 同上。Feature UI |
+| A14 通知 | Feature / Feedback Pattern |
+| A15 Blocked | Featureの操作可否・持続Feedback |
+| A16 Confirmation | 必要なOperationに限定するFeature Policy |
+| A17 成功後Navigation | Feature Post-Action |
+| A18 Feedback帰属 | Feature Semantic / 共通Presentation |
+| A19 Mutation vs Refetch | Adapter + Apollo。Outcomeを分離 |
+| A20 Device/Account | Feature / Infrastructure Adapter |
+| A21 Role確認差 | Community Members固有 |
+| A22 最新権限・最後のAdmin | Feature事前確認 + API最終確認 |
+| A23 Boolean Outcomeの情報損失 | 重要ActionのAdapterで確実性を保持 |
+| A24 退会後成功通知 | Feature Navigation + Feedback |
+| A25 Invitation Identity | Invitation Feature / API |
+| A26 Community削除 | 専用Confirmation + API |
+| A27 保存中編集 | 明示保存は全Formで停止、自動保存は継続 |
+| A28 Query失敗 | Query/Read State。Mutationとは別 |
+| A29 Local操作 | Feature/Device Adapter。GraphQL型強制なし |
+| A30 Create vs Edit Dirty | Editable Formの適用条件。Coreには持たない |
+
+## 段階的な実装・検証範囲
+
+最初のConsumerはPersonal Profileとし、Outcome契約を使用してもRHF入力、保存中停止、Field/Form/Blocked/Unknown Feedback、成功通知、Unknown照会、Query Echo保護に退行がないことを検証する。その後、Community Name/Aliasの明示保存、Personal PreferencesのQueue、Community Accent、Members等の個別Actionへ適用する。段階ごとの実装判断と作業ブランチ/PRは[Issue #391](https://github.com/hazuki3417/memoria-design/issues/391)の作業管理に従う。
+
+必要なテストは対象Consumerの機能境界で選ぶ。型・UnitだけでなくStorybook Integration/Interaction、Apollo MockによるTyped Success/Failure/Unknown、QueueのFake TimerとDeferred Promise、画面離脱、Scope変更、結果通知、Responsive/Visualの既存Contractを対象にする。既存のTest・Storyが存在しても新契約への一致・実行済みを自動的に意味しない。
+
+### 最小検証マトリクス
+
+| 条件 | 検証する結果 |
+| --- | --- |
+| Typed Success / Validation Failure / Result欠落 / Transport失敗 | success / rejected / unknownを証拠どおり区別し、二重送信しない |
+| 明示保存中のSubmit・入力 | 対象Input/Actionを止める。Success/Failure表示が正しい |
+| Queueで同一Field変更・別Field変更 | 未送信値を合流し、実行中の後続編集を保持 |
+| Debounce中にSPA離脱 | 一度だけ送信試行を開始。ブラウザ終了保証は主張しない |
+| Running中にPendingを残して離脱 | 成功後だけ次を送信。非成功では停止 |
+| 二重Close、Unmount後の解決 | 二重Mutationなし。Unmount画面State変更なし |
+| Unknownと再訪 | 自動再送・Draft復元・永続Guardなし。通常Queryから表示 |
+| Community/User切替 | 古い対象の操作結果を新対象に適用しない |
+| Mutation成功後のRefetch失敗 | Mutation成功の確実性を保ち、Read失敗を別に表示 |
+| Accentの未完成HEX、保存失敗 | 無効値非送信、即時反映済み有効色を自動Rollbackしない |
+| Members/Invitation/削除 | 対象・権限・確認・Unknown・NavigationのFeature契約維持 |
+
+## 非採用の共通抽象化
+
+すべてのActionへの汎用Session、完全なDraft/Confirmed/Query Echo同期、公開`flush()`による停止解除兼Retry、共通Preview/Rollback、常設Attempt履歴、全ActionへのDebounce/Queue、Confirmation Modal強制、Navigation/Notificationを含む巨大なAction Frameworkは採用しない。必要なFeature固有機能まで削除する意味ではない。
+
+`Action`を単なる薄い転送関数で何層も包むのではなく、意味のある責務分離が成立する場合だけ追加Moduleを作る。
