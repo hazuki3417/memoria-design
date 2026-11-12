@@ -66,7 +66,7 @@ nameは必須で、前後の空白を除去して空文字・空白だけの値�
 
 #### Community名の編集中状態とSection離脱（2026-11合意）
 
-Community SettingsのGeneralでCommunity名を編集している間は、入力中のDraft、Validation、保存処理中・保存失敗時のFeedbackを同じGeneral内で扱います。Generalに留まっている間は、保存結果が不明な場合の現在値の再照会・確認と、既存の復旧Actionを利用できるようにします。
+Community SettingsのGeneralでCommunity名を編集している間は、入力中のDraft、Validation、保存処理中・保存失敗時のFeedbackを同じGeneral内で扱います。明示保存中は入力と保存Actionを停止し、同じ保存対象への追加編集を受け付けません。Generalに留まっている間は、保存結果が不明な場合の現在値の再照会・確認と、既存の復旧Actionを利用できるようにします。
 
 GeneralからSettingsの別Section（Members / Preferences / Usageなど）へ移動した場合、**保存していないCommunity名のDraftと、保存結果不明に伴う画面上の状態・Feedbackは破棄します**。元のGeneralへ戻ったときは、画面に取得済みのCommunity名を初期値として新たな編集状態を開始し、離脱前のDraftや結果不明の表示を自動復元しません。Personal Settingsのニックネーム編集と同じSection離脱時の扱いです。
 
