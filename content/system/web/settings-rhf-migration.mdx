@@ -31,7 +31,9 @@ Personal / Community Settingsで現在見られるCustom Hookの責務・粒度�
 4. 3画面で同一の「現在の状態を確認」「確認完了」「もう一度保存」「変更を破棄」のボタン条件と表示は`ExplicitSaveRecoveryActions`へ抽出する。`FeedbackPanel`の配置・SeverityとFeature固有の説明は各Presenterが所有する。
 5. 既存Storybook・Visual / Interaction / Responsive Contractを保護し、追加したPure Resolver Unit TestとPRのCI結果を照合する。**コードへの反映と実行GateのPASSは別に確認する。**
 
-**残る不整合**：Form Hookの名称と公開API（例：`useProfileForm` / `useCommunityNameSettings` / `useCommunityAliasForm`）はまだ統一していない。これを意図的な例外とせず、Consumerの利用契約・Story/Testへの影響を確認して後続の整理対象とする。Personal Preferences / Community Accentは自動保存パターンとして別途責務比較を行い、既存Queue / Session / Previewを手動保存へ機械的に合わせない。
+**公開契約の統一（明示保存3Form）**：`useProfileForm`・`useCommunityNameForm`（旧`useCommunityNameSettings`）・`useCommunityAliasForm`の同種の状態と操作は、`failure` / `formInvalid` / `blockedFeedback` / `inspection`、`isSaving` / `isInputDisabled` / `canSubmit` / `canResaveInspected`、`save` / `inspect` / `confirmObservation` / `discardUnconfirmed`へ統一した。現在値照会は各Form固有のプロパティへ再包装せず`inspection.value`を用いる。
+
+**残る比較対象**：入力Field/Validationの固有な正規化とUI Propsは必要な差かどうか引き続き評価する。Personal Preferences / Community Accentは自動保存パターンとして別途責務比較を行い、既存Queue / Session / Previewを手動保存へ機械的に合わせない。
 
 ## Settings共通Loading / Errorと責務境界
 
