@@ -180,7 +180,7 @@ Detailを開いたままviewportが変化した場合は、breakpointを跨ぐ�
 
 ## Navigation・ResponsiveとAccessibility
 
-Settings全体のSection間Navigationは[User Settings](/screens/user-settings)に従います。Section離脱時には未保存の入力Draftと画面ローカルなFeedbackを破棄してよく、戻った際のDraft自動復元を要求しません。ただし、離脱前に送信した保存操作は離脱だけで取り消された・失敗した・成功したとは判定せず、送信済み操作の安全な完了と結果の確実性を維持します。自動保存Queueが動作中の場合は、離脱に伴う破棄と未送信変更の扱いを区別し、破棄したDraftを勝手に再送しません。表示領域にかかわらず全設定の現在値を確認・変更でき、入力中の変更・保存失敗・再試行の導線が維持されます。Theme切替だけで現在のContext・Navigation先・入力値を失わせません。Light / Dark双方でsemantic colorとfocus indicatorを維持します。具体的な設定行の配置とResponsive UIは[環境設定UI設計](/screens/user-settings-preferences-ui-design)に従います。
+Settings全体のSection間Navigationは[User Settings](/screens/user-settings)に従います。Section離脱時には未保存の入力Draftと画面ローカルなFeedbackを破棄してよく、戻った際のDraft自動復元を要求しません。ただし、離脱前に送信した保存操作は離脱だけで取り消された・失敗した・成功したとは判定せず、送信済み操作の安全な完了と結果の確実性を維持します。自動保存Queueが有効な変更として受け付け、Debounce待ちになっている未送信Pendingは、SPA内のSection離脱時に待ち時間を省略してFlushし、保存試行を開始します。まだ有効な保存対象になっていない入力途中Draftは破棄できます。離脱後の保存失敗についてDraft復元・失敗Feedbackの再表示・自動Retryは保証しません。離脱時Flushは保存成功を保証するものではなく、ブラウザ終了やページ再読み込み時の送信完了は保証しません。表示領域にかかわらず全設定の現在値を確認・変更でき、入力中の変更・保存失敗・再試行の導線が維持されます。Theme切替だけで現在のContext・Navigation先・入力値を失わせません。Light / Dark双方でsemantic colorとfocus indicatorを維持します。具体的な設定行の配置とResponsive UIは[環境設定UI設計](/screens/user-settings-preferences-ui-design)に従います。
 
 ## 関連する未提供機能
 
