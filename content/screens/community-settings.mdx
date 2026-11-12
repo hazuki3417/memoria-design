@@ -69,9 +69,9 @@ Accent ColorはColor Pickerを基本controlとして変更します。
 
 Userが色を選択した時点で明示的なSave操作を要求せず、即時保存・即時反映します。保存中の同じ意図の重複操作を適切に扱い、古い保存結果でより新しい選択を上書きしないようにします。
 
-保存成功後は新しい色を保存済み値とします。
+保存成功後は新しい色を保存済み値とします。Color Pickerの未完成HEXは保存せず、保存中の新しい有効な選択を古い保存応答で消しません。画面離脱時には未確定の入力Draftと画面ローカルなFeedbackを破棄できますが、送信済みの処理を画面離脱だけで取り消し・失敗・成功と見なさず、同じ意図を安全性未確認のまま自動再送しません。
 
-保存失敗時は保存済みのAccent Colorへ戻し、[Feedback](/design-system/patterns/feedback)に従って再試行可能なFeedbackを提示します。
+保存に失敗してもUserが選択したAccent Colorの即時反映を維持し、自動的には保存済み色へ戻しません。保存が未確定であることと明示的な再試行手段を[Feedback](/design-system/patterns/feedback)に従って示します。保存済み値とは区別し、失敗した色を保存完了として扱いません。
 
 Userの手動選択では `#RRGGBB` 全域を許可し、明度による入力制限を設けません。AccentとSurfaceの識別が難しい場合はDesign Systemの境界補償で扱います。
 
@@ -93,7 +93,7 @@ Community PreferencesはUser × Community scopeの個人設定、[Community Sett
 
 ### 保存失敗
 
-最後に確認できている保存済み色へ戻し、再試行できるFeedbackを提示します。Community ContextやNavigation状態を失わせません。
+選択した色の表示を維持し、自動Rollbackせず、再試行できるFeedbackを提示します。保存が確定したと誤認させず、Community ContextやNavigation状態を失わせません。
 
 ### Membership失効
 
@@ -118,5 +118,5 @@ Color Pickerの具体presentation、popover / inline等の配置、寸法はUI�
 - Light / Dark双方で任意Accentを適用したとき、Context識別が破綻しないこと
 - 白・黒に近い手動選択色を含め、必要な場合に境界補償が機能すること
 - Context Switcher、Header、選択中Navigation等のAccent表現が過度にAction / status colorへ見えないこと
-- Color Pickerの即時反映と保存失敗時のrollbackが理解できること
+- Color Pickerの即時反映を維持し、保存失敗時に選択色を自動Rollbackせず未保存状態と再試行を理解できること
 - Compact / Medium / Wideで同じCapabilityを維持できること
