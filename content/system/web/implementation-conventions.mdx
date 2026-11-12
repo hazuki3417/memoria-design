@@ -40,6 +40,18 @@ Pendingの合流、Debounce、直列実行、離脱時の軽量FlushはQueueの�
 
 公開APIの最小候補は、保存対象を受け付ける `enqueue(change)` と、受付を閉じて残りの有効なPendingを送信試行する `close()` の2操作とする。Debounce後の送信と軽量Flushは内部責務にできる。現行の `flush({ manual: true })` は停止解除と送信を兼ねるため、Outcome判定を持つ新Queueの安全な共通操作としては採用しない。これは公開名・TypeScript signatureまでを固定するものではなく、実際のConsumerとRetry導線に照らして決める。
 
+### GraphQL AdapterとAction Coreの接続
+
+GraphQLのGenerated Operation Type / Input Mapper、ApolloのMutation実行、Typed Resultの`__typename`照合はGraphQL実行境界（既存のFeature AdapterまたはInfrastructure Adapter）が担う。共通Action Core / QueueへGraphQL Client、GraphQL Error Code、Generated Typeを持ち込まない。1 Operationが既存Adapterで十分に扱えるなら、Action Core専用に同義の転送Hookを増やさない。
+
+- **Typed Success**：対象Mutation Operationに対して成立を確認できるSuccess Resultを受け取った場合だけ`success`。戻り値が必要なConsumerには、確定したPayloadを渡す。
+- **Typed Rejection**：対象Operationが成立しなかったことを表す定義済みのFailure Result（例えば`InputValidationFailure`）なら`rejected`。Field違反、権限、再試行可否などの理由はFeatureが解釈できる情報として残し、Queueの共通分岐には含めない。
+- **Unconfirmed / Missing**：操作のTyped Resultがなく、GraphQL Error、Transport Error、応答欠落、Timeout、未認識のResult等により成立が確認できない場合は、操作不成立が明確に証明されている場合を除き`unknown`。無関係のPartial Dataや通信が終了したことだけをSuccessの根拠にしない。
+- **Mutationと後続Query**：一度確認済みのMutation Successは、後続のRefetch/Cache調整の失敗によってRejected/Unknownに変更しない。Query失敗は取得・表示同期の別問題として処理する。
+- **Adapter構成**：Feature固有のInput変換とTyped Resultの枝分かれはOperationに近い境界で扱い、Coreは実行とOutcomeを抽象化する。共通の分類Helperを用いるのは複数Operationに同じ証拠規則がある場合だけとし、一律の巨大GraphQL Error Mapperを要件にしない。
+
+Queueは返却されたOutcomeの`success`のみを後続Pendingの送信許可とする。拒否の理由や未知結果の復旧はRecovery/Featureへ委譲し、QueueがError ClassやApollo固有の情報を見ない。具体的なOutcome型のプロパティ名、Payload/Failure I/F、Adapterの関数名はWebの実装設計でConsumerと照合して確定する。
+
 Lifecycleの公開型、QueueのOwnerの正確な設置箇所と処理終了後の解放方法は、各Consumerと照合して詳細設計する。ここで汎用の永続Sessionや未合意のAPIを確定しない。
 
 Personal / Community Accentは選択した有効色を即時反映し、保存失敗でも自動Rollbackしない。保存確定前の色を保存済み値とは表示しない。Color Input未完成値、Retry導線、Scope隔離は各Screen Specificationに従う。
