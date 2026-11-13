@@ -176,7 +176,10 @@ Personal Dashboardは`/dashboard`、Community Dashboardは`/communities/[communi
 - 参加Communityがない場合もPersonalとACTIVE User向けCommunity作成の入口を維持します。
 - Context選択時は上記のDestination対応規則に従って遷移します。切り替え処理中は重複操作を防ぎ、遷移先の取得に失敗した場合はエラーを表示し、現在の利用可能なcontextを維持します。
 - URLを現在contextの正本とし、Switcher独自の永続的な選択状態を持ちません。Browserの戻る・進むと直接アクセス時にもURLから現在contextを復元します。
-- Membership喪失・存在しないURL・閲覧不可・回復不能な取得失敗は、原則として共通エラー表示を使用します。ただしCommunity Settingsの各Sectionでは、本人のMembership一覧を正常に取得して対象Communityへの非所属が確定した場合に限り、非所属の案内とPersonal Dashboard（`/dashboard`）へ戻るボタンを表示します。自動リダイレクトは行いません。未取得・通信失敗・`NOT_FOUND`等を非所属と推定せず、APIの公開エラーコードによる区別と認証Session失効時のログイン誘導は維持します。
+- Community配下のPageは、共通Access BoundaryでURLの`communityId`に対して`community(communityId)`を確認し、アクセス可能と確認できた場合だけページ固有のUI/Controllerを表示します。`myCommunities`はContext Switcherの一覧用であり、アクセス可否の判定には使用しません。既存`CommunityProvider`はCommunity IDのContext提供を継続します。
+- Access確認中はページ固有のUIを表示せず、取得失敗は明示的なRetryを提供します。APIの`NOT_FOUND`または指定Communityが存在しない場合と非所属の場合は、Communityの存在を推測できない共通の中立的なアクセス不能表示とします。`FORBIDDEN`もアクセス不能として扱いますが、原因は内部で区別します。Network Errorを非所属・Not Foundと断定しません。
+- アクセス不能時は現在のURLを維持し、`/dashboard`へは「ダッシュボードへ戻る」をUserが選んだ場合だけ遷移します。認証Sessionの失効が確認された場合はログイン導線を提供します。各Featureの操作権限はそのFeatureとAPI側が引き続き判定します。
+- **段階的な対応範囲**：今回の共通BoundaryはCommunityLayout配下のページコンテンツを対象とします。Application Shell内のHeader / Context Switcher / Drawer / Media Detail Controller / Accent Preview、表示中Membership失効の能動的検知・キャッシュ無効化等は別途設計する未対応領域です。ページBoundaryの実装だけでこれらが保護されると見なしません（[設計Issue #383](https://github.com/hazuki3417/memoria-design/issues/383)、[Web実装 #262](https://github.com/hazuki3417/memoria-web/issues/262)、[後続課題 #263](https://github.com/hazuki3417/memoria-web/issues/263)）。
 
 ## Context Navigation
 
