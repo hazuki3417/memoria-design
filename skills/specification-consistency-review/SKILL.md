@@ -19,7 +19,7 @@ description: Memoriaの現行の設計・Issue上の合意、Schema・設定・�
 - 対象Repositoryの最新`AGENTS.md`、Owner Document、Issue・PR、実行可能Schema・Config・実装・Story・Test・CIが現時点の証拠です。古いIssueの差異報告を現行の不一致として再利用しません。
 - [Task Context Resolution](../task-context-resolution/SKILL.md)はGoal・対象Issue/PR/branch・操作権限、[Source of Truth Discovery](../source-of-truth-discovery/SKILL.md)は所有先の発見と本文取得、[Codebase Investigation](../codebase-investigation/SKILL.md)は現行の呼出・状態・副作用を解明します。本Skillは**同じ要求を単位に成果物間の意味の対応を判定**します。必要な実装経路は追加でreadできますが、各Skillを毎回形式的に呼び出す義務はありません。
 - [Impact Analysis](../impact-analysis/SKILL.md)は具体的な変更案・diff起点の波及、[Cross-Repository Contract Analysis](../cross-repository-contract-analysis/SKILL.md)はProvider/Consumerの現在の公開・運用インターフェースの整合です。それだけが依頼の対象なら該当Skillを主とし、一般的な仕様監査を強制しません。
-- [画面整合性確認プロセス](../../content/context/screen-prototype-implementation-review-process.mdx)は、指定画面群の画面仕様・Storybook/Prototype・本体Webを網羅的に静的比較する**P1〜P8の正式な定義済みプロセス**です。画面三者の全条件・網羅性・工程完了を求める依頼は同プロセスへ引き渡します。本Skillの軽量調査をP1〜P8の実施・整合性合格の代わりにしません。
+- [画面整合性確認プロセス](../../content/context/screen-prototype-implementation-review-process.mdx)は、指定画面群の画面仕様・Storybook/Prototype・本体Webを網羅的に静的比較する**P1〜P8の正式な定義済みプロセス**です。画面三者の全条件・網羅性・工程完了を求める依頼は同プロセスへ引き渡します。工程を説明・適用する際は、**正本の各工程名・実行内容・完了条件を本文で確認**し、例えば逆方向探索の工程を判定整理の工程で代用しません。本Skillの軽量調査をP1〜P8の実施・整合性合格の代わりにしません。
 - Test Design、Regression Review、Code Review、実テスト実行、仕様採否・修正の実行、新しい監査Gateや独自台帳の導入は本Skillの責務ではありません。
 
 ## 入力と確認範囲
@@ -33,7 +33,7 @@ description: Memoriaの現行の設計・Issue上の合意、Schema・設定・�
 ### 1. 現在有効な仕様と現物を確定する
 
 1. 最新の依頼・Issue・PR、対象branch/commit、作業範囲と権限を確認します。現在有効な設計と過去のIssueコメント、未マージ変更、実デプロイ版は区別します。
-2. Context mapと各Repositoryの入口から対象のOwner Document本文を取得し、要求の適用対象・条件・期待結果・例外・依存する規定を抽出します。仕様に曖昧さや内部矛盾があるなら、それ自体を調査結果として残します。
+2. Context mapと各Repositoryの入口から対象のOwner Document本文を取得し、要求の適用対象・条件・期待結果・例外・依存する規定を抽出します。画面・機能固有の仕様で要求が説明できる場合も、**同じ保証に適用される横断Owner Document**があるか確認し、対象と単位・例外を照合します。正本を発見しただけで本文を確認済みとせず、取得できない規定は未確認に残します。仕様に曖昧さや内部矛盾があるなら、それ自体を調査結果として残します。
 3. 比較に必要なSchema・Config・実装・Story・Testの**本文**と、必要な利用元や接続経路を対象範囲で取得します。文書リンク、ファイル名、Testの存在だけで内容・実行成功を確認済みとしません。Provider/Consumer契約や画面固有の網羅検証は隣接Skill・プロセスの責務を尊重します。
 
 ### 2. 仕様から成果物へ、成果物から仕様へ対応付ける
