@@ -100,7 +100,23 @@ VRTは**承認済みBaselineを比較の正本として扱う通常実行**と�
 - 署名鍵はテスト実行専用に安全に生成・注入し、通常・本番のAuth0やアプリケーションSessionの鍵と共有しません。ログ、Playwright trace、スクリーンショット、Artifact、Repositoryへ秘密情報や認証Tokenを保存しません。Session・Tokenの再利用は同一実行・許可されたTest Actorの範囲に限定します。
 - E2E用と通常用のWeb/API認証実装は、実行時の公開リクエストや単なる環境変数の切り替えだけでは相互に有効化できないビルド・実行境界で分離します。通常ビルドがテスト専用Session・Tokenを受け付けないこと、E2E環境から実サービスへ接続しないことを検証条件とします。
 
-Cookieと署名付きTokenの具体的な形式・署名方式・有効期限、Webのビルド時差し替え方法、APIの通常Application構成との接続、Fixture・依存サービスの起動、CIの構成は、各Repositoryの実装を確認し、実際の結合・隔離が検証できる形で具体化します。実行検証が成立するまではE2Eを構築済みとして扱いません。
+##### 署名付きTokenの相互接続仕様
+
+署名方式はHMAC-SHA256（HS256）を使用します。テスト実行ごとにSession用・API用の独立した32 byte以上の乱数鍵を生成します。既存のJWTライブラリを用い、署名アルゴリズムをHS256に固定して検証します。テスト専用の共通Issuerは `https://memoria-e2e.invalid/` とし、本番のIssuerと区別します。Subjectは同一実行内でFixtureが定義した外部認証識別子を使用し、内部User IDや権限をTokenに埋め込みません。
+
+| 項目 | Web Session | API Bearer Token |
+| --- | --- | --- |
+| 形式 | JWT（HS256） | JWT（HS256） |
+| `iss` | 共通テストIssuer | 共通テストIssuer |
+| `sub` | Test Actorの外部認証識別子 | 検証済みSessionのSubject |
+| `aud` | `memoria-e2e-web` | `memoria-e2e-api` |
+| `purpose` | `session` | `api` |
+| `run_id` | 現在のテスト実行識別子 | 検証済みSessionの実行識別子 |
+| `iat` / `exp` | 発行・失効時刻（Unix秒） | 発行・失効時刻（Unix秒） |
+
+PoCではSessionの最長有効期間を15分、API Tokenを60秒とします。API Tokenの期限は元のSessionの期限を超えません。必須Claimの欠落、異なるIssuer・Audience・用途・実行識別子、不正署名、発行時刻が未来、期限切れ、期限と発行時刻の順序不正、最大有効期間超過を拒否します。署名鍵の設定不備は起動・設定時に失敗させ、既定の固定鍵へ退避しません。鍵やTokenの値を検証エラーに含めません。
+
+Webのビルド時差し替え方法、APIの通常Application構成との接続、Fixture・依存サービスの起動、CIの構成は、各Repositoryの実装を確認し、実際の結合・隔離が検証できる形で具体化します。実行検証が成立するまではE2Eを構築済みとして扱いません。
 
 ### GitHub Actions Workflowの表示名
 
