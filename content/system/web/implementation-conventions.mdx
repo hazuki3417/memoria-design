@@ -585,7 +585,7 @@ FormのActionは、SettingsのRoute / Section Connection / UIと同様、外部�
 
 **自動保存の接続Adapter**：Feature Actionは共通の`SaveActionResult<T>`を返す。既存の自動保存Queue / Controllerは「成功時は確定値、失敗時はPromise rejectで保留」という既存APIを維持するため、Connectionで`requireConfirmedSave`により結果を変換する。拒否時の`SaveActionError`は共通`SaveActionFailure`を保持し、Controllerは`getSaveActionFailure`で意味的な失敗を処理する。これは二重の失敗分類や独立した自動保存Action契約ではない。予期しない例外は`unknown`とし、自動再送しない。
 
-Personal / Community Preferencesは[Action実行基盤設計](/system/web/action-execution-design)の短命AutoSave Queueと確定値同期に従う。400ms Debounce、最新有効Fieldの合流・直列化、SPA離脱時Flush、画面離脱後のDraft / Failure非復元を維持する。Personalの複数FieldとCommunity Aliasの独立した明示保存を残す。有効Accentの即時反映・失敗時の非Rollback・明示Recoveryは両画面で同じ基本契約とする。Application Shellは選択中のPreviewのみを所有し、永続的な保存SessionやQueueは所有しない。
+Personal / Community Preferencesは[Action実行基盤設計](/system/web/action-execution-design)の短命AutoSave Queueと確定値同期に従う。400ms Debounce、最新有効Fieldの合流・直列化、SPA離脱時Flush、画面離脱後のDraft / Failure非復元を維持する。Personalの複数FieldとCommunity Aliasの独立した明示保存を残す。有効Accentの即時反映・失敗時の非Rollback・明示Recoveryは両画面で同じ基本契約とする。Personal / Community双方の画面横断Accent PreviewはApplication Shellが所有し、各SettingsはShellの公開入口を通じて一時表示を更新・解放する。User単位とCommunity単位のScope差は維持し、同じContextへの強制統合は求めない。Application Shellは永続的な保存SessionやQueueを所有しない。
 
 自動保存を単一の`useAutoSave`や共通Queueに統合しない。Trigger側がDebounce・連続編集・必要な直列化を担当し、Feature固有のPatch生成、Preview、Cache同期、復旧UI・Stateの寿命はそれぞれのOwnerに残す。保存結果の契約だけを共通化し、ActionやForm側へTriggerの実装都合を持ち込まない。
 
