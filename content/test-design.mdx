@@ -82,6 +82,14 @@ VRTは**承認済みBaselineを比較の正本として扱う通常実行**と�
 - 通常のシナリオでは認証済みのテスト用Sessionを再利用し、未認証・Session失効・Logout等、アプリケーション側の認証状態に関する振る舞いは別のシナリオで検証します。
 - 通常PRでフルE2Eを一律には実行しません。主要機能・認証・権限変更時は影響するシナリオ、リリース前は主要フローのフルE2E、手動時は指定したシナリオ群を実行します。依存関係を考慮し、影響不明なら安全側で実行します。
 
+#### Backend E2E
+
+Backend E2EはApplication E2Eとは別に、FrontendやAuth0に依存せず、実際に起動したAPI processのHTTP境界から認証・GraphQL / REST・業務処理・永続化までの主要な経路を検証します。Handlerを直接呼び出すIntegration Testとは実行境界が異なります。
+
+- 通常APIのサービスの組み立てとHTTPルートを共有し、認証済み主体の確立のみE2E専用ビルドの署名付きBearer認証で代替します。信頼できるBackend Test Runnerが同じAPI Token仕様で直接Tokenを発行します。Web Sessionの成立を前提にせず、通常APIの認可経路は変更しません。
+- 実行ごとに独立した専用PostgreSQLへ通常のMigrationを適用し、実APIによる前提データの作成またはFixtureを使います。開発・本番のDBや外部認証、Storageを使用しません。
+- S3互換Storage、Outbox、Redis、Worker等が必要なシナリオでは専用依存サービスを追加して検証し、その準備がない段階でMedia処理のE2Eを保証したとは扱いません。Backend E2Eの成功はWebを含むApplication E2Eの成功を代替しません。
+
 #### E2Eにおける外部認証の代替
 
 - Application E2EではAuth0のテスト専用Tenantを用意せず、ローカルOIDC Providerの構築も標準方式としません。Auth0が担う外部認証の成立だけをテスト専用の認証アダプターで代替します。製品のAuth0認証仕様は変更しません。
