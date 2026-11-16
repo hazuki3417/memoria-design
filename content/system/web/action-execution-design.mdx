@@ -126,6 +126,18 @@ interface AutoSaveQueue<Patch> {
 - Personal / Community Accentは有効色の選択時に即時反映し、保存失敗後も自動Rollbackしない。未完成HEXは保存せず、保存済み値との違いは画面がある間だけ示せばよい。
 - Themeなど端末内PreferenceやClipboardはRemote Server Stateと混同せず、必要な永続先・Permission・Browser API固有の結果をFeature / Adapterが処理する。
 
+### Personal / Community Preferencesの確定値同期（2026-11-16合意）
+
+Personal / Community Preferencesでは、現行Mutationが指定Fieldだけを変更し、親Entity IDや更新Revisionを含まない設定全体を返すため、確定値の共有を次の方式に統一する。この判断は対象の設定保存に適用し、他FeatureのMutationへ一律に適用しない。
+
+- Mutationは `no-cache` とし、Typed Successで確認した実際の送信Fieldのみを固定された対象User / Communityの既存Apollo Cacheへ明示的にPatchする。Personalの複数FieldとCommunity Aliasの独立した明示保存を維持し、未指定Field、`false`、Aliasの明示的な `null` を区別する。Mutationが返す全設定Snapshotを無条件で採用しない。
+- 設定の埋込Objectを部分Queryで取得する場合は未取得の他Fieldを失わせない限定的なMerge Policyを適用する。Cacheの対象が未取得、同期に失敗した場合は関連する取得を再試行できるが、確定したMutation SuccessをUnknownへ変更しない。未取得の親Entityを推測で生成しない。
+- 保存前に開始していた通常Queryでは、その取得の進行中に確定した対象EntityのFieldだけを保護する。取得開始後の確定Patchと応答の到着順に基づく限定的な調停であり、BackendにRevisionがない以上、応答が本当にどちらの時点の値かを証明するものではない。取得終了時に保護情報を破棄し、確定後に開始した通常QueryはBackendの値を利用する。画面離脱後の遠隔Mutation最終順序や認証変更をまたぐRemote競合の完全保証は追加しない。
+- Unknown時の現在値照会は `no-cache` とし、通常取得と合流させず、上記の取得応答保護も適用しない。観測のみでは共有Cacheを変更せず、ユーザーが明示的に採用したFieldのみを確定値として同期する。現在値一致を以前のMutation成功の証明としない。
+- Preview Contextは最新の有効色を一時表示し、Apollo Cacheは確定済み値を共有する。最新選択に対応する色の確定値が共有Cacheに反映された場合にPreviewを解放する。保存失敗時に自動Rollbackせず、非Blockedの失敗後も新しい有効入力の表示は即時更新するが、明示Recoveryまで自動再送しない。未完成HEXは未送信のAccent変更だけを無効化し、失敗状態のPreviewは保持する。Blockedでは新規保存・新規Previewを停止する。明示破棄・画面離脱では当該OwnerのPreviewを解放する。
+- Scopeを固定したAdapter、Cache更新、通常取得の調停、no-cache照会、画面OwnerのPreview解放を、本番Adapterを通るApollo Integrationと適切なHook / Interaction Testで保証する。実Backend通信・認証変更・Visual / Behavioral / Responsiveの検証はコードの存在と区別する。
+
+
 ## Confirmation、権限、Post-Action
 
 Role変更、除外、退会、Invitationの発行・無効化、Community削除などは自動保存Queueに入れない。Confirmationや最新権限、対象Identity、最後のAdministrator等の前提を個別Featureが確認し、APIの権限・整合性判定を最終的な成立根拠とする。Clientの事前確認だけで操作成立を保証しない。
