@@ -6,6 +6,14 @@ Memoriaの初回Releaseは、単一EC2上のDocker containerでApplicationとsel
 
 設計優先順位はCorrectness、Simplicity、Explicitness、Observability、必要性が観測された後のOptimizationの順です。
 
+## InfrastructureのProvisioning
+
+インフラストラクチャの宣言・構築にはTerraform（HCL）を使用します。最初にAWS Development環境を構築し、AWSのEC2 / EBS / S3 / IAM / NetworkなどProvider固有のResourceをTerraformで管理します。Applicationの起動・構成はDocker / Docker Composeで分離し、VM上のRuntimeを必要以上に特定Cloud Providerへ結合させません。
+
+複数Cloud Providerで共通利用できるのはApplicationのRuntime構成や運用契約であり、TerraformのProvider固有Resource定義を別Providerへそのまま適用できるわけではありません。別Providerへの展開が必要になった場合は、その環境が所有するInfrastructure定義と権限・Storage・Networkの接続方法を個別に設計します。再利用する責務が具体化するまでは汎用Moduleを追加しません。
+
+Terraform StateはEnvironment / Providerごとに分離し、共有Backend、State Lock、認証・暗号化・Access Controlを確定してからCloudへの適用を開始します。既存Resourceが存在する場合は所有関係を確認し、StateのImportと旧管理方式の移行を明示的に計画します。Infrastructureの静的検証とCloudへの反映は別の操作とし、Productionを含む環境変更には許可された対象とPlanの確認を必要とします。
+
 ## 初回ReleaseのProduction baseline
 
 - 単一EC2でWeb、API、Media Worker、Outbox Publisher、PostgreSQL、Redisを独立したDocker container / processとして運用します。
