@@ -17,7 +17,7 @@ description: Memoriaで重要な設計や実装方針の選択を検討すると
 - [Context map](../../content/context/index.mdx)、[開発プロセス](../../content/development-process.mdx)、[ドキュメント管理方針](../../content/documentation-policy.mdx)：正本への参照経路・記録の所有・Task管理。Product Goalや設計原則に関わる判断では、Context mapに従って上位の正本も確認する。
 - 対象Repositoryの最新のAGENTS.md、該当Owner Document・実装規約・schema・code・test・設定・関連Issue/PR：対象の契約とTask固有の根拠。
 - [Task Context Resolution](../task-context-resolution/SKILL.md)は依頼・合意・Scope・権限、[Source of Truth Discovery](../source-of-truth-discovery/SKILL.md)は正本の発見・本文取得、[Codebase Investigation](../codebase-investigation/SKILL.md)は現行実装、[Impact Analysis](../impact-analysis/SKILL.md)は具体案の波及・回帰リスクと検証範囲を扱う。本Skillはその根拠を用いて案を評価し、推奨・意思決定を支援する。必要な調査はその場で行ってもよく、固定の逐次工程を要求しない。
-- Requirement Analysis（候補）は要求・Acceptance Criteriaの具体化、Architecture Design（候補）は責務・構成・契約の実装可能な設計案の具体化を担う。本Skillでは比較に必要な程度まで案を具体化できるが、要求の全面策定や詳細設計を代行しない。
+- [Requirement Analysis](../requirement-analysis/SKILL.md)は要求・Acceptance Criteriaの具体化、Architecture Design（候補）は責務・構成・契約の実装可能な設計案の具体化を担う。本Skillでは比較に必要な程度まで案を具体化できるが、要求の全面策定や詳細設計を代行しない。
 - [Feature Implementation](../feature-implementation/SKILL.md)と[Component Refactoring](../component-refactoring/SKILL.md)は合意済み設計の実装・契約保全、[Code Review](../code-review/SKILL.md)は変更成果物の品質評価。本Skillの推奨は実装・レビュー・テストの結果ではない。
 
 ## 入力
