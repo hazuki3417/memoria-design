@@ -33,6 +33,14 @@ S3 bucketはprivateとし、public access blockと保存時暗号化を適用し
 
 S3アクセスはServer-sideの内部Endpointと、BrowserからHTTPSで到達可能な配信Endpointを分離します。署名はBrowserからリクエストする実際の配信Host・pathを対象とし、内部Hostを署名してからURLだけ置換しません。配信EndpointはPrivate ObjectへのSigV4検証付きGETをサポートする必要があり、bucket公開を前提にしません。Public Endpointの未設定・署名鍵の欠落時は無署名URLへfallbackしないで失敗させます。開発時のlocalhost HTTPは明示的な開発環境だけ許容し、本番はHTTPS必須とします。
 
+## S3認証とクレデンシャル取得（AWS SDK Go v2）
+
+APIとMedia Workerは環境別のS3処理実装を持たず、AWS SDK for Go v2のS3 Client / Presignerと同じCredential Provider Chainを使用する。ローカルではS3互換Storage向けの開発用環境変数・AWS Profile等、EC2ではInstance Profileの短期Credentialを取得する。Credentialの有効期限に応じた更新はSDK側に委ね、Applicationの起動時にAccess Key・Secret Key・Session Tokenを一度だけ固定しない。Server / Worker / Presigner間でProviderを共有できる設計を基本とし、環境ごとの相違はEndpoint、Region、Bucket、認証情報の取得元という設定へ閉じる。
+
+API/WorkerがS3へ送るリクエストと、Browserへ返すGETのPresigned URLは、既存どおりそれぞれ内部EndpointとBrowserから実際に接続可能な配信Endpointを対象に署名する。Hostの事後書換えは不可。Presign発行時も一時Credentialが期限切れならFail Closedとする。Originalの5分、Variantの15分、Key validation、認可はこの認証更新方式とは独立の既存契約として維持する。署名URLは一時Credential自体の失効時刻を超えて有効とはならない。
+
+EC2のInstance RoleとIMDSv2を用いる場合、ContainerのIMDS到達性とCredential取得権限の境界はIaC / Runtime設定で確認する。**1つのEC2 Instance Roleを利用する他Containerからも同Roleが取得され得るため、IMDS hop limitを無条件に引き上げて解決した扱いにはしない。** Container別の権限分離、Metadata Access制限、実機での取得・更新・非公開S3アクセス検証を経て運用方式を確定する。AWSの長期Access KeyをEC2の環境設定ファイルやRepositoryへ置かない。
+
 APIの署名付きURL・署名情報をlog / traceへ記録しません。権限喪失後は新しいURLを発行しませんが、発行済みURLは15分間まで有効となる残存riskを許容します。
 
 Webはbucket名や恒久keyへ依存しません。APIは認可とkey生成、IaCはbucket、IAM、暗号化、lifecycleを所有します。upload時にsize、MIME type、実dataを検査します。詳細は[Media処理と派生物](/media/processing)と[CommunityとMediaの公開](/media/community-access)を参照してください。
