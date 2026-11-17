@@ -97,7 +97,7 @@ WebのPR検証は、TypeScript、Unit、Next.js Build、Storybook Interaction、
 
 ドキュメントのみの変更ではアプリ検証を原則起動しない。StorybookのStoryファイル（`src/**/*.stories.*`）だけの変更ではTypeScript・Interaction・VRTを対象とし、Unit・Buildは対象外とする。Unitは主に`src/features`・`src/components`等の実装領域、Buildは`src/app`およびアプリの実装領域、Interaction・VRTはStory/UI・Prototypeの実装領域を対象とし、`src/**`全体を無条件に含めない。UI実装に変更がある場合は必要な検証を広めに動かし、依存関係や共通設定の変更も網羅する。Baseline生成は従来どおりIssueを使った明示実行・PRレビュー・人間のマージとし、通常比較と分離する。
 
-PRイベントの`paths`監視範囲は`src/**`内の検証別対象パス、および`package.json`・`package-lock.json`のみに限定する。`.storybook/**`、CI設定、テスト設定、ドキュメントなど、これ以外のファイル変更単独では自動PR検証を起動しない（明示的な`workflow_dispatch`は維持する）。設定ファイルのみの変更で検証が走らないことは意図的な運用上のトレードオフとして許容する。
+PRイベントの`paths`監視範囲は`src/**`内の検証別対象パスと`package.json`・`package-lock.json`を基本とする。ドキュメントのみの変更では原則起動しない。実行環境や検証の再現性そのものを確認するNext.js BuildとVRTでは例外として、各Workflowが使用するDockerfile、用途別Compose、`.dockerignore`、環境設定例、ビルド／撮影設定、静的asset、関連script、Workflow自身の変更も必要な範囲で監視する（具体的なpathはWebのWorkflowを正本とする）。それ以外の設定ファイル変更単独で検証を自動起動しない既存方針と、明示的な`workflow_dispatch`は維持する。
 
 ### Web CIの依存パッケージキャッシュ
 
