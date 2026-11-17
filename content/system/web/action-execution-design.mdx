@@ -152,7 +152,7 @@ Role変更、除外、退会、Invitationの発行・無効化、Community削除
 
 | Consumer | Trigger / 入力 | 共通契約の使い方 | Feature固有の保証 |
 | --- | --- | --- | --- |
-| Personal Profile | 明示保存、Trim/Dirty/Validation | Outcome契約、必要なら小さなBusy State | 保存中入力停止、Unknown照会、成功通知、Section離脱Draft破棄 |
+| Personal Profile | 明示保存、Trim/Dirty/Validation | Outcome契約、必要なら小さなBusy State | 保存中入力停止、成功通知、失敗時Draft保持、結果不明時の再読み込み案内、Section離脱Draft破棄。専用照会・復旧UIなし |
 | Community Name / Alias | 明示保存、個別正規化 | 同上 | 保存中編集停止、表示名のBaseline、Context Switcherへの反映、別名のnull処理 |
 | Personal Preferences | 自動保存、有効Field Patch | Queue + Outcome | 端末ThemeとRemote値の区別、色の即時反映、離脱Flush、失敗時の画面内Feedback |
 | Community Accent | 自動保存、有効HEX | 対象Community固定Queue + Outcome | 即時反映・非Rollback、未完成HEXの非送信、Community Scope隔離 |
@@ -198,7 +198,7 @@ Role変更、除外、退会、Invitationの発行・無効化、Community削除
 
 ## 段階的な実装・検証範囲
 
-最初のConsumerはPersonal Profileとし、Outcome契約を使用してもRHF入力、保存中停止、Field/Form/Blocked/Unknown Feedback、成功通知、Unknown照会、Query Echo保護に退行がないことを検証する。その後、Community Name/Aliasの明示保存、Personal PreferencesのQueue、Community Accent、Members等の個別Actionへ適用する。段階ごとの実装判断と作業ブランチ/PRは[Issue #391](https://github.com/hazuki3417/memoria-design/issues/391)の作業管理に従う。
+最初のConsumerはPersonal Profileとし、Outcome契約を使用してもRHF入力、保存中停止、Field/Formのエラー説明、結果不明時の非断定的案内、成功通知に退行がないことを検証する。Profile・Community Name・Aliasでは、表示後のQuery自動反映・専用Retry・Unknown照会と復旧UIを要件としない。その後、Personal PreferencesのQueue、Community Accent、Members等の個別Actionへ適用する。段階ごとの実装判断と作業ブランチ/PRは[Issue #391](https://github.com/hazuki3417/memoria-design/issues/391)の作業管理に従う。
 
 必要なテストは対象Consumerの機能境界で選ぶ。型・UnitだけでなくStorybook Integration/Interaction、Apollo MockによるTyped Success/Failure/Unknown、QueueのFake TimerとDeferred Promise、画面離脱、Scope変更、結果通知、Responsive/Visualの既存Contractを対象にする。既存のTest・Storyが存在しても新契約への一致・実行済みを自動的に意味しない。
 
