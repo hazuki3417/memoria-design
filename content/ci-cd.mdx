@@ -63,7 +63,7 @@ Pull Request CIでbuildしたartifactは検証用artifactとして扱えます�
 | `memoria-api` | `quality / api` | Goの静的検査、test、buildが成功すること |
 | `memoria-api` | `runtime-quality / runtime` | Development用Docker Compose定義を構築・起動でき、対象containerが継続稼働できること |
 | `memoria-web` | `quality / web` | GraphQL client生成、source check、型検査、unit test、Next.js build、client bundleへのserver secret混入検査が成功すること |
-| `memoria-IaC` | `quality / iac` | Terraform fmt、Backendなしのinit、validateがAWS認証なしで成功すること |
+| `memoria-IaC` | `quality / iac` | Terraform fmt、各Root ModuleのBackendなし・Lockfile読み取り専用のinit、validateがAWS認証なしで成功すること |
 | `memoria-design` | `quality / design` | documentation siteをbuildできること |
 
 これらは2026-08時点のrepository実装を基準とした初期必須Gateです。repositoryの責務やQuality Gate構成を変更する場合は、workflowだけを変更してrequired checkの意味を暗黙に変えず、必要に応じてこの設計とbranch protection設定も同時に更新します。

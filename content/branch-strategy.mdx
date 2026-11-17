@@ -169,7 +169,7 @@ GitHub上では、少なくとも`main`と`develop`に次の保護を設定し�
 
 `memoria-IaC`では、`main`へのマージだけで無条件に本番適用しません。
 
-- PRでは`cdk synth`と必要な`cdk diff`を確認する
+- PRではTerraformのformat、Backendなしのinit、validateを確認し、Cloud適用前には対象環境の`terraform plan`をレビューする
 - 本番deployは対象環境を確認し、人間が明示的に承認する
-- `cdk destroy`は通常のCI・リリースフローから除外する
+- `terraform destroy`は通常のCI・リリースフローから除外する
 - stateful resourceの置換・削除にはbackup、migration、rollback計画を必要とする

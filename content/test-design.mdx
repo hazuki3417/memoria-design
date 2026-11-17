@@ -14,7 +14,7 @@
 | GraphQL | schema、resolver、error、生成互換性 |
 | 非同期処理 | Outbox commit、Redis配送、重複配送、Worker retry、pending recovery |
 | Media配信 | Variant生成、Original認可、Community権限、署名期限 |
-| IaC | unit test、synth、diff、IAM、resource置換 |
+| IaC | Terraform fmt、Backendなしのinit、validate、対象環境のplan・IAM・Resource置換の確認 |
 | 結合 | Web・API・認証・DB・storageの主要scenario |
 
 RepositoryのInsert・Update・Deleteでは、操作対象に加えて対象外dataを用意し、操作後の全体を比較します。件数だけでなく、対象外dataが変化していないこと、constraint違反時に部分更新が残らないことを確認します。
