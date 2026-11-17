@@ -140,6 +140,8 @@ PostgreSQLとRedisはDocker Composeで起動し、共通構成と開発・CI差�
 
 ## Docker操作とOne-shotタスクの入口
 
+Web・APIではDocker Composeのファイル名を用途別に統一します。`docker-compose.yml` は通常のローカル開発で利用する常駐サービスの起動設定、`docker-compose.integration.yml` はVRT・Integration Test・性能検証・コード生成などの検証／開発支援用設定とします。後者を使用するコマンドやCIでは `-f docker-compose.integration.yml` を明示します。両者の起動・停止やデータ領域は互いに干渉させません。CIのすべての処理をDockerへ移すことを要求せず、前節のDocker利用の判断基準に従います。AWS等に配置する環境全体の実行構成はmemoria-IaCが所有します。
+
 - PostgreSQL・Redisなど常駐コンテナの起動、停止、状態確認は `docker compose` を直接使用する。常駐サービスのLifecycleを隠蔽する `make dev-up` 等のラッパーを標準入口として設けない。
 - Migration、DB初期化、Fixture投入、検証など、処理完了後に終了するOne-shotタスクにはMakefileのコマンドを設けてもよい。
 - SeederをComposeの一時的なサービスにする場合も、永続サービスのLifecycleはDocker CLI側に残す。

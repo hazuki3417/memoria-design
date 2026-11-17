@@ -18,7 +18,7 @@ AWSはOIDCと短期credentialを優先し、Terraformのformat・validateで静�
 
 初期はEC2上でDocker containerを実行します。APIとMedia Workerは用途別のimageとしてbuildし、Outbox Publisherは必要に応じてAPI imageを共有します。API、Publisher、Workerは独立したprocessとして起動し、将来的にECS/Fargateへ移行できる境界を維持します。
 
-local開発、CI、EC2上の構成は、同じDockerfile、lock file、Docker Compose構成を正本とします。環境差分が必要な場合は共通の`compose.yaml`に開発用またはCI用の差分を重ね、各環境で異なるservice構成を手作業で複製しません。
+local開発、CI、EC2上の構成は、同じDockerfile、lock file、Docker Compose構成を正本とします。同じ責務の実行構成は必要な環境差分を重ね、手作業で複製しません。一方、ローカル常駐サービスと検証・開発支援タスクは用途が異なるため、[ローカル開発環境](/local-development)で定める `docker-compose.yml` と `docker-compose.integration.yml` に分離します。クラウド実行環境のComposeはmemoria-IaCが所有し、Web/APIのDockerfile・実行契約を利用します。
 
 ## BuildKitとimageの再利用
 
