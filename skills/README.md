@@ -16,6 +16,7 @@ MemoriaのAI支援開発で再利用する作業手順の入口です。各Skill
 | [Code Review](./code-review/SKILL.md) | PR・変更差分を最新の規約、参照実装との責務構造、ファイル/Directoryの命名・配置、Consumer Contractと検証証拠に照らして品質評価するとき | [Context map](../content/context/index.mdx)、[AI支援開発](../content/ai-development.mdx)、各Repositoryの`AGENTS.md`・実装規約・Owner Document・対象diff |
 | [Branch Management](./branch-management/SKILL.md) | GitHubのブランチを選択・作成・継続・切り替えるとき | [ブランチ運用規約](../content/branch-strategy.mdx)、[AI支援開発](../content/ai-development.mdx) |
 | [Task Context Resolution](./task-context-resolution/SKILL.md) | 作業の開始・再開・依頼変更時にGoal・Scope・Issue / PR / branch・操作権限と未確認事項を整理するとき | [Context map](../content/context/index.mdx)、[AI支援開発](../content/ai-development.mdx) |
+| [Requirement Analysis](./requirement-analysis/SKILL.md) | User Goal・Use CaseやAcceptance Criteriaが曖昧な要求を、既存Contract・制約・Scopeと照合して具体化し、合意が必要な判断を設計・実装へ引き渡すとき | [Context map](../content/context/index.mdx)、[AI支援開発](../content/ai-development.mdx)、[開発プロセス](../content/development-process.mdx)、対象Owner Document・実装契約 |
 | [Source of Truth Discovery](./source-of-truth-discovery/SKILL.md) | 設計・調査・実装・レビューに必要な正本を発見・取得し、実装契約との照合範囲や未確認事項を整理するとき | [Context map](../content/context/index.mdx)、[ドキュメント管理方針](../content/documentation-policy.mdx) |
 
 ## ChatGPTからの利用
