@@ -18,6 +18,8 @@ AI Agentは、まず依頼の種類を特定して[タスク別の読み取り�
 
 **Task Contextの確定**：設計・調査・実装・レビュー・GitHub操作を開始・再開するとき、または依頼・Scope・操作権限が変わるときは、[Task Context Resolution Skill](../../skills/task-context-resolution/SKILL.md)を取得し、現行のGoal・Scope・Issue / PR / branchの実状態・権限・未確認事項を整理します。規範の正本は本Context mapと[AI支援開発](/ai-development)であり、Skillは新しい操作許可や工程ゲートを追加しません。
 
+**要求・受け入れ条件の具体化**：新規機能や改善依頼でUser Goal、対象者・Use Case、既存Contract、Scope、Acceptance Criteriaが曖昧なときは、[Requirement Analysis Skill](../../skills/requirement-analysis/SKILL.md)を取得します。実際の正本・合意に照らして要求候補と検証可能な成果条件を整理し、合意済み／提案中／未確認を区別して後続設計へ引き渡します。現在のTask状態はTask Context Resolution、重要な実現案の採否はDesign Decision Analysisが扱います。要求の最終決定、Issue/正本への反映・操作許可は[AI支援開発](/ai-development)と[開発プロセス](/development-process)に従い、新たな必須Gateを設けません。
+
 **既存実装の構造・責務・動作経路の調査**：現在のCodebaseのComponent/Module、Consumer、呼出・依存、State Owner、External IO、Story/Testの実際の関係を調べるときは、[Codebase Investigation Skill](../../skills/codebase-investigation/SKILL.md)を取得します。対象Repositoryの最新branchの実コード本文を根拠に現行実装を分析し、旧Issue・推論・実行未確認事項を区別します。正本の発見・取得はSource of Truth Discovery、変更案の影響分析は対応する設計/レビュー作業、Frontendの実際の責務抽出・回帰はComponent Refactoringが担います。Skillは新たな工程ゲートや操作許可を定義しません。
 
 **具体的な変更案・PR差分の影響分析**：変更するComponent / Story / Public API / GraphQL Schema / Data契約などから既存Consumerへの波及、維持すべきContract、回帰リスクと検証範囲、要合意事項を評価するときは、[Impact Analysis Skill](../../skills/impact-analysis/SKILL.md)を取得します。対象Repositoryの現在のbase/head・実差分・Owner Document・code/Story/Testに基づき、確定した影響・条件付きリスク・未確認を分けます。現行構造の解明はCodebase Investigation、正本の所在・本文取得はSource of Truth Discovery、実装/回帰は当該実行作業が所有します。Skillを読み込むことは変更・検証・PR・merge権限や新規必須Gateを生みません。
