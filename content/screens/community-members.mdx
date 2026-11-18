@@ -173,6 +173,20 @@ role変更・除外等が成立した後も現在の検索語と単一columnのs
 - Network / Serverの一時的な失敗は操作の成立を推測せず、現在状態を確認可能にし、安全な再試行導線を提供する。結果が不明な操作を無条件に成功扱いしたり自動再送したりしない。
 - Confirmationを伴う操作が失敗した場合は、対象と操作意図を理解できる文脈を維持しつつ、現在状態と再試行可否を更新する。すでに成立した操作を二重実行しない。
 
+### Mutation確定と表示同期の分離（2026-11-18合意）
+
+Role変更・他Userの除外・自分の退会のMutation実行結果と、成立後のQuery再取得（Refetch）結果は、異なる責務・結果として扱う。**Mutationから成功が確定した後にRefetchが失敗した場合、成立済み操作を失敗・結果不明として扱わない。** 一方、Mutation自体が拒否・失敗・結果不明の場合は成功と断定せず、自動再送しない。
+
+| 対象 | Mutation成功・同期成功 | Mutation成功・Refetch失敗 | Mutation拒否・結果不明 |
+| --- | --- | --- | --- |
+| Role変更 | 対象Roleを再取得し、成功通知・確認UIを終了 | 成立を明示した「表示更新に失敗」の警告を提示して確認UIを終了。既存データを確定最新として扱わず、再読み込みによる確認を案内 | 成功通知を出さず、対象と操作意図を保ち、現在値を確認してから再操作するよう案内 |
+| 他Userの除外 | 対象Membershipを再取得し、成功通知・確認UIを終了 | 除外成立を明示した同期失敗警告を提示して確認UIを終了。対象の残存表示を再実行の根拠にせず、再読み込みを案内 | 成功通知を出さず、確認UIの文脈を保って結果を確認させる |
+| 自分の退会 | 成立を確認後、成功通知してDashboardへ遷移 | 退会成立を維持し、再取得失敗を別途通知。成功通知とDashboard遷移は行い、退会元の保護情報を継続表示しない | 成立不明のまま遷移・成功通知しない。現在のMembershipを確認してから再操作する |
+
+確定成功の判断にはMutationの成功payloadを用い、`awaitRefetchQueries: true`で単一のPromiseに連結して結果を混同しない。成立後のRefetchには、既存の対象Query範囲（Role/除外: CommunityMembersとCommunitySettingsMembers、退会: MyCommunities）を使用する。Refetch失敗後にMutationを自動再送せず、再読み込み等の**取得専用**経路で状態確認を案内する。
+
+変更後の操作可否、Confirmation中の競合、最後のAdministrator制約、管理権限喪失、UI/Responsive等の既存Contractは維持する。Network例外でMutation結果を確定できないケースでは、実際のServer成立の有無を推測しない。Refetch失敗時の表示に残存する古いrole/membershipは最新値として保証しない。Role/除外の同期失敗警告は成功を否定しない1件のFeedbackとする。退会は既存の成功Notificationと遷移を優先し、同期失敗の警告を区別して案内する。
+
 ### 後続Visual Reviewで検証する事項
 
 固定高さのTableとBody ScrollArea、row Action Menu、Confirmation Dialogの組み合わせについて、Keyboard / Touch / Pointer操作、focus移動とDialog終了後のfocus復帰、scroll位置、Compact / Medium / Wideでの操作可能性を検証する。具体的な配置・寸法・focus fallbackはVisual Prototype / Reviewで決定し、既存のTable表示領域・Responsive contractを変更しない。
