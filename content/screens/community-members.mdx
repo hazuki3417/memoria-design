@@ -29,7 +29,7 @@ Initial Releaseではprofile画像、email address、Auth0 identifier等を参�
 
 現在User自身を参加者一覧で識別できるようにします。具体的なvisual treatmentは固定しません。
 
-参加者の名前検索と名前・役割によるsortは、取得済みの参加者集合に対するフロントエンド内の処理として提供します。検索・sortのための追加API requestは行いません。参加者は名前で検索できます。既定の並び順は名前の昇順（日本語ロケール `ja-JP` による名前比較）とします。名前・役割のcolumn labelを操作することで、そのcolumnをsort keyとして並び順を変更できます。sortは常に単一のcolumnだけをkeyとし、複数columnの値を組み合わせた複合sortは提供しません。各columnの操作で昇順・降順を切り替え、別columnを選択した際はそのcolumnの昇順から開始します。別のcolumnを選択した場合は、それまでのsort keyを置き換えます。参加日時・参加順を表示またはsortへ使用しません。参加順からCommunity内の上下関係や序列を想起させるpresentationを避けます。Initial Releaseでは名前・役割以外の列を追加しません。
+参加者の名前検索と名前・役割によるsortは、取得済みの参加者集合に対するフロントエンド内の処理として提供します。検索・sortのための追加API requestは行いません。参加者は名前で検索できます。初期表示はAPI返却順をそのまま保持し、Client側の追加sortを行いません。現行実装ではAPIが本人を先頭に置き、その後を名前順に返すことを前提としています。名前・役割のcolumn labelを操作することで、そのcolumnをsort keyとして並び順を変更できます。sortは常に単一のcolumnだけをkeyとし、複数columnの値を組み合わせた複合sortは提供しません。同じcolumnの操作では「昇順 → 降順 → sortなし（API返却順）」の3状態を循環します。別columnを選択した際はそのcolumnの昇順から開始し、以前のsort keyを置き換えます。名前・役割の比較には日本語ロケール `ja-JP` を使用し、名前比較では数値を考慮します。参加日時・参加順を表示またはsortへ使用しません。参加順からCommunity内の上下関係や序列を想起させるpresentationを避けます。Initial Releaseでは名前・役割以外の列を追加しません。
 
 ## 操作
 
@@ -69,7 +69,7 @@ Memberおよび最後のAdministratorではないAdministratorは、自分自身
 
 ### 参加者一覧
 
-現在の参加者とAdministrator roleをTableで確認できます。既定では名前の昇順（`ja-JP`）で表示します。名前・役割のcolumn labelから単一columnのsortを変更できます。
+現在の参加者とAdministrator roleをTableで確認できます。初期表示とsortなし状態ではAPI返却順を保持します。名前・役割のcolumn labelから単一columnのsortを変更でき、同一columnを押すと昇順・降順・sortなしを循環します。
 
 名前による検索では、現在の参加者集合から名前に一致する参加者を絞り込みます。検索結果が0件の場合は読み込み失敗と区別して、該当する参加者がいないことを示します。
 
@@ -121,8 +121,8 @@ Context Switcher、Context Navigation、Account Menuとの関係は[Application 
 - 最後のAdministratorの降格・除外・退会を許可しません。
 - Administratorへ変更できるのは現在Communityに参加済みのMemberです。
 - 参加者一覧はTable形式とし、User情報の表示列は名前（現在のnickname）と役割（Administrator / Member）に限定します。
-- 名前による検索を提供し、既定の並び順は名前の昇順（日本語ロケール `ja-JP` による名前比較）とします。
-- 名前・役割のcolumn labelからsort keyを選択でき、sortは常に単一columnだけを使用します。複合sortは提供しません。
+- 名前による検索を提供し、初期表示とsortなし状態ではAPI返却順を保持します。選択した名前・役割columnのsortで`ja-JP`の比較を使用します。
+- 名前・役割のcolumn labelからsort keyを選択でき、sortは単一columnだけを使用します。操作は各columnで昇順 → 降順 → sortなしの3状態を循環し、別columnの選択は昇順から開始します。複合sortは提供しません。
 - 参加日時・参加順は表示せず、sortにも使用しません。
 - 退会・除外時のcleanupと競合制御は[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 - Communityのroleと操作権限は[Community権限](/community/authorization)を正本とします。
@@ -148,6 +148,10 @@ Dialogの寸法は情報量と可読性に合わせて選択する。Wide / Medi
 
 Initial Releaseでは有効なMembershipを持つ参加者はCommunityあたり合計30人まで（Administratorを含む）、Administratorは最大3人・最低1人とする。現段階では全Community共通の固定値とし、将来はプラン別の上限へ拡張可能な制約として扱う。招待による参加・Administratorへの昇格は上限超過時に拒否し、同時操作でも上限を超えないこと。
 
+## Members Sortの正本訂正（2026-11-18）
+
+この項目は、実装ではなく設計文書側に不整合があったため、ユーザー指示により**既存のWeb実装を正**として訂正したものです。初期sortは`null`（sortなし）で、取得済みのAPI返却順を保持します。同じcolumnの操作は昇順 → 降順 → sortなしを循環し、別columnを選択すると昇順に切り替えます。検索語と選択状態は独立して保持し、sort時も元の配列を変更しません。名前・役割の比較では`ja-JP`と数値比較を使用します。名前の昇順を初期状態とする変更は採用しません。
+
 ## 参加者テーブルの表示領域（2026-10合意）
 
 参加者Tableの外枠には角丸を適用する。検索結果件数にかかわらずTableの表示領域の高さを一定に保ち、Headerと最大4行分の表示領域を確保する。5件以上はTable内部の縦ScrollAreaでスクロールし、Headerは固定する。検索結果が0〜3件でもTable表示領域を縮めない。表示件数が4件未満の場合は残りを行要素ではなく非インタラクティブな空白領域として維持する。最終データ行の下端には区切り線を表示するが、空白領域にはhover・striped背景・行アクションを適用しない。縦スクロールバーはTable Body領域だけに配置し、Header領域へ重ねない。参加者Tableの縦スクロールバーはMantine ScrollAreaのoverlay表示（hover）を採用し、Body上に重ねる。HeaderとBodyにスクロールバー用の専用gutterを設けず、背景色・行区切り線を右端まで描画する。操作メニューがスクロールバーと干渉しないこと、検索結果0〜4件・5件以上・狭幅で列位置や表示が崩れないことを検証する。検索・ソートは引き続きフロントエンドのみで処理する。
@@ -164,7 +168,7 @@ Initial Releaseでは有効なMembershipを持つ参加者はCommunityあたり�
 
 ### 検索・sort中の更新
 
-role変更・除外等が成立した後も現在の検索語と単一columnのsort keyを保持し、更新された参加者集合に対して再適用する。role変更に伴う並び替えや検索結果からの対象行消失は許容するが、対象行が画面から見えなくなった場合も操作結果のFeedbackを失わせない。検索・sortは引き続き取得済み集合へのClient-side処理とし、追加の検索・sort APIを要求しない。
+role変更・除外等が成立した後も現在の検索語と単一columnのsort状態（sortなしを含む）を保持し、更新された参加者集合に対して再適用する。role変更に伴う並び替えや検索結果からの対象行消失は許容するが、対象行が画面から見えなくなった場合も操作結果のFeedbackを失わせない。検索・sortは引き続き取得済み集合へのClient-side処理とし、追加の検索・sort APIを要求しない。
 
 ### 失敗時のFeedbackと復帰
 
