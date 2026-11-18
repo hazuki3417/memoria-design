@@ -158,6 +158,14 @@ Initial Releaseでは有効なMembershipを持つ参加者はCommunityあたり�
 
 ## Members Behavior Contract（2026-10合意）
 
+### 自身のRole変更導線と降格確認（2026-11-18 B案合意）
+
+Administratorの自分自身のRowにも、**既存の操作列・Action Menu内に「役割を変更」**を提示します。ほかの参加者と同じ`CommunityMemberRoleModal`を再利用し、新しい独立SectionやConfirmation段階を追加しません。自分自身のRowには「除外」を提示しません。自分の退会は従来どおりMembers画面内の独立Actionとし、Role変更Menuには混在させません。既存のTable列・固定高さ・ScrollArea・Responsiveと、他UserのRole変更/除外メニューを維持します。
+
+現在のRoleがAdministratorで、変更先にMemberを選択した場合に限り、確定前のRole Modal内で対象者が**Community設定および参加者を管理する権限を失う**ことを説明します。自分自身の場合は降格後も参加者の閲覧・退会が可能と説明します。他のAdministratorの場合は対象者の名前と管理権限の喪失を明示します。MemberからAdministratorへの昇格には新たな二段階確認を加えません。既存の「キャンセル」「変更する」・対象Role表示・Validation・通信中の重複送信防止は維持します。
+
+最後のAdministratorは自分を含め降格できません。既存Modalの制約表示・選択不可を維持し、Serverの再検証を最終的な成立条件とします。自己降格が成立した後はMembers画面を維持し、Query同期した現在Roleに合わせて管理Action列を非表示とします。同期失敗・Mutation結果不明は「Mutation確定と表示同期の分離」に従い、古いRoleを確定最新として扱いません。
+
 ### 自分自身のAdministrator降格
 
 別Administratorが残り、自分自身のAdministratorからMemberへの変更が成立した場合、有効なMembershipは維持されるためMembers画面に留まる。最新roleを反映し、Administrator専用のrole変更・除外Actionは利用不可にする。自分の退会Actionと参加者閲覧はMemberとして引き続き利用できる。Membership自体を失った場合のみ、Application IAに従って安全なdestinationへ移動する。
