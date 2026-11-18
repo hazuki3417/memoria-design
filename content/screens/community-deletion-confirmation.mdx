@@ -106,6 +106,24 @@ Account削除FlowからCommunity削除が必要な場合は、通常Community削
 - Account削除時のCommunity削除特例とは分離します。
 - domain ruleと競合制御は[Communityユースケース](/community/use-cases)および[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 
+## 削除受付の確定結果と一覧同期（2026-11-18 B案合意）
+
+Community削除の受付Mutationと、受付後の`MyCommunities`再取得（Refetch）の成否は別の結果として扱います。`acceptCommunityDeletion.accepted: true`はサーバー側で**論理削除の受付**が確定したことを示し、物理Media削除・Outbox処理完了を意味しません。受付後のRefetch失敗を削除受付失敗または受付結果不明として表示しないでください。
+
+| Mutationの結果 | Refetch | 動作とFeedback |
+| --- | --- | --- |
+| `accepted: true` | 成功 | 「Community削除の受付」が成立したことを通知し、削除対象Contextを離れて`/dashboard`へ遷移 |
+| `accepted: true` | 失敗・GraphQL Error | 受付成立を通知し、一覧更新ができなかったことを**別の同期失敗情報**として案内。`/dashboard`へ遷移し、削除受付を再送しない |
+| Revision競合（`CONFLICT`） | 該当なし | 旧Snapshotでの受付を拒否。最新の権限・Community名・管理Media集合を再取得し、影響と名前確認を最初からやり直す。自動再送しない |
+| `accepted: false`（明示結果） | 該当なし | 受付は成立していないものとして停止。成功・遷移を行わず、最新のSnapshot/権限の確認を案内。確認なしに同じRevisionを再送しない |
+| 応答欠落・通信例外・結果不明 | 該当なし | 受付成立/不成立を推測しない。成功通知も遷移も行わず、送信Buttonを無効化し、取得専用の確認を案内。結果不明のMutationを自動再送しない |
+
+RefetchはMutationの成功payloadを確認した**後**で独立して実行する。Refetchの成功・失敗を問わず、`accepted: true`を受け取った時点で受付の確定結果は変わらない。同期失敗を通知する場合も、受付成立のFeedbackを否定したり、Media物理削除完了を断定したりしない。Dashboardでは最新のCommunity一覧を取得することで同期状態を確認できるようにし、失敗した一覧を確定最新として表示しない。
+
+削除対象の再取得だけでは、Communityが見つからない理由が削除受付・認可喪失・通信エラーのどれかを確定できない。そのため、Mutation結果不明の確定照会には別途Domain側の安全な照会契約が必要であり、必要なら独立Issueで検討する。この時点で新APIを前提にした自動判定や再送は導入しない。
+
+既存の3ステップ表示、名前一致確認、Cancel、Revisionに紐づく確認状態の初期化、Compact/Medium/Wide、最後の送信中の重複実行防止、競合時の再Reviewは維持する。Account Deletion固有の再認証・追加ReviewはこのFlowへ持ち込まない。
+
 ## Responsive対応
 
 表示領域や入力方式が変わっても、削除対象、Community管理Mediaを含む削除影響、確認入力、Cancel、最終削除Actionを確認・操作できるCapabilityを維持します。
