@@ -83,7 +83,7 @@ Pull Request CIでbuildしたartifactは検証用artifactとして扱えます�
 - `develop`統合後CIの失敗は既に成立したmergeを自動的に巻き戻さず、原因を修正する新しい変更でbranchを正常状態へ戻します。
 - `develop`統合後CIからProduction deployを開始しません。
 
-AWS Developmentでは、`develop`への統合後CIの成功後にApplicationの5種類のRuntime ImageをGHCR（Private）へCommit SHA Tagで発行し、手動Pull時はManifest Digestで指定します。Repositoryごとの品質検証と発行Jobの依存関係は所有Workflowを正本とします。Pull Requestからは発行せず、`develop`統合によってProductionへ自動Deployしません。Production ReleaseでのArtifact生成・保持期間とRetentionの詳細は別途決定します。
+AWS Developmentでは、`develop`への統合後CIの成功後にApplicationの6種類のRuntime ImageをGHCR（Private）へCommit SHA Tagで発行し、手動Pull時はManifest Digestで指定します。Repositoryごとの品質検証と発行Jobの依存関係は所有Workflowを正本とします。Pull Requestからは発行せず、`develop`統合によってProductionへ自動Deployしません。Production ReleaseでのArtifact生成・保持期間とRetentionの詳細は別途決定します。
 
 ### Release PR CI
 

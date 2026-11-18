@@ -22,10 +22,10 @@ local開発、CI、EC2上の構成は、同じDockerfile、lock file、Docker Co
 
 ## Development用Container Registry
 
-AWS Development用のApplication Runtime Imageは **GitHub Container Registry（GHCR）のPrivate Package** に格納します。`memoria-web`の1 imageと、`memoria-api`のAPI / Media Worker / Outbox Publisher / Migrationの4 imageを、それぞれ所有するRepositoryのGitHub Actionsから発行します。
+AWS Development用のApplication Runtime Imageは **GitHub Container Registry（GHCR）のPrivate Package** に格納します。`memoria-web`の1 imageと、`memoria-api`のAPI / Media Worker / Media Storage Cleanup / Outbox Publisher / Migrationの5 imageを、それぞれ所有するRepositoryのGitHub Actionsから発行します。
 
 - `develop`への統合後Commitに対して各Repositoryの発行条件となるCIが成功した場合のみ、`GITHUB_TOKEN`で同Commit SHAのImageをPushします。Pull RequestではPackageを発行しません。発行Jobのみ`packages: write`権限を持ち、Development EC2やProductionの自動Deployは行いません。
-- ImageのRepository名は `ghcr.io/hazuki3417/memoria-web` と `ghcr.io/hazuki3417/memoria-{api,media-worker,outbox-publisher,migration}` を基本とします。TagのCommit SHAは追跡用、**EC2での選択と固定は発行済みのManifest Digest（`@sha256:...`）**で行います。BuildされたImageとDeployされたImageのDigestを追跡可能にします。
+- ImageのRepository名は `ghcr.io/hazuki3417/memoria-web` と `ghcr.io/hazuki3417/memoria-{api,media-worker,media-storage-cleanup,outbox-publisher,migration}` を基本とします。TagのCommit SHAは追跡用、**EC2での選択と固定は発行済みのManifest Digest（`@sha256:...`）**で行います。BuildされたImageとDeployされたImageのDigestを追跡可能にします。
 - Private Packageの可視性、Source RepositoryからのActions Access、Pull可能なGitHub IdentityとToken権限は初回Publish時に確認します。EC2では管理者が必要時に読み取り権限のGitHub Credentialで認証し、Digest固定のImageを手動Pullします。TokenをEC2の恒久設定、Compose環境変数、Git、Docker Imageに配置しません。AWS Instance RoleはGHCR Private Packageの認証手段とはなりません。
 - 起動とMigrationは従来どおり`memoria-IaC`の手動Scriptが担当します。AWS ECRはDevelopmentの標準Registryには採用せず、将来のAWS Runtime形態や運用コストが変化した場合に再評価します。既存のBundle Export/ImportはオフラインFallbackとして保持します。
 - GitHub PackagesのStorage・転送の課金、Retentionとアクセス制御は実運用で確認します。GHCR採用はProduction Release Artifactの発行タイミング・Retention・CD方式まで決めるものではありません。

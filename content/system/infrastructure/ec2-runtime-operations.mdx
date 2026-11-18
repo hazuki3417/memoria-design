@@ -13,12 +13,13 @@
 | Web container | Next.js、session、GraphQL client | memoria-web |
 | API container | GraphQL、認可、PostgreSQL、Storage操作 | memoria-api |
 | Media Worker | Redis Streams消費、Image Variant生成 | memoria-api |
+| Media Storage Cleanup | Pending Originalの補償削除、孤立Original検出、Media削除Finalize | memoria-api |
 | Outbox Publisher | PostgreSQL OutboxからRedisへの配送 | memoria-api |
 | PostgreSQL container | 業務data、Job、Outboxの正本、backup / restore | memoria-api・memoria-IaC |
 | Redis container | Stream、cache、再構築可能な一時状態 | memoria-api・memoria-IaC |
 | OpenTelemetry Collector | trace・metric収集 | memoria-IaC |
 
-API、Worker、Publisherは論理的に分離し、初回Releaseでは単一EC2上で運用します。Host障害時は全体停止を許容し、必要な復旧手順で再開します。同一Hostのcontainerを増やして冗長構成とはみなしません。CollectorはApplicationの可用性依存先にせず、Collector停止だけでApplicationを停止させません。
+API、Worker、Media Storage Cleanup、Publisherは論理的に分離し、初回Releaseでは単一EC2上で運用します。Host障害時は全体停止を許容し、必要な復旧手順で再開します。同一Hostのcontainerを増やして冗長構成とはみなしません。CollectorはApplicationの可用性依存先にせず、Collector停止だけでApplicationを停止させません。
 
 ## DevelopmentとProductionのTopology
 
@@ -34,7 +35,7 @@ Development用Composeを無変更でProductionへ使用しません。共通化�
 
 EC2には最小権限のinstance profileを設定し、IMDSv2を必須化します。GitHub ActionsからAWSへはOIDCと短期credentialを利用し、長期Access KeyをApplicationやRepositoryへ配置しません。
 
-S3を利用するAPIとMedia Workerは、ローカルとEC2で同じAWS SDK for Go v2のStorage処理を使用します。ローカルの開発用CredentialやAWS Profile、EC2のInstance RoleなどCredentialの取得元のみをSDK側で解決し、短期Credentialを必要に応じて更新します。既存の内部S3 Endpoint・Browser用Presigned GETの区別および権限制御・署名期限を維持します。取得経路の実装契約は[Mediaストレージ](/system/data/storage)を参照します。
+S3を利用するAPI・Media Worker・Media Storage Cleanupは、ローカルとEC2で同じAWS SDK for Go v2のStorage処理を使用します。ローカルの開発用CredentialやAWS Profile、EC2のInstance RoleなどCredentialの取得元のみをSDK側で解決し、短期Credentialを必要に応じて更新します。既存の内部S3 Endpoint・Browser用Presigned GETの区別および権限制御・署名期限を維持します。取得経路の実装契約は[Mediaストレージ](/system/data/storage)を参照します。
 
 単一EC2のInstance RoleはContainer単位のIAM Roleではありません。ContainerからIMDSv2を利用する構成にする場合、Metadataのhop limit、到達制御、最小権限、他ContainerからのCredential取得リスクを実機で確認し、過剰な共有を許容するか安全な受渡し方式を採用するか判断してからInfrastructureへ反映します。
 
@@ -44,7 +45,7 @@ Application containerはnon-root、非privileged、最小runtime imageを基本�
 
 Docker imageは一度buildし、commit SHAまたはimage digestで固定します。latestをdeploy対象の識別子にしません。deploy logicはRepository内のversion管理されたscriptまたは設定として保管し、environmentごとの同時deployを禁止します。
 
-DevelopmentのWeb/API/Media Worker/Outbox Publisher/Migration Imageは、`develop`統合後のGitHub ActionsでGHCR Private Packageへ発行します。EC2での手動Deployでは、発行済みのDigestで固定した5種類のImageを、必要時にGitHubの読み取りCredentialで認証してPullします。認証は一時的なDocker Configを使い、終了時に破棄します。EC2 Instance RoleによるS3アクセスとGHCRのPrivate Package認証を混同せず、GitHub TokenはApplication Container・Terraform State・Repository・永続env fileへ渡しません。PullはApplication停止やMigrationの前に行い、Digestと既存データVolumeを確認後、従来の手動起動ScriptでMigrationを一度だけ実行します。直接EC2でApplication ImageをBuildせず、通常起動は自動Pullしません。オフラインのBundle搬送はFallbackとして保持します。
+DevelopmentのWeb/API/Media Worker/Media Storage Cleanup/Outbox Publisher/Migration Imageは、`develop`統合後のGitHub ActionsでGHCR Private Packageへ発行します。EC2での手動Deployでは、発行済みのDigestで固定した6種類のImageを、必要時にGitHubの読み取りCredentialで認証してPullします。認証は一時的なDocker Configを使い、終了時に破棄します。EC2 Instance RoleによるS3アクセスとGHCRのPrivate Package認証を混同せず、GitHub TokenはApplication Container・Terraform State・Repository・永続env fileへ渡しません。PullはApplication停止やMigrationの前に行い、Digestと既存データVolumeを確認後、従来の手動起動ScriptでMigrationを一度だけ実行します。直接EC2でApplication ImageをBuildせず、通常起動は自動Pullしません。オフラインのBundle搬送はFallbackとして保持します。
 
 Registry運用はDevelopment向けのArtifact供給を扱うものであり、GitHub ActionsによるEC2自動DeployやProduction Releaseの実装を意味しません。
 
