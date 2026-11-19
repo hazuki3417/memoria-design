@@ -106,7 +106,7 @@ Account削除FlowからCommunity削除が必要な場合は、通常Community削
 - Account削除時のCommunity削除特例とは分離します。
 - domain ruleと競合制御は[Communityユースケース](/community/use-cases)および[Communityの整合性とTransaction](/community/consistency-transactions)を正本とします。
 
-## 削除受付の確定結果と一覧同期（2026-11-18 B案合意）
+## 削除受付の確定結果と一覧同期
 
 Community削除の受付Mutationと、受付後の`MyCommunities`再取得（Refetch）の成否は別の結果として扱います。`acceptCommunityDeletion.accepted: true`はサーバー側で**論理削除の受付**が確定したことを示し、物理Media削除・Outbox処理完了を意味しません。受付後のRefetch失敗を削除受付失敗または受付結果不明として表示しないでください。
 
@@ -120,7 +120,16 @@ Community削除の受付Mutationと、受付後の`MyCommunities`再取得（Ref
 
 一覧同期はMutationの成功payloadを確認した**後**で独立して実行する。監視中のApollo Queryがない場合にも通信結果を検証できるよう、`MyCommunities`を`network-only`で明示的に再取得する。Refetchの成功・失敗を問わず、`accepted: true`を受け取った時点で受付の確定結果は変わらない。同期失敗を通知する場合も、受付成立のFeedbackを否定したり、Media物理削除完了を断定したりしない。Dashboardでは最新のCommunity一覧を取得することで同期状態を確認できるようにし、失敗した一覧を確定最新として表示しない。
 
-削除対象の再取得だけでは、Communityが見つからない理由が削除受付・認可喪失・通信エラーのどれかを確定できない。そのため、Mutation結果不明の確定照会には別途Domain側の安全な照会契約が必要であり、必要なら独立Issueで検討する。この時点で新APIを前提にした自動判定や再送は導入しない。
+削除対象の再取得だけでは、Communityが見つからない理由が削除受付・認可喪失・通信エラーのどれかを確定できない。削除受付の結果が不明な場合には、受付時の操作識別子に結び付く記録を**取得専用**で照会する。受付が確定した記録のみを成功の根拠とし、Snapshotの不存在や同一Revision、記録の未検出・失効・照会失敗を受付未成立の根拠とはみなさない。結果不明のまま削除Mutationを再送できるようにはしない。
+
+### 結果不明時の受付記録と照会
+
+- 送信前に一つの削除操作を識別するOperation IDを確定し、対象Community ID・確認済みRevisionとともに削除受付へ渡す。APIは削除受付と**同一DB Transaction**で、Operation ID・実行者・対象Community・Revision・受付時刻・受付確定を記録する。物理Media削除完了とは区別する。
+- 受付記録の照会は認証を要求し、**操作を実行した本人**に紐付く記録だけを返す。現在のCommunity Membershipは照会権限の条件にしない。結果不明者以外がOperation IDを知っても受付の有無やCommunity情報を取得できない。Userの認証・アカウント状態と操作実行者の同一性をサーバーが検証する。
+- 結果照会で自分の受付確定が確認できた場合は受付成立を通知し、削除対象Contextを離れて`/dashboard`へ遷移する。受付確定の照会ではStorageの物理cleanupを完了扱いにしない。
+- 記録未検出・失効、認可が確認できない場合、通信例外、取得不能は**結果不明**として扱う。再送の可否をSnapshotだけから推測せず、削除Actionを自動／手動で再送可能へ復帰させない。確定結果が得られないときは状態不明と安全な確認方法を提示する。
+- Webの結果不明ロックは確認画面のComponent破棄・Snapshot再取得・同一Revisionでの再描画をまたいで維持する。取得専用の確認は入力・削除Actionの再有効化と切り離す。
+- 同一Operation IDのMutation再実行による冪等性保証を、この結果照会だけを理由に約束しない。Operation IDの一意性と記録の維持・失効、照会の認可・監査はAPIが担い、削除受付のRevision検証とTransaction境界は既存の規則に従う。
 
 既存の3ステップ表示、名前一致確認、Cancel、Revisionに紐づく確認状態の初期化、Compact/Medium/Wide、最後の送信中の重複実行防止、競合時の再Reviewは維持する。Account Deletion固有の再認証・追加ReviewはこのFlowへ持ち込まない。
 
